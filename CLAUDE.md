@@ -1,0 +1,1 @@
+Do not add you as a co-author and follow all the rules of agents.md

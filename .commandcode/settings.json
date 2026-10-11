@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "powershell",
+      "mcp__pvsyst__info_entorno",
+      "mcp__pvsyst__preflight",
+      "mcp__pvsyst__licencia",
+      "mcp__pvsyst__cobertura",
+      "mcp__pvsyst__workspace",
+      "mcp__pvsyst__entorno",
+      "mcp__pvsyst__listar",
+      "mcp__pvsyst__componente",
+      "mcp__pvsyst__leer",
+      "mcp__pvsyst__disenar_sistema",
+      "mcp__pvsyst__proyecto",
+      "mcp__pvsyst__resultados",
+      "mcp__pvsyst__sitio",
+      "agent_output",
+      "mcp__pvsyst__simular"
+    ],
+    "deny": [],
+    "defaultMode": "default"
+  }
+}

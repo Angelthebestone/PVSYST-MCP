@@ -1,0 +1,31 @@
+{
+  "mcpServers": {
+    "pvsyst": {
+      "transport": "stdio",
+      "enabled": true,
+      "command": "C:\\pvsyst-mcp\\pvsyst-mcp.exe",
+      "env": {
+        "PVSYST_WORKSPACE": "C:\\Users\\Lenovo\\PVsyst8.1_Data",
+        "PVSYST_MCP_EXPERTO": "1"
+      }
+    },
+    "rea": {
+      "transport": "stdio",
+      "enabled": true,
+      "command": "cmd.exe",
+      "args": [
+        "/d",
+        "/c",
+        "npx",
+        "-y",
+        "rea-agents@6.3.0",
+        "mcp"
+      ],
+      "env": {
+        "REA_ANALYSIS_PROVIDER": "ghidra",
+        "GHIDRA_INSTALL_DIR": "C:\\Users\\Lenovo\\tools\\ghidra_12.1.4_PUBLIC",
+        "JAVA_HOME": "C:\\Users\\Lenovo\\tools\\jdk-21"
+      }
+    }
+  }
+}

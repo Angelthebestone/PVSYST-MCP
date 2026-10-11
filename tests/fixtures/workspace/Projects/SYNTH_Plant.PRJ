@@ -1,0 +1,17 @@
+PVObject_=pvProject
+  Comment=Synthetic plant (test fixture)
+  Version=8.1.0
+  Flags=$00080010
+EndTags
+MeteoFileName=Synth.MET
+PVObject_SitePrj=pvSite
+  Comment=Synthetic;Nowhere;
+  NomF=Synthetic
+  Country=Nowhere
+  Latitude=10.0000
+  Longitude=-70.0000
+  Altitude=100
+  TimeZone=-4.0
+  Albedo=0.20
+End of PVObject pvSite
+Albedo=0.200,0.200,0.200,0.200,0.200,0.200,0.200,0.200,0.200,0.200,0.200,0.200,

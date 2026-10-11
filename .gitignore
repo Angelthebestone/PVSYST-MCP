@@ -1,0 +1,16 @@
+/target
+/.scratch
+**/*.rs.bk
+Cargo.lock.orig
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.claude/settings.local.json
+command-code-session-4ebba3ca.html
+critica_codigo_src.md
+informe.md
+docs/
+.commandcode/
+PVSYST_CLI_REFERENCE.md
+.claude/

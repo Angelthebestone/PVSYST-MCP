@@ -1,0 +1,3 @@
+
+Exporting logs to C:\Users\Lenovo\AppData\Local\Temp\mcp_tmp_logs ...
+Logs ZIP file successfully created: C:\Users\Lenovo\AppData\Local\Temp\mcp_tmp_logs\2026_10_11-13_46_00-PVsystCLI817-logs.zip

@@ -1,0 +1,4 @@
+* text=auto eol=lf
+*.ps1 text eol=crlf
+# Fixtures mimic PVsyst's CRLF files: keep bytes as-is.
+tests/fixtures/workspace/** -text

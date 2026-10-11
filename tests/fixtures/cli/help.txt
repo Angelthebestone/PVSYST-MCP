@@ -1,0 +1,16 @@
+
+Use the following syntax to get help on a particular command: help <command>
+Available commands:
+   convert-meteo: Convert an input file using a conversion format definition
+   create-site: Create a site file .SIT from location information and monthly weather data
+   export-logs: Export execution logs in a zip file
+   lic-activate: Activate PVsystCLI with the given license key
+   lic-deactivate: Deactivate PVsystCLI license from the machine
+   lic-info: Show license status and expiration date
+   lic-sync: Update the current license status and information from the server
+   run-simulation: Run a simulation for the given project and variant, and output results
+   version: Show PVsystCLI version and check for available updates
+
+The CLI documentation is available online at: https://www.pvsyst.com/help-cli
+Or locally in: C:\Program Files\PVsyst8.1.7\help-cli\index.html
+

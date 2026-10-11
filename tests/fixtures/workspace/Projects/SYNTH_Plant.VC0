@@ -1,0 +1,31 @@
+PVObject_=pvVCalcul
+  Comment=First simulation
+  Version=8.1.0
+  PVObject_MeteoSimul=pvMeteo
+    PVObject_SiteMet=pvSite
+      Comment=Synthetic;Nowhere;
+      Version=8.1.0
+    End of PVObject pvSite
+    PVObject_=pvOrient
+      Comment=Fixed, Tilt 25.0, Azim. 0.0
+      Version=8.1.0
+      FieldType=FixedPlane
+      FieldTilt=25.0
+      FieldAzim=0.0
+    End of PVObject pvOrient
+  End of PVObject pvMeteo
+  PVObject_SystemCircuit=pvCircuit
+    Version=8.1.0
+    PVObject_=pvSubArray
+      Comment=PV Array
+      Version=8.1.0
+      PVModule=Synth_400W.PAN
+      GInverter=Synth_10kW.OND
+      NModSerie=10
+      NStringCh=2
+      NStrOrient1=2
+      NInverter=1
+      PNomSizing=8.0
+    End of PVObject pvSubArray
+  End of PVObject pvCircuit
+End of PVObject pvVCalcul

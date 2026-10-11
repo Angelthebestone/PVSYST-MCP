@@ -1,0 +1,12 @@
+
+Error: Invalid command syntax
+
+Unknown command line option : --nope:1
+Required option [site-name] was not specified
+Required option [latitude] was not specified
+Required option [longitude] was not specified
+Required option [weather-data-file] was not specified
+
+
+Call the 'help' command to get global help on this command-line tool
+

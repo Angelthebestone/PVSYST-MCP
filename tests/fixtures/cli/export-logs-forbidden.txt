@@ -1,0 +1,3 @@
+
+C:\Windows Cannot create file "C:\Windows\2026_10_11-13_42_49-PVsystCLI817-logs.zip". Acceso denegado
+[C:\Windows\2026_10_11-13_42_49-PVsystCLI817-logs.zip]
