@@ -14,3 +14,10 @@ docs/
 .commandcode/
 PVSYST_CLI_REFERENCE.md
 .claude/
+.env
+
+# npm packaging: the binary and the license copies are staged at publish time by
+# npm/scripts/vendor-binary.mjs, never committed.
+/npm/vendor/
+/npm/LICENSE
+/npm/NOTICE

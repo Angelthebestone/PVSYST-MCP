@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **npm package**: the release binary is also published as `pvsyst-mcp` on npm
+  (Windows x64), so an MCP client can launch the server with `npx -y pvsyst-mcp`.
+  The tarball bundles the license and the attribution notice.
+
 ## [0.1.0] - 2026-10-11
 
 First public release: an MCP server that operates a PVsyst 8.1.7 installation
