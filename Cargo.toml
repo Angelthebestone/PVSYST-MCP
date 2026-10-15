@@ -3,8 +3,13 @@ name = "pvsyst-mcp"
 version = "0.1.0"
 edition = "2021"
 description = "MCP server that operates PVsyst 8.1.7 by manipulating only its data files (no PVsyst code, no simulation engine reimplementation)."
-license = "MIT"
-repository = ""
+license = "Apache-2.0"
+repository = ""                    # TODO: fill in once the repository is public
+keywords = ["mcp", "pvsyst", "photovoltaic", "solar", "automation"]
+categories = ["command-line-utilities", "development-tools"]
+# Not published to crates.io: distributed through GitHub Releases, see the
+# trademark and licensing notes in README.md.
+publish = false
 
 [lib]
 name = "pvsyst_mcp"

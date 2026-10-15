@@ -1,9 +1,28 @@
-# PVsyst MCP (Rust)
+# PVsyst MCP Server
 
-A [Model Context Protocol](https://modelcontextprotocol.io) server that lets an
-agent **operate a PVsyst 8.1.7 installation by reading and writing ONLY its data
-files** — never by touching `PVsyst.exe`, and without reimplementing a single
-line of PVsyst's simulation logic.
+**English** | [Español](README.es.md)
+
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Platform: Windows](https://img.shields.io/badge/platform-Windows-0078D4.svg)](#requirements)
+[![PVsyst 8.1.7](https://img.shields.io/badge/PVsyst-8.1.7-2E7D32.svg)](#requirements)
+[![Rust](https://img.shields.io/badge/Rust-stable-DEA584?logo=rust&logoColor=black)](#build-from-source)
+[![MCP](https://img.shields.io/badge/MCP-2025--03--26%20%7C%202024--11--05-6E56CF.svg)](https://modelcontextprotocol.io)
+[![Tests: hermetic](https://img.shields.io/badge/tests-hermetic%20(no%20PVsyst%20required)-3FB950.svg)](#development-checks)
+
+**A [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server that automates
+PVsyst 8.1.7 from an AI agent** — batch simulations, project and variant creation,
+component and weather handling, and result extraction — by reading and writing **only
+PVsyst's data files** and running the **documented `PVsystCLI` commands** as a black box.
+
+It is the missing API for PVsyst: there is no public scripting interface an agent can
+call, so this server gives agents one through the artifacts PVsyst already reads and
+writes.
+
+> **Unofficial.** Not affiliated with, endorsed by or sponsored by PVsyst SA. "PVsyst"
+> is a trademark of its respective owner and is used here only to describe
+> interoperability. This project contains no PVsyst code and redistributes no PVsyst
+> software: you need your own licensed installation. See
+> [responsible use](#responsible-use-licensing-and-trademark).
 
 > **Hard rules this project follows**
 > * No PVsyst source code, no decompilation. `PVsyst.exe` is never opened in
@@ -12,7 +31,39 @@ line of PVsyst's simulation logic.
 >   MCP shells out to the **documented** `PVsystCLI run-simulation` command.
 > * The MCP prepares, duplicates and inspects projects; PVsyst does the physics.
 
----
+**Contents**
+
+- [Why this exists](#why-this-exists)
+- [Tools](#what-it-exposes-15-tools-12-by-default)
+- [Coverage](#coverage)
+- [Requirements](#requirements)
+- [Build from source](#build-from-source)
+- [Install into an MCP client](#install-into-an-mcp-client)
+- [Usage examples](#usage-examples)
+- [Supported file formats](#file-format-documentation)
+- [Verification (evidence)](#verification-evidence)
+- [Project layout](#layout)
+- [FAQ](#faq)
+- [Responsible use, licensing and trademark](#responsible-use-licensing-and-trademark)
+- [Contributing](#contributing)
+- [Development checks](#development-checks)
+
+## Why this exists
+
+PVsyst is the reference tool for photovoltaic system design and bankable yield
+simulation, and it ships **no public API**: automation means either writing batch files
+for `PVsystCLI` by hand, or clicking the desktop UI. That gap is exactly what an agent
+cannot cross on its own, so this server closes it:
+
+* **Headless execution.** An agent prepares a project, runs the simulation through the
+  documented CLI and reads the results, with no window in the loop.
+* **Byte-preserving edits.** Project files are plain UTF-8 `Key=Value` "PVObject"
+  records; the server edits fields, inserts and removes objects without touching a byte
+  it was not asked to change.
+* **Everything is snapshotted.** Any write is preceded by a snapshot, so an experiment
+  can be undone.
+* **The GUI-only surface is still reachable** through UI Automation and Win32 in expert
+  mode, for the dialogs that have no file or CLI equivalent.
 
 ## What it exposes (15 tools; 12 by default)
 
@@ -39,7 +90,7 @@ The default surface has 12 tools. `pvsyst_cli`, `gui_observar` and `gui_actuar` 
 
 **Resources** (`resources/list` / `resources/read`): `pvsyst://recetas` (task → tool playbook), `pvsyst://cobertura` (coverage map), `pvsyst://formato` (file formats), `pvsyst://cli` (CLI reference). Unknown URIs return JSON-RPC -32602 `Recurso desconocido`.
 
-All tools read/write only files under the workspace; nothing is sent anywhere, except the PVGIS requests of `horizonte_pvgis` and `meteo_pvgis` and the optional PVGIS fetch of `p50_p90` (PVGIS `MRcalc`, `printhorizon` and `tmy` verified live). Meteonorm data is not used: even the horizon block that `proyecto anadir` copies from a demo is emptied first.
+All tools read/write only files under the workspace; nothing is sent anywhere, except the PVGIS requests of `horizonte_pvgis` and `meteo_pvgis` and the optional PVGIS fetch of `p50_p90` (PVGIS `MRcalc`, `printhorizon` and `tmy` verified live). Meteonorm data is not used: even the horizon block that `proyecto anadir` copies from a demo is emptied first — see [responsible use](#responsible-use-licensing-and-trademark).
 
 **Path scope.** Every caller-supplied path (read, list, edit, import/export, capture output, CSV/report destinations, history restore) is confined to the workspace: `..` and paths outside it are rejected. Pass `permitir_fuera_del_workspace: true` to opt out explicitly. History restore always validates the whole manifest first and never writes outside the workspace. Edits refuse files whose PVObject structure is unbalanced, and selectors with malformed segments or indices (`pvSubArray[abc]`) are errors instead of falling back to `[0]`.
 
@@ -109,7 +160,7 @@ the `pvsyst://cobertura` resource returns the machine-readable version.
 
 ---
 
-## Build
+## Build from source
 
 ```powershell
 cargo build --release
@@ -124,7 +175,9 @@ cargo test
 
 ---
 
-## Install into Command Code (Windows)
+## Install into an MCP client
+
+### Command Code (Windows)
 
 > **Important — the space-in-path gotcha.** Command Code does not quote the
 > executable path when it spawns a stdio MCP server, so a `command` containing a
@@ -158,6 +211,27 @@ cmdc mcp list
 
 The tools then appear as `mcp__pvsyst__listar_proyectos`, etc. Re-run
 `scripts\install.ps1` after every rebuild.
+
+### Other MCP clients
+
+Any client that speaks MCP over **stdio** can drive it (Claude Desktop, Cursor, VS Code,
+and anything else that reads the usual `mcpServers` map). Point the client at the
+space-free binary and give it the workspace folder:
+
+```json
+{
+  "mcpServers": {
+    "pvsyst": {
+      "command": "C:\\pvsyst-mcp\\pvsyst-mcp.exe",
+      "env": { "PVSYST_WORKSPACE": "C:\\Users\\Lenovo\\PVsyst8.1_Data" }
+    }
+  }
+}
+```
+
+Keep it **local**: the server is designed for the workstation that holds your PVsyst
+licence, not for a shared endpoint — see
+[responsible use](#responsible-use-licensing-and-trademark).
 
 **Client-compatibility notes.** The server echoes back the `protocolVersion` the
 client requests when it supports it (`2024-11-05`, `2025-03-26`; Command Code asks
@@ -236,6 +310,9 @@ decoder lives in `tools/pan_decode.py`.
 * PVsyst-side validation errors are surfaced (`success:false`), e.g. an over-sized array rejected by PVsyst with "array Voc … greater than the inverter absolute maximum input voltage".
 * **GUI automation verified against the live app** (expert mode): `gui_observar que:ventanas|controles` enumerated PVsyst's real VCL windows/controls; `gui_actuar accion:click` on the *Herramientas* button opened `TToolsForm`; `gui_observar que:capturar` produced a screenshot; `gui_actuar accion:cerrar` closed it. Covered by the gated test `gui_invokes_button_and_opens_window`.
 
+Every table, figure and report quoted above was produced with **PVsyst 8.1.7
+(PVsystCLI)**; see [citation](#how-to-cite-this-work).
+
 
 ## Layout
 
@@ -283,6 +360,139 @@ docs/cobertura.md        coverage map (area -> tool, GUI-only boundary)
 docs/pvsyst_features.md  full 623-page feature inventory
 tools/pan_decode.py      reference decoder
 ```
+
+---
+
+## FAQ
+
+### Can I run PVsyst simulations without opening the GUI?
+
+Yes. `simular` prepares the variant, shells out to the documented
+`PVsystCLI run-simulation` command, parses the success markers and returns the KPIs —
+no window is opened. The GUI tools (`gui_observar`, `gui_actuar`) exist only for the
+dialogs that have no file or CLI equivalent, and they live behind expert mode.
+
+### Do I need a PVsyst licence?
+
+For headless simulation, yes. `PVsystCLI` runs in TRIAL mode without a licence
+(evaluation limits apply, see [responsible use](#responsible-use-licensing-and-trademark));
+the server tracks the remaining budget in a ledger, asks for confirmation before a run
+that would spend several executions, and caches repeated simulations. File-level work —
+listing, reading, editing, sites, sizing, component creation — needs no licence at all.
+
+### Which MCP clients work with it?
+
+Anything that speaks MCP over stdio and reads the usual `mcpServers` map: Command Code,
+Claude Desktop, Cursor, VS Code, and others. See
+[install into an MCP client](#install-into-an-mcp-client). The server opens no network
+port.
+
+### Is this affiliated with PVsyst SA?
+
+No. It is an unofficial interoperability project: no PVsyst code, no decompilation, no
+redistribution of PVsyst software, and no licence management. `PVsyst.exe` is never
+opened in a disassembler; `PVsystCLI.exe` is only run.
+
+### Will it corrupt my projects?
+
+It edits only what you ask, at byte level, and refuses files whose PVObject structure
+is unbalanced. Every write is preceded by a snapshot under `UserData/mcp_history/<id>/`,
+and `workspace accion:restaurar` validates the whole manifest before writing anything
+back. Note that PVsyst itself documents its file format as internal and unsupported, so
+snapshots are the safety net, not PVsyst support.
+
+### Does it send my data anywhere?
+
+No. The only outbound requests are the PVGIS calls you trigger: `horizonte_pvgis`,
+`meteo_pvgis` and the optional PVGIS fetch of `resultados que:p50_p90`. Nothing is
+uploaded, and no telemetry is collected.
+
+### Can it do batch runs and parameter sweeps?
+
+Yes: `simular accion:barrido` sweeps orientations and sends the best ones to one batch
+simulation, `simular accion:preparar` writes batch parameter files, `simular accion:preestimar`
+gives a local pre-estimate that costs no trial execution, and long runs can be started
+as background jobs polled with `simular accion:estado`.
+
+### Can it read the old binary `.PAN` modules?
+
+Yes. The legacy Delphi `Real48` layout was recovered from the outside and is decoded by
+`components/pan/`; `tools/pan_decode.py` is a standalone reference decoder you can run
+without the server.
+
+### Which PVsyst versions and file types are supported?
+
+Defaults target PVsyst 8.1.7, with the executable and workspace paths configurable
+through `PVSYST_CLI`, `PVSYST_GUI` and `PVSYST_WORKSPACE`. Supported artifacts include
+`.PRJ` / `.VCi` projects and variants, `.PAN` (text and legacy binary) and `.OND`
+components, `.SIT` sites, `.MET` weather files, plus raw PVObject text.
+
+### Why not use a PVsyst API instead?
+
+There is no public API to use. This project deliberately takes the two supported routes
+— the documented `PVsystCLI` commands and the data files — instead of reimplementing a
+simulation engine, which would give you different numbers than PVsyst.
+
+---
+
+## Responsible use, licensing and trademark
+
+This is an unofficial tool that drives **your** installation of PVsyst, so the terms
+that apply to the program are the ones you accepted when you installed it: PVsyst SA's
+[*General Conditions of Use*](https://www.pvsyst.com/pdf/common/general-conditions-of-use-english.pdf)
+and your subscription contract. How this project positions itself against them:
+
+* **No decompilation, no modification of the programs.** The GCU forbids reproducing,
+  modifying, translating, decompiling or recompiling the Software. This project never
+  touches `PVsyst.exe`/`PVsystCLI.exe`; it reads and writes *your* data files and runs
+  the documented CLI.
+* **Keep it local.** The GCU forbids making the Software accessible to third parties and
+  requires you to prevent unauthorised access to it, with one licence per workstation.
+  Do not expose this server as a shared or remote endpoint: it is meant for the machine
+  that holds the licence, and its `workspace` argument plus `permitir_fuera_del_workspace`
+  give any connected client real filesystem reach.
+* **GUI automation stays on the workstation.** PVsyst 8 must not be used on a server or
+  operated through a Windows Remote Desktop client; `PVsystCLI` explicitly may. That maps
+  to this project's surface: the CLI-based tools are fine on a server, the expert-mode
+  `gui_observar` / `gui_actuar` tools are not.
+* **Never touch the clock.** Licences depend on the machine's date and time never having
+  been amended; nothing in this project reads or changes it.
+* **No Meteonorm data leaves PVsyst.** The GCU prohibits exporting Meteonorm data to
+  other software, so the MCP does not use it: sites come from coordinates (NASA SSE) or
+  PVGIS TMY, and the Meteonorm-derived horizon block of a demo project is emptied before
+  it is copied.
+* **Trial and evaluation limits are respected, not bypassed.** The server only *counts*
+  the remaining trial executions to warn you before spending them, and
+  `entorno accion:licencia_activar` merely prints the activation command for you to run
+  with your own key. The licence file, the registry and the system clock are never
+  written to.
+* **Editing files is your call.** PVsyst documents its file format as internal-use and
+  unsupported; editing is legal — they are your project files — but PVsyst will not
+  support a file this project (or you) broke. Validate with `proyecto accion:doctor` and
+  keep the snapshots.
+
+### How to cite this work
+
+Clause 8.4 of the GCU requires quoting PVsyst whenever you publish images or tables
+generated by it. Every result quoted in this repository — including the report fixture
+in `tests/fixtures/results/` — was generated with:
+
+> PVsyst 8.1.7 (PVsystCLI), PVsyst SA, Satigny, Switzerland — https://www.pvsyst.com
+
+### This program's licence
+
+`pvsyst-mcp` itself is licensed under the **Apache License 2.0** ([`LICENSE`](LICENSE)),
+with the attribution notice in [`NOTICE`](NOTICE). If you fork it or redistribute a
+modified version you must keep the attribution notices and mark the files you changed
+(sections 4(b)–4(d)), and section 6 grants no rights to the project name. Contributions
+are accepted under the same licence — see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Contributing
+
+Issues and pull requests are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md) for
+the ground rules (no vendor data in the repository, no decompilation, behaviour-based
+tests), the [Code of Conduct](CODE_OF_CONDUCT.md), and [SECURITY.md](SECURITY.md) to
+report a vulnerability privately. Changes are tracked in [CHANGELOG.md](CHANGELOG.md).
 
 ## Development checks
 

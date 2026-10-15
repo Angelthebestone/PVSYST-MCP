@@ -1,0 +1,95 @@
+name: Bug report
+description: Something in the MCP server does not work as documented
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please **redact licence keys, customer IDs and private
+        project paths** before posting, and never attach a real `.PRJ`/`.VC0` you do not
+        want public.
+
+        Vulnerabilities belong in the process described in `SECURITY.md`, not here.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you expect to happen, and what happened instead?
+      placeholder: I called ... and expected ..., but the response was ...
+    validations:
+      required: true
+  - type: input
+    id: tool
+    attributes:
+      label: Tool and arguments
+      description: The tool name plus the exact JSON arguments.
+      placeholder: 'simular { "accion": "ejecutar", "proyecto": "MY_PLANT", "variante": "VC0" }'
+    validations:
+      required: true
+  - type: textarea
+    id: response
+    attributes:
+      label: Server response
+      description: The JSON the tool returned (trim long arrays).
+      render: json
+    validations:
+      required: false
+  - type: textarea
+    id: diagnostic
+    attributes:
+      label: Output of `entorno` with `accion: diagnostico`
+      description: Shows resolved paths, workspace, CLI/GUI discovery and licence mode.
+      render: json
+    validations:
+      required: false
+  - type: dropdown
+    id: licence
+    attributes:
+      label: PVsystCLI licence mode
+      options:
+        - Licensed PVsystCLI
+        - TRIAL mode (limited days/executions)
+        - Not sure
+        - Not applicable (no simulation involved)
+    validations:
+      required: true
+  - type: input
+    id: pvsyst
+    attributes:
+      label: PVsyst version and install path
+      placeholder: 8.1.7 — C:\Program Files\PVsyst8.1.7\
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: MCP client
+      placeholder: Command Code 1.x / Claude Desktop / Cursor / VS Code
+    validations:
+      required: true
+  - type: input
+    id: build
+    attributes:
+      label: How is the server built and launched?
+      description: Release binary, or `cargo build --release` from a commit; plus the command in your client config.
+      placeholder: cargo build --release (commit abc1234) launched from C:\pvsyst-mcp\pvsyst-mcp.exe
+    validations:
+      required: true
+  - type: textarea
+    id: stderr
+    attributes:
+      label: Server logs (stderr)
+      description: Last lines with `PVSYST_MCP_LOG=debug` set.
+      render: text
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues for the same problem
+          required: true
+        - label: This report contains no licence keys, customer IDs or private data
+          required: true
