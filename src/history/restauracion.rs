@@ -1,7 +1,7 @@
 //! History restoration and manifest validation.
 
+use crate::config::Alcance;
 use crate::error::{Error, Result};
-use crate::workspace::Alcance;
 use serde_json::{json, Value};
 use std::fs;
 use std::path::{Path, PathBuf};

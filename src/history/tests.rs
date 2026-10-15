@@ -32,7 +32,7 @@ pub(super) fn escribir_manifiesto(dir: &Path, id: &str, archivos: &serde_json::V
 
 /// Restore confined to the workspace, as every tool call does by default.
 pub(super) fn restaurar(ws: &Path, id: &str) -> crate::error::Result<serde_json::Value> {
-    super::restaurar(ws, id, crate::workspace::Alcance::Workspace)
+    super::restaurar(ws, id, crate::config::Alcance::Workspace)
 }
 
 #[test]

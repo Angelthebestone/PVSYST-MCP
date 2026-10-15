@@ -2,7 +2,7 @@
 //! are restorable only under the same explicit authorisation.
 
 use super::{restaurar, snapshot};
-use crate::workspace::Alcance;
+use crate::config::Alcance;
 use std::fs;
 
 #[test]

@@ -1,6 +1,7 @@
 //! Path confinement and resolution within the workspace.
 
 use crate::args::flag;
+pub(crate) use crate::config::Alcance;
 use crate::error::{Error, Result};
 use serde_json::Value;
 use std::fs;
@@ -8,15 +9,6 @@ use std::path::{Component, Path, PathBuf};
 
 /// Argument that lets a caller reach paths outside the workspace.
 pub(crate) const PERMITIR_FUERA: &str = "permitir_fuera_del_workspace";
-
-/// Where a caller-supplied path may point.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Alcance {
-    /// Confined to the workspace (default): absolute paths outside it and `..` are rejected.
-    Workspace,
-    /// Any path the process can reach; requires an explicit opt-in from the caller.
-    Libre,
-}
 
 impl Alcance {
     /// `permitir_fuera_del_workspace: true` opts out of confinement; anything else confines.

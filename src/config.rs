@@ -64,6 +64,19 @@ impl Paths {
     }
 }
 
+/// Where a caller-supplied path may point.
+///
+/// It lives with the workspace root it governs, and not in `workspace`, so that
+/// lower layers — `history` validating a restore manifest, for one — can take it
+/// as a parameter without depending upwards.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Alcance {
+    /// Confined to the workspace (default): absolute paths outside it and `..` are rejected.
+    Workspace,
+    /// Any path the process can reach; requires an explicit opt-in from the caller.
+    Libre,
+}
+
 /// PVsyst's read-only data folder (`DataRO`, next to the GUI executable):
 /// demo projects, the bundled component database and the NASA grids.
 pub(crate) fn data_ro() -> PathBuf {

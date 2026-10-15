@@ -316,10 +316,12 @@ Todas las tablas, figuras e informes citados arriba se produjeron con **PVsyst 8
 
 Una carpeta por área de negocio de PVsyst; las dependencias apuntan hacia dentro, a `format/`
 (núcleo puro, no importa nada del crate). `server/` (entrada) y `adapters/` (salida) son los
-bordes. El grafo de módulos es acíclico y lo comprueba el CI con `tools/check_deps.py`:
+bordes. `tools/check_deps.py` hace fallar el CI ante cualquier ciclo; la estratificación, de
+abajo arriba, es:
 
-`error → format, history, state → config → args → adapters / workspace → sites,
-components, projects, simulation → objects, admin, easy_mode → server`
+`error` → `format`, `state` → `config` → `args` → `history` → `workspace` →
+`adapters` → módulos de capacidad (`components`, `objects`, `projects`, `sites`,
+`simulation`, `admin`, `prefs`, `easy_mode`) → `server`
 
 Ningún archivo pasa de 300 líneas; las áreas grandes son módulos de directorio divididos por
 concepto.

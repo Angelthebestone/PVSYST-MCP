@@ -318,11 +318,12 @@ Every table, figure and report quoted above was produced with **PVsyst 8.1.7
 
 One folder per PVsyst business area; dependencies point inward to `format/`
 (pure core, imports nothing from the crate). `server/` (inbound) and
-`adapters/` (outbound) are the edges. The module graph is acyclic, enforced
-in CI by `tools/check_deps.py`:
+`adapters/` (outbound) are the edges. `tools/check_deps.py` fails CI on any
+cycle; the layering, bottom-up, is:
 
-`error → format, history, state → config → args → adapters / workspace → sites,
-components, projects, simulation → objects, admin, easy_mode → server`
+`error` → `format`, `state` → `config` → `args` → `history` → `workspace` →
+`adapters` → feature modules (`components`, `objects`, `projects`, `sites`,
+`simulation`, `admin`, `prefs`, `easy_mode`) → `server`
 
 Every file stays under 300 lines; large areas are directory modules split by concept.
 
