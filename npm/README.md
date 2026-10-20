@@ -51,8 +51,8 @@ Remote Desktop, and trial execution limits must be respected.
 ## Documentation
 
 * Tool reference, quick start, FAQ and file formats:
-  [README.md](https://github.com/Angelthebestone/PVSYST-MCP/blob/master/README.md)
-* Changelog: [CHANGELOG.md](https://github.com/Angelthebestone/PVSYST-MCP/blob/master/CHANGELOG.md)
+  [README.md](https://github.com/Angelthebestone/PVSYST-MCP/blob/main/README.md)
+* Changelog: [CHANGELOG.md](https://github.com/Angelthebestone/PVSYST-MCP/blob/main/CHANGELOG.md)
 * Prefer a plain download? Every release ships the same binary as a zip:
   [releases](https://github.com/Angelthebestone/PVSYST-MCP/releases)
 * Any PVsyst-generated table or figure you publish must quote PVsyst

@@ -7,11 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-19
+
 ### Added
 
 - **npm package**: the release binary is also published as `pvsyst-mcp` on npm
   (Windows x64), so an MCP client can launch the server with `npx -y pvsyst-mcp`.
   The tarball bundles the license and the attribution notice.
+- **GitHub Releases**: every `v*` tag builds the MSVC release binary in CI and
+  attaches it as a zip together with `LICENSE`, `NOTICE` and the READMEs.
+
+### Changed
+
+- Unit tests moved from `src/` to `tests/unit/`, so the shipped sources contain
+  production code only.
+- The official branch is now `main`.
 
 ## [0.1.0] - 2026-10-11
 
