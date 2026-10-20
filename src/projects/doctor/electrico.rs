@@ -134,7 +134,7 @@ pub(crate) fn revisar_electrico(ctx: &ContextoElectrico<'_>, inf: &mut Informe) 
             ));
             MU_VOC_DEFECTO
         },
-        |v| v / MILIVOLTIOS_POR_VOLTIO / modulo.voc_v(),
+        |v| mu_voc_relativo(v, modulo.voc_v()),
     );
     let Some(d) = DatosElectricos::reunir(&prj, &var, &inv, &modulo) else {
         inf.avisos
@@ -149,6 +149,12 @@ pub(crate) fn revisar_electrico(ctx: &ContextoElectrico<'_>, inf: &mut Informe) 
         inf.avisos
             .push(format!("Relación DC/AC {dc_ac:.2} fuera de 0.8–1.5"));
     }
+}
+
+/// μVoc as the datasheet gives it (mV/°C) relative to Voc (1/K), the form
+/// [`comprobar_tensiones`] multiplies by `(T - 25)`.
+pub(crate) fn mu_voc_relativo(mu_mv_c: f64, voc_v: f64) -> f64 {
+    mu_mv_c / MILIVOLTIOS_POR_VOLTIO / voc_v
 }
 
 #[cfg(test)]

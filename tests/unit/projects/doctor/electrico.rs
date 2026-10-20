@@ -43,3 +43,10 @@ fn should_warn_when_electrical_component_cannot_be_read() {
     let msg = omitido("OND", "Generic_7.5kW.OND", "archivo ilegible");
     assert!(msg.starts_with("Revisión eléctrica omitida: OND 'Generic_7.5kW.OND'"));
 }
+
+#[test]
+fn should_convert_datasheet_mu_voc_to_relative_when_checking_cold_voc() {
+    let mu = mu_voc_relativo(-140.0, 49.5);
+    let voc_frio = 49.5 * (1.0 + mu * (-10.0 - 25.0));
+    assert!((voc_frio - 54.4).abs() < 0.01, "voc_frio={voc_frio}");
+}
