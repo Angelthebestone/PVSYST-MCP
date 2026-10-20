@@ -58,23 +58,20 @@
     "workspace": {
       "type": "directory",
       "title": "PVsyst workspace",
-      "description": "PVsyst user data folder: the one containing Projects, ComposPV and Meteo. Usually %USERPROFILE%\\PVsyst8.1_Data; some installs use Documents\\PVsyst8.1_Data or Documents\\PVsyst8.1. The bundle does not auto-detect it, so check this path.",
-      "required": true,
-      "default": "${HOME}/PVsyst8.1_Data"
+      "description": "PVsyst user data folder: the one containing Projects, ComposPV and Meteo. Leave empty to auto-detect it (%USERPROFILE%\\PVsyst8.1_Data, Documents\\PVsyst8.1_Data or Documents\\PVsyst8.1).",
+      "required": false
     },
     "pvsyst_cli": {
       "type": "file",
       "title": "PVsystCLI.exe",
-      "description": "Path to the PVsyst headless command-line executable.",
-      "required": true,
-      "default": "C:\\Program Files\\PVsyst8.1.7\\PVsystCLI.exe"
+      "description": "Path to the PVsyst headless command-line executable. Leave empty to auto-detect it.",
+      "required": false
     },
     "pvsyst_gui": {
       "type": "file",
       "title": "PVsyst.exe",
-      "description": "Path to the PVsyst GUI executable (also locates the read-only DataRO folder).",
-      "required": true,
-      "default": "C:\\Program Files\\PVsyst8.1.7\\PVsyst.exe"
+      "description": "Path to the PVsyst GUI executable (also locates the read-only DataRO folder). Leave empty to auto-detect it.",
+      "required": false
     },
     "experto": {
       "type": "boolean",

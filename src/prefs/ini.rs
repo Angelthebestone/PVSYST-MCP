@@ -23,9 +23,7 @@ pub(crate) enum Codificacion {
 }
 
 pub(crate) fn ini_path() -> Result<PathBuf> {
-    let base = std::env::var("LOCALAPPDATA")
-        .map_err(|_| Error::Invalid("LOCALAPPDATA no está definido".into()))?;
-    Ok(PathBuf::from(base)
+    Ok(crate::config::local_app_data()?
         .join("PVsyst")
         .join("8.1")
         .join("Admin")

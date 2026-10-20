@@ -4,6 +4,7 @@
 //! machines where PVsyst lives in a different place.
 
 use crate::state::Estado;
+use std::ffi::OsString;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -80,8 +81,8 @@ pub(crate) enum Alcance {
 /// PVsyst's read-only data folder (`DataRO`, next to the GUI executable):
 /// demo projects, the bundled component database and the NASA grids.
 pub(crate) fn data_ro() -> PathBuf {
-    if let Some(p) = std::env::var_os("PVSYST_DATARO") {
-        return PathBuf::from(p);
+    if let Some(p) = ruta_de_entorno("PVSYST_DATARO") {
+        return p;
     }
     resolve_gui()
         .parent()
@@ -102,10 +103,30 @@ pub(crate) fn proyectos_demo_ro() -> PathBuf {
     data_ro().join("PVsyst8.1_Data").join("Projects")
 }
 
-fn home() -> Option<PathBuf> {
-    std::env::var_os("USERPROFILE")
+/// Reads `clave` from the environment as a path, treating an empty or
+/// whitespace-only value as unset: installers (the `.mcpb` form, MCP client
+/// configs) often pass `""` for fields the user left blank.
+pub(crate) fn ruta_de_entorno(clave: &str) -> Option<PathBuf> {
+    valor_de_entorno_util(std::env::var_os(clave))
+}
+
+/// Pure decision behind [`ruta_de_entorno`]: `None` when the value is absent
+/// or blank after trimming.
+pub(crate) fn valor_de_entorno_util(valor: Option<OsString>) -> Option<PathBuf> {
+    valor
+        .filter(|v| !v.to_string_lossy().trim().is_empty())
         .map(PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(PathBuf::from))
+}
+
+/// `%LOCALAPPDATA%`, where PVsyst keeps its per-user admin files. Blank counts
+/// as undefined, as for every other variable.
+pub(crate) fn local_app_data() -> crate::error::Result<PathBuf> {
+    ruta_de_entorno("LOCALAPPDATA")
+        .ok_or_else(|| crate::error::Error::NotFound("LOCALAPPDATA no está definido".into()))
+}
+
+fn home() -> Option<PathBuf> {
+    ruta_de_entorno("USERPROFILE").or_else(|| ruta_de_entorno("HOME"))
 }
 
 fn first_existing(candidates: Vec<PathBuf>) -> Option<PathBuf> {
@@ -113,8 +134,8 @@ fn first_existing(candidates: Vec<PathBuf>) -> Option<PathBuf> {
 }
 
 fn resolve_workspace() -> PathBuf {
-    if let Some(p) = std::env::var_os("PVSYST_WORKSPACE") {
-        return PathBuf::from(p);
+    if let Some(p) = ruta_de_entorno("PVSYST_WORKSPACE") {
+        return p;
     }
     let mut candidates: Vec<PathBuf> = Vec::new();
     if let Some(h) = home() {
@@ -127,8 +148,8 @@ fn resolve_workspace() -> PathBuf {
 }
 
 fn resolve_cli() -> PathBuf {
-    if let Some(p) = std::env::var_os("PVSYST_CLI") {
-        return PathBuf::from(p);
+    if let Some(p) = ruta_de_entorno("PVSYST_CLI") {
+        return p;
     }
     let mut candidates = vec![
         PathBuf::from(r"C:\Program Files\PVsyst8.1.7\PVsystCLI.exe"),
@@ -141,8 +162,8 @@ fn resolve_cli() -> PathBuf {
 }
 
 fn resolve_gui() -> PathBuf {
-    if let Some(p) = std::env::var_os("PVSYST_GUI") {
-        return PathBuf::from(p);
+    if let Some(p) = ruta_de_entorno("PVSYST_GUI") {
+        return p;
     }
     let candidates = vec![
         PathBuf::from(r"C:\Program Files\PVsyst8.1.7\PVsyst.exe"),
@@ -150,3 +171,7 @@ fn resolve_gui() -> PathBuf {
     ];
     first_existing(candidates).unwrap_or_else(|| PathBuf::from("PVsyst.exe"))
 }
+
+#[cfg(test)]
+#[path = "../tests/unit/config.rs"]
+mod tests;

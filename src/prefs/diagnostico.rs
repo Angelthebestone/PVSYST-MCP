@@ -9,9 +9,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 pub(crate) fn cli_admin_dir() -> Result<PathBuf> {
-    let base = std::env::var("LOCALAPPDATA")
-        .map_err(|_| Error::Invalid("LOCALAPPDATA no está definido".into()))?;
-    Ok(PathBuf::from(base)
+    Ok(crate::config::local_app_data()?
         .join("PVsystCLI")
         .join("8.1")
         .join("Admin"))
