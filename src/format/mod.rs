@@ -6,6 +6,7 @@ pub(crate) mod delete;
 pub(crate) mod edit;
 pub(crate) mod insert;
 pub(crate) mod object;
+pub(crate) mod seccion;
 pub(crate) mod selector;
 pub(crate) mod span;
 

@@ -87,6 +87,38 @@ fn should_keep_binary_bytes_identical() {
     assert_eq!(out, raw, "byte-identical when nothing changes");
 }
 
+#[test]
+fn should_apply_every_object_edition_and_collect_their_outcomes() {
+    let (out, outcomes) = editar_objetos(
+        DOC.as_bytes(),
+        &[
+            EdicionObjeto {
+                selector: "pvSubArray".into(),
+                cambios: vec![("NModSerie".into(), Some("20".into()))],
+            },
+            EdicionObjeto {
+                selector: "pvProject".into(),
+                cambios: vec![("Comment".into(), Some("Edited".into()))],
+            },
+        ],
+    )
+    .expect("editar objetos");
+
+    let texto = String::from_utf8(out).expect("utf8");
+    assert!(texto.contains("NModSerie=20"));
+    assert!(texto.contains("Comment=Edited"));
+    assert_eq!(outcomes.len(), 2);
+    assert_eq!(outcomes[0].key, "NModSerie");
+    assert_eq!(outcomes[1].key, "Comment");
+}
+
+#[test]
+fn should_keep_bytes_identical_when_there_are_no_object_editions() {
+    let (out, outcomes) = editar_objetos(DOC.as_bytes(), &[]).expect("sin ediciones");
+    assert_eq!(out, DOC.as_bytes());
+    assert!(outcomes.is_empty());
+}
+
 proptest! {
     #[test]
     fn setting_a_field_changes_only_its_line_and_is_reversible(

@@ -29,6 +29,17 @@ pub(crate) struct ChangeOutcome {
     pub new_value: Option<String>,
 }
 
+/// One object selector with the field changes to apply to it.
+#[cfg_attr(
+    not(test),
+    expect(dead_code, reason = "consumed by the follower conversion in 3.3")
+)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct EdicionObjeto {
+    pub(crate) selector: String,
+    pub(crate) cambios: Vec<(String, Option<String>)>,
+}
+
 impl ChangeOutcome {
     pub(crate) fn to_json(&self) -> Value {
         json!({
@@ -46,7 +57,12 @@ pub(crate) fn changes_from_json(campos: &Map<String, Value>) -> Vec<(String, Opt
         .collect()
 }
 
-fn outcome(key: &str, action: &str, old: Option<String>, new: Option<&str>) -> ChangeOutcome {
+pub(super) fn outcome(
+    key: &str,
+    action: &str,
+    old: Option<String>,
+    new: Option<&str>,
+) -> ChangeOutcome {
     ChangeOutcome {
         key: key.to_string(),
         action: action.to_string(),
@@ -55,7 +71,7 @@ fn outcome(key: &str, action: &str, old: Option<String>, new: Option<&str>) -> C
     }
 }
 
-fn reject_line_breaks(changes: &[(String, Option<String>)]) -> Result<()> {
+pub(super) fn reject_line_breaks(changes: &[(String, Option<String>)]) -> Result<()> {
     let breaks = |s: &str| s.contains('\r') || s.contains('\n');
     match changes
         .iter()
@@ -208,6 +224,27 @@ pub(crate) fn edit_fields(
     }
 
     Ok((doc.join(), outcomes))
+}
+
+/// Apply a list of object editions in order, accumulating their outcomes.
+///
+/// Refuses with the same errors as [`edit_fields`]; an edition that fails leaves
+/// the bytes of the preceding ones only in memory, never on disk.
+#[cfg_attr(
+    not(test),
+    expect(dead_code, reason = "consumed by the follower conversion in 3.3")
+)]
+pub(crate) fn editar_objetos(
+    bytes: &[u8],
+    ediciones: &[EdicionObjeto],
+) -> Result<(Vec<u8>, Vec<ChangeOutcome>)> {
+    ediciones.iter().try_fold(
+        (bytes.to_vec(), Vec::new()),
+        |(actual, acumulados), edicion| {
+            let (nuevo, outcomes) = edit_fields(&actual, &edicion.selector, &edicion.cambios)?;
+            Ok((nuevo, acumulados.into_iter().chain(outcomes).collect()))
+        },
+    )
 }
 
 #[cfg(test)]

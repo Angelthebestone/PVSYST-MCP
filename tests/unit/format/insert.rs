@@ -75,6 +75,36 @@ fn should_extract_object_without_bom() {
     assert_eq!(extraido, SINTETICO);
 }
 
+#[test]
+fn should_replace_object_and_keep_destination_indentation() {
+    let doc = b"PVObject_=pvRoot\r\n  PVObject_=pvChild\r\n    Old=1\r\n  End of PVObject pvChild\r\nEnd of PVObject pvRoot\r\n";
+    let bloque = b"PVObject_=pvChild\n  New=2\nEnd of PVObject pvChild\n";
+
+    let out = reemplazar_objeto(doc, "pvChild", bloque).expect("reemplazar");
+    let texto = String::from_utf8(out).expect("utf8");
+    assert!(texto.contains("  PVObject_=pvChild\r\n    New=2\r\n  End of PVObject pvChild"));
+    assert!(!texto.contains("Old=1"));
+}
+
+#[test]
+fn should_report_not_found_when_replacing_an_absent_object() {
+    let error = reemplazar_objeto(
+        SINTETICO,
+        "pvMissing",
+        b"PVObject_=pvMissing\nEnd of PVObject pvMissing\n",
+    )
+    .expect_err("objeto ausente");
+    assert!(matches!(error, Error::NotFound(_)));
+    assert!(error.to_string().contains("pvMissing"));
+}
+
+#[test]
+fn should_refuse_replacement_when_the_block_is_unbalanced() {
+    let error = reemplazar_objeto(SINTETICO, "pvRoot", b"PVObject_=pvRoot\n  X=1\n")
+        .expect_err("bloque desbalanceado");
+    assert!(matches!(error, Error::Format(_)));
+}
+
 fn campo() -> impl Strategy<Value = String> {
     ("[A-Za-z][A-Za-z0-9]{0,5}", "[A-Za-z0-9]{0,12}")
         .prop_map(|(clave, valor)| format!("{clave}={valor}"))

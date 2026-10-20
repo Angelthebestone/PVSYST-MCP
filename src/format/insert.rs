@@ -169,6 +169,42 @@ pub(crate) fn insertar_objeto(
     }
 }
 
+/// Replace the whole object `selector` in `destino` with `bloque`.
+///
+/// The block adopts the destination indentation and line ending, and the result
+/// is refused with `Error::Format` when it would be structurally unbalanced.
+#[cfg_attr(
+    not(test),
+    expect(dead_code, reason = "consumed by the follower conversion in 3.3")
+)]
+pub(crate) fn reemplazar_objeto(destino: &[u8], selector: &str, bloque: &[u8]) -> Result<Vec<u8>> {
+    object::validar_estructura(destino)?;
+    object::validar_estructura(bloque)?;
+    let spans = edit::spans_of(destino);
+    let si = edit::find_span(&spans, selector)
+        .ok_or_else(|| Error::NotFound(format!("Object '{selector}' not found")))?;
+    let span = spans[si].clone();
+    let mut lineas = split(destino);
+    let fin = if lineas
+        .get(span.open)
+        .is_some_and(|linea| linea.ends_with(b"\r"))
+    {
+        edit::FinDeLinea::Crlf
+    } else {
+        edit::FinDeLinea::Lf
+    };
+    let opts = OpcionesBloque {
+        fin,
+        indent: span.indent,
+        rol: None,
+    };
+    let nuevo = preparar_bloque(bloque, &opts)?;
+    lineas.splice(span.open..=span.close, nuevo);
+    let out = join(&lineas);
+    object::validar_estructura(&out)?;
+    Ok(out)
+}
+
 /// Return the lines of the object `selector` from `fuente`, each newline-terminated.
 pub(crate) fn extraer_objeto(fuente: &[u8], selector: &str) -> Result<Vec<u8>> {
     let segs = parse_selector(selector)?;
