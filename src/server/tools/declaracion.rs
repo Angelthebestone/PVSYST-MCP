@@ -139,6 +139,11 @@ impl Herramienta {
                     "Ruta del workspace que reemplaza la raíz de confinamiento para esta llamada. Requiere cliente MCP de confianza."
                 );
             }
+            if *clave == "potencia_kw" {
+                prop_val["description"] = json!(
+                    "Potencia límite de inyección en kW. Para quitar el límite, usa editar con PLimGrid: null."
+                );
+            }
             props.insert((*clave).to_string(), prop_val);
         }
 

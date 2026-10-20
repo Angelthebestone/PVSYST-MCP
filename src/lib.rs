@@ -29,6 +29,7 @@ mod easy_mode;
 mod error;
 mod format;
 mod history;
+mod inyeccion;
 mod objects;
 mod prefs;
 mod progreso;

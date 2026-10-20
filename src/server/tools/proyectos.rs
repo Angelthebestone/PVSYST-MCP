@@ -8,7 +8,7 @@ use serde_json::Value;
 
 pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
     nombre: "proyecto",
-    descripcion: "Ciclo de vida de proyectos y variantes: crear, eliminar, renombrar, dimensionar, diagnosticar, anadir objetos, convertir a seguidor. / EN: Project and variant lifecycle: create, delete, rename, size, diagnose, add objects, convert to tracker.",
+    descripcion: "Ciclo de vida de proyectos y variantes: crear, eliminar, renombrar, dimensionar, diagnosticar, anadir objetos, convertir a seguidor, limite de inyeccion. / EN: Project and variant lifecycle: create, delete, rename, size, diagnose, add objects, convert to tracker, injection limit.",
     acceso: Acceso::Normal,
     anotaciones: Anotaciones {
         titulo: "Proyecto / Project",
@@ -41,6 +41,9 @@ pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
         ("ancho_colector_m", TipoDato::Number),
         ("n_filas", TipoDato::Integer),
         ("backtracking", TipoDato::Boolean),
+        ("potencia_kw", TipoDato::Number),
+        ("perdida_separada", TipoDato::Boolean),
+        ("tan_phi", TipoDato::Number),
         ("workspace", TipoDato::String),
     ],
     requeridos: &[],
@@ -56,6 +59,7 @@ pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
             "doctor",
             "anadir",
             "seguidor",
+            "limite_inyeccion",
             "limpiar_temporales",
         ],
     }),
@@ -68,6 +72,7 @@ pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
         ("doctor", &["proyecto"]),
         ("anadir", &["proyecto", "elemento"]),
         ("seguidor", &["proyecto"]),
+        ("limite_inyeccion", &["proyecto", "potencia_kw"]),
     ],
     ejecutar: Ejecutor::Simple(ejecutar_proyecto),
 };
@@ -83,6 +88,7 @@ fn ejecutar_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
         "doctor" => projects::doctor::doctor(paths, args),
         "anadir" => projects::anadir::anadir(paths, args),
         "seguidor" => crate::seguidores::convertir_a_seguidor(paths, args),
+        "limite_inyeccion" => crate::inyeccion::definir_limite(paths, args),
         "limpiar_temporales" => projects::temporales::limpiar_temporales(paths, args),
         _ => Err(Error::Invalid(format!(
             "Valor '{valor}' no soportado para proyecto"

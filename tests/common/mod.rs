@@ -134,6 +134,19 @@ pub fn synthetic_workspace() -> tempfile::TempDir {
     tmp
 }
 
+/// Copy one PVsyst demo project (`.PRJ` plus `variante`) into `destino/Projects`.
+pub fn copiar_proyecto_demo(destino: &Path, nombre: &str, variante: &str) {
+    let projects = destino.join("Projects");
+    std::fs::create_dir_all(&projects).unwrap();
+    for archivo in [format!("{nombre}.PRJ"), format!("{nombre}.{variante}")] {
+        std::fs::copy(
+            Path::new(DEMO_WS).join("Projects").join(&archivo),
+            projects.join(&archivo),
+        )
+        .unwrap();
+    }
+}
+
 /// Recursively copy a directory (workspaces for isolated tests).
 pub fn copy_dir(from: &Path, to: &Path) {
     std::fs::create_dir_all(to).unwrap();
