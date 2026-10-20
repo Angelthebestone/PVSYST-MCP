@@ -1,6 +1,6 @@
 //! Tool for sites and meteo: site synthesis, solar geometry, PVGIS horizon and TMY.
 
-use super::declaracion::{Acceso, Discriminador, Herramienta, TipoDato};
+use super::declaracion::{Acceso, Anotaciones, Discriminador, Herramienta, TipoDato};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::sites;
@@ -8,8 +8,15 @@ use serde_json::Value;
 
 pub(crate) const TOOL_SITIO: Herramienta = Herramienta {
     nombre: "sitio",
-    descripcion: "Sitios y meteo: crear (coordenadas o CSV), convertir, geometria solar, horizonte y TMY de PVGIS.",
+    descripcion: "Sitios y meteo: crear (coordenadas o CSV), convertir, geometria solar, horizonte y TMY de PVGIS. / EN: Sites and weather: create (coordinates or CSV), convert, solar geometry, PVGIS horizon and TMY.",
     acceso: Acceso::Normal,
+    anotaciones: Anotaciones {
+        titulo: "Sitio / Site",
+        es_solo_lectura: false,
+        es_destructiva: true,
+        es_idempotente: false,
+        usa_red: true,
+    },
     propiedades: &[
         ("origen", TipoDato::String),
         ("nombre_sitio", TipoDato::String),

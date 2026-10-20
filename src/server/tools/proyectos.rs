@@ -1,6 +1,6 @@
 //! Tool for project lifecycle: creation, sizing, variants, diagnostics and cleanup.
 
-use super::declaracion::{Acceso, Discriminador, Herramienta, TipoDato};
+use super::declaracion::{Acceso, Anotaciones, Discriminador, Herramienta, TipoDato};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::projects::{self, lifecycle};
@@ -8,8 +8,15 @@ use serde_json::Value;
 
 pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
     nombre: "proyecto",
-    descripcion: "Ciclo de vida de proyectos y variantes: crear, eliminar, renombrar, dimensionar, diagnosticar, anadir objetos.",
+    descripcion: "Ciclo de vida de proyectos y variantes: crear, eliminar, renombrar, dimensionar, diagnosticar, anadir objetos. / EN: Project and variant lifecycle: create, delete, rename, size, diagnose, add objects.",
     acceso: Acceso::Normal,
+    anotaciones: Anotaciones {
+        titulo: "Proyecto / Project",
+        es_solo_lectura: false,
+        es_destructiva: true,
+        es_idempotente: false,
+        usa_red: false,
+    },
     propiedades: &[
         ("proyecto", TipoDato::String),
         ("plantilla", TipoDato::String),

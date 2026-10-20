@@ -1,6 +1,6 @@
 //! Tool for component database management: creation, deletion, import and export.
 
-use super::declaracion::{Acceso, Discriminador, Herramienta, TipoDato};
+use super::declaracion::{Acceso, Anotaciones, Discriminador, Herramienta, TipoDato};
 use crate::admin;
 use crate::components;
 use crate::config::Paths;
@@ -9,8 +9,15 @@ use serde_json::Value;
 
 pub(crate) const TOOL_COMPONENTE: Herramienta = Herramienta {
     nombre: "componente",
-    descripcion: "Base de datos de componentes: crear, borrar, importar, exportar o crear desde ficha tecnica.",
+    descripcion: "Base de datos de componentes: crear, borrar, importar, exportar o crear desde ficha tecnica. / EN: Component database: create, delete, import, export or create from a datasheet.",
     acceso: Acceso::Normal,
+    anotaciones: Anotaciones {
+        titulo: "Componente / Component",
+        es_solo_lectura: false,
+        es_destructiva: true,
+        es_idempotente: false,
+        usa_red: false,
+    },
     propiedades: &[
         ("nombre_nuevo", TipoDato::String),
         ("plantilla", TipoDato::String),

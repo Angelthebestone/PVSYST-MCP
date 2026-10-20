@@ -1,6 +1,6 @@
 //! Tool for simulation output and engineering analysis: KPIs, CSV, losses, economics.
 
-use super::declaracion::{Acceso, Discriminador, Herramienta, TipoDato};
+use super::declaracion::{Acceso, Anotaciones, Discriminador, Herramienta, TipoDato};
 use crate::config::Paths;
 use crate::easy_mode;
 use crate::error::{Error, Result};
@@ -9,8 +9,15 @@ use serde_json::Value;
 
 pub(crate) const TOOL_RESULTADOS: Herramienta = Herramienta {
     nombre: "resultados",
-    descripcion: "Resultados: KPIs, CSV, perdidas, mensual, comparacion, P50/P90, carbono, economia y entregable.",
+    descripcion: "Resultados: KPIs, CSV, perdidas, mensual, comparacion, P50/P90, carbono, economia y entregable. / EN: Results: KPIs, CSV, losses, monthly, comparison, P50/P90, carbon, economics and deliverable.",
     acceso: Acceso::Normal,
+    anotaciones: Anotaciones {
+        titulo: "Resultados / Results",
+        es_solo_lectura: false,
+        es_destructiva: false,
+        es_idempotente: true,
+        usa_red: true,
+    },
     propiedades: &[
         ("proyecto", TipoDato::String),
         ("variante", TipoDato::String),

@@ -95,11 +95,21 @@ pub(crate) struct Discriminador {
     pub(crate) valores: &'static [&'static str],
 }
 
+/// MCP behaviour hints and display title for one tool.
+pub(crate) struct Anotaciones {
+    pub(crate) titulo: &'static str,
+    pub(crate) es_solo_lectura: bool,
+    pub(crate) es_destructiva: bool,
+    pub(crate) es_idempotente: bool,
+    pub(crate) usa_red: bool,
+}
+
 /// A consolidated MCP tool declaration coupling schema, validation, and handler.
 pub(crate) struct Herramienta {
     pub(crate) nombre: &'static str,
     pub(crate) descripcion: &'static str,
     pub(crate) acceso: Acceso,
+    pub(crate) anotaciones: Anotaciones,
     pub(crate) propiedades: &'static [(&'static str, TipoDato)],
     pub(crate) requeridos: &'static [&'static str],
     pub(crate) discriminador: Option<Discriminador>,
@@ -140,7 +150,15 @@ impl Herramienta {
 
         json!({
             "name": self.nombre,
+            "title": self.anotaciones.titulo,
             "description": self.descripcion,
+            "annotations": {
+                "title": self.anotaciones.titulo,
+                "readOnlyHint": self.anotaciones.es_solo_lectura,
+                "destructiveHint": self.anotaciones.es_destructiva,
+                "idempotentHint": self.anotaciones.es_idempotente,
+                "openWorldHint": self.anotaciones.usa_red,
+            },
             "inputSchema": {
                 "type": "object",
                 "properties": props,

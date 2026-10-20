@@ -1,6 +1,6 @@
 //! Tool for simulation orchestration: batch setup, execution, status, and sweeps.
 
-use super::declaracion::{Acceso, Discriminador, Herramienta, TipoDato};
+use super::declaracion::{Acceso, Anotaciones, Discriminador, Herramienta, TipoDato};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::simulation::{self, batch, preestimate};
@@ -8,8 +8,15 @@ use serde_json::{Map, Value};
 
 pub(crate) const TOOL_SIMULAR: Herramienta = Herramienta {
     nombre: "simular",
-    descripcion: "Simulacion: ejecutar (con filas/parametros opcionales), preparar entrada, estado, preestimar y barrido.",
+    descripcion: "Simulacion: ejecutar (con filas/parametros opcionales), preparar entrada, estado, preestimar y barrido. / EN: Simulation: run (optional rows/parameters), prepare input, status, pre-estimate and sweep.",
     acceso: Acceso::Normal,
+    anotaciones: Anotaciones {
+        titulo: "Simular / Simulate",
+        es_solo_lectura: false,
+        es_destructiva: false,
+        es_idempotente: false,
+        usa_red: false,
+    },
     propiedades: &[
         ("proyecto", TipoDato::String),
         ("variante", TipoDato::String),

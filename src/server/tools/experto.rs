@@ -1,6 +1,6 @@
 //! Expert tools for raw CLI passthrough and Windows GUI automation.
 
-use super::declaracion::{Acceso, Discriminador, Herramienta, TipoDato};
+use super::declaracion::{Acceso, Anotaciones, Discriminador, Herramienta, TipoDato};
 use crate::adapters::{cli, gui};
 use crate::config::Paths;
 use crate::error::Result;
@@ -8,8 +8,15 @@ use serde_json::Value;
 
 pub(crate) const TOOL_PVSYST_CLI: Herramienta = Herramienta {
     nombre: "pvsyst_cli",
-    descripcion: "Passthrough a cualquier comando de PVsystCLI (modo experto).",
+    descripcion: "Passthrough a cualquier comando de PVsystCLI (modo experto). / EN: Passthrough to any PVsystCLI command (expert mode).",
     acceso: Acceso::Experto,
+    anotaciones: Anotaciones {
+        titulo: "PVsystCLI",
+        es_solo_lectura: false,
+        es_destructiva: true,
+        es_idempotente: false,
+        usa_red: false,
+    },
     propiedades: &[
         ("comando", TipoDato::String),
         ("opciones", TipoDato::ArrayOrObject),
@@ -24,8 +31,15 @@ pub(crate) const TOOL_PVSYST_CLI: Herramienta = Herramienta {
 
 pub(crate) const TOOL_GUI_OBSERVAR: Herramienta = Herramienta {
     nombre: "gui_observar",
-    descripcion: "Observa la GUI de PVsyst: ventanas, controles, texto, captura PNG, arbol UIA (modo experto).",
+    descripcion: "Observa la GUI de PVsyst: ventanas, controles, texto, captura PNG, arbol UIA (modo experto). / EN: Observes the PVsyst GUI: windows, controls, text, PNG capture, UIA tree (expert mode).",
     acceso: Acceso::Experto,
+    anotaciones: Anotaciones {
+        titulo: "Observar GUI / Observe GUI",
+        es_solo_lectura: true,
+        es_destructiva: false,
+        es_idempotente: true,
+        usa_red: false,
+    },
     propiedades: &[
         ("ventana", TipoDato::String),
         ("proceso", TipoDato::String),
@@ -53,9 +67,15 @@ pub(crate) const TOOL_GUI_OBSERVAR: Herramienta = Herramienta {
 
 pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
     nombre: "gui_actuar",
-    descripcion:
-        "Actua sobre la GUI de PVsyst: clic, teclas, cerrar, lanzar, UIA y esperas (modo experto).",
+    descripcion: "Actua sobre la GUI de PVsyst: clic, teclas, cerrar, lanzar, UIA y esperas (modo experto). / EN: Acts on the PVsyst GUI: click, keys, close, launch, UIA and waits (expert mode).",
     acceso: Acceso::Experto,
+    anotaciones: Anotaciones {
+        titulo: "Actuar en GUI / Act on GUI",
+        es_solo_lectura: false,
+        es_destructiva: true,
+        es_idempotente: false,
+        usa_red: false,
+    },
     propiedades: &[
         ("ventana", TipoDato::String),
         ("proceso", TipoDato::String),

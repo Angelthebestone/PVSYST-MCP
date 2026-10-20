@@ -17,6 +17,7 @@ pub(crate) mod simulacion;
 pub(crate) mod sitios;
 pub(crate) mod validacion;
 pub(crate) mod workspace;
+mod workspace_ejecucion;
 
 #[cfg(test)]
 #[path = "../../../tests/unit/server/tools/tests.rs"]

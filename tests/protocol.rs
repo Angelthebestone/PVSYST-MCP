@@ -157,6 +157,32 @@ fn unknown_method_errors() {
 }
 
 #[test]
+fn tools_list_exposes_annotations_and_bilingual_descriptions() {
+    let out = server_with(true)
+        .handle_line(r#"{"jsonrpc":"2.0","id":1,"method":"tools/list"}"#)
+        .expect("response");
+    let v: Value = serde_json::from_str(&out).expect("valid json");
+    let tools = v["result"]["tools"].as_array().expect("tools array");
+
+    let tool = |name: &str| {
+        tools
+            .iter()
+            .find(|t| t["name"] == name)
+            .unwrap_or_else(|| panic!("missing tool {name}"))
+    };
+    assert_eq!(tool("leer")["annotations"]["readOnlyHint"], true);
+    assert_eq!(tool("proyecto")["annotations"]["destructiveHint"], true);
+    for t in tools {
+        assert!(t["title"].is_string(), "missing title in {t}");
+        let description = t["description"].as_str().expect("description");
+        assert!(
+            description.contains(" / EN: "),
+            "description is not bilingual: {description}"
+        );
+    }
+}
+
+#[test]
 fn resource_list_has_four_entries() {
     let v = call(r#"{"jsonrpc":"2.0","id":3,"method":"resources/list"}"#);
     assert_eq!(v["result"]["resources"].as_array().unwrap().len(), 4);

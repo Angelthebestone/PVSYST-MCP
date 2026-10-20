@@ -1,6 +1,6 @@
 //! Tools for environment diagnostics, licences, logs, preferences and E2E design.
 
-use super::declaracion::{con, Acceso, Discriminador, Herramienta, TipoDato};
+use super::declaracion::{con, Acceso, Anotaciones, Discriminador, Herramienta, TipoDato};
 use crate::adapters::gui;
 use crate::admin;
 use crate::config::Paths;
@@ -11,8 +11,15 @@ use serde_json::{json, Value};
 
 pub(crate) const TOOL_ENTORNO: Herramienta = Herramienta {
     nombre: "entorno",
-    descripcion: "Entorno PVsyst: diagnostico, licencia, logs y preferencias.",
+    descripcion: "Entorno PVsyst: diagnostico, licencia, logs y preferencias. / EN: PVsyst environment: diagnostics, licence, logs and preferences.",
     acceso: Acceso::Normal,
+    anotaciones: Anotaciones {
+        titulo: "Entorno / Environment",
+        es_solo_lectura: false,
+        es_destructiva: false,
+        es_idempotente: false,
+        usa_red: false,
+    },
     propiedades: &[
         ("n", TipoDato::Integer),
         ("solo_errores", TipoDato::Boolean),
@@ -45,8 +52,15 @@ pub(crate) const TOOL_ENTORNO: Herramienta = Herramienta {
 
 pub(crate) const TOOL_DISENAR_SISTEMA: Herramienta = Herramienta {
     nombre: "disenar_sistema",
-    descripcion: "E2E en una llamada: coordenadas + kWp -> sitio -> proyecto -> dimensionado -> simulacion -> KPIs.",
+    descripcion: "E2E en una llamada: coordenadas + kWp -> sitio -> proyecto -> dimensionado -> simulacion -> KPIs. / EN: End-to-end in one call: coordinates + kWp -> site -> project -> sizing -> simulation -> KPIs.",
     acceso: Acceso::Normal,
+    anotaciones: Anotaciones {
+        titulo: "Diseñar sistema / Design system",
+        es_solo_lectura: false,
+        es_destructiva: true,
+        es_idempotente: false,
+        usa_red: false,
+    },
     propiedades: &[
         ("latitud", TipoDato::Number),
         ("longitud", TipoDato::Number),
