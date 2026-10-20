@@ -9,7 +9,7 @@ use serde_json::Value;
 
 pub(crate) const TOOL_RESULTADOS: Herramienta = Herramienta {
     nombre: "resultados",
-    descripcion: "Resultados: KPIs, CSV, perdidas, mensual, comparacion, P50/P90, carbono, economia y entregable. / EN: Results: KPIs, CSV, losses, monthly, comparison, P50/P90, carbon, economics and deliverable.",
+    descripcion: "Resultados: KPIs, CSV, perdidas, mensual, comparacion, medido_vs_simulado, P50/P90, carbono, economia y entregable. / EN: Results: KPIs, CSV, losses, monthly, comparison, measured vs simulated, P50/P90, carbon, economics and deliverable.",
     acceso: Acceso::Normal,
     anotaciones: Anotaciones {
         titulo: "Resultados / Results",
@@ -39,6 +39,9 @@ pub(crate) const TOOL_RESULTADOS: Herramienta = Herramienta {
         ("tasa_descuento", TipoDato::Number),
         ("anios", TipoDato::Integer),
         ("moneda", TipoDato::String),
+        ("medido_kwh", TipoDato::Array),
+        ("medido_csv", TipoDato::String),
+        ("umbral_pct", TipoDato::Number),
         ("workspace", TipoDato::String),
         ("permitir_fuera_del_workspace", TipoDato::Boolean),
     ],
@@ -52,13 +55,17 @@ pub(crate) const TOOL_RESULTADOS: Herramienta = Herramienta {
             "perdidas",
             "mensual",
             "comparar",
+            "medido_vs_simulado",
             "p50_p90",
             "carbono",
             "economia",
             "entregable",
         ],
     }),
-    requeridos_por_accion: &[("economia", &["capex_por_kwp", "tarifa_por_kwh"])],
+    requeridos_por_accion: &[
+        ("economia", &["capex_por_kwp", "tarifa_por_kwh"]),
+        ("medido_vs_simulado", &["proyecto"]),
+    ],
     ejecutar: Ejecutor::Simple(ejecutar_resultados),
 };
 
@@ -70,6 +77,7 @@ fn ejecutar_resultados(paths: &Paths, args: &Value) -> Result<Value> {
         "perdidas" => engineering::perdidas(paths, args),
         "mensual" => engineering::mensual(paths, args),
         "comparar" => engineering::comparar(paths, args),
+        "medido_vs_simulado" => crate::medicion::comparar_medido(paths, args),
         "p50_p90" => engineering::p50_p90(paths, args),
         "carbono" => engineering::carbono(paths, args),
         "economia" => engineering::economia(paths, args),

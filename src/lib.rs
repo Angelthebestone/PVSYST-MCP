@@ -33,6 +33,7 @@ mod evaluacion_economica;
 mod format;
 mod history;
 mod inyeccion;
+mod medicion;
 mod objects;
 mod perdidas;
 mod prefs;

@@ -12,6 +12,7 @@ mod incertidumbre;
 mod supuestos;
 
 pub(crate) use carbono::carbono;
+pub(crate) use caso::{caso, con_cabecera};
 pub(crate) use comparacion::comparar;
 pub(crate) use economia::economia;
 pub(crate) use entregable::{entregable, mensual, perdidas};
