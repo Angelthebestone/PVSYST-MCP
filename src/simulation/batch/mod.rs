@@ -3,6 +3,7 @@
 //! via `-ipf` (param file) and `-bpf`/`-brf` (batch mode).
 
 use crate::args::{missing, opt_str, req_str, workspace_of};
+use crate::calendario::civil_desde_dias;
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::value_text;
@@ -16,32 +17,18 @@ mod plantilla;
 
 use plantilla::batch_csv;
 
-/// Days-from-civil inverse (Howard Hinnant) to format a date without chrono.
-fn civil_from_days(z: i64) -> (i64, u32, u32) {
-    let z = z + 719468;
-    let era = if z >= 0 { z } else { z - 146096 } / 146097;
-    let doe = (z - era * 146097) as u64;
-    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
-    let y = yoe as i64 + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
-    (if m <= 2 { y + 1 } else { y }, m, d)
-}
-
 fn now_stamp() -> String {
     let secs = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_secs() as i64);
-    let days = secs.div_euclid(86400);
-    let rem = secs.rem_euclid(86400);
-    let (y, m, d) = civil_from_days(days);
+    let days = secs.div_euclid(86_400);
+    let rem = secs.rem_euclid(86_400);
+    let fecha = civil_desde_dias(days);
     format!(
         "{:02}/{:02}/{:02} {:02}:{:02}",
-        d,
-        m,
-        y % 100,
+        fecha.dia(),
+        fecha.mes(),
+        fecha.anio() % 100,
         rem / 3600,
         (rem % 3600) / 60
     )

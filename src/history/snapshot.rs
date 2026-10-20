@@ -1,5 +1,6 @@
 //! History snapshots creation, pruning, and listing.
 
+use crate::calendario::civil_desde_dias;
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
 use std::fs;
@@ -21,25 +22,16 @@ pub(super) fn history_root(ws: &Path) -> PathBuf {
 
 /// Civil date and time (UTC) for a count of seconds since the Unix epoch.
 pub(super) fn civil(secs: u64) -> (i64, u32, u32, u32, u32, u32) {
-    let days = (secs / 86_400) as i64;
-    let rem = secs % 86_400;
-    // Howard Hinnant's days-from-civil inverse, valid for the proleptic Gregorian calendar.
-    let z = days + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z.rem_euclid(146_097);
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = (doy - (153 * mp + 2) / 5 + 1) as u32;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 } as u32;
-    let y = yoe + era * 400 + i64::from(m <= 2);
+    let days = i64::try_from(secs.div_euclid(86_400)).unwrap_or(i64::MAX);
+    let rem = secs.rem_euclid(86_400);
+    let fecha = civil_desde_dias(days);
     (
-        y,
-        m,
-        d,
-        (rem / 3600) as u32,
-        ((rem % 3600) / 60) as u32,
-        (rem % 60) as u32,
+        fecha.anio(),
+        fecha.mes(),
+        fecha.dia(),
+        u32::try_from(rem / 3600).unwrap_or(0),
+        u32::try_from((rem % 3600) / 60).unwrap_or(0),
+        u32::try_from(rem % 60).unwrap_or(0),
     )
 }
 

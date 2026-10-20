@@ -18,6 +18,7 @@
 mod adapters;
 mod admin;
 mod args;
+mod calendario;
 mod components;
 mod config;
 mod easy_mode;

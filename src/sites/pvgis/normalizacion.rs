@@ -1,6 +1,7 @@
 //! Data normalization and coordinate transformations for PVGIS data.
 //! Handles calendar conversions, timezone shifts, and horizon profile decimation.
 
+use crate::calendario::{civil_desde_dias, dias_del_mes, dias_desde_civil, FechaCivil};
 use crate::error::{Error, Result};
 use crate::format::object;
 use serde_json::Value;
@@ -51,35 +52,10 @@ pub(crate) fn fecha_utc(t: &str) -> Option<(i64, i64, i64, i64, i64)> {
     }
     let n = |a: usize, z: usize| t.get(a..z)?.parse::<i64>().ok();
     let (y, mo, d, hh, mi) = (n(0, 4)?, n(4, 6)?, n(6, 8)?, n(9, 11)?, n(11, 13)?);
-    let dias_mes =
-        dias_desde_civil(y + i64::from(mo == 12), mo % 12 + 1, 1) - dias_desde_civil(y, mo, 1);
+    let mes = u32::try_from(mo).unwrap_or(0);
+    let dias_mes = i64::from(dias_del_mes(y, mes));
     let valida = (1..=12).contains(&mo) && (1..=dias_mes).contains(&d) && hh < 24 && mi < 60;
     valida.then_some((y, mo, d, hh, mi))
-}
-
-/// Days since 1970-01-01 of a proleptic Gregorian date (Howard Hinnant's algorithm).
-pub(crate) fn dias_desde_civil(y: i64, m: i64, d: i64) -> i64 {
-    let y = if m <= 2 { y - 1 } else { y };
-    let era = y.div_euclid(400);
-    let yoe = y - era * 400;
-    let mp = if m > 2 { m - 3 } else { m + 9 };
-    let doy = (153 * mp + 2) / 5 + d - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    era * 146_097 + doe - 719_468
-}
-
-/// Inverse of `dias_desde_civil`: `(year, month, day)`.
-pub(crate) fn civil_desde_dias(z: i64) -> (i64, i64, i64) {
-    let z = z + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z - era * 146_097;
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = doy - (153 * mp + 2) / 5 + 1;
-    let m = if mp < 10 { mp + 3 } else { mp - 9 };
-    let y = yoe + era * 400 + i64::from(m <= 2);
-    (y, m, d)
 }
 
 /// Wind speed, clamping PVGIS' small negative rounding artifacts to zero.
@@ -113,12 +89,13 @@ fn parsear_registro_hora(f: &Value, tz: i64) -> Result<Hora> {
         }
         Ok(x)
     };
-    let minutos = dias_desde_civil(ANIO_REFERENCIA, mo, d) * 1440 + hh * 60 + mi + tz * 60;
-    let (_, mes, dia) = civil_desde_dias(minutos.div_euclid(1440));
+    let fecha = FechaCivil::nuevo(ANIO_REFERENCIA, mo as u32, d as u32);
+    let minutos = dias_desde_civil(fecha) * 1440 + hh * 60 + mi + tz * 60;
+    let fecha = civil_desde_dias(minutos.div_euclid(1440));
     let resto = minutos.rem_euclid(1440);
     Ok(Hora {
-        mes,
-        dia,
+        mes: i64::from(fecha.mes()),
+        dia: i64::from(fecha.dia()),
         hh: resto / 60,
         mm: resto % 60,
         g: campo("G(h)", 0.0, MAX_IRRADIANCIA_W_M2)?,

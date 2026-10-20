@@ -3,9 +3,9 @@
 //! (PVsyst azimuth: 0 = south, east negative).
 
 use crate::args::opt_str;
+use crate::calendario::{dias_del_mes, dias_desde_civil, FechaCivil};
 use crate::config::Paths;
 use crate::error::{Error, Result};
-use crate::sites::nasa::DAYS;
 use serde_json::{json, Value};
 
 use super::produccion::{factor_anual, factor_transposicion};
@@ -13,20 +13,6 @@ use super::{orientacion_de, redondear, sitio_de, Clima, Sitio};
 
 /// Date used when `fecha` is not given: the June solstice (only the day of year matters).
 const FECHA_DEFECTO: &str = "2021-06-21";
-
-/// Determines if a year is a leap year in the Gregorian calendar.
-fn es_bisiesto(anio: u32) -> bool {
-    (anio.is_multiple_of(4) && !anio.is_multiple_of(100)) || anio.is_multiple_of(400)
-}
-
-/// Days in a given month of a Gregorian year (accounting for February 29 in leap years).
-fn dias_del_mes(anio: u32, mes: usize) -> u32 {
-    if mes == 2 && es_bisiesto(anio) {
-        29
-    } else {
-        DAYS[mes - 1]
-    }
-}
 
 /// Day of the year (1-365 in standard years, 1-366 in leap years) of a `AAAA-MM-DD` date.
 /// Follows the Gregorian calendar, properly supporting February 29 and shifting subsequent days.
@@ -47,12 +33,14 @@ pub(crate) fn dia_del_anio(fecha: &str) -> Result<u32> {
         .next()
         .and_then(|d| d.parse().ok())
         .ok_or_else(error)?;
-    let max_dias = dias_del_mes(anio, mes);
+    let anio_civil = i64::from(anio);
+    let max_dias = dias_del_mes(anio_civil, mes as u32);
     if partes.next().is_some() || dia == 0 || dia > max_dias {
         return Err(error());
     }
-    let ajuste_bisiesto = if mes > 2 && es_bisiesto(anio) { 1 } else { 0 };
-    Ok(DAYS[..mes - 1].iter().sum::<u32>() + dia + ajuste_bisiesto)
+    let inicio = dias_desde_civil(FechaCivil::nuevo(anio_civil, 1, 1));
+    let actual = dias_desde_civil(FechaCivil::nuevo(anio_civil, mes as u32, dia));
+    u32::try_from(actual - inicio + 1).map_err(|_| error())
 }
 
 /// Solar declination (radians) for day of year `n` (Spencer).

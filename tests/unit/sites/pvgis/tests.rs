@@ -6,15 +6,14 @@ use std::path::Path;
 
 #[test]
 fn should_roundtrip_civil_dates() {
-    assert_eq!(normalizacion::dias_desde_civil(1970, 1, 1), 0);
+    use crate::calendario::{civil_desde_dias, dias_desde_civil, FechaCivil};
+
+    assert_eq!(dias_desde_civil(FechaCivil::nuevo(1970, 1, 1)), 0);
     for z in [-800_000, -1, 0, 1, 20_089, 40_000] {
-        let (y, m, d) = normalizacion::civil_desde_dias(z);
-        assert_eq!(normalizacion::dias_desde_civil(y, m, d), z);
+        assert_eq!(dias_desde_civil(civil_desde_dias(z)), z);
     }
-    assert_eq!(
-        normalizacion::civil_desde_dias(normalizacion::dias_desde_civil(2009, 12, 31)),
-        (2009, 12, 31)
-    );
+    let fecha = civil_desde_dias(dias_desde_civil(FechaCivil::nuevo(2009, 12, 31)));
+    assert_eq!((fecha.anio(), fecha.mes(), fecha.dia()), (2009, 12, 31));
 }
 
 /// A complete PVGIS TMY in UTC; February comes from a leap year, as PVGIS
