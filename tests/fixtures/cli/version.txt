@@ -1,0 +1,4 @@
+
+PVsystCLI 8.1.7 (rev. 49382)
+PVsystCLI is up to date, you are using the latest version
+Release notes are available here: https://www.pvsyst.com/help-cli/release-notes.html

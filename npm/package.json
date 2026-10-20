@@ -1,0 +1,48 @@
+{
+  "name": "pvsyst-mcp",
+  "version": "0.1.0",
+  "description": "Model Context Protocol server that automates PVsyst 8.1.7 through its data files and the documented PVsystCLI commands.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "pvsyst-mcp": "bin/pvsyst-mcp.js"
+  },
+  "files": [
+    "bin/",
+    "vendor/",
+    "LICENSE",
+    "NOTICE",
+    "README.md"
+  ],
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Angelthebestone/PVSYST-MCP.git"
+  },
+  "homepage": "https://github.com/Angelthebestone/PVSYST-MCP#readme",
+  "bugs": {
+    "url": "https://github.com/Angelthebestone/PVSYST-MCP/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "pvsyst",
+    "photovoltaic",
+    "solar",
+    "simulation",
+    "automation",
+    "windows"
+  ],
+  "scripts": {
+    "vendor": "node scripts/vendor-binary.mjs",
+    "prepublishOnly": "node scripts/vendor-binary.mjs"
+  }
+}

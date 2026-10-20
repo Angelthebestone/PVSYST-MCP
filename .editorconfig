@@ -1,0 +1,27 @@
+# EditorConfig: https://editorconfig.org
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{yml,yaml,json,toml,py}]
+indent_size = 2
+
+# PowerShell scripts are CRLF (see .gitattributes).
+[*.ps1]
+end_of_line = crlf
+
+# Test fixtures mimic real PVsyst files and recordings: never re-encode their bytes.
+# tests/fixtures/workspace/** is CRLF on purpose and marked -text in .gitattributes.
+[tests/fixtures/**]
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset

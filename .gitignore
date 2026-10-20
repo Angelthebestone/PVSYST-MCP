@@ -1,0 +1,23 @@
+/target
+/.scratch
+**/*.rs.bk
+Cargo.lock.orig
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.claude/settings.local.json
+command-code-session-4ebba3ca.html
+critica_codigo_src.md
+informe.md
+docs/handoff.md
+.claude/
+.env
+.mcp.json
+CLAUDE.md
+.commandcode/
+# npm packaging: the binary and the license copies are staged at publish time by
+# npm/scripts/vendor-binary.mjs, never committed.
+/npm/vendor/
+/npm/LICENSE
+/npm/NOTICE

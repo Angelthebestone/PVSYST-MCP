@@ -1,0 +1,66 @@
+[package]
+name = "pvsyst-mcp"
+version = "0.1.0"
+edition = "2021"
+description = "MCP server that operates PVsyst 8.1.7 by manipulating only its data files (no PVsyst code, no simulation engine reimplementation)."
+license = "Apache-2.0"
+repository = ""                    # TODO: fill in once the repository is public
+keywords = ["mcp", "pvsyst", "photovoltaic", "solar", "automation"]
+categories = ["command-line-utilities", "development-tools"]
+# Not published to crates.io: distributed through GitHub Releases, see the
+# trademark and licensing notes in README.md.
+publish = false
+
+[lib]
+name = "pvsyst_mcp"
+path = "src/lib.rs"
+
+[[bin]]
+name = "pvsyst-mcp"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0.104"
+miniz_oxide = "0.9.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2.0.21"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+[lints.rust]
+unreachable_pub = "warn"
+
+[lints.clippy]
+too_many_lines = "warn"
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+todo = "warn"
+unimplemented = "warn"
+undocumented_unsafe_blocks = "warn"
+fn_params_excessive_bools = "warn"
+needless_pass_by_value = "warn"
+redundant_clone = "warn"
+cognitive_complexity = "warn"
+dbg_macro = "warn"
+# stdout carries the MCP protocol: nothing may print to it by accident.
+print_stdout = "warn"
+print_stderr = "warn"
+
+[target."cfg(windows)".dependencies]
+windows = { version = "0.62.2", features = ["Win32_Foundation", "Win32_System_Com", "Win32_UI_Accessibility", "Win32_System_Variant", "Win32_System_Ole", "Win32_UI_WindowsAndMessaging", "Win32_System_Threading", "Win32_System_StationsAndDesktops", "Win32_UI_Input_KeyboardAndMouse", "Win32_Graphics_Gdi"] }
+
+[dev-dependencies]
+proptest = "1.12.0"
+tempfile = "3.27.0"
+
+[[bin]]
+name = "fake_pvsystcli"
+path = "src/bin/fake_pvsystcli.rs"

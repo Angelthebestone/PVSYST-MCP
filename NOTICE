@@ -1,0 +1,16 @@
+pvsyst-mcp
+Copyright 2026 Angel Peña
+
+This notice must be propagated with any redistribution or derivative work, as
+required by section 4(d) of the Apache License, Version 2.0. Modified files must
+carry prominent notices stating that they were changed (section 4(b)), and every
+copyright and attribution notice must be retained (section 4(c)).
+
+pvsyst-mcp is an unofficial interoperability tool. It is not affiliated with,
+endorsed by or sponsored by PVsyst SA. "PVsyst" is a trademark of its respective
+owner and is used here only to describe interoperability with PVsyst data files
+and with the PVsystCLI command-line tool.
+
+PVsyst itself is not included in and is not redistributed with this work. Using
+this tool requires a separate, valid PVsyst installation under PVsyst SA's
+General Conditions of Use.

@@ -1,0 +1,10 @@
+
+Error: Invalid command syntax
+
+Required option [latitude] was not specified
+Required option [longitude] was not specified
+Required option [weather-data-file] was not specified
+
+
+Call the 'help' command to get global help on this command-line tool
+

@@ -1,0 +1,10 @@
+PVObject_=pvGInverter
+  Comment=Synthetic inverter (test fixture)
+  Version=8.1.0
+  Manufacturer=Synthetic
+  Model=Synth 10kW
+  PNomConv=10000
+  VMppMin=300
+  VMPPMax=800
+  VAbsMax=1000
+End of PVObject pvGInverter

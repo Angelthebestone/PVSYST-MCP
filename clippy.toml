@@ -1,0 +1,6 @@
+too-many-lines-threshold = 50
+max-fn-params-bools = 1
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests = true
+cognitive-complexity-threshold = 15

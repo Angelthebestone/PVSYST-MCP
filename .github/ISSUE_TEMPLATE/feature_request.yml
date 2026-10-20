@@ -1,0 +1,69 @@
+name: Feature request
+description: Propose a new capability or an improvement to an existing tool
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This project can only automate what PVsyst exposes **through its files or the
+        documented `PVsystCLI` commands** (plus the Windows GUI bridge in expert mode).
+        Requests that need a reimplementation of the simulation engine are out of scope.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to accomplish, and what does the current tool surface force you to do instead?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed tool call
+      description: Sketch the tool name, the arguments and the shape of the response you would expect.
+      render: json
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: PVsyst area
+      options:
+        - Projects and variants
+        - Components (modules, inverters, batteries, ...)
+        - Sites, meteo and solar geometry
+        - Simulation and batch runs
+        - Results and reporting
+        - File formats and byte-level editing
+        - GUI bridge (Windows / UIA)
+        - Toolchain, CI and packaging
+    validations:
+      required: true
+  - type: dropdown
+    id: backing
+    attributes:
+      label: What backs the capability?
+      description: How do you know PVsyst can do this from outside the GUI?
+      options:
+        - A file artifact (extension / folder) the tool could read or write
+        - A documented PVsystCLI command or option
+        - Only the GUI (no file or CLI command)
+        - I am not sure
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Existing tools, workarounds, or why the current surface is not enough.
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues and the README tool table
+          required: true
+        - label: This proposal needs no PVsyst source code, no decompilation and no reimplementation of the simulation engine
+          required: true

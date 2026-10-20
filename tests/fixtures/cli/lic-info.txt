@@ -1,0 +1,7 @@
+
+The license file "C:\ProgramData\PVsystCLI\PVsystCLI.lic" is missing.
+You can run "lic-activate" command to activate your license.
+Status: TRIAL
+Remaining days: 58
+Remaining executions: 223
+Host ID: HARDDISK=0000_0000_0000_0000_ACE4_2E00_3B04_AF6C., ETHERNET=00FF3F2653A8||BA1EA4959D6D||BE1EA4959D6D||B81EA4959D6D||00155D1D33B1, WIN_PRODUCT_ID=00331-10000-00001-AA303, BIOS=MP2MQPMV
