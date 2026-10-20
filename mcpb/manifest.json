@@ -1,0 +1,87 @@
+{
+  "manifest_version": "0.3",
+  "name": "pvsyst-mcp",
+  "display_name": "PVsyst MCP",
+  "version": "0.1.0",
+  "description": "Automates PVsyst 8.1.7 through its data files and the documented PVsystCLI commands.",
+  "long_description": "Unofficial MCP server for **PVsyst 8.1.7**: projects, variants, components, sites and weather, simulation and results, operated through PVsyst's own data files and the documented `PVsystCLI` commands. Every write is snapshotted first and can be restored.\n\n**Requirements:** Windows x64 with PVsyst 8.1.7 installed. Headless simulation needs a PVsystCLI licence; without it the CLI runs in TRIAL mode.\n\nNot affiliated with or endorsed by PVsyst SA. No PVsyst code is included or decompiled.",
+  "author": {
+    "name": "Angel Peña",
+    "email": "penaagamezangeldavid@gmail.com",
+    "url": "https://github.com/Angelthebestone"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Angelthebestone/PVSYST-MCP.git"
+  },
+  "homepage": "https://github.com/Angelthebestone/PVSYST-MCP",
+  "documentation": "https://github.com/Angelthebestone/PVSYST-MCP#readme",
+  "support": "https://github.com/Angelthebestone/PVSYST-MCP/issues",
+  "server": {
+    "type": "binary",
+    "entry_point": "server/pvsyst-mcp.exe",
+    "mcp_config": {
+      "command": "${__dirname}/server/pvsyst-mcp.exe",
+      "args": [],
+      "env": {
+        "PVSYST_WORKSPACE": "${user_config.workspace}",
+        "PVSYST_CLI": "${user_config.pvsyst_cli}",
+        "PVSYST_GUI": "${user_config.pvsyst_gui}",
+        "PVSYST_MCP_EXPERTO": "${user_config.experto}"
+      }
+    }
+  },
+  "tools": [
+    { "name": "entorno", "description": "Entorno PVsyst: diagnostico, licencia, logs y preferencias." },
+    { "name": "disenar_sistema", "description": "E2E en una llamada: coordenadas + kWp -> sitio -> proyecto -> dimensionado -> simulacion -> KPIs." },
+    { "name": "listar", "description": "Lista proyectos, componentes, modulos, archivos u objetos." },
+    { "name": "leer", "description": "Lee cualquier archivo PVsyst: proyecto, modulo, sitio, meteo, componente, objeto o bytes crudos (detectado por archivo)." },
+    { "name": "editar", "description": "Edita campos, inserta o elimina objetos PVObject (byte-preserving, con historial)." },
+    { "name": "escribir_archivo", "description": "Escribe un archivo dentro del workspace (con historial)." },
+    { "name": "proyecto", "description": "Ciclo de vida de proyectos y variantes: crear, eliminar, renombrar, dimensionar, diagnosticar, anadir objetos." },
+    { "name": "componente", "description": "Base de datos de componentes: crear, borrar, importar, exportar o crear desde ficha tecnica." },
+    { "name": "sitio", "description": "Sitios y meteo: crear (coordenadas o CSV), convertir, geometria solar, horizonte y TMY de PVGIS." },
+    { "name": "simular", "description": "Simulacion: ejecutar (con filas/parametros opcionales), preparar entrada, estado, preestimar y barrido." },
+    { "name": "resultados", "description": "Resultados: KPIs, CSV, perdidas, mensual, comparacion, P50/P90, carbono, economia y entregable." },
+    { "name": "workspace", "description": "Workspace: crear, exportar, importar, exportar proyecto, historial de cambios y restaurar." }
+  ],
+  "tools_generated": true,
+  "keywords": ["pvsyst", "photovoltaic", "solar", "simulation", "automation"],
+  "license": "Apache-2.0",
+  "privacy_policies": [
+    "https://commission.europa.eu/privacy-policy-websites-managed-european-commission_en"
+  ],
+  "compatibility": {
+    "platforms": ["win32"]
+  },
+  "user_config": {
+    "workspace": {
+      "type": "directory",
+      "title": "PVsyst workspace",
+      "description": "PVsyst user data folder (contains Projects, ComposPV, Meteo...).",
+      "required": true,
+      "default": "${HOME}/PVsyst8.1_Data"
+    },
+    "pvsyst_cli": {
+      "type": "file",
+      "title": "PVsystCLI.exe",
+      "description": "Path to the PVsyst headless command-line executable.",
+      "required": true,
+      "default": "C:\\Program Files\\PVsyst8.1.7\\PVsystCLI.exe"
+    },
+    "pvsyst_gui": {
+      "type": "file",
+      "title": "PVsyst.exe",
+      "description": "Path to the PVsyst GUI executable (also locates the read-only DataRO folder).",
+      "required": true,
+      "default": "C:\\Program Files\\PVsyst8.1.7\\PVsyst.exe"
+    },
+    "experto": {
+      "type": "boolean",
+      "title": "Expert mode",
+      "description": "Also expose the raw PVsystCLI passthrough and the GUI automation tools (15 tools instead of 12).",
+      "required": false,
+      "default": false
+    }
+  }
+}

@@ -53,7 +53,8 @@ through its data files and the documented `PVsystCLI` commands only.
   `clippy -D warnings`, `test`, `cargo llvm-cov` and the Python tooling checks, plus
   `cargo audit` and `cargo deny check` in the documented development checks.
 - **Distribution**: GitHub Releases ship the release binary as a zip with
-  `LICENSE`, `NOTICE` and the READMEs. The v0.1.0 binary was built locally with the
+  `LICENSE`, `NOTICE` and the READMEs, plus a one-click `.mcpb` bundle for Claude
+  Desktop built from `mcpb/manifest.json`. The v0.1.0 binary was built locally with the
   `x86_64-pc-windows-gnu` toolchain; later `v*` tags are built by
   `.github/workflows/release.yml`. `pvsyst-mcp@0.1.0` on npm (Windows x64, `npx -y pvsyst-mcp`) is an
   earlier build published on 2026-10-15 from the pre-release history; its README

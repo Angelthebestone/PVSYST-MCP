@@ -16,7 +16,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo test --release
       - run: cargo build --release --bin pvsyst-mcp
-      - name: Package
+      - name: Package zip
         shell: pwsh
         run: |
           $name = "pvsyst-mcp-${{ github.ref_name }}-x86_64-pc-windows-msvc"
@@ -24,6 +24,15 @@ jobs:
           Copy-Item target/release/pvsyst-mcp.exe, LICENSE, NOTICE, README.md, README.es.md, CHANGELOG.md, mcp.example.json $name
           Compress-Archive -Path $name -DestinationPath "$name.zip"
           (Get-FileHash "$name.zip" -Algorithm SHA256).Hash.ToLower() + "  $name.zip" | Out-File -Encoding ascii "$name.zip.sha256"
+      - name: Package MCP bundle
+        shell: pwsh
+        run: |
+          $name = "pvsyst-mcp-${{ github.ref_name }}-x86_64-pc-windows-msvc.mcpb"
+          New-Item -ItemType Directory mcpb-stage/server | Out-Null
+          Copy-Item mcpb/manifest.json, LICENSE, NOTICE, README.md mcpb-stage
+          Copy-Item target/release/pvsyst-mcp.exe mcpb-stage/server
+          npx -y @anthropic-ai/mcpb@2 pack mcpb-stage $name
+          (Get-FileHash $name -Algorithm SHA256).Hash.ToLower() + "  $name" | Out-File -Encoding ascii "$name.sha256"
       - name: Release notes from CHANGELOG
         shell: bash
         run: |
@@ -38,4 +47,8 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" pvsyst-mcp-*.zip pvsyst-mcp-*.zip.sha256 --title "$GITHUB_REF_NAME" --notes-file notes.md
+        run: >-
+          gh release create "$GITHUB_REF_NAME"
+          pvsyst-mcp-*.zip pvsyst-mcp-*.zip.sha256
+          pvsyst-mcp-*.mcpb pvsyst-mcp-*.mcpb.sha256
+          --title "$GITHUB_REF_NAME" --notes-file notes.md

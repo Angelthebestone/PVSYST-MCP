@@ -177,6 +177,14 @@ cargo test
 
 ## Install into an MCP client
 
+### Claude Desktop (one-click bundle)
+
+Download the `.mcpb` file from the
+[latest release](https://github.com/Angelthebestone/PVSYST-MCP/releases/latest) and
+open it (or drag it onto *Settings → Extensions*). Claude Desktop asks for the PVsyst
+workspace, `PVsystCLI.exe`, `PVsyst.exe` and expert mode, prefilled with the default
+install paths. The bundle is built from [`mcpb/manifest.json`](mcpb/manifest.json).
+
 ### Command Code (Windows)
 
 > **Important — the space-in-path gotcha.** Command Code does not quote the
