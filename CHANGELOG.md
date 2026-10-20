@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-20
+
+### Added
+
+- **MCP tool metadata**: every tool now declares a title plus `readOnlyHint`,
+  `destructiveHint`, `idempotentHint` and `openWorldHint`, and its description is
+  bilingual (Spanish / English). The `.mcpb` manifest carries the same texts.
+- **MCP prompts**: `prompts/list` and `prompts/get` expose the seven recipes
+  (site design, step-by-step study, results, orientation sweep, GUI, file
+  explorer and environment diagnosis); `pvsyst://recetas` keeps the resource form.
+- **Protocol 2025-06-18**: object results also carry `structuredContent` (errors
+  add `{error, tipo}`), long simulations emit `notifications/progress` and accept
+  `notifications/cancelled`, and the negotiated version is fixed by the first
+  `initialize`. `2024-11-05` and `2025-03-26` remain supported.
+- **Responsive loop**: one worker thread executes tools while the main loop keeps
+  answering pings and cancellations; cancelled calls never answer.
+- **Synthetic legacy `.PAN` fixture** with an exact `Real48` encoder in Python and
+  a non-ignored end-to-end decode test.
+- **Property tests** for PVObject insert/extract/remove and for byte-identical
+  history restore.
+- **Shared calendar module** (proleptic Gregorian, Hinnant algorithm) replacing the
+  three duplicated conversions.
+- **Safer FFI**: 76 `unsafe` blocks reduced to 40, all with `SAFETY`; repeated
+  Win32 calls live in `adapters/gui/ffi/` and UIA COM calls in `adapters/uia/com.rs`.
+
+### Changed
+
+- Tool errors use `MissingArg`, `NotFound`, `Io` or `Cli` consistently instead of
+  `Invalid` for absent arguments and resources.
+- Boolean parameters were replaced by domain enums in the affected APIs.
+- `leer_bytes` has one definition in `workspace/lectura.rs`; the documentation of
+  the touched modules was audited.
+- The crate is explicitly Windows-only and declares `rust-version = "1.88"`
+  (`proptest` 1.12 and `slice::as_chunks` need it; 1.85 does not compile).
+- `tracing-subscriber` uses only the `env-filter`, `fmt` and `std` features; the
+  log output is unchanged.
+
+### Fixed
+
+- ZIP listings and imports accept accented entry names in the console code page.
+- Progress polling no longer copies the whole captured stdout when no new bytes
+  arrived.
+- A cancellation that races with response writing cannot delete a newer
+  registration for a reused request id, and reader threads are joined on the
+  cancel path.
+
+### Verification
+
+- `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`
+  and `cargo +1.88-x86_64-pc-windows-gnu check --all-targets` pass.
+- The `#[ignore]` suites that need a real PVsyst installation, the GUI or network
+  were not executed in this release environment; GUI wrapper behavior was verified
+  by the existing unit/integration coverage, not by a live PVsyst session.
+
 ## [0.1.1] - 2026-10-20
 
 ### Added
