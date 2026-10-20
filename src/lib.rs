@@ -21,6 +21,7 @@ compile_error!("pvsyst-mcp solo funciona en Windows: PVsyst 8.1.7 es una aplicac
 
 mod adapters;
 mod admin;
+mod almacenamiento;
 mod args;
 mod calendario;
 mod components;

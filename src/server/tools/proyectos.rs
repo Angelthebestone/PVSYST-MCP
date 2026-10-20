@@ -8,7 +8,7 @@ use serde_json::Value;
 
 pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
     nombre: "proyecto",
-    descripcion: "Ciclo de vida de proyectos y variantes: crear, eliminar, renombrar, dimensionar, diagnosticar, anadir objetos, convertir a seguidor, limite de inyeccion. / EN: Project and variant lifecycle: create, delete, rename, size, diagnose, add objects, convert to tracker, injection limit.",
+    descripcion: "Ciclo de vida de proyectos y variantes: crear, eliminar, renombrar, dimensionar, diagnosticar, anadir objetos, convertir a seguidor, limite de inyeccion, almacenamiento. / EN: Project and variant lifecycle: create, delete, rename, size, diagnose, add objects, convert to tracker, injection limit, storage.",
     acceso: Acceso::Normal,
     anotaciones: Anotaciones {
         titulo: "Proyecto / Project",
@@ -44,6 +44,13 @@ pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
         ("potencia_kw", TipoDato::Number),
         ("perdida_separada", TipoDato::Boolean),
         ("tan_phi", TipoDato::Number),
+        ("estrategia", TipoDato::String),
+        ("bateria", TipoDato::String),
+        ("n_serie", TipoDato::Integer),
+        ("n_paralelo", TipoDato::Integer),
+        ("p_max_carga_kw", TipoDato::Number),
+        ("p_max_descarga_kw", TipoDato::Number),
+        ("soc_inicial", TipoDato::Number),
         ("workspace", TipoDato::String),
     ],
     requeridos: &[],
@@ -60,6 +67,7 @@ pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
             "anadir",
             "seguidor",
             "limite_inyeccion",
+            "almacenamiento",
             "limpiar_temporales",
         ],
     }),
@@ -73,6 +81,7 @@ pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
         ("anadir", &["proyecto", "elemento"]),
         ("seguidor", &["proyecto"]),
         ("limite_inyeccion", &["proyecto", "potencia_kw"]),
+        ("almacenamiento", &["proyecto", "estrategia"]),
     ],
     ejecutar: Ejecutor::Simple(ejecutar_proyecto),
 };
@@ -89,6 +98,7 @@ fn ejecutar_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
         "anadir" => projects::anadir::anadir(paths, args),
         "seguidor" => crate::seguidores::convertir_a_seguidor(paths, args),
         "limite_inyeccion" => crate::inyeccion::definir_limite(paths, args),
+        "almacenamiento" => crate::almacenamiento::configurar_almacenamiento(paths, args),
         "limpiar_temporales" => projects::temporales::limpiar_temporales(paths, args),
         _ => Err(Error::Invalid(format!(
             "Valor '{valor}' no soportado para proyecto"
