@@ -173,10 +173,6 @@ pub(crate) fn insertar_objeto(
 ///
 /// The block adopts the destination indentation and line ending, and the result
 /// is refused with `Error::Format` when it would be structurally unbalanced.
-#[cfg_attr(
-    not(test),
-    expect(dead_code, reason = "consumed by the follower conversion in 3.3")
-)]
 pub(crate) fn reemplazar_objeto(destino: &[u8], selector: &str, bloque: &[u8]) -> Result<Vec<u8>> {
     object::validar_estructura(destino)?;
     object::validar_estructura(bloque)?;

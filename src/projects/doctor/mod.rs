@@ -3,6 +3,7 @@
 
 pub(crate) mod electrico;
 pub(crate) mod referencias;
+pub(crate) mod seguidores;
 pub(crate) mod sintaxis;
 
 use crate::args::{self, flag, opt_str, req_str};
@@ -10,6 +11,7 @@ use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::projects::doctor::electrico::{revisar_electrico, ContextoElectrico};
 use crate::projects::doctor::referencias::{revisar_componentes, revisar_sitio};
+use crate::projects::doctor::seguidores::revisar_seguidor;
 use crate::projects::doctor::sintaxis::{revisar_archivo, DestinoRevision};
 use crate::workspace::leer_bytes;
 use crate::workspace::Alcance;
@@ -65,6 +67,7 @@ fn revisar_variante(ctx: &ContextoVariante<'_>, var: &Path, inf: &mut Informe) -
         var_txt: &var_txt,
     };
     revisar_electrico(&ctx_elec, &mut parcial);
+    revisar_seguidor(&var_txt, &mut parcial);
 
     inf.errores.extend(
         parcial

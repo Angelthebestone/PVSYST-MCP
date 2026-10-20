@@ -1,13 +1,5 @@
 //! System type of a project variant, read from `pvSystem.SystemType`.
 
-#![cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "consumed by the follower, injection and storage actions (3.3-3.5)"
-    )
-)]
-
 use crate::error::{Error, Result};
 use crate::format::object;
 

@@ -8,7 +8,7 @@ use serde_json::Value;
 
 pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
     nombre: "proyecto",
-    descripcion: "Ciclo de vida de proyectos y variantes: crear, eliminar, renombrar, dimensionar, diagnosticar, anadir objetos. / EN: Project and variant lifecycle: create, delete, rename, size, diagnose, add objects.",
+    descripcion: "Ciclo de vida de proyectos y variantes: crear, eliminar, renombrar, dimensionar, diagnosticar, anadir objetos, convertir a seguidor. / EN: Project and variant lifecycle: create, delete, rename, size, diagnose, add objects, convert to tracker.",
     acceso: Acceso::Normal,
     anotaciones: Anotaciones {
         titulo: "Proyecto / Project",
@@ -35,6 +35,12 @@ pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
         ("pnom_modulo", TipoDato::Number),
         ("reparar", TipoDato::Boolean),
         ("elemento", TipoDato::String),
+        ("azimut_eje", TipoDato::Number),
+        ("angulo_max", TipoDato::Number),
+        ("pitch_m", TipoDato::Number),
+        ("ancho_colector_m", TipoDato::Number),
+        ("n_filas", TipoDato::Integer),
+        ("backtracking", TipoDato::Boolean),
         ("workspace", TipoDato::String),
     ],
     requeridos: &[],
@@ -49,6 +55,7 @@ pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
             "dimensionar",
             "doctor",
             "anadir",
+            "seguidor",
             "limpiar_temporales",
         ],
     }),
@@ -60,6 +67,7 @@ pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
         ("dimensionar", &["proyecto", "kwp"]),
         ("doctor", &["proyecto"]),
         ("anadir", &["proyecto", "elemento"]),
+        ("seguidor", &["proyecto"]),
     ],
     ejecutar: Ejecutor::Simple(ejecutar_proyecto),
 };
@@ -74,6 +82,7 @@ fn ejecutar_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
         "dimensionar" => lifecycle::dimensionar_variante(paths, args),
         "doctor" => projects::doctor::doctor(paths, args),
         "anadir" => projects::anadir::anadir(paths, args),
+        "seguidor" => crate::seguidores::convertir_a_seguidor(paths, args),
         "limpiar_temporales" => projects::temporales::limpiar_temporales(paths, args),
         _ => Err(Error::Invalid(format!(
             "Valor '{valor}' no soportado para proyecto"
