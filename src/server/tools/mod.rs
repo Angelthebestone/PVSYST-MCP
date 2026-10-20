@@ -3,6 +3,8 @@
 
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::progreso::SeguimientoTarea;
+use declaracion::Ejecutor;
 use serde_json::Value;
 use std::time::Instant;
 
@@ -53,8 +55,19 @@ pub(crate) fn list(paths: &Paths) -> Vec<Value> {
         .collect()
 }
 
-/// Executes one tool after validating discriminator, required presence, and property types.
+/// Executes one tool without progress or cancellation.
+#[cfg(test)]
 pub(crate) fn call(paths: &Paths, name: &str, args: &Value) -> Result<Value> {
+    call_seguido(paths, name, args, &SeguimientoTarea::inerte())
+}
+
+/// Executes one tool after validating discriminator, required presence, and property types.
+pub(crate) fn call_seguido(
+    paths: &Paths,
+    name: &str,
+    args: &Value,
+    seguimiento: &SeguimientoTarea<'_>,
+) -> Result<Value> {
     let Some(h) = REGISTRO.iter().find(|h| h.nombre == name) else {
         return Err(Error::Invalid(format!("Unknown tool '{name}'")));
     };
@@ -72,7 +85,10 @@ pub(crate) fn call(paths: &Paths, name: &str, args: &Value) -> Result<Value> {
     let t0 = Instant::now();
     let accion = h.validar(args)?;
     let args_efectivos = h.preparar_args(args, &accion);
-    let mut v = (h.ejecutar)(paths, &args_efectivos)?;
+    let mut v = match h.ejecutar {
+        Ejecutor::Simple(ejecutar) => ejecutar(paths, &args_efectivos)?,
+        Ejecutor::Seguido(ejecutar) => ejecutar(paths, &args_efectivos, seguimiento)?,
+    };
 
     if let Some(lim) = recorte::limites(args) {
         recorte::recortar(&mut v, lim);

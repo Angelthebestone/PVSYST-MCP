@@ -1,6 +1,6 @@
 //! Tools for workspace operations, file reading/writing, editing and listing.
 
-use super::declaracion::{Acceso, Anotaciones, Discriminador, Herramienta, TipoDato};
+use super::declaracion::{Acceso, Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
 use super::workspace_ejecucion::{
     ejecutar_editar, ejecutar_escribir_archivo, ejecutar_leer, ejecutar_listar, ejecutar_workspace,
 };
@@ -41,7 +41,7 @@ pub(crate) const TOOL_WORKSPACE: Herramienta = Herramienta {
         ],
     }),
     requeridos_por_accion: &[("restaurar", &["id"])],
-    ejecutar: ejecutar_workspace,
+    ejecutar: Ejecutor::Simple(ejecutar_workspace),
 };
 
 pub(crate) const TOOL_ESCRIBIR_ARCHIVO: Herramienta = Herramienta {
@@ -65,7 +65,7 @@ pub(crate) const TOOL_ESCRIBIR_ARCHIVO: Herramienta = Herramienta {
     requeridos: &["archivo", "contenido"],
     discriminador: None,
     requeridos_por_accion: &[],
-    ejecutar: ejecutar_escribir_archivo,
+    ejecutar: Ejecutor::Simple(ejecutar_escribir_archivo),
 };
 
 pub(crate) const TOOL_LEER: Herramienta = Herramienta {
@@ -93,7 +93,7 @@ pub(crate) const TOOL_LEER: Herramienta = Herramienta {
     requeridos: &["archivo"],
     discriminador: None,
     requeridos_por_accion: &[],
-    ejecutar: ejecutar_leer,
+    ejecutar: Ejecutor::Simple(ejecutar_leer),
 };
 
 pub(crate) const TOOL_EDITAR: Herramienta = Herramienta {
@@ -131,7 +131,7 @@ pub(crate) const TOOL_EDITAR: Herramienta = Herramienta {
         ("insertar_objeto", &["archivo", "padre", "desde"]),
         ("eliminar_objeto", &["archivo", "objeto"]),
     ],
-    ejecutar: ejecutar_editar,
+    ejecutar: Ejecutor::Simple(ejecutar_editar),
 };
 
 pub(crate) const TOOL_LISTAR: Herramienta = Herramienta {
@@ -165,5 +165,5 @@ pub(crate) const TOOL_LISTAR: Herramienta = Herramienta {
         valores: &["proyectos", "componentes", "modulos", "archivos", "objetos"],
     }),
     requeridos_por_accion: &[("componentes", &["tipo"]), ("objetos", &["archivo"])],
-    ejecutar: ejecutar_listar,
+    ejecutar: Ejecutor::Simple(ejecutar_listar),
 };

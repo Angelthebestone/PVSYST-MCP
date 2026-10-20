@@ -1,6 +1,6 @@
 //! Expert tools for raw CLI passthrough and Windows GUI automation.
 
-use super::declaracion::{Acceso, Anotaciones, Discriminador, Herramienta, TipoDato};
+use super::declaracion::{Acceso, Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
 use crate::adapters::{cli, gui};
 use crate::config::Paths;
 use crate::error::Result;
@@ -26,7 +26,7 @@ pub(crate) const TOOL_PVSYST_CLI: Herramienta = Herramienta {
     requeridos: &["comando"],
     discriminador: None,
     requeridos_por_accion: &[],
-    ejecutar: ejecutar_cli,
+    ejecutar: Ejecutor::Simple(ejecutar_cli),
 };
 
 pub(crate) const TOOL_GUI_OBSERVAR: Herramienta = Herramienta {
@@ -62,7 +62,7 @@ pub(crate) const TOOL_GUI_OBSERVAR: Herramienta = Herramienta {
         valores: &["ventanas", "controles", "leer", "capturar", "uia", "arbol"],
     }),
     requeridos_por_accion: &[],
-    ejecutar: ejecutar_observar,
+    ejecutar: Ejecutor::Simple(ejecutar_observar),
 };
 
 pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
@@ -113,7 +113,7 @@ pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
         ],
     }),
     requeridos_por_accion: &[],
-    ejecutar: ejecutar_actuar,
+    ejecutar: Ejecutor::Simple(ejecutar_actuar),
 };
 
 fn ejecutar_cli(paths: &Paths, args: &Value) -> Result<Value> {

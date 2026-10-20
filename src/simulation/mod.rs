@@ -22,6 +22,7 @@ use crate::adapters::cli;
 use crate::args::{flag, opt_str, req_str, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::progreso::SeguimientoTarea;
 use serde_json::{json, Value};
 use std::path::Path;
 
@@ -88,6 +89,15 @@ fn resolver_datos_proyecto(
 }
 
 pub(crate) fn lanzar_simulacion(paths: &Paths, args: &Value) -> Result<Value> {
+    let seguimiento = SeguimientoTarea::inerte();
+    lanzar_simulacion_seguida(paths, args, &seguimiento)
+}
+
+pub(crate) fn lanzar_simulacion_seguida(
+    paths: &Paths,
+    args: &Value,
+    seguimiento: &SeguimientoTarea<'_>,
+) -> Result<Value> {
     let workspace = workspace_of(paths, args);
     let (prj_path, stem, variante_up, variant_file) = resolver_datos_proyecto(&workspace, args)?;
     let args_con_salidas =
@@ -118,7 +128,15 @@ pub(crate) fn lanzar_simulacion(paths: &Paths, args: &Value) -> Result<Value> {
         return ejecucion::lanzar_en_segundo_plano(paths, args, &workspace, &cli_args, contexto);
     }
 
-    let mut resultado = ejecucion::ejecutar_cli(paths, args, &workspace, &cli_args, &contexto)?;
+    let solicitud = ejecucion::SolicitudEjecucion {
+        paths,
+        args,
+        workspace: &workspace,
+        cli_args: &cli_args,
+        contexto: &contexto,
+        seguimiento,
+    };
+    let mut resultado = ejecucion::ejecutar_cli(&solicitud)?;
     if open_gui {
         if let Err(e) = gui::spawn_gui(paths, &prj_path) {
             agregar_aviso_gui(&mut resultado, &e);

@@ -3,6 +3,7 @@
 
 use crate::config::Paths;
 use crate::error::Result;
+use crate::progreso::SeguimientoTarea;
 use serde_json::{json, Map, Value};
 
 /// Access level required to execute or discover a tool.
@@ -95,6 +96,13 @@ pub(crate) struct Discriminador {
     pub(crate) valores: &'static [&'static str],
 }
 
+/// How a tool runs: plain, or receiving progress and cancellation.
+#[derive(Clone, Copy)]
+pub(crate) enum Ejecutor {
+    Simple(fn(&Paths, &Value) -> Result<Value>),
+    Seguido(fn(&Paths, &Value, &SeguimientoTarea<'_>) -> Result<Value>),
+}
+
 /// MCP behaviour hints and display title for one tool.
 pub(crate) struct Anotaciones {
     pub(crate) titulo: &'static str,
@@ -114,7 +122,7 @@ pub(crate) struct Herramienta {
     pub(crate) requeridos: &'static [&'static str],
     pub(crate) discriminador: Option<Discriminador>,
     pub(crate) requeridos_por_accion: &'static [(&'static str, &'static [&'static str])],
-    pub(crate) ejecutar: fn(&Paths, &Value) -> Result<Value>,
+    pub(crate) ejecutar: Ejecutor,
 }
 
 impl Herramienta {

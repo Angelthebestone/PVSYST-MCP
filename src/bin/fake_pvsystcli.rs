@@ -9,6 +9,7 @@
 
 use std::env;
 use std::fs;
+use std::io::Write;
 use std::path::Path;
 use std::process::ExitCode;
 use std::thread;
@@ -32,6 +33,9 @@ fn main() -> ExitCode {
         thread::sleep(Duration::from_millis(ms));
     }
 
+    if command == "run-simulation" && env::var("FAKE_PVSYST_PROGRESO").as_deref() == Ok("1") {
+        emitir_progreso();
+    }
     if emitir_casos_especiales(command, &args) {
         return ExitCode::SUCCESS;
     }
@@ -51,6 +55,20 @@ fn main() -> ExitCode {
         _ => {}
     }
     ExitCode::SUCCESS
+}
+
+/// Emits the percentages the real CLI prints while a simulation runs.
+fn emitir_progreso() {
+    let pausa_ms = env::var("FAKE_PVSYST_SLEEP_MS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .unwrap_or(0)
+        / 3;
+    for porcentaje in [10, 50, 100] {
+        println!("{porcentaje}%");
+        let _ = std::io::stdout().flush();
+        thread::sleep(Duration::from_millis(pausa_ms));
+    }
 }
 
 /// `run-simulation`: copy the canned CSV/PDF to the `-ocf:` / `-rpf:` targets.

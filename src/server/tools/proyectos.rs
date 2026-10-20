@@ -1,6 +1,6 @@
 //! Tool for project lifecycle: creation, sizing, variants, diagnostics and cleanup.
 
-use super::declaracion::{Acceso, Anotaciones, Discriminador, Herramienta, TipoDato};
+use super::declaracion::{Acceso, Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::projects::{self, lifecycle};
@@ -61,7 +61,7 @@ pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
         ("doctor", &["proyecto"]),
         ("anadir", &["proyecto", "elemento"]),
     ],
-    ejecutar: ejecutar_proyecto,
+    ejecutar: Ejecutor::Simple(ejecutar_proyecto),
 };
 
 fn ejecutar_proyecto(paths: &Paths, args: &Value) -> Result<Value> {

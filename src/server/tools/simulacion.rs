@@ -1,8 +1,9 @@
 //! Tool for simulation orchestration: batch setup, execution, status, and sweeps.
 
-use super::declaracion::{Acceso, Anotaciones, Discriminador, Herramienta, TipoDato};
+use super::declaracion::{Acceso, Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::progreso::SeguimientoTarea;
 use crate::simulation::{self, batch, preestimate};
 use serde_json::{Map, Value};
 
@@ -74,10 +75,14 @@ pub(crate) const TOOL_SIMULAR: Herramienta = Herramienta {
         ("preestimar", &["latitud", "longitud", "kwp"]),
         ("barrido", &["latitud", "longitud", "kwp"]),
     ],
-    ejecutar: ejecutar_simular,
+    ejecutar: Ejecutor::Seguido(ejecutar_simular),
 };
 
-fn ejecutar_simular(paths: &Paths, args: &Value) -> Result<Value> {
+fn ejecutar_simular(
+    paths: &Paths,
+    args: &Value,
+    seguimiento: &SeguimientoTarea<'_>,
+) -> Result<Value> {
     let valor = args
         .get("accion")
         .and_then(Value::as_str)
@@ -85,7 +90,7 @@ fn ejecutar_simular(paths: &Paths, args: &Value) -> Result<Value> {
     match valor {
         "ejecutar" => {
             let (vivos, _) = preparar_entrada(paths, args)?;
-            simulation::lanzar_simulacion(paths, &vivos)
+            simulation::lanzar_simulacion_seguida(paths, &vivos, seguimiento)
         }
         "preparar" => {
             let (_, preparados) = preparar_entrada(paths, args)?;
@@ -98,7 +103,7 @@ fn ejecutar_simular(paths: &Paths, args: &Value) -> Result<Value> {
         }
         "estado" => simulation::estado_simulacion(paths, args),
         "preestimar" => preestimate::preestimar(paths, args),
-        "barrido" => preestimate::barrido(paths, args),
+        "barrido" => preestimate::barrido(paths, args, seguimiento),
         _ => Err(Error::Invalid(format!(
             "Valor '{valor}' no soportado para simular"
         ))),

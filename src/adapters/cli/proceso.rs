@@ -10,6 +10,7 @@ use crate::args::{flag, req_str};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::value_text;
+use crate::progreso::SeguimientoTarea;
 pub(crate) use crate::state::CliOutput;
 use serde_json::{json, Value};
 use std::process::{Child, Command, Stdio};
@@ -31,23 +32,30 @@ pub(crate) struct ParametrosEjecucion<'a> {
     pub(crate) paths: &'a Paths,
     pub(crate) cli_args: &'a [String],
     pub(crate) timeout: Duration,
+    pub(crate) seguimiento: &'a SeguimientoTarea<'a>,
 }
 
 /// Ejecuta PVsystCLI de forma síncrona esperando hasta alcanzar `timeout`.
 pub(crate) fn run(paths: &Paths, cli_args: &[String], timeout: Duration) -> Result<CliOutput> {
-    let comando = cli_args.first().map_or("", String::as_str);
-    tracing::info!(
-        comando,
-        timeout_s = timeout.as_secs(),
-        "launching PVsystCLI"
-    );
-    let out_sink = crear_sink();
-    let params = ParametrosEjecucion {
+    let seguimiento = SeguimientoTarea::inerte();
+    run_seguido(&ParametrosEjecucion {
         paths,
         cli_args,
         timeout,
-    };
-    let out = run_inner(&params, &out_sink)?;
+        seguimiento: &seguimiento,
+    })
+}
+
+/// Ejecuta PVsystCLI reportando avance y atendiendo la cancelación del cliente.
+pub(crate) fn run_seguido(params: &ParametrosEjecucion<'_>) -> Result<CliOutput> {
+    let comando = params.cli_args.first().map_or("", String::as_str);
+    tracing::info!(
+        comando,
+        timeout_s = params.timeout.as_secs(),
+        "launching PVsystCLI"
+    );
+    let out_sink = crear_sink();
+    let out = run_inner(params, &out_sink)?;
     if out.timed_out {
         tracing::warn!(comando, "PVsystCLI timed out and was killed");
     } else {
@@ -74,7 +82,12 @@ pub(crate) fn run_inner(params: &ParametrosEjecucion<'_>, out_sink: &Sink) -> Re
     let reader_out = super::captura::drain(child.stdout.take(), Arc::clone(out_sink), "stdout");
     let reader_err = super::captura::drain(child.stderr.take(), Arc::clone(&err_sink), "stderr");
 
-    let (exit_code, timed_out) = esperar_proceso(&mut child, params.timeout)?;
+    let espera = EsperaProceso {
+        timeout: params.timeout,
+        sink: out_sink,
+        seguimiento: params.seguimiento,
+    };
+    let (exit_code, timed_out) = esperar_proceso(&mut child, &espera)?;
 
     reader_out
         .join()
@@ -98,9 +111,22 @@ pub(crate) fn run_inner(params: &ParametrosEjecucion<'_>, out_sink: &Sink) -> Re
     })
 }
 
-fn esperar_proceso(child: &mut Child, timeout: Duration) -> Result<(Option<i32>, bool)> {
-    let deadline = Instant::now() + timeout;
+/// What one wait loop needs: the deadline, the captured stdout and the tracker.
+struct EsperaProceso<'a> {
+    timeout: Duration,
+    sink: &'a Sink,
+    seguimiento: &'a SeguimientoTarea<'a>,
+}
+
+fn esperar_proceso(child: &mut Child, espera: &EsperaProceso<'_>) -> Result<(Option<i32>, bool)> {
+    let deadline = Instant::now() + espera.timeout;
+    let mut ultimo_informado = -1.0;
     loop {
+        if espera.seguimiento.esta_cancelado() {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(Error::Cli("Simulación cancelada por el cliente".into()));
+        }
         if let Some(status) = child
             .try_wait()
             .map_err(|e| Error::io("Waiting for PVsystCLI", e))?
@@ -111,6 +137,16 @@ fn esperar_proceso(child: &mut Child, timeout: Duration) -> Result<(Option<i32>,
             let _ = child.kill();
             let _ = child.wait();
             return Ok((None, true));
+        }
+        let avance = texto_sink(espera.sink)
+            .ok()
+            .as_deref()
+            .and_then(super::trabajo::progreso);
+        if let Some(porcentaje) = avance.filter(|p| *p > ultimo_informado) {
+            espera
+                .seguimiento
+                .informar_progreso(porcentaje, "Simulando");
+            ultimo_informado = porcentaje;
         }
         thread::sleep(INTERVALO_ESPERA_PROCESO);
     }

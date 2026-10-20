@@ -3,6 +3,7 @@ use super::preparacion::{preparar, Plan, Previo};
 use crate::adapters::{cli, ledger};
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::progreso::SeguimientoTarea;
 use serde_json::{json, Value};
 use std::path::Path;
 
@@ -42,19 +43,29 @@ pub(crate) fn finalizar(plan: &Plan, out: &cli::CliOutput, contexto: &Value) -> 
     resultado
 }
 
-pub(crate) fn ejecutar_cli(
-    paths: &Paths,
-    args: &Value,
-    workspace: &Path,
-    cli_args: &[String],
-    contexto: &Value,
-) -> Result<Value> {
-    match preparar(args, workspace, cli_args)? {
+/// Everything a synchronous simulation needs, grouped to keep call sites small.
+pub(crate) struct SolicitudEjecucion<'a> {
+    pub(crate) paths: &'a Paths,
+    pub(crate) args: &'a Value,
+    pub(crate) workspace: &'a Path,
+    pub(crate) cli_args: &'a [String],
+    pub(crate) contexto: &'a Value,
+    pub(crate) seguimiento: &'a SeguimientoTarea<'a>,
+}
+
+pub(crate) fn ejecutar_cli(solicitud: &SolicitudEjecucion<'_>) -> Result<Value> {
+    match preparar(solicitud.args, solicitud.workspace, solicitud.cli_args)? {
         Previo::Listo(v) => Ok(v),
         Previo::Ejecutar(plan) => {
-            let timeout = cli::timeout_de(args, cli::TIMEOUT_SIMULACION_S);
-            let out = cli::run(paths, cli_args, timeout)?;
-            Ok(finalizar(&plan, &out, contexto))
+            let timeout = cli::timeout_de(solicitud.args, cli::TIMEOUT_SIMULACION_S);
+            let parametros = cli::ParametrosEjecucion {
+                paths: solicitud.paths,
+                cli_args: solicitud.cli_args,
+                timeout,
+                seguimiento: solicitud.seguimiento,
+            };
+            let out = cli::run_seguido(&parametros)?;
+            Ok(finalizar(&plan, &out, solicitud.contexto))
         }
     }
 }

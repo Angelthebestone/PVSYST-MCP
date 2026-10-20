@@ -7,6 +7,7 @@ use super::captura::{crear_sink, texto_sink};
 use super::proceso::{run_inner, CliOutput, ParametrosEjecucion};
 use crate::config::Paths;
 use crate::error::Result;
+use crate::progreso::SeguimientoTarea;
 pub(crate) use crate::state::Trabajo;
 use std::sync::Arc;
 use std::thread;
@@ -42,10 +43,12 @@ pub(crate) fn run_en_segundo_plano(
     let args_clon = cli_args.to_vec();
     let id_hilo = id.clone();
     thread::spawn(move || {
+        let seguimiento = SeguimientoTarea::inerte();
         let params = ParametrosEjecucion {
             paths: &paths_clon,
             cli_args: &args_clon,
             timeout,
+            seguimiento: &seguimiento,
         };
         let resultado = run_inner(&params, &sink);
         if let Ok(mut mapa) = paths_clon.estado.trabajos.lock() {

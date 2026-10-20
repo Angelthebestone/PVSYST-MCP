@@ -17,5 +17,5 @@ pub(crate) use clasificacion::classify;
 pub(crate) use linea_comando::{
     cli_available, display_command_line, timeout_de, TIMEOUT_DEFECTO_S, TIMEOUT_SIMULACION_S,
 };
-pub(crate) use proceso::{ejecutar, output_json, run, CliOutput};
+pub(crate) use proceso::{ejecutar, output_json, run, run_seguido, CliOutput, ParametrosEjecucion};
 pub(crate) use trabajo::{estado_trabajo, run_en_segundo_plano};

@@ -1,6 +1,6 @@
 //! Tool for simulation output and engineering analysis: KPIs, CSV, losses, economics.
 
-use super::declaracion::{Acceso, Anotaciones, Discriminador, Herramienta, TipoDato};
+use super::declaracion::{Acceso, Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
 use crate::config::Paths;
 use crate::easy_mode;
 use crate::error::{Error, Result};
@@ -59,7 +59,7 @@ pub(crate) const TOOL_RESULTADOS: Herramienta = Herramienta {
         ],
     }),
     requeridos_por_accion: &[("economia", &["capex_por_kwp", "tarifa_por_kwh"])],
-    ejecutar: ejecutar_resultados,
+    ejecutar: Ejecutor::Simple(ejecutar_resultados),
 };
 
 fn ejecutar_resultados(paths: &Paths, args: &Value) -> Result<Value> {

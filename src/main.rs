@@ -22,7 +22,7 @@ fn main() -> Result<()> {
         "pvsyst-mcp starting"
     );
     let server = Server::new(paths);
-    match serve(&server, io::stdin().lock(), io::stdout().lock()) {
+    match serve(&server, io::BufReader::new(io::stdin()), io::stdout()) {
         // The client closed our stdout: a normal way to end the session.
         Err(e) if e.kind() == io::ErrorKind::BrokenPipe => Ok(()),
         other => other.context("MCP stdio session failed"),

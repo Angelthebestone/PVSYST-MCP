@@ -1,6 +1,6 @@
 //! Tool for sites and meteo: site synthesis, solar geometry, PVGIS horizon and TMY.
 
-use super::declaracion::{Acceso, Anotaciones, Discriminador, Herramienta, TipoDato};
+use super::declaracion::{Acceso, Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::sites;
@@ -65,7 +65,7 @@ pub(crate) const TOOL_SITIO: Herramienta = Herramienta {
         ("horizonte_pvgis", &["proyecto"]),
         ("meteo_pvgis", &["latitud", "longitud", "nombre_sitio"]),
     ],
-    ejecutar: ejecutar_sitio,
+    ejecutar: Ejecutor::Simple(ejecutar_sitio),
 };
 
 fn ejecutar_sitio(paths: &Paths, args: &Value) -> Result<Value> {

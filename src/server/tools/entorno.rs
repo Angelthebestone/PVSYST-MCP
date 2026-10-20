@@ -1,6 +1,8 @@
 //! Tools for environment diagnostics, licences, logs, preferences and E2E design.
 
-use super::declaracion::{con, Acceso, Anotaciones, Discriminador, Herramienta, TipoDato};
+use super::declaracion::{
+    con, Acceso, Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato,
+};
 use crate::adapters::gui;
 use crate::admin;
 use crate::config::Paths;
@@ -47,7 +49,7 @@ pub(crate) const TOOL_ENTORNO: Herramienta = Herramienta {
         ],
     }),
     requeridos_por_accion: &[("preferencias_editar", &["seccion", "clave", "valor"])],
-    ejecutar: ejecutar_entorno,
+    ejecutar: Ejecutor::Simple(ejecutar_entorno),
 };
 
 pub(crate) const TOOL_DISENAR_SISTEMA: Herramienta = Herramienta {
@@ -90,7 +92,7 @@ pub(crate) const TOOL_DISENAR_SISTEMA: Herramienta = Herramienta {
     requeridos: &["latitud", "longitud", "kwp"],
     discriminador: None,
     requeridos_por_accion: &[],
-    ejecutar: ejecutar_disenar_sistema,
+    ejecutar: Ejecutor::Simple(ejecutar_disenar_sistema),
 };
 
 fn ejecutar_entorno(paths: &Paths, args: &Value) -> Result<Value> {

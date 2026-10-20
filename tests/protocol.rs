@@ -18,7 +18,7 @@ use pvsyst_mcp::{Paths, Server};
 use serde_json::Value;
 
 /// Latest protocol revision the server speaks, as documented in the README.
-const LATEST_PROTOCOL: &str = "2025-03-26";
+const LATEST_PROTOCOL: &str = "2025-06-18";
 
 fn server_with(expert: bool) -> Server {
     let mut paths = Paths::resolve();
@@ -44,10 +44,27 @@ fn tools_list_len(expert: bool) -> usize {
 #[test]
 fn initialize_echoes_client_protocol_version() {
     let v = call(
-        r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"commandcode","version":"0.1.0"}}}"#,
+        r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"commandcode","version":"0.1.0"}}}"#,
     );
-    assert_eq!(v["result"]["protocolVersion"], "2025-03-26");
+    assert_eq!(v["result"]["protocolVersion"], "2025-06-18");
     assert_eq!(v["result"]["serverInfo"]["name"], "pvsyst-mcp");
+}
+
+#[test]
+fn initialize_negotiates_once_and_keeps_the_first_version() {
+    let server = server_with(false);
+    let first = server
+        .handle_line(
+            r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26"}}"#,
+        )
+        .expect("response");
+    let second = server
+        .handle_line(
+            r#"{"jsonrpc":"2.0","id":2,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}"#,
+        )
+        .expect("response");
+    assert!(first.contains(r#""protocolVersion":"2025-03-26""#));
+    assert!(second.contains(r#""protocolVersion":"2025-03-26""#));
 }
 
 #[test]
@@ -228,6 +245,47 @@ fn prompts_get_without_a_required_argument_is_invalid_params() {
         r#"{"jsonrpc":"2.0","id":6,"method":"prompts/get","params":{"name":"disenar_desde_coordenadas","arguments":{"latitud":"7.07","longitud":"-73.84"}}}"#,
     );
     assert_eq!(v["error"]["code"], -32602);
+}
+
+#[test]
+fn structured_content_depends_on_the_negotiated_protocol_version() {
+    let server = server_with(false);
+    server.handle_line(
+        r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}"#,
+    );
+    let out = server
+        .handle_line(
+            r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"listar","arguments":{}}}"#,
+        )
+        .expect("response");
+    let v: Value = serde_json::from_str(&out).expect("valid json");
+    assert!(v["result"]["structuredContent"].is_object(), "v={v}");
+
+    let old = server_with(false);
+    old.handle_line(
+        r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26"}}"#,
+    );
+    let out = old
+        .handle_line(
+            r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"listar","arguments":{}}}"#,
+        )
+        .expect("response");
+    let v: Value = serde_json::from_str(&out).expect("valid json");
+    assert!(v["result"].get("structuredContent").is_none(), "v={v}");
+}
+
+#[test]
+fn serve_reads_any_reader_and_writes_any_writer() {
+    let server = server_with(false);
+    let input = std::io::Cursor::new(
+        br#"{"jsonrpc":"2.0","id":1,"method":"ping"}
+"#
+        .to_vec(),
+    );
+    let mut output = Vec::new();
+    pvsyst_mcp::serve(&server, input, &mut output).expect("serve");
+    let text = String::from_utf8(output).expect("utf8");
+    assert!(text.contains(r#""id":1"#), "text={text}");
 }
 
 #[test]

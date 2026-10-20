@@ -11,11 +11,29 @@ use serde_json::json;
 
 #[test]
 fn image_payload_becomes_an_image_content_item() {
-    let r = resultado_de_herramienta(json!({ "ok": true, "_imagen_png_base64": "AAA" }));
+    let r = resultado_de_herramienta(
+        json!({ "ok": true, "_imagen_png_base64": "AAA" }),
+        FormatoResultado::SoloTexto,
+    );
     assert_eq!(r["content"][1]["type"], "image");
     assert_eq!(r["content"][1]["data"], "AAA");
     assert!(!r["content"][0]["text"]
         .as_str()
         .unwrap()
         .contains("_imagen"));
+}
+
+#[test]
+fn structured_content_is_added_only_when_requested() {
+    let structured = resultado_de_herramienta(
+        json!({ "ok": true, "_imagen_png_base64": "AAA" }),
+        FormatoResultado::ConEstructura,
+    );
+    assert_eq!(structured["structuredContent"]["ok"], true);
+    assert!(structured["structuredContent"]
+        .get("_imagen_png_base64")
+        .is_none());
+
+    let text_only = resultado_de_herramienta(json!({ "ok": true }), FormatoResultado::SoloTexto);
+    assert!(text_only.get("structuredContent").is_none());
 }

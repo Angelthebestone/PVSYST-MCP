@@ -4,11 +4,12 @@
 //! budget confirmation check in `ledger`.
 
 use super::batch;
-use super::lanzar_simulacion;
+use super::lanzar_simulacion_seguida;
 use crate::adapters::ledger;
 use crate::args::{opt_str, req_str, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::progreso::SeguimientoTarea;
 use crate::sites::solar::{
     numero_argumento, orientacion_de, produccion, redondear, requerido, sitio_de, Clima,
     Orientacion, Produccion, Sitio, ALBEDO, GAMMA_POTENCIA, NOCT, PERDIDAS_SISTEMA,
@@ -135,32 +136,47 @@ fn plan_de(mejores: &[(Orientacion, Produccion)]) -> Vec<String> {
         .collect()
 }
 
+/// The batch generated for a sweep and the project variant it belongs to.
+struct SolicitudLote<'a> {
+    args: &'a Value,
+    proyecto: &'a str,
+    variante: &'a str,
+    lote: &'a Value,
+}
+
 /// Simulate a generated batch. The budget gate already passed (or was confirmed):
 /// do not ask twice.
 fn simular_lote(
     paths: &Paths,
-    args: &Value,
-    (proyecto, variante): (&str, &str),
-    lote: &Value,
+    solicitud: &SolicitudLote<'_>,
+    seguimiento: &SeguimientoTarea<'_>,
 ) -> Result<Value> {
     let mut sim_args = json!({
-        "proyecto": proyecto,
-        "variante": variante,
-        "batch_params_file": lote["batch_params_file"],
+        "proyecto": solicitud.proyecto,
+        "variante": solicitud.variante,
+        "batch_params_file": solicitud.lote["batch_params_file"],
         "confirmar": true,
     });
-    if let Some(t) = args.get("timeout_s") {
+    if let Some(t) = solicitud.args.get("timeout_s") {
         sim_args["timeout_s"] = t.clone();
     }
-    if let Some(rvt) = lote.get("batch_rvt_file").filter(|v| !v.is_null()) {
+    if let Some(rvt) = solicitud
+        .lote
+        .get("batch_rvt_file")
+        .filter(|v| !v.is_null())
+    {
         sim_args["batch_rvt_file"] = rvt.clone();
     }
-    lanzar_simulacion(paths, &con_workspace(args, sim_args))
+    lanzar_simulacion_seguida(paths, &con_workspace(solicitud.args, sim_args), seguimiento)
 }
 
 /// Sweeps the orientations locally, then simulates the best `n` as one batch run of the
 /// project variant. Returns the confirmation request instead while the trial budget is low.
-pub(crate) fn barrido(paths: &Paths, args: &Value) -> Result<Value> {
+pub(crate) fn barrido(
+    paths: &Paths,
+    args: &Value,
+    seguimiento: &SeguimientoTarea<'_>,
+) -> Result<Value> {
     let proyecto = req_str(args, &["proyecto", "project"], "nombre del proyecto")?;
     let variante = opt_str(args, &["variante", "variant"]).unwrap_or("VC0");
     let n = numero_de_orientaciones(args)?;
@@ -188,7 +204,13 @@ pub(crate) fn barrido(paths: &Paths, args: &Value) -> Result<Value> {
             json!({"proyecto": proyecto, "variante": variante, "filas": filas}),
         ),
     )?;
-    let simulacion = simular_lote(paths, args, (proyecto, variante), &lote)?;
+    let solicitud = SolicitudLote {
+        args,
+        proyecto,
+        variante,
+        lote: &lote,
+    };
+    let simulacion = simular_lote(paths, &solicitud, seguimiento)?;
     Ok(json!({
         "ranking": ranking_json,
         "lote": lote,

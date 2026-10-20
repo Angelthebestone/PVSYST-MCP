@@ -17,6 +17,7 @@ use common::{fixture, synthetic_workspace, tool_text, Client};
 use serde_json::json;
 use std::fs;
 use std::path::Path;
+use std::time::Duration;
 
 const FAKE: &str = env!("CARGO_BIN_EXE_fake_pvsystcli");
 
@@ -77,6 +78,79 @@ fn simulation_reports_success_from_fixture() {
     let v = tool_text(&client.call(2, "simular", args));
     assert_eq!(v["success"], json!(true));
     assert_eq!(v["mode"], json!("cli"));
+}
+
+#[test]
+fn simulation_reports_progress_before_the_response() {
+    let ws = workspace();
+    let mut env = fake_env();
+    env.push(("FAKE_PVSYST_PROGRESO", "1"));
+    env.push(("FAKE_PVSYST_SLEEP_MS", "600"));
+    let mut client = Client::start_env(Some(&ws_str(ws.path())), &env);
+    client.initialize();
+    client.send(&json!({
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "tools/call",
+        "params": {
+            "name": "simular",
+            "arguments": { "proyecto": "SYNTH_Plant", "variante": "VC0" },
+            "_meta": { "progressToken": "t1" }
+        }
+    }));
+
+    let mut progresos = Vec::new();
+    loop {
+        let v = client.recv();
+        if v["method"] == "notifications/progress" {
+            progresos.push(v);
+            continue;
+        }
+        assert_eq!(v["id"], json!(2), "v={v}");
+        break;
+    }
+    assert!(
+        progresos
+            .iter()
+            .any(|v| v["params"]["progressToken"] == json!("t1")),
+        "no progress notification: {progresos:?}"
+    );
+}
+
+#[test]
+fn cancelled_simulation_never_answers_and_later_requests_do() {
+    let ws = workspace();
+    let mut env = fake_env();
+    env.push(("FAKE_PVSYST_SLEEP_MS", "5000"));
+    let mut client = Client::start_env(Some(&ws_str(ws.path())), &env);
+    client.initialize();
+    let inicio = std::time::Instant::now();
+
+    client.send(&json!({
+        "jsonrpc": "2.0", "id": 7, "method": "tools/call",
+        "params": {
+            "name": "simular",
+            "arguments": { "proyecto": "SYNTH_Plant", "variante": "VC0" }
+        }
+    }));
+    client.send(&json!({
+        "jsonrpc": "2.0",
+        "method": "notifications/cancelled",
+        "params": { "requestId": 7 }
+    }));
+    client.send(&json!({ "jsonrpc": "2.0", "id": 8, "method": "ping" }));
+
+    let despues_de_cancelar = client.recv();
+    assert_eq!(despues_de_cancelar["id"], json!(8), "{despues_de_cancelar}");
+
+    client.send(&json!({ "jsonrpc": "2.0", "id": 9, "method": "ping" }));
+    let siguiente = client.recv();
+    assert_eq!(siguiente["id"], json!(9), "{siguiente}");
+    assert!(
+        inicio.elapsed() < Duration::from_secs(5),
+        "cancellation took {:?}",
+        inicio.elapsed()
+    );
 }
 
 #[test]
