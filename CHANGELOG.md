@@ -53,6 +53,8 @@ through its data files and the documented `PVsystCLI` commands only.
   `clippy -D warnings`, `test`, `cargo llvm-cov` and the Python tooling checks, plus
   `cargo audit` and `cargo deny check` in the documented development checks.
 - **Distribution**: GitHub Releases ship the release binary as a zip with
-  `LICENSE`, `NOTICE` and the READMEs (`.github/workflows/release.yml` builds it on
-  every `v*` tag), and the same binary is published as `pvsyst-mcp` on npm
-  (Windows x64), so an MCP client can launch the server with `npx -y pvsyst-mcp`.
+  `LICENSE`, `NOTICE` and the READMEs. The v0.1.0 binary was built locally with the
+  `x86_64-pc-windows-gnu` toolchain; later `v*` tags are built by
+  `.github/workflows/release.yml`. `pvsyst-mcp@0.1.0` on npm (Windows x64, `npx -y pvsyst-mcp`) is an
+  earlier build published on 2026-10-15 from the pre-release history; its README
+  links to a `master` branch that no longer exists.
