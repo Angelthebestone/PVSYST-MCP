@@ -23,6 +23,7 @@ mod adapters;
 mod admin;
 mod almacenamiento;
 mod args;
+mod bombeo;
 mod calendario;
 mod components;
 mod config;
