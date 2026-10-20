@@ -58,7 +58,7 @@
     "workspace": {
       "type": "directory",
       "title": "PVsyst workspace",
-      "description": "PVsyst user data folder (contains Projects, ComposPV, Meteo...).",
+      "description": "PVsyst user data folder: the one containing Projects, ComposPV and Meteo. Usually %USERPROFILE%\\PVsyst8.1_Data; some installs use Documents\\PVsyst8.1_Data or Documents\\PVsyst8.1. The bundle does not auto-detect it, so check this path.",
       "required": true,
       "default": "${HOME}/PVsyst8.1_Data"
     },
