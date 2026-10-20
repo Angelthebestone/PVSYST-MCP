@@ -131,3 +131,35 @@ fn should_accept_safe_zip_entries_with_spaces() {
     ]);
     assert!(validar_listado_zip(&n, &d).is_ok());
 }
+
+#[test]
+fn should_keep_backup_and_name_it_when_restore_after_failed_import_fails() {
+    let tmp = tempfile::tempdir().expect("create temp dir");
+    let respaldo = tmp.path().join("respaldo.PRJ");
+    fs::write(&respaldo, "original").expect("write backup");
+    let objetivo = tmp.path().join("Demo.PRJ");
+    fs::create_dir_all(objetivo.join("ocupado")).expect("non-empty target dir");
+
+    let fallo = std::io::Error::other("rename failed");
+    let err = super::importacion::error_de_publicacion(fallo, &objetivo, Some(&respaldo));
+
+    assert!(err.to_string().contains(&respaldo.display().to_string()));
+    assert_eq!(
+        fs::read_to_string(&respaldo).expect("backup kept"),
+        "original"
+    );
+}
+
+#[test]
+fn should_restore_backup_when_import_fails_and_target_is_free() {
+    let tmp = tempfile::tempdir().expect("create temp dir");
+    let respaldo = tmp.path().join("respaldo.PRJ");
+    fs::write(&respaldo, "original").expect("write backup");
+    let objetivo = tmp.path().join("Demo.PRJ");
+
+    let fallo = std::io::Error::other("rename failed");
+    let err = super::importacion::error_de_publicacion(fallo, &objetivo, Some(&respaldo));
+
+    assert!(!err.to_string().contains("respaldo.PRJ"));
+    assert_eq!(fs::read_to_string(&objetivo).expect("restored"), "original");
+}

@@ -183,15 +183,34 @@ fn publicar_archivo(
         None
     };
     if let Err(e) = fs::rename(archivo, &objetivo) {
-        if let Some(b) = &respaldo {
-            let _ = fs::rename(b, &objetivo);
-        }
-        return Err(Error::io(
-            format!("Importación cancelada en {}", objetivo.display()),
-            e,
-        ));
+        return Err(error_de_publicacion(e, &objetivo, respaldo.as_deref()));
     }
     Ok((objetivo, respaldo))
+}
+
+/// Puts the backup of `objetivo` back after a failed publication and builds
+/// the error. If the backup cannot be moved back it stays where it is and the
+/// message names it, so the user can recover the original by hand.
+pub(crate) fn error_de_publicacion(
+    fallo: std::io::Error,
+    objetivo: &Path,
+    respaldo: Option<&Path>,
+) -> Error {
+    let devolucion = respaldo.map(|b| (b, fs::rename(b, objetivo)));
+    match devolucion {
+        Some((b, Err(e2))) => Error::io(
+            format!(
+                "Importación cancelada en {}: no se pudo devolver el respaldo {} a su sitio ({e2}); recupéralo a mano desde esa ruta",
+                objetivo.display(),
+                b.display()
+            ),
+            fallo,
+        ),
+        _ => Error::io(
+            format!("Importación cancelada en {}", objetivo.display()),
+            fallo,
+        ),
+    }
 }
 
 /// Undo published entries (newest first): remove the new file and put its
