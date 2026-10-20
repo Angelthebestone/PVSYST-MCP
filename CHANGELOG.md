@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-20
+
 ### Added
 
 - **npm auto-update**: the `npx pvsyst-mcp` launcher runs the newest binary it has
@@ -32,6 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `resultados` accepts a numeric `kwp` (it was ignored unless sent as text).
 - `resultados que:entregable` writes through history, so regenerating it can be
   undone, and returns `historial_id`.
+
+### Distribution
+
+- Built locally with the `x86_64-pc-windows-gnu` toolchain because the release
+  workflow could not run; the binary imports no MinGW runtime DLLs.
 
 ## [0.1.0] - 2026-10-19
 

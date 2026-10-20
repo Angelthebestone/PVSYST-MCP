@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "pvsyst-mcp",
   "display_name": "PVsyst MCP",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Automates PVsyst 8.1.7 through its data files and the documented PVsystCLI commands.",
   "long_description": "Unofficial MCP server for **PVsyst 8.1.7**: projects, variants, components, sites and weather, simulation and results, operated through PVsyst's own data files and the documented `PVsystCLI` commands. Every write is snapshotted first and can be restored.\n\n**Requirements:** Windows x64 with PVsyst 8.1.7 installed. Headless simulation needs a PVsystCLI licence; without it the CLI runs in TRIAL mode.\n\nNot affiliated with or endorsed by PVsyst SA. No PVsyst code is included or decompiled.",
   "author": {
