@@ -1,3 +1,5 @@
+//! Prepares a simulation input: batch files, parsed options and confirmation plan.
+
 use super::cache::{self, ClaveCache};
 use crate::adapters::ledger;
 use crate::args::{flag, opt_str};

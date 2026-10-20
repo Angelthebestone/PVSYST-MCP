@@ -29,9 +29,7 @@ pub(crate) fn texto(bytes: &[u8]) -> String {
     String::from_utf8_lossy(bytes).into_owned()
 }
 
-pub(crate) fn leer_bytes(path: &Path) -> Result<Vec<u8>> {
-    fs::read(path).map_err(|e| Error::io(format!("No se pudo leer {}", path.display()), e))
-}
+pub(crate) use crate::workspace::leer_bytes;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Modo {

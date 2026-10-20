@@ -1,3 +1,5 @@
+//! Builds the downloadable deliverable from one simulation case.
+
 use super::carbono::carbono_con;
 use super::caso::{caso, con_cabecera, especifica, num, sin_potencia, Caso};
 use super::economia::{economia_de, parse_economia};

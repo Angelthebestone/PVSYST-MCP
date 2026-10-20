@@ -8,16 +8,11 @@ pub(crate) mod objetos;
 
 use crate::error::{Error, Result};
 use crate::history;
-use std::fs;
+pub(crate) use crate::workspace::leer_bytes;
 use std::path::{Path, PathBuf};
 
 pub(crate) use catalogo::anadir;
 pub(crate) use objetos::{eliminar_objeto_archivo, insertar_objeto_archivo};
-
-/// Reads a whole file, keeping the path in the error message.
-pub(crate) fn leer_bytes(path: &Path) -> Result<Vec<u8>> {
-    fs::read(path).map_err(|e| Error::io(format!("No se pudo leer {}", path.display()), e))
-}
 
 /// Snapshots `path` into the workspace history, then writes `nuevo` atomically.
 /// Returns the snapshot id.

@@ -1,3 +1,5 @@
+//! Tokenisation and field extraction from PVsyst PDF reports.
+
 use crate::error::{Error, Result};
 use serde_json::{json, Map, Value};
 

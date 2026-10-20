@@ -1,3 +1,5 @@
+//! Cross-checks simulated KPIs against the results CSV and the PDF report.
+
 use super::caso::{caso, especifica, round1, Caso};
 use crate::args::{req_str, workspace_of};
 use crate::config::Paths;

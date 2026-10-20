@@ -10,6 +10,11 @@ use std::fs::{self, File};
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
+/// Reads a whole file, keeping the path in the I/O error context.
+pub(crate) fn leer_bytes(ruta: &Path) -> Result<Vec<u8>> {
+    fs::read(ruta).map_err(|e| Error::io(format!("No se pudo leer {}", ruta.display()), e))
+}
+
 /// Default maximum bytes to return per read call (~10k tokens).
 pub(crate) const MAX_BYTES_DEFECTO: usize = 32_768;
 

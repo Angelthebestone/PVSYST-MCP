@@ -18,7 +18,7 @@ pub(crate) fn ensure_template(paths: &Paths, name: &str) -> Result<()> {
     if projects.join(format!("{name}.PRJ")).exists() {
         return Ok(());
     }
-    let src = config::data_ro().join("PVsyst8.1_Data").join("Projects");
+    let src = config::proyectos_demo_ro();
     let prj = src.join(format!("{name}.PRJ"));
     if !prj.exists() {
         return Err(Error::NotFound(format!(

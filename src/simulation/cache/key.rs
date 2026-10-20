@@ -1,3 +1,5 @@
+//! Cache key derivation from the project, variant and referenced component files.
+
 use crate::components::{resolve_component, ConsultaComponente};
 use crate::error::{Error, Result};
 use crate::projects::resolve_project_file;

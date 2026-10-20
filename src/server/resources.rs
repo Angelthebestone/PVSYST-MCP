@@ -1,4 +1,4 @@
-//! Read-only MCP resources: playbooks, coverage map and reference dorkspace or the CLI.
+//! Read-only MCP resources: playbooks, coverage map, reference format and the CLI.
 
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
