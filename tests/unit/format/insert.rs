@@ -1,4 +1,5 @@
 use super::*;
+use proptest::prelude::*;
 
 const SINTETICO: &[u8] =
     b"PVObject_Root=pvRoot\r\n  FieldTilt=20\r\n  Name=x\r\nEnd of PVObject pvRoot\r\n";
@@ -72,4 +73,72 @@ fn should_extract_object_without_bom() {
     let extraido = extraer_objeto(&con_bom, "pvRoot").expect("extraer");
     assert!(!extraido.starts_with(BOM));
     assert_eq!(extraido, SINTETICO);
+}
+
+fn campo() -> impl Strategy<Value = String> {
+    ("[A-Za-z][A-Za-z0-9]{0,5}", "[A-Za-z0-9]{0,12}")
+        .prop_map(|(clave, valor)| format!("{clave}={valor}"))
+}
+
+/// Valid PVObject documents (root plus N `pvX{i}` children) and a sibling block.
+fn documentos_y_bloque() -> impl Strategy<Value = (String, String)> {
+    (0usize..=6).prop_flat_map(|n| {
+        let hijos = prop::collection::vec(prop::collection::vec(campo(), 0..=5), n);
+        let bloque = prop::collection::vec(campo(), 0..=5);
+        (hijos, bloque).prop_map(move |(hijos, bloque)| {
+            let mut doc = String::from("PVObject_=pvRoot\r\n");
+            for (i, campos) in hijos.iter().enumerate() {
+                doc.push_str(&format!("  PVObject_=pvX{i}\r\n"));
+                for campo in campos {
+                    doc.push_str(&format!("    {campo}\r\n"));
+                }
+                doc.push_str(&format!("  End of PVObject pvX{i}\r\n"));
+            }
+            doc.push_str("End of PVObject pvRoot\r\n");
+
+            let mut nuevo = String::from("PVObject_=pvNuevo\r\n");
+            for campo in &bloque {
+                nuevo.push_str(&format!("{campo}\r\n"));
+            }
+            nuevo.push_str("End of PVObject pvNuevo\r\n");
+            (doc, nuevo)
+        })
+    })
+}
+
+fn reindentado(bloque: &str) -> String {
+    bloque
+        .lines()
+        .map(|linea| format!("  {linea}\r\n"))
+        .collect()
+}
+
+proptest! {
+    #[test]
+    fn inserted_object_roundtrips_through_extraction((doc, bloque) in documentos_y_bloque()) {
+        let insertado = insertar_objeto(
+            doc.as_bytes(),
+            "pvRoot",
+            bloque.as_bytes(),
+            None,
+            SiExiste::Rechazar,
+        )
+        .expect("insertar");
+        let extraido = extraer_objeto(&insertado, "pvNuevo").expect("extraer");
+        prop_assert_eq!(String::from_utf8(extraido).expect("utf8"), reindentado(&bloque));
+    }
+
+    #[test]
+    fn inserted_object_can_be_removed_to_restore_the_document((doc, bloque) in documentos_y_bloque()) {
+        let insertado = insertar_objeto(
+            doc.as_bytes(),
+            "pvRoot",
+            bloque.as_bytes(),
+            None,
+            SiExiste::Rechazar,
+        )
+        .expect("insertar");
+        let eliminado = eliminar_objeto(&insertado, "pvNuevo").expect("eliminar");
+        prop_assert_eq!(String::from_utf8(eliminado).expect("utf8"), doc);
+    }
 }
