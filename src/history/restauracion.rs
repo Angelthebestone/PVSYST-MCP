@@ -39,7 +39,7 @@ impl<'a> ValidadorManifiesto<'a> {
         }
         ancestro
             .canonicalize()
-            .map_err(|e| Error::Invalid(format!("No se pudo resolver {}: {e}", ancestro.display())))
+            .map_err(|e| Error::io(format!("No se pudo resolver {}", ancestro.display()), e))
     }
 
     fn validar_original(&self, obj: &serde_json::Map<String, Value>) -> Result<PathBuf> {
@@ -79,9 +79,10 @@ impl<'a> ValidadorManifiesto<'a> {
             self.ws.join(cand)
         };
 
-        let ws_canon = self.ws.canonicalize().map_err(|e| {
-            Error::Invalid(format!("Workspace no accesible {}: {e}", self.ws.display()))
-        })?;
+        let ws_canon = self
+            .ws
+            .canonicalize()
+            .map_err(|e| Error::io(format!("Workspace no accesible {}", self.ws.display()), e))?;
 
         let real = self.ancestro_canonico(&joined, orig_str)?;
 
@@ -170,7 +171,7 @@ impl<'a> ValidadorManifiesto<'a> {
             let existia = self.validar_existia(obj)?;
 
             if existia && !copia.is_file() {
-                return Err(Error::Invalid(format!(
+                return Err(Error::NotFound(format!(
                     "Manifiesto '{}': archivo de copia no existe: '{}'",
                     self.id,
                     copia.display()
@@ -194,7 +195,7 @@ fn restaurar_archivo(e: &EntradaRestauracion) -> Result<()> {
             .map_err(|err| Error::io(format!("No se pudo crear {}", parent.display()), err))?;
     }
     let bytes = fs::read(&e.copia)
-        .map_err(|err| Error::Invalid(format!("No se pudo leer {}: {err}", e.copia.display())))?;
+        .map_err(|err| Error::io(format!("No se pudo leer {}", e.copia.display()), err))?;
     super::escritura_atomica::escribir_atomico(&e.original, &bytes)
 }
 
@@ -271,7 +272,7 @@ pub(crate) fn restaurar(ws: &Path, id: &str, alcance: Alcance) -> Result<Value> 
             restaurar_archivo(e)
         } else if e.original.is_file() {
             fs::remove_file(&e.original).map_err(|err| {
-                Error::Invalid(format!("No se pudo borrar {}: {err}", e.original.display()))
+                Error::io(format!("No se pudo borrar {}", e.original.display()), err)
             })
         } else {
             Ok(())

@@ -5,14 +5,14 @@ use crate::config::Paths;
 use serde_json::json;
 
 #[test]
-fn should_reject_missing_required_arg_with_falta() {
+fn should_reject_missing_required_arg() {
     let paths = Paths::resolve();
     // 'leer' requires 'archivo'
     let err = call(&paths, "leer", &json!({})).expect_err("should reject missing required arg");
     let msg = err.to_string();
     assert!(
-        msg.contains("Falta 'archivo'") || msg.contains("falta"),
-        "error message must mention 'falta' or missing field: {msg}"
+        msg.contains("Missing required argument 'archivo'"),
+        "error message must name the missing field: {msg}"
     );
 }
 
@@ -66,8 +66,8 @@ fn should_reject_missing_discriminator_when_required() {
     let err = call(&paths, "proyecto", &json!({})).expect_err("should require accion");
     let msg = err.to_string();
     assert!(
-        msg.contains("Falta 'accion'") || msg.contains("falta"),
-        "should mention falta: {msg}"
+        msg.contains("Missing required argument 'accion'"),
+        "should name the missing discriminator: {msg}"
     );
 }
 

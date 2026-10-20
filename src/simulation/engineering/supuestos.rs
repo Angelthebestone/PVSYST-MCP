@@ -1,6 +1,7 @@
 //! User-supplied engineering assumptions (rates, lifetimes, costs) with
 //! business bounds, so no calculation runs on non-finite or absurd inputs.
 
+use crate::args::missing;
 use crate::error::{Error, Result};
 use serde_json::Value;
 
@@ -27,7 +28,7 @@ pub(super) fn acotado(args: &Value, rango: &Rango, defecto: Option<f64>) -> Resu
         Some(v) => v
             .as_f64()
             .ok_or_else(|| Error::Invalid(format!("'{}' debe ser un número", rango.clave)))?,
-        None => defecto.ok_or_else(|| Error::Invalid(format!("Falta '{}'", rango.clave)))?,
+        None => defecto.ok_or_else(|| missing(rango.clave, "número finito"))?,
     };
     if !valor.is_finite() || valor < rango.min || valor > rango.max {
         return Err(Error::Invalid(format!(

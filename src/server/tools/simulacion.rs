@@ -1,6 +1,7 @@
 //! Tool for simulation orchestration: batch setup, execution, status, and sweeps.
 
 use super::declaracion::{Acceso, Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
+use crate::args::missing;
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::progreso::SeguimientoTarea;
@@ -95,9 +96,7 @@ fn ejecutar_simular(
         "preparar" => {
             let (_, preparados) = preparar_entrada(paths, args)?;
             if preparados.is_empty() {
-                return Err(Error::Invalid(
-                    "Nada que preparar: indica 'filas' o 'parametros'".into(),
-                ));
+                return Err(missing("filas", "o 'parametros'"));
             }
             Ok(Value::Object(preparados))
         }

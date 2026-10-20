@@ -6,7 +6,7 @@ use crate::format::edit;
 /// Sets battery configuration keys on the target variant's `pvSystem` object.
 pub(crate) fn ajustar_sistema(bytes: &[u8], campos: &[(&str, &str)]) -> Result<Vec<u8>> {
     if edit::find_span(&edit::spans_of(bytes), "pvSystem").is_none() {
-        return Err(Error::Invalid(
+        return Err(Error::NotFound(
             "La variante no tiene objeto pvSystem".into(),
         ));
     }

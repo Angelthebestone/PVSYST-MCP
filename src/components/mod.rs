@@ -14,9 +14,7 @@ pub(crate) use resolucion::{
     es_base_solo_lectura, leer_bytes_componente, resolve_component, ConsultaComponente,
 };
 
-use crate::args::req_str;
-use crate::args::tipo_de;
-use crate::args::workspace_of;
+use crate::args::{missing, req_str, tipo_de, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::edit;
@@ -188,9 +186,7 @@ pub(crate) fn crear_componente(paths: &Paths, args: &Value) -> Result<Value> {
     let plantilla = req_str(args, &["plantilla", "template"], "existing component")?;
     let nuevo = req_str(args, &["nombre_nuevo", "new_name"], "")?;
     validar_nombre(nuevo)?;
-    let kind = tipo_de(args, plantilla).ok_or_else(|| {
-        Error::Invalid("Cannot infer component kind; pass 'tipo' (e.g. \"PAN\")".into())
-    })?;
+    let kind = tipo_de(args, plantilla).ok_or_else(|| missing("tipo", "p.ej. \"PAN\""))?;
     let folder = folder_for(&kind)
         .ok_or_else(|| Error::Invalid(format!("Unknown component kind '{kind}'")))?;
 

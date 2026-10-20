@@ -2,7 +2,7 @@
 
 use crate::args::missing;
 use crate::config::Paths;
-use crate::error::{Error, Result};
+use crate::error::Result;
 use crate::format::edit;
 use crate::history;
 use crate::projects::lifecycle::variantes::{abrir_variante, VarianteAbierta};
@@ -28,11 +28,11 @@ pub(crate) fn editar_variante(paths: &Paths, args: &Value) -> Result<Value> {
         let selector = ed
             .get("objeto")
             .and_then(|v| v.as_str())
-            .ok_or_else(|| Error::Invalid("Each edit needs 'objeto'".into()))?;
+            .ok_or_else(|| missing("objeto", "en cada edición"))?;
         let campos = ed
             .get("campos")
             .and_then(|v| v.as_object())
-            .ok_or_else(|| Error::Invalid("Each edit needs 'campos'".into()))?;
+            .ok_or_else(|| missing("campos", "objeto con los campos a cambiar"))?;
         let changes = edit::changes_from_json(campos);
         let (new_bytes, outcomes) = edit::edit_fields(&bytes, selector, &changes)?;
         bytes = new_bytes;

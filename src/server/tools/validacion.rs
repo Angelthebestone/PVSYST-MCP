@@ -3,6 +3,7 @@
 //! file stays small and the validation rules have one home.
 
 use super::declaracion::{con, nombre_tipo_recibido, Herramienta};
+use crate::args::missing;
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
 
@@ -47,12 +48,9 @@ impl Herramienta {
             None => match disc.defecto {
                 Some(def) => def,
                 None => {
-                    return Err(Error::Invalid(format!(
-                        "Falta '{}' para {}; valores: {}",
-                        disc.campo,
-                        self.nombre,
-                        disc.valores.join(", ")
-                    )));
+                    let pista =
+                        format!("para {}; valores: {}", self.nombre, disc.valores.join(", "));
+                    return Err(missing(disc.campo, &pista));
                 }
             },
         };
@@ -94,10 +92,7 @@ impl Herramienta {
     fn validar_requeridos_globales(&self, args: &Value) -> Result<()> {
         for req in self.requeridos {
             if args.get(*req).is_none_or(Value::is_null) {
-                return Err(Error::Invalid(format!(
-                    "Falta '{req}' para {}",
-                    self.nombre
-                )));
+                return Err(missing(req, self.nombre));
             }
         }
         Ok(())
@@ -116,7 +111,7 @@ impl Herramienta {
                     } else {
                         format!("{} {accion}", self.nombre)
                     };
-                    return Err(Error::Invalid(format!("Falta '{req}' para {destino}")));
+                    return Err(missing(req, &destino));
                 }
             }
         }

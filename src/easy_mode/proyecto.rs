@@ -26,9 +26,19 @@ pub(crate) fn ensure_template(paths: &Paths, name: &str) -> Result<()> {
             src.display()
         )));
     }
-    std::fs::create_dir_all(&projects).map_err(|e| Error::Invalid(format!("{e}")))?;
-    for entry in std::fs::read_dir(&src).map_err(|e| Error::Invalid(format!("{e}")))? {
-        let p: PathBuf = entry.map_err(|e| Error::Invalid(format!("{e}")))?.path();
+    std::fs::create_dir_all(&projects)
+        .map_err(|e| Error::io(format!("No se pudo crear {}", projects.display()), e))?;
+    for entry in std::fs::read_dir(&src)
+        .map_err(|e| Error::io(format!("No se pudo leer {}", src.display()), e))?
+    {
+        let p: PathBuf = entry
+            .map_err(|e| {
+                Error::io(
+                    format!("No se pudo leer una entrada de {}", src.display()),
+                    e,
+                )
+            })?
+            .path();
         if let (Some(stem), Some(file_name)) = (p.file_stem(), p.file_name()) {
             if stem != name {
                 continue;

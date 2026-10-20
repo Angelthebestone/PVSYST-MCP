@@ -211,7 +211,7 @@ pub(super) fn csvs_a_leer(workspace: &Path, args: &Value, count: usize) -> Resul
     csv_files.truncate(count);
 
     if csv_files.is_empty() {
-        return Err(Error::Invalid(format!(
+        return Err(Error::NotFound(format!(
             "No CSV result files found under {}",
             workspace.display()
         )));

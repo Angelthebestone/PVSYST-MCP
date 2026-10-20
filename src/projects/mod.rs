@@ -238,7 +238,7 @@ pub(crate) fn resolve_project_file_con_alcance(
         }
     }
     if !avisos.is_empty() {
-        return Err(Error::Invalid(format!(
+        return Err(Error::NotFound(format!(
             "Proyecto '{name}' no encontrado y la búsqueda quedó incompleta: {}",
             avisos.join("; ")
         )));

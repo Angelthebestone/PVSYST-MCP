@@ -43,7 +43,7 @@ pub(crate) fn sin_cli(
     modo_gui: ModoGui,
 ) -> Result<Value> {
     if !modo_gui.debe_abrir() {
-        return Err(Error::NotFound(format!(
+        return Err(Error::Cli(format!(
             "PVsystCLI.exe not found at '{}'. Set PVSYST_CLI, or call with abrir_gui=true to \
              leave the project ready for the PVsyst GUI.",
             paths.cli_exe.display()

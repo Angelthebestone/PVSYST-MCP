@@ -10,6 +10,7 @@ mod tests;
 pub(crate) use posicion::geometria_solar;
 pub(crate) use produccion::produccion;
 
+use crate::args::missing;
 use crate::error::{Error, Result};
 use crate::sites::nasa::climatology;
 use serde_json::Value;
@@ -143,7 +144,7 @@ pub(crate) fn numero_argumento(args: &Value, clave: &str) -> Option<f64> {
 pub(crate) fn requerido(args: &Value, clave: &str) -> Result<f64> {
     let valor = args
         .get(clave)
-        .ok_or_else(|| Error::Invalid(format!("Falta '{clave}' (número) para el cálculo solar")))?;
+        .ok_or_else(|| missing(clave, "número para el cálculo solar"))?;
     let num = valor
         .as_f64()
         .or_else(|| valor.as_str().and_then(|s| s.trim().parse().ok()))

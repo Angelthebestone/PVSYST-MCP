@@ -69,7 +69,7 @@ pub(crate) fn call_seguido(
     seguimiento: &SeguimientoTarea<'_>,
 ) -> Result<Value> {
     let Some(h) = REGISTRO.iter().find(|h| h.nombre == name) else {
-        return Err(Error::Invalid(format!("Unknown tool '{name}'")));
+        return Err(Error::NotFound(format!("Unknown tool '{name}'")));
     };
 
     if h.acceso == Acceso::Experto && !paths.experto {

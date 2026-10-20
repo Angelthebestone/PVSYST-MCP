@@ -47,7 +47,7 @@ fn pnom_del_modulo(consulta: &ConsultaModulo<'_>, pan_name: &str) -> Result<f64>
             .or_else(|| pnom_from_sizing(consulta.root))
             .or_else(|| pnom_from_name(pan_name))
             .ok_or_else(|| {
-                Error::Invalid(format!(
+                Error::NotFound(format!(
                     "Module '{pan_name}' not found and its Pnom cannot be inferred; pass 'pnom_modulo'"
                 ))
             })?
@@ -78,9 +78,7 @@ fn n_serie_de(args: &Value, root: &object::PvNode) -> Result<u64> {
         None => root
             .find_deep("NModSerie")
             .and_then(|s| s.trim().parse::<u64>().ok())
-            .ok_or_else(|| {
-                Error::Invalid("Cannot determine NModSerie (pass 'n_mod_serie')".into())
-            })?,
+            .ok_or_else(|| missing("n_mod_serie", "el módulo no declara NModSerie"))?,
     };
     if n == 0 || n > MAX_MODULOS_SERIE {
         return Err(Error::Invalid(format!(

@@ -85,7 +85,7 @@ fn elementos_pendientes(
             .iter()
             .find(|e| e.nombre == *nombre)
             .ok_or_else(|| {
-                Error::Invalid(format!("Complemento '{nombre}' ausente del catálogo"))
+                Error::NotFound(format!("Complemento '{nombre}' ausente del catálogo"))
             })?;
         if edit::find_span(&edit::spans_of(nuevo), comp.tipos[0]).is_none() {
             pendientes.push(comp);

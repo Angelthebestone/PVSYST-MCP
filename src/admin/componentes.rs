@@ -1,7 +1,7 @@
 //! Component transfer: import external components into workspace database,
 //! and export components out of workspace.
 
-use crate::args::{opt_str, req_str, tipo_de, workspace_of};
+use crate::args::{missing, opt_str, req_str, tipo_de, workspace_of};
 use crate::components;
 use crate::config::Paths;
 use crate::error::{Error, Result};
@@ -21,8 +21,8 @@ pub(crate) fn importar_componente(paths: &Paths, args: &Value) -> Result<Value> 
             origen.display()
         )));
     }
-    let kind = tipo_de(args, &origen.to_string_lossy())
-        .ok_or_else(|| Error::Invalid("Cannot infer component type; pass 'tipo'".into()))?;
+    let kind =
+        tipo_de(args, &origen.to_string_lossy()).ok_or_else(|| missing("tipo", "p.ej. \"PAN\""))?;
     let folder = components::folder_for(&kind)
         .ok_or_else(|| Error::Invalid(format!("Unknown component kind '{kind}'")))?;
     let dir = components::compos_dir(&workspace, folder);

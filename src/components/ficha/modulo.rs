@@ -35,7 +35,7 @@ fn plantilla_pan(ws: &Path) -> Result<(PathBuf, Vec<u8>)> {
     } else {
         format!(" (búsqueda incompleta: {})", avisos.join("; "))
     };
-    Err(Error::Invalid(format!("No hay plantilla .PAN de texto{incompleto}: exporta un módulo desde PVsyst (Bases de datos → Módulos FV → Exportar) a ComposPV\\PVModules y reintenta")))
+    Err(Error::NotFound(format!("No hay plantilla .PAN de texto{incompleto}: exporta un módulo desde PVsyst (Bases de datos → Módulos FV → Exportar) a ComposPV\\PVModules y reintenta")))
 }
 
 pub(crate) fn pan(ws: &Path, nombre: &str, datos: &Map<String, Value>) -> Result<Value> {

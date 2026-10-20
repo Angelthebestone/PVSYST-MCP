@@ -28,7 +28,7 @@ pub(crate) fn read(uri: &str) -> Result<Value> {
         "pvsyst://cobertura" => ("application/json", cobertura().to_string()),
         "pvsyst://formato" => ("text/markdown", FORMATO.to_string()),
         "pvsyst://cli" => ("text/markdown", CLI.to_string()),
-        _ => return Err(Error::Invalid(format!("Recurso desconocido: {uri}"))),
+        _ => return Err(Error::NotFound(format!("Recurso desconocido: {uri}"))),
     };
     Ok(json!({ "contents": [{ "uri": uri, "mimeType": mime, "text": text }] }))
 }

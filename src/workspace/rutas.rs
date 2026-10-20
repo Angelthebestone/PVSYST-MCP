@@ -36,7 +36,7 @@ pub(crate) fn ruta_segura(base: &Path, rel: &str) -> Result<PathBuf> {
     let joined = base.join(cand);
     let base_c = base
         .canonicalize()
-        .map_err(|e| Error::Invalid(format!("Workspace no accesible {}: {e}", base.display())))?;
+        .map_err(|e| Error::io(format!("Workspace no accesible {}", base.display()), e))?;
     let mut ancestro = joined.as_path();
     while !ancestro.exists() {
         ancestro = ancestro
@@ -45,7 +45,7 @@ pub(crate) fn ruta_segura(base: &Path, rel: &str) -> Result<PathBuf> {
     }
     let real = ancestro
         .canonicalize()
-        .map_err(|e| Error::Invalid(format!("No se pudo resolver {}: {e}", ancestro.display())))?;
+        .map_err(|e| Error::io(format!("No se pudo resolver {}", ancestro.display()), e))?;
     if !real.starts_with(&base_c) {
         return Err(Error::Invalid(format!("Ruta fuera del workspace: '{rel}'")));
     }
