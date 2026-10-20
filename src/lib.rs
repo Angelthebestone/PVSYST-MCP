@@ -29,6 +29,7 @@ mod components;
 mod config;
 mod easy_mode;
 mod error;
+mod evaluacion_economica;
 mod format;
 mod history;
 mod inyeccion;

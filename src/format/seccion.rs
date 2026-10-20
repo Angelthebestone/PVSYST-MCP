@@ -4,11 +4,6 @@
 //! Only direct fields (opening indentation + 2) are reachable: nested lists and
 //! `PVObject_` blocks keep their own editors.
 
-#![cfg_attr(
-    not(test),
-    expect(dead_code, reason = "consumed by the economic evaluation in 3.8")
-)]
-
 use super::edit::{field_line, outcome, reject_line_breaks, ChangeOutcome, FinDeLinea};
 use super::span::{indent_width, tstart, Lines};
 use crate::error::{Error, Result};

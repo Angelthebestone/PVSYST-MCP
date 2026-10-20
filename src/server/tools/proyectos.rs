@@ -8,7 +8,7 @@ use serde_json::Value;
 
 pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
     nombre: "proyecto",
-    descripcion: "Ciclo de vida de proyectos y variantes: crear, eliminar, renombrar, dimensionar, diagnosticar, anadir objetos, convertir a seguidor, limite de inyeccion, almacenamiento, perdidas, bombeo. / EN: Project and variant lifecycle: create, delete, rename, size, diagnose, add objects, convert to tracker, injection limit, storage, losses, pumping.",
+    descripcion: "Ciclo de vida de proyectos y variantes: crear, eliminar, renombrar, dimensionar, diagnosticar, anadir objetos, convertir a seguidor, limite de inyeccion, almacenamiento, perdidas, bombeo, economia. / EN: Project and variant lifecycle: create, delete, rename, size, diagnose, add objects, convert to tracker, injection limit, storage, losses, pumping, economics.",
     acceso: Acceso::Normal,
     anotaciones: Anotaciones {
         titulo: "Proyecto / Project",
@@ -58,6 +58,11 @@ pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
         ("caudal_m3_dia", TipoDato::Number),
         ("profundidad_estatica_m", TipoDato::Number),
         ("bomba", TipoDato::String),
+        ("moneda", TipoDato::String),
+        ("vida_anios", TipoDato::Integer),
+        ("tasa_descuento", TipoDato::Number),
+        ("inflacion", TipoDato::Number),
+        ("tarifa_venta_kwh", TipoDato::Number),
         ("workspace", TipoDato::String),
     ],
     requeridos: &[],
@@ -77,6 +82,7 @@ pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
             "almacenamiento",
             "perdidas",
             "bombeo",
+            "economia",
             "limpiar_temporales",
         ],
     }),
@@ -93,6 +99,7 @@ pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
         ("almacenamiento", &["proyecto", "estrategia"]),
         ("perdidas", &["proyecto"]),
         ("bombeo", &["proyecto"]),
+        ("economia", &["proyecto"]),
     ],
     ejecutar: Ejecutor::Simple(ejecutar_proyecto),
 };
@@ -112,6 +119,7 @@ fn ejecutar_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
         "almacenamiento" => crate::almacenamiento::configurar_almacenamiento(paths, args),
         "perdidas" => crate::perdidas::aplicar_perdidas(paths, args),
         "bombeo" => crate::bombeo::configurar_bombeo(paths, args),
+        "economia" => crate::evaluacion_economica::configurar_economia(paths, args),
         "limpiar_temporales" => projects::temporales::limpiar_temporales(paths, args),
         _ => Err(Error::Invalid(format!(
             "Valor '{valor}' no soportado para proyecto"
