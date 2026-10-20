@@ -42,6 +42,18 @@ Optional environment variables:
 | `PVSYST_CLI` | Path to `PVsystCLI.exe` | `C:\Program Files\PVsyst8.1.7\PVsystCLI.exe` |
 | `PVSYST_GUI` | Path to `PVsyst.exe` | `C:\Program Files\PVsyst8.1.7\PVsyst.exe` |
 | `PVSYST_MCP_EXPERTO` | `1` also exposes the raw CLI and GUI tools (15 tools instead of 12) | unset |
+| `PVSYST_MCP_AUTO_ACTUALIZAR` | `0` disables the auto-update | enabled |
+| `PVSYST_MCP_ALMACEN` | Where updates are downloaded | `%LOCALAPPDATA%\pvsyst-mcp` |
+
+An empty value counts as unset.
+
+## Automatic updates
+
+Each start runs the newest binary available: the one in this package or a newer release
+downloaded earlier to `%LOCALAPPDATA%\pvsyst-mcp`. After the server starts, a detached
+background process asks npm for a newer release and downloads it for the **next** start; the
+running session keeps its binary. Results are logged to
+`%LOCALAPPDATA%\pvsyst-mcp\actualizacion.log`. Set `PVSYST_MCP_AUTO_ACTUALIZAR=0` to opt out.
 
 The server speaks MCP over **stdio** and opens no network port. Keep it local to the machine
 that holds your PVsyst licence, and read the *Responsible use* section of the project README

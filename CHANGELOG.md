@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **npm auto-update**: the `npx pvsyst-mcp` launcher runs the newest binary it has
+  (packaged or previously downloaded to `%LOCALAPPDATA%\pvsyst-mcp`) and, after the
+  server starts, a detached process downloads a newer release for the next start.
+  The running session never switches binaries. `PVSYST_MCP_AUTO_ACTUALIZAR=0`
+  disables it; `PVSYST_MCP_ALMACEN` moves the store. Zip and `.mcpb` installs do
+  not update themselves.
+
+### Fixed
+
+- Empty environment variables (`PVSYST_WORKSPACE`, `PVSYST_CLI`, `PVSYST_GUI`,
+  `PVSYST_DATARO`, `LOCALAPPDATA`, …) count as unset, so the `.mcpb` form can be
+  left blank and the workspace is auto-detected again; the bundle's path fields
+  are now optional.
+- A workspace import whose rollback cannot put a backup back now says so and
+  names the backup path instead of losing it silently.
+- Zip imports stream the `tar` listing with byte and entry caps and reject
+  archives above 4 GiB, so a hostile archive cannot exhaust memory.
+- `proyecto doctor` and `disenar_sistema` read Vmpp and μVoc from both `.PAN`
+  layouts; the cold-Voc check was silently skipped before, and μVoc is now
+  applied relative to Voc.
+- `resultados` accepts a numeric `kwp` (it was ignored unless sent as text).
+- `resultados que:entregable` writes through history, so regenerating it can be
+  undone, and returns `historial_id`.
+
 ## [0.1.0] - 2026-10-19
 
 First public release: an MCP server that operates a PVsyst 8.1.7 installation

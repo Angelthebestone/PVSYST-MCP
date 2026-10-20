@@ -1,6 +1,6 @@
 {
   "name": "pvsyst-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Model Context Protocol server that automates PVsyst 8.1.7 through its data files and the documented PVsystCLI commands.",
   "license": "Apache-2.0",
   "type": "module",
@@ -9,6 +9,8 @@
   },
   "files": [
     "bin/",
+    "actualizacion/",
+    "!actualizacion/**/*.test.js",
     "vendor/",
     "LICENSE",
     "NOTICE",
@@ -43,6 +45,7 @@
   ],
   "scripts": {
     "vendor": "node scripts/vendor-binary.mjs",
-    "prepublishOnly": "node scripts/vendor-binary.mjs"
+    "prepublishOnly": "node scripts/vendor-binary.mjs",
+    "test": "node --test"
   }
 }

@@ -182,8 +182,27 @@ cargo test
 Descarga el archivo `.mcpb` de la
 [última release](https://github.com/Angelthebestone/PVSYST-MCP/releases/latest) y
 ábrelo (o arrástralo a *Settings → Extensions*). Claude Desktop pide el workspace de
-PVsyst, `PVsystCLI.exe`, `PVsyst.exe` y el modo experto, ya rellenados con las rutas de
-instalación por defecto. El bundle se genera a partir de [`mcpb/manifest.json`](mcpb/manifest.json).
+PVsyst, `PVsystCLI.exe`, `PVsyst.exe` y el modo experto; deja las rutas vacías para que el
+servidor las autodetecte. El bundle se genera a partir de [`mcpb/manifest.json`](mcpb/manifest.json).
+El bundle no se actualiza solo: instala el `.mcpb` nuevo de cada release.
+
+### npm / npx (se actualiza solo)
+
+```json
+{
+  "mcpServers": {
+    "pvsyst": { "command": "npx", "args": ["-y", "pvsyst-mcp"] }
+  }
+}
+```
+
+El lanzador de npm mantiene el servidor al día por sí mismo. Cada arranque usa el binario más
+nuevo que tiene (el empaquetado o uno descargado antes en `%LOCALAPPDATA%\pvsyst-mcp`) y, con
+el servidor ya en marcha, consulta npm desde un proceso en segundo plano desacoplado. Una
+versión más nueva se descarga para el **siguiente** arranque; la sesión en curso nunca cambia
+de binario. El registro está en `%LOCALAPPDATA%\pvsyst-mcp\actualizacion.log`. Pon
+`PVSYST_MCP_AUTO_ACTUALIZAR=0` para desactivarlo. Solo se actualizan así las instalaciones por
+npm/npx; el zip y el `.mcpb` no.
 
 ### Command Code (Windows)
 
@@ -251,12 +270,16 @@ su esquema antes de despachar. Comprueba la conexión con `/mcp` dentro de una s
 
 ### Variables de entorno (todas opcionales)
 
+Un valor vacío cuenta como no definido, así que se aplica el valor por defecto o la autodetección.
+
 | Variable | Significado | Por defecto |
 |---|---|---|
 | `PVSYST_WORKSPACE` | Carpeta del workspace del usuario | `%USERPROFILE%\PVsyst8.1_Data`, luego `Documents\…` |
 | `PVSYST_CLI` | Ruta a `PVsystCLI.exe` | `C:\Program Files\PVsyst8.1.7\PVsystCLI.exe` |
 | `PVSYST_GUI` | Ruta a `PVsyst.exe` | `C:\Program Files\PVsyst8.1.7\PVsyst.exe` |
 | `PVSYST_MCP_EXPERTO` | `1` expone `pvsyst_cli`, `gui_observar` y `gui_actuar` | sin definir (12 tools) |
+| `PVSYST_MCP_AUTO_ACTUALIZAR` | Solo lanzador npm: `0` desactiva la auto-actualización | activada |
+| `PVSYST_MCP_ALMACEN` | Solo lanzador npm: dónde se descargan las actualizaciones | `%LOCALAPPDATA%\pvsyst-mcp` |
 
 
 > **Nota sobre la ruta del workspace.** PVsyst 8 guarda los datos de usuario en

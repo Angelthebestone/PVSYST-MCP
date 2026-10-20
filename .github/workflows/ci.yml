@@ -17,6 +17,13 @@ jobs:
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test
       - run: python tools/check_deps.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm test
+        working-directory: npm
+      - run: npm audit --audit-level=high
+        working-directory: npm
 
   coverage:
     # Needs the MSVC toolchain (profiler runtime); the local GNU toolchain lacks it.
