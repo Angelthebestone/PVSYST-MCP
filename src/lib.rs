@@ -32,6 +32,7 @@ mod format;
 mod history;
 mod inyeccion;
 mod objects;
+mod perdidas;
 mod prefs;
 mod progreso;
 mod projects;
