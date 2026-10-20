@@ -6,7 +6,7 @@
 [![Plataforma: Windows](https://img.shields.io/badge/platform-Windows-0078D4.svg)](#requisitos)
 [![PVsyst 8.1.7](https://img.shields.io/badge/PVsyst-8.1.7-2E7D32.svg)](#requisitos)
 [![Rust](https://img.shields.io/badge/Rust-stable-DEA584?logo=rust&logoColor=black)](#compilar-desde-el-código-fuente)
-[![MCP](https://img.shields.io/badge/MCP-2025--03--26%20%7C%202024--11--05-6E56CF.svg)](https://modelcontextprotocol.io)
+[![MCP](https://img.shields.io/badge/MCP-2025--06--18%20%7C%202025--03--26%20%7C%202024--11--05-6E56CF.svg)](https://modelcontextprotocol.io)
 [![Tests: herméticos](https://img.shields.io/badge/tests-herm%C3%A9ticos%20(sin%20PVsyst)-3FB950.svg)](#comprobaciones-de-desarrollo)
 
 **Servidor del [Model Context Protocol](https://modelcontextprotocol.io) (MCP) que permite a un
@@ -356,8 +356,9 @@ abajo arriba, es:
 `adapters` → módulos de capacidad (`components`, `objects`, `projects`, `sites`,
 `simulation`, `admin`, `prefs`, `easy_mode`) → `server`
 
-Ningún archivo pasa de 300 líneas; las áreas grandes son módulos de directorio divididos por
-concepto.
+Ningún archivo de producción en `src/` pasa de 300 líneas; las áreas grandes son módulos de
+directorio divididos por concepto. Las dos suites end-to-end antiguas (`tests/mcp_smoke.rs` y
+`tests/mcp_regresiones.rs`) son anteriores a ese límite.
 
 ```
 src/

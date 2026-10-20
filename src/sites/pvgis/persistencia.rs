@@ -134,7 +134,7 @@ pub(crate) fn aplicar_horizonte(req: &PeticionHorizonte<'_>) -> Result<String> {
     Ok(id)
 }
 
-pub(crate) use crate::workspace::leer_bytes;
+use crate::workspace::leer_bytes;
 
 pub(crate) fn leer_texto(p: &Path) -> Result<String> {
     leer_bytes(p).map(|b| String::from_utf8_lossy(&b).into_owned())

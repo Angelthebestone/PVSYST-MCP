@@ -6,7 +6,7 @@
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows-0078D4.svg)](#requirements)
 [![PVsyst 8.1.7](https://img.shields.io/badge/PVsyst-8.1.7-2E7D32.svg)](#requirements)
 [![Rust](https://img.shields.io/badge/Rust-stable-DEA584?logo=rust&logoColor=black)](#build-from-source)
-[![MCP](https://img.shields.io/badge/MCP-2025--03--26%20%7C%202024--11--05-6E56CF.svg)](https://modelcontextprotocol.io)
+[![MCP](https://img.shields.io/badge/MCP-2025--06--18%20%7C%202025--03--26%20%7C%202024--11--05-6E56CF.svg)](https://modelcontextprotocol.io)
 [![Tests: hermetic](https://img.shields.io/badge/tests-hermetic%20(no%20PVsyst%20required)-3FB950.svg)](#development-checks)
 
 **A [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server that automates
@@ -358,7 +358,9 @@ cycle; the layering, bottom-up, is:
 `adapters` → feature modules (`components`, `objects`, `projects`, `sites`,
 `simulation`, `admin`, `prefs`, `easy_mode`) → `server`
 
-Every file stays under 300 lines; large areas are directory modules split by concept.
+Every production source file in `src/` stays under 300 lines; large areas are directory
+modules split by concept. The two older end-to-end test suites (`tests/mcp_smoke.rs` and
+`tests/mcp_regresiones.rs`) predate that limit.
 
 ```
 src/

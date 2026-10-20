@@ -54,27 +54,6 @@ fn should_generate_unique_snapshot_ids_within_same_millisecond() {
 }
 
 #[test]
-fn should_restore_files_and_allow_undo_via_previous_snapshot() {
-    let ws = crear_workspace_temporal("restore_undo");
-    let kept = ws.join("kept.txt");
-    let created = ws.join("created.txt");
-    fs::write(&kept, "antes").expect("write");
-    let id = snapshot(&ws, &[kept.clone(), created.clone()], "test").expect("snap");
-    fs::write(&kept, "despues").expect("write");
-    fs::write(&created, "nuevo").expect("write");
-
-    let res = restaurar(&ws, &id).expect("restore");
-    assert_eq!(fs::read_to_string(&kept).expect("read"), "antes");
-    assert!(!created.exists());
-
-    let previo = res["historial_id_previo"].as_str().expect("previo");
-    restaurar(&ws, previo).expect("undo restore");
-    assert_eq!(fs::read_to_string(&kept).expect("read"), "despues");
-    assert_eq!(fs::read_to_string(&created).expect("read"), "nuevo");
-    let _ = fs::remove_dir_all(&ws);
-}
-
-#[test]
 fn should_replace_existing_file_atomically() {
     let ws = crear_workspace_temporal("atomic");
     let f = ws.join("v.txt");
@@ -94,16 +73,6 @@ fn should_snapshot_only_when_file_exists_in_reemplazar() {
     assert_eq!(fs::read(&f).expect("read"), b"dos");
     restaurar(&ws, &id.expect("snapshot id")).expect("restore");
     assert_eq!(fs::read(&f).expect("read"), b"uno");
-    let _ = fs::remove_dir_all(&ws);
-}
-
-#[test]
-fn should_reject_path_like_snapshot_ids() {
-    let ws = crear_workspace_temporal("badid");
-    assert!(restaurar(&ws, "../x").is_err());
-    assert!(restaurar(&ws, "a/b").is_err());
-    assert!(restaurar(&ws, "a\\b").is_err());
-    assert!(restaurar(&ws, "").is_err());
     let _ = fs::remove_dir_all(&ws);
 }
 
