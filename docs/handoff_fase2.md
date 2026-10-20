@@ -2,7 +2,7 @@
 
 Fecha: 2026-10-20. Rama `main`. La fase 1 sigue publicada en `v0.1.1`.
 
-## Estado: fase 2 implementada y verificada (2.1–2.12); 2.13 en curso
+## Estado: fase 2 implementada, verificada y publicada (2.1–2.13)
 
 | Paso | Commit | Resumen |
 |---|---|---|
@@ -18,14 +18,19 @@ Fecha: 2026-10-20. Rama `main`. La fase 1 sigue publicada en `v0.1.1`.
 | 2.10 | `dd2254e` | Crate solo-Windows; `rust-version = "1.88"` verificado con GNU. |
 | 2.11 | `5808a86` | `unsafe` 76 → 40; FFI en `gui/ffi/` y COM en `uia/com.rs`. |
 | 2.12 | `432a5d8` | `leer_bytes` único, `ensure_template`, auditoría de docs y `tracing-subscriber` recortado. |
-| 2.13 | — | Versión 0.2.0 y artefactos preparados; publicación con el procedimiento de 1.7. |
+| 2.13 | `f900689`, tag `v0.2.0` | Release GitHub con zip, `.mcpb` y `.sha256`; `pvsyst-mcp@0.2.0` en npm (`latest`). |
 
 Verificado antes de publicar: `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`,
 `cargo test` (303 unit + integración), `cargo +1.88-x86_64-pc-windows-gnu check --all-targets`,
 `cargo audit`, `cargo deny check`, `npm test`, `npm audit --audit-level=high`, 40 bloques
-`unsafe {` con `SAFETY`, fixture `.PAN` y proptests. Los tests `#[ignore]` que necesitan una
-instalación real de PVsyst, red o la GUI no se ejecutaron en este entorno. La prueba manual de
-GUI y la de Claude Desktop/.mcpb quedan pendientes de una sesión con PVsyst abierto.
+`unsafe {` con `SAFETY`, fixture `.PAN` y proptests. El tarball publicado se instaló desde el
+registro y respondió `serverInfo.version = "0.2.0"` y `protocolVersion = "2025-06-18"`.
+Los tests `#[ignore]` que necesitan una instalación real de PVsyst, red o la GUI no se
+ejecutaron en este entorno. La prueba manual de GUI y la de Claude Desktop/.mcpb quedan
+pendientes de una sesión con PVsyst abierto.
+
+Release: <https://github.com/Angelthebestone/PVSYST-MCP/releases/tag/v0.2.0>.
+npm: <https://www.npmjs.com/package/pvsyst-mcp/v/0.2.0>.
 
 ## Estado histórico: fase 1 (v0.1.1) terminada y publicada
 
@@ -65,7 +70,7 @@ No se hizo: publicar un 0.1.2 de prueba (el plan lo condiciona a tu aprobación)
 
 ## Cómo seguir
 
-La fase 2 está cerrada salvo la publicación de 2.13. La fase 3 (v0.3.0) empieza en 3.1. Antes de cada commit: `cargo fmt --check; cargo clippy --all-targets -- -D warnings; cargo test`. Se publica con el mismo procedimiento que 1.7, cambiando la versión.
+La fase 2 está cerrada y publicada. La fase 3 (v0.3.0) empieza en 3.1. Antes de cada commit: `cargo fmt --check; cargo clippy --all-targets -- -D warnings; cargo test`. Se publica con el mismo procedimiento que 1.7, cambiando la versión.
 
 > **Regla del usuario: ningún test dentro de `src/`.** Todo test (unitario, de integración o de propiedades) se escribe en archivos bajo `tests/`. En `src/` solo puede ir el enganche de una línea `#[cfg(test)] #[path = "../../tests/unit/…"] mod tests;` que ya usa el crate. Nunca bloques `#[cfg(test)] mod tests { … }` ni funciones `#[test]` en `src/`. Esta regla manda sobre cualquier paso del plan que diga otra cosa, incluido el «docstring con ejemplo que se ejecuta como doctest» de las convenciones: no añadas doctests nuevos en `src/` y cubre ese comportamiento con tests en `tests/`. Pendiente de confirmar con el usuario: los `*.test.js` de npm viven en `npm/actualizacion/**`, fuera de `src/`, así que se dejaron donde están.
 
