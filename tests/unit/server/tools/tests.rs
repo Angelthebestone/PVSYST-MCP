@@ -2,7 +2,19 @@
 
 use super::*;
 use crate::config::Paths;
-use serde_json::json;
+use crate::progreso::SeguimientoTarea;
+use serde_json::{json, Value};
+
+fn call(paths: &Paths, name: &str, args: &Value) -> Result<Value> {
+    let seguimiento = SeguimientoTarea::inerte();
+    let solicitud = Solicitud {
+        paths,
+        name,
+        args,
+        seguimiento: &seguimiento,
+    };
+    call_seguido(&solicitud)
+}
 
 #[test]
 fn should_reject_missing_required_arg() {

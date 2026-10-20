@@ -24,7 +24,7 @@ fn image_payload_becomes_an_image_content_item() {
 }
 
 #[test]
-fn structured_content_is_added_only_when_requested() {
+fn should_add_structured_content_only_when_the_version_supports_it() {
     let structured = resultado_de_herramienta(
         json!({ "ok": true, "_imagen_png_base64": "AAA" }),
         FormatoResultado::ConEstructura,

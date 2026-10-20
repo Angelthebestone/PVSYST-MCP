@@ -8,7 +8,6 @@ pub(crate) mod objetos;
 
 use crate::error::{Error, Result};
 use crate::history;
-pub(crate) use crate::workspace::leer_bytes;
 use std::path::{Path, PathBuf};
 
 pub(crate) use catalogo::anadir;

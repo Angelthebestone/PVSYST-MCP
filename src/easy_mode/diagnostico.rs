@@ -2,13 +2,23 @@
 
 use crate::config::{self, Paths};
 use serde_json::{json, Value};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Result of one readiness check.
 #[derive(Clone, Copy)]
 enum EstadoCheck {
     Correcto,
     Fallido,
+}
+
+impl EstadoCheck {
+    fn de_ruta(ruta: &Path) -> Self {
+        if ruta.exists() {
+            Self::Correcto
+        } else {
+            Self::Fallido
+        }
+    }
 }
 
 /// One readiness check, ready to be rendered for the caller.
@@ -19,7 +29,16 @@ struct Comprobacion<'a> {
     pista: &'a str,
 }
 
-impl Comprobacion<'_> {
+impl<'a> Comprobacion<'a> {
+    fn de_ruta(nombre: &'a str, ruta: &Path, pista: &'a str) -> Self {
+        Self {
+            nombre,
+            estado: EstadoCheck::de_ruta(ruta),
+            detalle: ruta.display().to_string(),
+            pista,
+        }
+    }
+
     fn a_json(&self) -> Value {
         json!({
             "check": self.nombre,
@@ -31,89 +50,59 @@ impl Comprobacion<'_> {
 }
 
 fn instalacion(paths: &Paths) -> Value {
-    Comprobacion {
-        nombre: "pvsyst_install",
-        estado: if paths.gui_exe.exists() {
-            EstadoCheck::Correcto
-        } else {
-            EstadoCheck::Fallido
-        },
-        detalle: paths.gui_exe.display().to_string(),
-        pista: "Install PVsyst 8.1.7 (licencia legítima) o define PVSYST_GUI.",
-    }
+    Comprobacion::de_ruta(
+        "pvsyst_install",
+        &paths.gui_exe,
+        "Install PVsyst 8.1.7 (licencia legítima) o define PVSYST_GUI.",
+    )
     .a_json()
 }
 
 fn cli(paths: &Paths) -> Value {
-    Comprobacion {
-        nombre: "cli",
-        estado: if paths.cli_exe.exists() {
-            EstadoCheck::Correcto
-        } else {
-            EstadoCheck::Fallido
-        },
-        detalle: paths.cli_exe.display().to_string(),
-        pista: "Se necesita PVsystCLI.exe para simular sin GUI; define PVSYST_CLI.",
-    }
+    Comprobacion::de_ruta(
+        "cli",
+        &paths.cli_exe,
+        "Se necesita PVsystCLI.exe para simular sin GUI; define PVSYST_CLI.",
+    )
     .a_json()
 }
 
 fn workspace(paths: &Paths) -> Value {
-    Comprobacion {
-        nombre: "workspace",
-        estado: if paths.workspace.exists() {
-            EstadoCheck::Correcto
-        } else {
-            EstadoCheck::Fallido
-        },
-        detalle: paths.workspace.display().to_string(),
-        pista: "Crea el workspace (o define PVSYST_WORKSPACE). PVsyst lo crea al primer arranque.",
-    }
+    Comprobacion::de_ruta(
+        "workspace",
+        &paths.workspace,
+        "Crea el workspace (o define PVSYST_WORKSPACE). PVsyst lo crea al primer arranque.",
+    )
     .a_json()
 }
 
 fn projects_dir(paths: &Paths) -> Value {
     let projects = paths.workspace.join("Projects");
-    Comprobacion {
-        nombre: "projects_dir",
-        estado: if projects.exists() {
-            EstadoCheck::Correcto
-        } else {
-            EstadoCheck::Fallido
-        },
-        detalle: projects.display().to_string(),
-        pista: "Hace falta la carpeta Projects\\ dentro del workspace.",
-    }
+    Comprobacion::de_ruta(
+        "projects_dir",
+        &projects,
+        "Hace falta la carpeta Projects\\ dentro del workspace.",
+    )
     .a_json()
 }
 
 fn weather_grids() -> Value {
     let nasa = config::data_ro().join("Global_World.txt");
-    Comprobacion {
-        nombre: "weather_grids",
-        estado: if nasa.exists() {
-            EstadoCheck::Correcto
-        } else {
-            EstadoCheck::Fallido
-        },
-        detalle: nasa.display().to_string(),
-        pista: "Las rejillas NASA permiten crear sitios solo con coordenadas.",
-    }
+    Comprobacion::de_ruta(
+        "weather_grids",
+        &nasa,
+        "Las rejillas NASA permiten crear sitios solo con coordenadas.",
+    )
     .a_json()
 }
 
 fn cli_license() -> Value {
     let lic = PathBuf::from(r"C:\ProgramData\PVsystCLI\PVsystCLI.lic");
-    Comprobacion {
-        nombre: "cli_license",
-        estado: if lic.exists() {
-            EstadoCheck::Correcto
-        } else {
-            EstadoCheck::Fallido
-        },
-        detalle: lic.display().to_string(),
-        pista: "Sin licencia el CLI funciona en modo TRIAL (dias y ejecuciones limitados); mira el estado con la herramienta 'entorno' (accion 'licencia') y activa con 'entorno' accion 'licencia_activar'.",
-    }
+    Comprobacion::de_ruta(
+        "cli_license",
+        &lic,
+        "Sin licencia el CLI funciona en modo TRIAL (dias y ejecuciones limitados); mira el estado con la herramienta 'entorno' (accion 'licencia') y activa con 'entorno' accion 'licencia_activar'.",
+    )
     .a_json()
 }
 

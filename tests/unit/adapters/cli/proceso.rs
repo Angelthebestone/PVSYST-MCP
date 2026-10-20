@@ -1,3 +1,4 @@
+use super::super::salida_json::output_json;
 use super::*;
 
 #[test]

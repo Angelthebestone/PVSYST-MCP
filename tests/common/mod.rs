@@ -11,12 +11,26 @@
     unreachable_pub
 )]
 
+use pvsyst_mcp::{Paths, Server};
 use serde_json::{json, Value};
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 
 pub const DEMO_WS: &str = r"C:\Program Files\PVsyst8.1.7\DataRO\PVsyst8.1_Data";
+
+/// In-process server with the requested tool surface.
+pub fn protocol_server(expert: bool) -> Server {
+    let mut paths = Paths::resolve();
+    paths.experto = expert;
+    Server::new(paths)
+}
+
+/// Sends one line to a fresh in-process server and parses the response.
+pub fn protocol_call(line: &str) -> Value {
+    let out = protocol_server(false).handle_line(line).expect("response");
+    serde_json::from_str(&out).expect("valid json")
+}
 
 pub struct Client {
     stdin: ChildStdin,

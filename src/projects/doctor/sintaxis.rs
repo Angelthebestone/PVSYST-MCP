@@ -3,7 +3,8 @@
 use crate::error::Result;
 use crate::format::{edit, insert, object};
 use crate::projects::anadir::escribir_con_historial;
-use crate::projects::doctor::{leer_bytes, texto, Informe, Modo};
+use crate::projects::doctor::{texto, Informe, Modo};
+use crate::workspace::leer_bytes;
 use std::collections::HashMap;
 use std::path::Path;
 

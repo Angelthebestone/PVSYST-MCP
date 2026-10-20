@@ -261,11 +261,13 @@ licence, not for a shared endpoint — see
 [responsible use](#responsible-use-licensing-and-trademark).
 
 **Client-compatibility notes.** The server echoes back the `protocolVersion` the
-client requests when it supports it (`2024-11-05`, `2025-03-26`; Command Code asks
-for `2025-03-26`) and otherwise answers with its latest supported version, as the MCP
-spec requires. It exposes four resources (`pvsyst://recetas`, `pvsyst://cobertura`,
-`pvsyst://formato`, `pvsyst://cli`) plus an empty `prompts/list`, so it connects cleanly.
-Tool arguments are type-checked against each tool's schema before dispatch.
+client requests when it supports it (`2024-11-05`, `2025-03-26`, `2025-06-18`;
+Command Code asks for `2025-03-26`) and otherwise answers with its latest supported
+version, as the MCP spec requires. It exposes four resources (`pvsyst://recetas`,
+`pvsyst://cobertura`, `pvsyst://formato`, `pvsyst://cli`) and seven prompts built
+from those recipes. With `2025-06-18`, tool results also carry `structuredContent`;
+long simulations report progress and accept `notifications/cancelled`. Tool
+arguments are type-checked against each tool's schema before dispatch.
 Verify a live connection with `/mcp` inside a session, or headlessly:
 `cmdc -p "usa la tool pvsyst entorno" --tools-all -t --yolo`.
 

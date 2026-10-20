@@ -1,4 +1,4 @@
-//! One simulation result: locates its CSV/PDF and reads the figures from both.
+//! Locates and loads the CSV/PDF pair for one simulation case.
 
 use crate::args::{opt_str, req_str, workspace_of};
 use crate::config::Paths;
@@ -7,6 +7,7 @@ use crate::format::object::parse_first;
 use crate::projects::resolve_project_file;
 use crate::simulation::report_pdf;
 use crate::simulation::results::resultado_de;
+use crate::workspace::leer_bytes;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 
@@ -44,8 +45,6 @@ pub(crate) fn num(args: &Value, key: &str) -> Option<f64> {
 pub(crate) fn sin_potencia() -> Error {
     Error::Format("No se pudo leer la potencia (PNomSizing) de la variante".into())
 }
-
-pub(crate) use crate::workspace::leer_bytes;
 
 pub(crate) fn leer_sitio(workspace: &Path, proyecto: &str) -> Result<Sitio> {
     let prj = resolve_project_file(workspace, proyecto)?;

@@ -1,11 +1,11 @@
-//! Ejecución de procesos de `PVsystCLI.exe` y formateo de resultados.
+//! Ejecución de procesos de `PVsystCLI.exe`.
 //!
-//! Gestiona el ciclo de vida del subproceso, la captura con límite de memoria
-//! y la construcción del sobre JSON de respuesta estándar.
+//! Gestiona el ciclo de vida del subproceso, la captura con límite de memoria,
+//! la cancelación cooperativa y la publicación de avance.
 
 use super::captura::{crear_sink, es_truncado, texto_sink, Sink};
-use super::clasificacion::{clasificar_salida, confirmed, is_license_banner, Clasificacion};
 use super::linea_comando::{display_command_line, requerir_cli, timeout_de, TIMEOUT_DEFECTO_S};
+use super::salida_json::output_json;
 use crate::args::{flag, req_str};
 use crate::config::Paths;
 use crate::error::{Error, Result};
@@ -21,11 +21,11 @@ use std::time::{Duration, Instant};
 /// Intervalo de sondeo activo para el estado de finalización del subproceso.
 const INTERVALO_ESPERA_PROCESO: Duration = Duration::from_millis(50);
 
-/// Cantidad de líneas finales retenidas de stdout en el sobre JSON.
-const LINEAS_TAIL_STDOUT: usize = 60;
+/// Valor inicial de "todavía no se informó ningún porcentaje".
+const SIN_PROGRESO: f64 = -1.0;
 
-/// Cantidad de líneas finales retenidas de stderr en el sobre JSON.
-const LINEAS_TAIL_STDERR: usize = 20;
+/// Cantidad de bytes ya escaneados en la ronda anterior.
+const SIN_BYTES_ESCANEADOS: usize = 0;
 
 /// Parámetros de ejecución agrupados para cumplir con el límite de parámetros.
 pub(crate) struct ParametrosEjecucion<'a> {
@@ -87,14 +87,14 @@ pub(crate) fn run_inner(params: &ParametrosEjecucion<'_>, out_sink: &Sink) -> Re
         sink: out_sink,
         seguimiento: params.seguimiento,
     };
-    let (exit_code, timed_out) = esperar_proceso(&mut child, &espera)?;
-
+    let resultado = esperar_proceso(&mut child, &espera);
     reader_out
         .join()
         .map_err(|_| Error::Cli("Hilo lector de stdout terminó con pánico".to_string()))??;
     reader_err
         .join()
         .map_err(|_| Error::Cli("Hilo lector de stderr terminó con pánico".to_string()))??;
+    let (exit_code, timed_out) = resultado?;
 
     Ok(CliOutput {
         exit_code,
@@ -120,7 +120,8 @@ struct EsperaProceso<'a> {
 
 fn esperar_proceso(child: &mut Child, espera: &EsperaProceso<'_>) -> Result<(Option<i32>, bool)> {
     let deadline = Instant::now() + espera.timeout;
-    let mut ultimo_informado = -1.0;
+    let mut ultimo_informado = SIN_PROGRESO;
+    let mut bytes_escaneados = SIN_BYTES_ESCANEADOS;
     loop {
         if espera.seguimiento.esta_cancelado() {
             let _ = child.kill();
@@ -138,113 +139,23 @@ fn esperar_proceso(child: &mut Child, espera: &EsperaProceso<'_>) -> Result<(Opt
             let _ = child.wait();
             return Ok((None, true));
         }
-        let avance = texto_sink(espera.sink)
-            .ok()
-            .as_deref()
-            .and_then(super::trabajo::progreso);
-        if let Some(porcentaje) = avance.filter(|p| *p > ultimo_informado) {
-            espera
-                .seguimiento
-                .informar_progreso(porcentaje, "Simulando");
-            ultimo_informado = porcentaje;
+        // Solo se copia el stdout acumulado cuando el lector añadió bytes nuevos.
+        let longitud = super::captura::longitud_sink(espera.sink);
+        if longitud != bytes_escaneados {
+            bytes_escaneados = longitud;
+            let avance = texto_sink(espera.sink)
+                .ok()
+                .as_deref()
+                .and_then(super::trabajo::progreso);
+            if let Some(porcentaje) = avance.filter(|p| *p > ultimo_informado) {
+                espera
+                    .seguimiento
+                    .informar_progreso(porcentaje, "Simulando");
+                ultimo_informado = porcentaje;
+            }
         }
         thread::sleep(INTERVALO_ESPERA_PROCESO);
     }
-}
-
-pub(crate) fn tail(s: &str, n: usize) -> String {
-    let lines: Vec<&str> = s.lines().collect();
-    let start = lines.len().saturating_sub(n);
-    lines[start..].join("\n")
-}
-
-fn determinar_estado_ejecucion(
-    out: &CliOutput,
-    command: &str,
-) -> (&'static str, bool, Option<String>, Option<Clasificacion>) {
-    if out.timed_out {
-        return (
-            "timeout",
-            false,
-            Some(format!("timeout tras {} s", out.timeout_s)),
-            None,
-        );
-    }
-    let clasificacion = clasificar_salida(command, &out.stdout, out.exit_code);
-    let (success, err) = match &clasificacion {
-        Clasificacion::Exito => (true, None),
-        Clasificacion::Error(e) => (false, Some(e.clone())),
-        Clasificacion::Ambiguo(m) => (false, Some(format!("ambiguo: {m}"))),
-    };
-    (clasificacion.etiqueta(), success, err, Some(clasificacion))
-}
-
-/// Whether the command succeeded, for output post-processing.
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum EstadoProceso {
-    Exito,
-    Fallo,
-}
-
-fn filtrar_cuerpo_stdout(stdout: &str, estado: EstadoProceso) -> String {
-    let exito = matches!(estado, EstadoProceso::Exito);
-    stdout
-        .lines()
-        .filter(|l| !(exito && is_license_banner(l)))
-        .filter(|l| !(exito && l.trim_end().ends_with('%')))
-        .collect::<Vec<_>>()
-        .join("\n")
-}
-
-fn enriquecer_salida_json(
-    base: &mut Value,
-    out: &CliOutput,
-    detected_error: Option<&str>,
-    extra: &Value,
-) {
-    if let Some(trial) = out.stdout.lines().find(|l| l.contains("TRIAL")) {
-        base["license"] = json!(trial.trim());
-    }
-    if let Some(e) = detected_error {
-        base["detected_error"] = json!(e);
-    }
-    if !out.stderr.trim().is_empty() {
-        base["stderr_tail"] = json!(tail(&out.stderr, LINEAS_TAIL_STDERR));
-    }
-    if let (Some(obj), Some(extra_map)) = (base.as_object_mut(), extra.as_object()) {
-        for (k, v) in extra_map {
-            obj.insert(k.clone(), v.clone());
-        }
-    }
-}
-
-/// Construye el sobre JSON estándar para una ejecución CLI.
-pub(crate) fn output_json(out: &CliOutput, command: &str, extra: &Value) -> Value {
-    let (etiqueta, success, detected_error, clasificacion) =
-        determinar_estado_ejecucion(out, command);
-    let estado = if success {
-        EstadoProceso::Exito
-    } else {
-        EstadoProceso::Fallo
-    };
-    let cuerpo = filtrar_cuerpo_stdout(&out.stdout, estado);
-    let mut base = json!({
-        "success": success,
-        "clasificacion": etiqueta,
-        "confirmed_by_output": !out.timed_out && confirmed(command, &out.stdout),
-        "exit_code": out.exit_code,
-        "command_line": out.command_line,
-        "stdout_tail": tail(cuerpo.trim(), LINEAS_TAIL_STDOUT),
-        "timed_out": out.timed_out,
-        "stdout_truncado": out.stdout_truncado,
-        "stderr_truncado": out.stderr_truncado,
-    });
-    if let Some(Clasificacion::Ambiguo(motivo)) = &clasificacion {
-        base["ambiguo"] = json!(true);
-        base["motivo_ambiguedad"] = json!(motivo);
-    }
-    enriquecer_salida_json(&mut base, out, detected_error.as_deref(), extra);
-    base
 }
 
 /// Ejecuta cualquier comando con argumentos en crudo (passthrough de `pvsyst_cli`).

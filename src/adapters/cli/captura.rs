@@ -76,6 +76,11 @@ pub(crate) fn drain<R: Read + Send + 'static>(
     })
 }
 
+/// Longitud actual del buffer, sin copiarlo, para no reescanear stdout en cada vuelta.
+pub(crate) fn longitud_sink(sink: &Sink) -> usize {
+    sink.lock().map(|guard| guard.bytes.len()).unwrap_or(0)
+}
+
 /// Extrae el texto acumulado del sink, propagando si el mutex está envenenado.
 pub(crate) fn texto_sink(sink: &Sink) -> Result<String> {
     let guard = sink

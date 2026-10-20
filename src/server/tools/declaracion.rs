@@ -1,5 +1,5 @@
-//! Definition of MCP tools: schema declarations, property types,
-//! discriminator rules and validation logic forming a single source of truth.
+//! MCP tool declarations: schemas, property types and discriminator rules.
+//! Boundary validation lives in [`validacion`].
 
 use crate::config::Paths;
 use crate::error::Result;
@@ -128,6 +128,7 @@ pub(crate) struct Herramienta {
 impl Herramienta {
     /// Builds the MCP tool schema exposed to clients in `tools/list`.
     pub(crate) fn esquema(&self) -> Value {
+        // No `outputSchema`: one tool returns different shapes per action.
         let mut props = Map::new();
         let mut req: Vec<&str> = self.requeridos.to_vec();
 

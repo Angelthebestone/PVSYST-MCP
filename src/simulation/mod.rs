@@ -104,7 +104,6 @@ pub(crate) fn lanzar_simulacion_seguida(
         preparacion::con_salidas_por_defecto(args, &workspace, &stem, &variante_up);
     let cli_args = preparacion::argumentos_cli(&args_con_salidas, &workspace, &stem, &variante_up);
     let modo_gui = ModoGui::de_bool(flag(args, &["abrir_gui"]));
-
     if flag(args, &["dry_run"]) {
         return Ok(respuesta_dry_run(
             &cli_args,

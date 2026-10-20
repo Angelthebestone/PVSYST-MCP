@@ -7,7 +7,8 @@ use crate::format::{edit, insert};
 use crate::projects::anadir::baterias::ajustar_sistema;
 use crate::projects::anadir::horizonte::neutralizar_horizonte;
 use crate::projects::anadir::objetos::{campos_de, padre_de, verificar_tipo};
-use crate::projects::anadir::{escribir_con_historial, leer_bytes, ruta_variante};
+use crate::projects::anadir::{escribir_con_historial, ruta_variante};
+use crate::workspace::leer_bytes;
 use crate::workspace::Alcance;
 use serde_json::{json, Value};
 

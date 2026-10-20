@@ -5,7 +5,8 @@ use crate::components::pan::{leer_modulo, DatosModulo};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::object;
-use crate::projects::doctor::{leer_bytes, texto, Informe};
+use crate::projects::doctor::{texto, Informe};
+use crate::workspace::leer_bytes;
 use serde_json::json;
 use std::path::Path;
 

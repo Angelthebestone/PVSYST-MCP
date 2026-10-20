@@ -8,7 +8,7 @@ use std::sync::Mutex;
 
 /// Writer that serializes complete newline-delimited messages.
 pub(crate) struct Salida<W> {
-    pub(crate) inner: Mutex<W>,
+    inner: Mutex<W>,
 }
 
 impl<W: Write> Salida<W> {

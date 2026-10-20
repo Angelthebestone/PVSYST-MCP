@@ -260,11 +260,13 @@ Mantenlo **local**: el servidor está pensado para la máquina que tiene tu lice
 para un endpoint compartido — ver [uso responsable](#uso-responsable-licencia-y-marca).
 
 **Notas de compatibilidad.** El servidor devuelve el `protocolVersion` que pide el cliente cuando
-lo soporta (`2024-11-05`, `2025-03-26`; Command Code pide `2025-03-26`) y, si no, responde con su
-versión soportada más reciente, como exige la especificación MCP. Expone cuatro recursos
-(`pvsyst://recetas`, `pvsyst://cobertura`, `pvsyst://formato`, `pvsyst://cli`) más un
-`prompts/list` vacío, así que conecta limpiamente. Los argumentos de cada tool se validan contra
-su esquema antes de despachar. Comprueba la conexión con `/mcp` dentro de una sesión, o headless:
+lo soporta (`2024-11-05`, `2025-03-26`, `2025-06-18`; Command Code pide `2025-03-26`) y, si no,
+responde con su versión soportada más reciente, como exige la especificación MCP. Expone cuatro
+recursos (`pvsyst://recetas`, `pvsyst://cobertura`, `pvsyst://formato`, `pvsyst://cli`) y siete
+prompts construidos a partir de esas recetas. Con `2025-06-18`, los resultados de las tools
+también llevan `structuredContent`; las simulaciones largas reportan progreso y aceptan
+`notifications/cancelled`. Los argumentos de cada tool se validan contra su esquema antes de
+despachar. Comprueba la conexión con `/mcp` dentro de una sesión, o headless:
 `cmdc -p "usa la tool pvsyst entorno" --tools-all -t --yolo`.
 
 

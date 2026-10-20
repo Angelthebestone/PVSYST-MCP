@@ -6,7 +6,8 @@ use crate::error::{Error, Result};
 use crate::format::edit::{self, ObjSpan};
 use crate::format::{insert, object};
 use crate::objects;
-use crate::projects::anadir::{escribir_con_historial, leer_bytes};
+use crate::projects::anadir::escribir_con_historial;
+use crate::workspace::leer_bytes;
 use serde_json::{json, Value};
 
 /// Fields listed per inserted object in the response.

@@ -115,7 +115,7 @@ fn reindentado(bloque: &str) -> String {
 
 proptest! {
     #[test]
-    fn inserted_object_roundtrips_through_extraction((doc, bloque) in documentos_y_bloque()) {
+    fn should_extract_inserted_object_with_destination_indentation((doc, bloque) in documentos_y_bloque()) {
         let insertado = insertar_objeto(
             doc.as_bytes(),
             "pvRoot",
@@ -129,7 +129,7 @@ proptest! {
     }
 
     #[test]
-    fn inserted_object_can_be_removed_to_restore_the_document((doc, bloque) in documentos_y_bloque()) {
+    fn should_restore_original_document_when_inserted_object_is_removed((doc, bloque) in documentos_y_bloque()) {
         let insertado = insertar_objeto(
             doc.as_bytes(),
             "pvRoot",

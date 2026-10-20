@@ -55,19 +55,20 @@ pub(crate) fn list(paths: &Paths) -> Vec<Value> {
         .collect()
 }
 
-/// Executes one tool without progress or cancellation.
-#[cfg(test)]
-pub(crate) fn call(paths: &Paths, name: &str, args: &Value) -> Result<Value> {
-    call_seguido(paths, name, args, &SeguimientoTarea::inerte())
+/// One tool invocation: registry lookup, validated arguments and progress channel.
+pub(crate) struct Solicitud<'a> {
+    pub(crate) paths: &'a Paths,
+    pub(crate) name: &'a str,
+    pub(crate) args: &'a Value,
+    pub(crate) seguimiento: &'a SeguimientoTarea<'a>,
 }
 
 /// Executes one tool after validating discriminator, required presence, and property types.
-pub(crate) fn call_seguido(
-    paths: &Paths,
-    name: &str,
-    args: &Value,
-    seguimiento: &SeguimientoTarea<'_>,
-) -> Result<Value> {
+pub(crate) fn call_seguido(solicitud: &Solicitud<'_>) -> Result<Value> {
+    let paths = solicitud.paths;
+    let name = solicitud.name;
+    let args = solicitud.args;
+    let seguimiento = solicitud.seguimiento;
     let Some(h) = REGISTRO.iter().find(|h| h.nombre == name) else {
         return Err(Error::NotFound(format!("Unknown tool '{name}'")));
     };

@@ -8,6 +8,7 @@
 mod escritura_atomica;
 mod restauracion;
 mod snapshot;
+mod validador;
 
 #[cfg(test)]
 #[path = "../../tests/unit/history/tests.rs"]
@@ -15,6 +16,9 @@ mod tests;
 #[cfg(test)]
 #[path = "../../tests/unit/history/tests_externos.rs"]
 mod tests_externos;
+#[cfg(test)]
+#[path = "../../tests/unit/history/restauracion.rs"]
+mod tests_restauracion;
 
 pub(crate) use escritura_atomica::{escribir_atomico, reemplazar};
 pub(crate) use restauracion::restaurar;

@@ -1,7 +1,8 @@
-use super::caso::{caso, con_cabecera, leer_bytes, sin_potencia, Caso};
+use super::caso::{caso, con_cabecera, sin_potencia, Caso};
 use super::supuestos::{acotado, anios, Rango, DEGRADACION};
 use crate::config::{data_ro, Paths};
 use crate::error::{Error, Result};
+use crate::workspace::leer_bytes;
 use serde_json::{json, Value};
 
 const LCE: Rango = Rango {

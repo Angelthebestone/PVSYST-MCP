@@ -13,6 +13,7 @@ pub(crate) const DESKTOP_READOBJECTS: u32 = 0x0001;
 pub(crate) const MOUSEEVENTF_LEFTDOWN: u32 = 0x0002;
 pub(crate) const MOUSEEVENTF_LEFTUP: u32 = 0x0004;
 pub(crate) const TEMPORIZADOR: usize = 1;
+const CLICK_SETTLE_MS: u64 = 150;
 
 #[repr(C)]
 #[derive(Default)]
@@ -54,7 +55,7 @@ pub(crate) fn clic_fisico_en(x: i32, y: i32) {
     // SAFETY: Funciones de entrada sin punteros: mueven el cursor y emiten eventos de ratón.
     unsafe {
         SetCursorPos(x, y);
-        std::thread::sleep(std::time::Duration::from_millis(150));
+        std::thread::sleep(std::time::Duration::from_millis(CLICK_SETTLE_MS));
         mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
         mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
     }

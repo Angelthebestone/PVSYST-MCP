@@ -11,6 +11,7 @@ use crate::error::{Error, Result};
 use crate::projects::doctor::electrico::{revisar_electrico, ContextoElectrico};
 use crate::projects::doctor::referencias::{revisar_componentes, revisar_sitio};
 use crate::projects::doctor::sintaxis::{revisar_archivo, DestinoRevision};
+use crate::workspace::leer_bytes;
 use crate::workspace::Alcance;
 use serde_json::{json, Value};
 use std::fs;
@@ -28,8 +29,6 @@ pub(crate) struct Informe {
 pub(crate) fn texto(bytes: &[u8]) -> String {
     String::from_utf8_lossy(bytes).into_owned()
 }
-
-pub(crate) use crate::workspace::leer_bytes;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Modo {

@@ -118,6 +118,31 @@ fn simulation_reports_progress_before_the_response() {
 }
 
 #[test]
+fn should_answer_ping_while_a_simulation_runs() {
+    let ws = workspace();
+    let mut env = fake_env();
+    env.push(("FAKE_PVSYST_SLEEP_MS", "1500"));
+    let mut client = Client::start_env(Some(&ws_str(ws.path())), &env);
+    client.initialize();
+    client.send(&json!({
+        "jsonrpc": "2.0", "id": 2, "method": "tools/call",
+        "params": {
+            "name": "simular",
+            "arguments": { "proyecto": "SYNTH_Plant", "variante": "VC0" }
+        }
+    }));
+    client.send(&json!({ "jsonrpc": "2.0", "id": 3, "method": "ping" }));
+    let primero = client.recv();
+    assert_eq!(
+        primero["id"],
+        json!(3),
+        "ping was not answered first: {primero}"
+    );
+    let segundo = client.recv();
+    assert_eq!(segundo["id"], json!(2), "{segundo}");
+}
+
+#[test]
 fn cancelled_simulation_never_answers_and_later_requests_do() {
     let ws = workspace();
     let mut env = fake_env();
@@ -146,6 +171,9 @@ fn cancelled_simulation_never_answers_and_later_requests_do() {
     client.send(&json!({ "jsonrpc": "2.0", "id": 9, "method": "ping" }));
     let siguiente = client.recv();
     assert_eq!(siguiente["id"], json!(9), "{siguiente}");
+    client.send(&json!({ "jsonrpc": "2.0", "id": 10, "method": "ping" }));
+    let cierre = client.recv();
+    assert_eq!(cierre["id"], json!(10), "{cierre}");
     assert!(
         inicio.elapsed() < Duration::from_secs(5),
         "cancellation took {:?}",
