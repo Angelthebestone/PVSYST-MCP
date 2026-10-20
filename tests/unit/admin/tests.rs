@@ -163,3 +163,43 @@ fn should_restore_backup_when_import_fails_and_target_is_free() {
     assert!(!err.to_string().contains("respaldo.PRJ"));
     assert_eq!(fs::read_to_string(&objetivo).expect("restored"), "original");
 }
+
+fn lineas_sinteticas(n: usize) -> impl Iterator<Item = std::io::Result<String>> {
+    (0..n).map(|i| Ok(format!("Projects/P{i}.PRJ")))
+}
+
+#[test]
+fn should_join_listing_when_inside_limits() {
+    let limites = super::archive::LimitesListado::nuevo(1024, 3);
+    let texto = super::archive::listado_dentro_de_limites(lineas_sinteticas(3), limites)
+        .expect("inside limits");
+    assert_eq!(texto.lines().count(), 3);
+}
+
+#[test]
+fn should_reject_listing_when_it_has_more_lines_than_allowed() {
+    let limites = super::archive::LimitesListado::nuevo(1024 * 1024, 3);
+    let err = super::archive::listado_dentro_de_limites(lineas_sinteticas(4), limites)
+        .expect_err("too many lines");
+    assert!(err.to_string().contains("excede los límites"));
+}
+
+#[test]
+fn should_reject_listing_when_it_exceeds_the_byte_budget() {
+    let limites = super::archive::LimitesListado::nuevo(20, 100);
+    let err = super::archive::listado_dentro_de_limites(lineas_sinteticas(2), limites)
+        .expect_err("too many bytes");
+    assert!(err.to_string().contains("excede los límites"));
+}
+
+#[test]
+fn should_validate_a_real_small_zip() {
+    let tmp = tempfile::tempdir().expect("create temp dir");
+    let origen = tmp.path().join("origen");
+    fs::create_dir_all(origen.join("Projects")).expect("create Projects");
+    fs::write(origen.join("Projects").join("Demo.PRJ"), "x").expect("write prj");
+    let zip = tmp.path().join("ws.zip");
+    super::archive::zip_into(&zip, &origen, &["Projects".into()]).expect("zip");
+
+    super::archive::validar_entradas_zip(&zip).expect("small zip is valid");
+}

@@ -2,8 +2,9 @@
 
 use crate::error::{Error, Result};
 use std::fs;
+use std::io::{BufRead, BufReader};
 use std::path::{Component, Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 /// The system bsdtar (`%SystemRoot%\System32\tar.exe`).
 pub(crate) fn tar_exe() -> PathBuf {
@@ -77,25 +78,103 @@ fn validar_entrada(nombre: &str, linea: &str) -> Result<()> {
     Ok(())
 }
 
-/// `tar.exe` listing of `zip` (`-tf`, or `-tvf` with `detallado`).
+/// Most bytes a `tar -t[v]f` listing may produce before it is aborted: a
+/// legitimate workspace (≤ `MAX_ENTRADAS` lines) stays far below it.
+const MAX_BYTES_LISTADO: u64 = 64 * 1024 * 1024;
+/// Largest zip accepted for import.
+const MAX_BYTES_ZIP: u64 = 4 * 1024 * 1024 * 1024;
+
+/// Budget a listing must respect.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct LimitesListado {
+    max_bytes: u64,
+    max_lineas: usize,
+}
+
+impl LimitesListado {
+    /// Budget with explicit caps.
+    pub(crate) const fn nuevo(max_bytes: u64, max_lineas: usize) -> Self {
+        Self {
+            max_bytes,
+            max_lineas,
+        }
+    }
+}
+
+const LIMITES_ZIP: LimitesListado = LimitesListado::nuevo(MAX_BYTES_LISTADO, MAX_ENTRADAS);
+
+/// Joins `lineas` while they stay inside `limites`; stops reading at the
+/// first line over budget. O(n) in the bytes read.
+pub(crate) fn listado_dentro_de_limites(
+    lineas: impl Iterator<Item = std::io::Result<String>>,
+    limites: LimitesListado,
+) -> Result<String> {
+    lineas
+        .enumerate()
+        .try_fold(String::new(), |texto, (i, linea)| {
+            let linea = linea.map_err(|e| Error::io("No se pudo leer el listado del zip", e))?;
+            let bytes = (texto.len() + linea.len() + 1) as u64;
+            if i >= limites.max_lineas || bytes > limites.max_bytes {
+                return Err(Error::Invalid("Listado del ZIP excede los límites".into()));
+            }
+            Ok(texto + &linea + "\n")
+        })
+}
+
+/// `tar.exe` listing of `zip` (`-tf`, or `-tvf` for the detailed form),
+/// streamed so an archive with millions of entries cannot exhaust memory.
 fn listar(zip: &Path, opcion: &str) -> Result<String> {
-    let out = Command::new(tar_exe())
+    let mut hijo = Command::new(tar_exe())
         .arg(opcion)
         .arg("-f")
         .arg(zip)
-        .output()
-        .map_err(|e| Error::Invalid(format!("Failed to run tar.exe: {e}")))?;
-    if !out.status.success() {
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| Error::io("Failed to run tar.exe", e))?;
+    let salida = hijo
+        .stdout
+        .take()
+        .ok_or_else(|| Error::Invalid("tar.exe sin salida estándar".into()))?;
+    let listado = listado_dentro_de_limites(BufReader::new(salida).lines(), LIMITES_ZIP);
+    if listado.is_err() {
+        // Best effort: the listing is already rejected; tar must not linger.
+        let _ = hijo.kill();
+        let _ = hijo.wait();
+        return listado;
+    }
+    // tar writes only a few diagnostic lines to stderr, so reading it after
+    // stdout cannot deadlock on a full pipe.
+    let errores = hijo
+        .stderr
+        .take()
+        .map(std::io::read_to_string)
+        .transpose()
+        .map_err(|e| Error::io("No se pudo leer stderr de tar.exe", e))?
+        .unwrap_or_default();
+    let estado = hijo
+        .wait()
+        .map_err(|e| Error::io("Failed to run tar.exe", e))?;
+    if !estado.success() {
         return Err(Error::Invalid(format!(
             "No se pudo leer el zip: {}",
-            String::from_utf8_lossy(&out.stderr).trim()
+            errores.trim()
         )));
     }
-    Ok(String::from_utf8_lossy(&out.stdout).into_owned())
+    listado
 }
 
 /// Lists the zip entries and rejects unsafe paths, links and oversized archives.
 pub(crate) fn validar_entradas_zip(zip: &Path) -> Result<()> {
+    let tamano = fs::metadata(zip)
+        .map_err(|e| Error::io(format!("No se pudo leer {}", zip.display()), e))?
+        .len();
+    if tamano > MAX_BYTES_ZIP {
+        return Err(Error::Invalid(format!(
+            "ZIP demasiado grande: {} ({tamano} bytes, máx 4 GiB)",
+            zip.display()
+        )));
+    }
     validar_listado_zip(&listar(zip, "-t")?, &listar(zip, "-tv")?)
 }
 
@@ -104,7 +183,7 @@ pub(crate) fn run_tar(args: &[&std::ffi::OsStr]) -> Result<()> {
     let out = Command::new(tar_exe())
         .args(args)
         .output()
-        .map_err(|e| Error::Invalid(format!("Failed to run tar.exe: {e}")))?;
+        .map_err(|e| Error::io("Failed to run tar.exe", e))?;
     if out.status.success() {
         Ok(())
     } else {
