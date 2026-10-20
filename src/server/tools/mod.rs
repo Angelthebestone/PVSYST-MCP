@@ -15,6 +15,7 @@ pub(crate) mod recorte;
 pub(crate) mod resultados;
 pub(crate) mod simulacion;
 pub(crate) mod sitios;
+pub(crate) mod validacion;
 pub(crate) mod workspace;
 
 #[cfg(test)]
