@@ -21,61 +21,16 @@ pub(crate) fn list() -> Value {
 /// Contents of one resource. Unknown URIs are an `Err` (the server maps it to -32602).
 pub(crate) fn read(uri: &str) -> Result<Value> {
     let (mime, text) = match uri {
-        "pvsyst://recetas" => ("application/json", recetas().to_string()),
+        "pvsyst://recetas" => (
+            "application/json",
+            super::recetas::como_recurso().to_string(),
+        ),
         "pvsyst://cobertura" => ("application/json", cobertura().to_string()),
         "pvsyst://formato" => ("text/markdown", FORMATO.to_string()),
         "pvsyst://cli" => ("text/markdown", CLI.to_string()),
         _ => return Err(Error::Invalid(format!("Recurso desconocido: {uri}"))),
     };
     Ok(json!({ "contents": [{ "uri": uri, "mimeType": mime, "text": text }] }))
-}
-
-/// Ready-to-use playbooks. Each entry names the tool calls in order.
-fn recetas() -> Value {
-    json!({
-        "intro": "Recetas listas para usar. Cada una indica cuándo usarla y la secuencia de tools.",
-        "recetas": [
-            {
-                "nombre": "Disenar sistema desde coordenadas (recomendada)",
-                "cuando": "El usuario da coordenadas y una potencia (p.ej. '10 kWp en 7.07,-73.84').",
-                "tools": ["disenar_sistema"],
-                "ejemplo": { "latitud": 7.07, "longitud": -73.84, "kwp": 10 }
-            },
-            {
-                "nombre": "Estudio completo paso a paso",
-                "cuando": "Se quiere control fino de cada fase.",
-                "tools": ["sitio crear", "proyecto crear", "editar campos", "proyecto dimensionar", "simular", "resultados kpis"]
-            },
-            {
-                "nombre": "Leer resultados",
-                "cuando": "Ya hay una simulacion hecha.",
-                "tools": ["resultados kpis", "resultados csv", "resultados perdidas"]
-            },
-            {
-                "nombre": "Optimizar inclinacion/azimut",
-                "cuando": "Se busca el angulo optimo.",
-                "tools": ["simular barrido", "simular ejecutar", "resultados kpis"],
-                "nota": "Barrido: simular con 'filas' crea el CSV de batch y lanza con batch_params_file."
-            },
-            {
-                "nombre": "Operar la GUI (funciones solo-GUI)",
-                "cuando": "Editor 3D, graficos I/V, tablas, asistentes, dialogos.",
-                "tools": ["gui_actuar accion:lanzar", "gui_observar que:ventanas", "gui_observar que:controles", "gui_actuar accion:click", "gui_observar que:capturar", "gui_actuar accion:cerrar"],
-                "nota": "gui_actuar con accion:'clic_fisico' mueve el cursor real."
-            },
-            {
-                "nombre": "Explorar/editar cualquier archivo",
-                "cuando": "Ajustes finos no cubiertos por tools de dominio.",
-                "tools": ["leer", "listar que:objetos", "editar campos", "listar que:archivos"]
-            },
-            {
-                "nombre": "Diagnostico del entorno",
-                "cuando": "Antes de empezar o si algo falla.",
-                "tools": ["entorno diagnostico", "entorno licencia"]
-            }
-        ],
-        "consejo": "Si dudas, llama a 'entorno' y luego a 'disenar_sistema'. Todo lo demas es opcional."
-    })
 }
 
 /// Machine-readable coverage map: PVsyst area -> how the MCP covers it.

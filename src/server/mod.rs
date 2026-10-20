@@ -4,6 +4,7 @@
 //! (newline-delimited JSON), so we read a line, dispatch, and write one line.
 
 use crate::config::Paths;
+mod recetas;
 mod resources;
 mod tools;
 
@@ -84,7 +85,11 @@ impl Server {
             "resources/list" => reply(resources::list()),
             "resources/read" => Some(self.read_resource(params, id)),
             "resources/templates/list" => reply(json!({ "resourceTemplates": [] })),
-            "prompts/list" => reply(json!({ "prompts": [] })),
+            "prompts/list" => reply(recetas::listar_prompts()),
+            "prompts/get" => match recetas::obtener_prompt(params) {
+                Ok(value) => reply(value),
+                Err(e) => Some(err_response(id, -32602, &e.to_string())),
+            },
             _ => Some(err_response(id, -32601, "Method not found")),
         }
     }
@@ -147,7 +152,7 @@ fn initialize_result(params: &Value) -> Value {
     };
     json!({
         "protocolVersion": negotiated,
-        "capabilities": { "tools": {}, "resources": {} },
+        "capabilities": { "tools": {}, "resources": {}, "prompts": {} },
         "serverInfo": {
             "name": "pvsyst-mcp",
             "version": env!("CARGO_PKG_VERSION"),
