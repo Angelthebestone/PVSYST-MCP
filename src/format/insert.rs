@@ -45,7 +45,7 @@ fn indent_of(line: &[u8]) -> usize {
 
 #[derive(Clone, Copy)]
 struct OpcionesBloque<'a> {
-    crlf: bool,
+    fin: edit::FinDeLinea,
     indent: usize,
     rol: Option<&'a str>,
 }
@@ -84,7 +84,7 @@ fn preparar_bloque(bloque: &[u8], opts: &OpcionesBloque<'_>) -> Result<Vec<Vec<u
                 nueva = format!("{pad}PVObject_{nuevo_rol}={ty}").into_bytes();
             }
         }
-        if opts.crlf {
+        if matches!(opts.fin, edit::FinDeLinea::Crlf) {
             nueva.push(b'\r');
         }
         out.push(nueva);
@@ -129,10 +129,14 @@ pub(crate) fn insertar_objeto(
         .ok_or_else(|| Error::NotFound(format!("Object '{selector_padre}' not found")))?;
     let padre = spans[pi].clone();
     let mut lineas = split(destino);
-    let crlf = lineas.first().is_some_and(|l| l.ends_with(b"\r"));
+    let fin = if lineas.first().is_some_and(|l| l.ends_with(b"\r")) {
+        edit::FinDeLinea::Crlf
+    } else {
+        edit::FinDeLinea::Lf
+    };
 
     let opts = OpcionesBloque {
-        crlf,
+        fin,
         indent: padre.indent + 2,
         rol,
     };

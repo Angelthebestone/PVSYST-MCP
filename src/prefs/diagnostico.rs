@@ -36,6 +36,13 @@ pub(crate) fn nivel(linea: &str) -> Option<&str> {
     linea.split('|').nth(1).map(str::trim)
 }
 
+/// Which log lines a summary includes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum FiltroLog {
+    Todo,
+    SoloErrores,
+}
+
 /// Max characters per log line kept in responses (the file keeps it whole).
 const ANCHO_LINEA: usize = 220;
 /// Recent lines listed per log file.
@@ -51,7 +58,7 @@ fn recortar_linea(linea: &str) -> String {
     format!("{corte}…")
 }
 
-pub(crate) fn resumir_log(ruta: &Path, texto: &str, solo_errores: bool) -> Value {
+pub(crate) fn resumir_log(ruta: &Path, texto: &str, filtro: FiltroLog) -> Value {
     let lineas: Vec<&str> = texto.lines().collect();
     let avisos: Vec<&str> = lineas
         .iter()
@@ -69,7 +76,7 @@ pub(crate) fn resumir_log(ruta: &Path, texto: &str, solo_errores: bool) -> Value
     if avisos.len() > LINEAS_AVISO {
         resumen["lineas_no_norm_total"] = json!(avisos.len());
     }
-    if !solo_errores {
+    if matches!(filtro, FiltroLog::Todo) {
         let cola = &lineas[lineas.len().saturating_sub(LINEAS_COLA)..];
         resumen["ultimas"] = json!(cola.iter().map(|l| recortar_linea(l)).collect::<Vec<_>>());
     }
@@ -115,13 +122,17 @@ pub(crate) fn logs_cli(_paths: &Paths, args: &Value) -> Result<Value> {
         .and_then(Value::as_u64)
         .unwrap_or(1)
         .clamp(1, 20) as usize;
-    let solo_errores = flag(args, &["solo_errores"]);
+    let filtro = if flag(args, &["solo_errores"]) {
+        FiltroLog::SoloErrores
+    } else {
+        FiltroLog::Todo
+    };
     let dir = cli_admin_dir()?;
     let mut logs = Vec::new();
     let candidatos = listar(&dir, |n| n.ends_with(".log"))?;
     for ruta in candidatos.into_iter().take(n) {
         let (texto, _) = decodificar(&leer(&ruta)?);
-        logs.push(resumir_log(&ruta, &texto, solo_errores));
+        logs.push(resumir_log(&ruta, &texto, filtro));
     }
     let sesion = ultima_sesion(&dir)?;
     Ok(json!({

@@ -31,8 +31,14 @@ fn call(line: &str) -> Value {
     serde_json::from_str(&out).expect("valid json")
 }
 
-fn tools_list_len(expert: bool) -> usize {
-    let out = server_with(expert)
+#[derive(Clone, Copy)]
+enum Superficie {
+    Normal,
+    Experta,
+}
+
+fn tools_list_len(superficie: Superficie) -> usize {
+    let out = server_with(matches!(superficie, Superficie::Experta))
         .handle_line(r#"{"jsonrpc":"2.0","id":1,"method":"tools/list"}"#)
         .expect("response");
     serde_json::from_str::<Value>(&out).expect("valid json")["result"]["tools"]
@@ -152,12 +158,12 @@ fn notification_calls_never_generate_responses() {
 
 #[test]
 fn tools_list_exposes_12_tools_without_expert_flag() {
-    assert_eq!(tools_list_len(false), 12);
+    assert_eq!(tools_list_len(Superficie::Normal), 12);
 }
 
 #[test]
 fn tools_list_adds_the_expert_tools_with_flag() {
-    assert_eq!(tools_list_len(true), 15);
+    assert_eq!(tools_list_len(Superficie::Experta), 15);
 }
 
 #[test]

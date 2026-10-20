@@ -52,14 +52,26 @@ fn pnom_del_modulo(consulta: &ConsultaModulo<'_>, pan_name: &str) -> Result<f64>
                 ))
             })?
     };
-    validar_pnom(pnom, consulta.args.get("pnom_modulo").is_some())
+    let origen = if consulta.args.get("pnom_modulo").is_some() {
+        OrigenPnom::Argumento
+    } else {
+        OrigenPnom::Inferido
+    };
+    validar_pnom(pnom, origen)
+}
+
+/// Where the module Pnom came from.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum OrigenPnom {
+    Argumento,
+    Inferido,
 }
 
 /// Bounds the deduced module power; the `pnom_modulo` hint only makes sense
 /// when the value was inferred rather than passed by the caller.
-fn validar_pnom(pnom: f64, explicito: bool) -> Result<f64> {
+fn validar_pnom(pnom: f64, origen: OrigenPnom) -> Result<f64> {
     if !pnom.is_finite() || pnom <= 0.0 || pnom > MAX_PNOM_MODULO_W {
-        let pista = if explicito {
+        let pista = if matches!(origen, OrigenPnom::Argumento) {
             ""
         } else {
             "; pase 'pnom_modulo'"

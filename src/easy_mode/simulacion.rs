@@ -1,7 +1,7 @@
 //! Step 5: Simulation execution, result collection and KPI extraction.
 
 use super::parametros::SimulacionParametros;
-use super::pasos::{KpisSalida, PasoSimulacionSalida};
+use super::pasos::{EstadoSimulacion, KpisSalida, PasoSimulacionSalida};
 use super::proyecto::sustituir_sitio;
 use crate::args::{opt_str, workspace_of};
 use crate::config::Paths;
@@ -125,11 +125,11 @@ fn actualizar_sitio_y_kpis(
     nombre_proyecto: &str,
     sit_file: &str,
     csv_out: &str,
-    sim_ok: bool,
+    estado: EstadoSimulacion,
 ) -> SitioKpisResultado {
     let mut ok_sitio = None;
     let mut detalle_sitio = None;
-    if sim_ok {
+    if matches!(estado, EstadoSimulacion::Correcta) {
         let sitio = sustituir_sitio(paths, nombre_proyecto, sit_file, Path::new(csv_out));
         let (s_ok, det) = match sitio {
             Ok(v) => (true, v),
@@ -196,8 +196,13 @@ pub(crate) fn ejecutar_paso_simulacion(
     let sim = simulation::lanzar_simulacion(paths, &sv)?;
     let ok = sim.get("success").and_then(Value::as_bool).unwrap_or(false);
 
+    let estado = if ok {
+        EstadoSimulacion::Correcta
+    } else {
+        EstadoSimulacion::Fallida
+    };
     let (ok_sitio, detalle_sitio, kpis, kpis_error) =
-        actualizar_sitio_y_kpis(paths, nombre_proyecto, sit_file, &csv_out, ok);
+        actualizar_sitio_y_kpis(paths, nombre_proyecto, sit_file, &csv_out, estado);
     Ok(PasoSimulacionSalida {
         sim_info: sim.get("stdout_tail").cloned().unwrap_or(Value::Null),
         kpis,

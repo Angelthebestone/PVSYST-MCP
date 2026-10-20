@@ -83,7 +83,14 @@ fn cabecera_prj(prj: &Path) -> (Value, Value, Value, Option<String>) {
     )
 }
 
-fn resumen_proyecto(workspace: &Path, prj: &Path, include_variants: bool) -> Value {
+/// Whether a project summary includes its variants.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum DetalleProyecto {
+    ConVariantes,
+    SinVariantes,
+}
+
+fn resumen_proyecto(workspace: &Path, prj: &Path, detalle: DetalleProyecto) -> Value {
     let stem = prj
         .file_stem()
         .and_then(|s| s.to_str())
@@ -95,10 +102,9 @@ fn resumen_proyecto(workspace: &Path, prj: &Path, include_variants: bool) -> Val
         .to_string_lossy()
         .to_string();
 
-    let variants = if include_variants {
-        variantes_de(prj, &stem)
-    } else {
-        Vec::new()
+    let variants = match detalle {
+        DetalleProyecto::ConVariantes => variantes_de(prj, &stem),
+        DetalleProyecto::SinVariantes => Vec::new(),
     };
     let (comment, version, meteo, aviso) = cabecera_prj(prj);
 
@@ -136,9 +142,14 @@ pub(crate) fn listar_proyectos(paths: &Paths, args: &Value) -> Result<Value> {
     let recorrido = walk_ext(&projects_dir, ".prj", &mut prj_files);
     prj_files.sort();
 
+    let detalle = if include_variants {
+        DetalleProyecto::ConVariantes
+    } else {
+        DetalleProyecto::SinVariantes
+    };
     let projects: Vec<Value> = prj_files
         .iter()
-        .map(|prj| resumen_proyecto(&workspace, prj, include_variants))
+        .map(|prj| resumen_proyecto(&workspace, prj, detalle))
         .collect();
 
     Ok(json!({

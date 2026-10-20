@@ -3,6 +3,20 @@
 use serde::Serialize;
 use serde_json::{json, Value};
 
+/// Whether the site step reused an existing site or created a new one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum OrigenSitioDiseno {
+    Reutilizado,
+    Nuevo,
+}
+
+/// Outcome of the simulation step, as seen by the post-processing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum EstadoSimulacion {
+    Correcta,
+    Fallida,
+}
+
 /// Output of step 1: site creation or reuse.
 #[derive(Debug)]
 pub(crate) struct PasoSitioSalida {

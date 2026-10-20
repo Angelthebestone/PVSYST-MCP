@@ -14,6 +14,13 @@ use super::value_text;
 use crate::error::{Error, Result};
 use serde_json::{json, Map, Value};
 
+/// Line terminator to append to a generated field line.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum FinDeLinea {
+    Lf,
+    Crlf,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ChangeOutcome {
     pub key: String,
@@ -109,12 +116,12 @@ fn find_field_line(
     None
 }
 
-pub(crate) fn field_line(indent: usize, key: &str, value: &str, crlf: bool) -> Vec<u8> {
+pub(crate) fn field_line(indent: usize, key: &str, value: &str, fin: FinDeLinea) -> Vec<u8> {
     let mut line = vec![b' '; indent];
     line.extend_from_slice(key.as_bytes());
     line.push(b'=');
     line.extend_from_slice(value.as_bytes());
-    if crlf {
+    if matches!(fin, FinDeLinea::Crlf) {
         line.push(b'\r');
     }
     line
@@ -130,9 +137,13 @@ fn apply_field_change(
     let found = find_field_line(doc, span, in_child, key);
     match (found, value) {
         (Some((i, old)), Some(new)) => {
-            let had_cr = doc.lines[i].ends_with(b"\r");
+            let fin = if doc.lines[i].ends_with(b"\r") {
+                FinDeLinea::Crlf
+            } else {
+                FinDeLinea::Lf
+            };
             let indent = indent_width(&doc.lines[i]);
-            doc.lines[i] = field_line(indent, key, new, had_cr);
+            doc.lines[i] = field_line(indent, key, new, fin);
             Ok(outcome(key, "replaced", Some(old), Some(new)))
         }
         (Some((i, old)), None) => {
@@ -185,10 +196,14 @@ pub(crate) fn edit_fields(
         outcomes.push(outcome);
     }
 
-    let crlf = doc.lines[span.open].ends_with(b"\r");
+    let fin = if doc.lines[span.open].ends_with(b"\r") {
+        FinDeLinea::Crlf
+    } else {
+        FinDeLinea::Lf
+    };
     for (key, value) in inserts.into_iter().rev() {
         doc.lines
-            .insert(span.open + 1, field_line(find, key, value, crlf));
+            .insert(span.open + 1, field_line(find, key, value, fin));
         doc.newline.insert(span.open + 1, true);
     }
 

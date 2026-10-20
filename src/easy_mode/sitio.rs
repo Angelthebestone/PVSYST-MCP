@@ -1,7 +1,7 @@
 //! Step 1: Geographic site creation or cache reuse from coordinates.
 
 use super::parametros::UbicacionParametros;
-use super::pasos::PasoSitioSalida;
+use super::pasos::{OrigenSitioDiseno, PasoSitioSalida};
 use crate::config::Paths;
 use crate::error::Result;
 use crate::sites;
@@ -14,7 +14,7 @@ pub(crate) fn ejecutar_paso_sitio(
     paths: &Paths,
     ubicacion: &UbicacionParametros,
     nombre_proyecto: &str,
-    reutilizado: bool,
+    sitio: OrigenSitioDiseno,
 ) -> Result<PasoSitioSalida> {
     let mut sa = Map::new();
     sa.insert("latitud".into(), json!(ubicacion.latitud));
@@ -63,7 +63,7 @@ pub(crate) fn ejecutar_paso_sitio(
         site_name,
         weather_source,
         annual_ghi_kwh_m2,
-        reutilizado,
+        reutilizado: matches!(sitio, OrigenSitioDiseno::Reutilizado),
         ok,
     })
 }

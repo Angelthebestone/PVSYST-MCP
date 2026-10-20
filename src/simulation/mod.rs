@@ -103,7 +103,7 @@ pub(crate) fn lanzar_simulacion_seguida(
     let args_con_salidas =
         preparacion::con_salidas_por_defecto(args, &workspace, &stem, &variante_up);
     let cli_args = preparacion::argumentos_cli(&args_con_salidas, &workspace, &stem, &variante_up);
-    let open_gui = flag(args, &["abrir_gui"]);
+    let modo_gui = ModoGui::de_bool(flag(args, &["abrir_gui"]));
 
     if flag(args, &["dry_run"]) {
         return Ok(respuesta_dry_run(
@@ -114,7 +114,7 @@ pub(crate) fn lanzar_simulacion_seguida(
         ));
     }
     if !cli::cli_available(paths) {
-        return gui::sin_cli(paths, &prj_path, &stem, ModoGui::de_bool(open_gui));
+        return gui::sin_cli(paths, &prj_path, &stem, modo_gui);
     }
     let contexto = json!({
         "mode": "cli",
@@ -137,7 +137,7 @@ pub(crate) fn lanzar_simulacion_seguida(
         seguimiento,
     };
     let mut resultado = ejecucion::ejecutar_cli(&solicitud)?;
-    if open_gui {
+    if modo_gui.debe_abrir() {
         if let Err(e) = gui::spawn_gui(paths, &prj_path) {
             agregar_aviso_gui(&mut resultado, &e);
         }

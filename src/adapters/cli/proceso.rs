@@ -179,11 +179,19 @@ fn determinar_estado_ejecucion(
     (clasificacion.etiqueta(), success, err, Some(clasificacion))
 }
 
-fn filtrar_cuerpo_stdout(stdout: &str, success: bool) -> String {
+/// Whether the command succeeded, for output post-processing.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum EstadoProceso {
+    Exito,
+    Fallo,
+}
+
+fn filtrar_cuerpo_stdout(stdout: &str, estado: EstadoProceso) -> String {
+    let exito = matches!(estado, EstadoProceso::Exito);
     stdout
         .lines()
-        .filter(|l| !(success && is_license_banner(l)))
-        .filter(|l| !(success && l.trim_end().ends_with('%')))
+        .filter(|l| !(exito && is_license_banner(l)))
+        .filter(|l| !(exito && l.trim_end().ends_with('%')))
         .collect::<Vec<_>>()
         .join("\n")
 }
@@ -214,7 +222,12 @@ fn enriquecer_salida_json(
 pub(crate) fn output_json(out: &CliOutput, command: &str, extra: &Value) -> Value {
     let (etiqueta, success, detected_error, clasificacion) =
         determinar_estado_ejecucion(out, command);
-    let cuerpo = filtrar_cuerpo_stdout(&out.stdout, success);
+    let estado = if success {
+        EstadoProceso::Exito
+    } else {
+        EstadoProceso::Fallo
+    };
+    let cuerpo = filtrar_cuerpo_stdout(&out.stdout, estado);
     let mut base = json!({
         "success": success,
         "clasificacion": etiqueta,

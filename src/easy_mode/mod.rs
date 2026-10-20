@@ -26,7 +26,7 @@ use crate::adapters::ledger;
 use crate::config::Paths;
 use crate::error::Result;
 use crate::sites;
-use pasos::{Corrida, Fases};
+use pasos::{Corrida, Fases, OrigenSitioDiseno};
 use serde_json::{json, Value};
 
 const MAX_DEVIATION_PCT: f64 = 5.0;
@@ -64,7 +64,12 @@ pub(crate) fn disenar_sistema(paths: &Paths, args: &Value) -> Result<Value> {
     }
     proyecto::ensure_template(paths, &params.proyecto.plantilla)?;
 
-    let c = correr_pasos(paths, &params, reusable)?;
+    let origen = if reusable {
+        OrigenSitioDiseno::Reutilizado
+    } else {
+        OrigenSitioDiseno::Nuevo
+    };
+    let c = correr_pasos(paths, &params, origen)?;
     Ok(serializar_resultado(&params, &c))
 }
 
@@ -116,9 +121,17 @@ fn serializar_resultado(params: &DisenoParametros, c: &Corrida) -> Value {
 }
 
 /// Runs site → project → orientation → sizing → (simulation + KPIs) in order.
-fn correr_pasos(paths: &Paths, params: &DisenoParametros, reusable: bool) -> Result<Corrida> {
-    let paso_sitio =
-        sitio::ejecutar_paso_sitio(paths, &params.ubicacion, &params.proyecto.nombre, reusable)?;
+fn correr_pasos(
+    paths: &Paths,
+    params: &DisenoParametros,
+    sitio_origen: OrigenSitioDiseno,
+) -> Result<Corrida> {
+    let paso_sitio = sitio::ejecutar_paso_sitio(
+        paths,
+        &params.ubicacion,
+        &params.proyecto.nombre,
+        sitio_origen,
+    )?;
     let paso_proyecto =
         proyecto::ejecutar_paso_proyecto(paths, &params.proyecto, &params.dimensionado)?;
     let paso_orientacion =
