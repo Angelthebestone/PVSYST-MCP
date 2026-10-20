@@ -147,6 +147,21 @@ fn leer_modulo_decodes_legacy_pan() {
 }
 
 #[test]
+fn leer_decodes_the_synthetic_legacy_module() {
+    let ws = synthetic_workspace();
+    let mut c = Client::start(Some(ws.path().to_str().unwrap()));
+    let resp = c.call(3, "leer", json!({ "archivo": "Synth_Legacy_300W.PAN" }));
+    assert_eq!(resp["result"]["isError"], false, "resp={resp}");
+    let data = tool_text(&resp);
+    assert_eq!(data["format"], "legacy-real48");
+    assert_eq!(data["vendor"], "SynthSolar");
+    let pnom = data["pnom"].as_f64().unwrap();
+    let voc = data["voc"].as_f64().unwrap();
+    assert!((pnom - 300.0).abs() < 0.01, "pnom was {pnom}");
+    assert!((voc - 40.0).abs() < 0.01, "voc was {voc}");
+}
+
+#[test]
 #[ignore = "needs the PVsyst 8.1.7 demo data: run with --ignored"]
 fn listar_proyectos_finds_demos() {
     let mut c = Client::start(Some(DEMO_WS));

@@ -2,7 +2,7 @@
 
 import pytest
 
-from pan_decode import decode_record, find_block1, real48
+from pan_decode import decode_record, encode_real48, find_block1, real48
 
 
 @pytest.mark.parametrize(
@@ -22,6 +22,13 @@ def test_real48_known_values(raw: bytes, expected: float) -> None:
 def test_real48_rejects_wrong_length() -> None:
     with pytest.raises(ValueError):
         real48(b"\x81\x00")
+
+
+@pytest.mark.parametrize(
+    "value", [0.0, 1.0, -1.0, 2.0, 0.5, 300.0, 9.5, 9.09, 40.0, 33.0]
+)
+def test_encode_real48_roundtrips(value: float) -> None:
+    assert real48(encode_real48(value)) == pytest.approx(value, rel=1e-12)
 
 
 def test_decode_record_names_known_slots_and_ignores_tail() -> None:

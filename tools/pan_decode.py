@@ -26,6 +26,7 @@ Delphi Real48 (6 bytes, b0..b5) -> double:
             mantissa = b1 + b2<<8 + b3<<16 + b4<<24 + (b5 & 0x7F)<<32
 """
 
+import math
 import sys
 from pathlib import Path
 from typing import Any
@@ -57,6 +58,32 @@ def real48(b: bytes) -> float:
     mantissa = int.from_bytes(b[1:5] + bytes([b[5] & 0x7F]), "little")
     sign = -1.0 if b[5] & 0x80 else 1.0
     return sign * (1.0 + mantissa / 2**39) * 2.0 ** (b[0] - 129)
+
+
+def encode_real48(x: float) -> bytes:
+    """Encode a float as the 6-byte Delphi Real48 value `real48` decodes."""
+    if x == 0.0:
+        return b"\x00" * REAL48_SIZE
+    sign = 0x80 if x < 0.0 else 0
+    fraction, exponent2 = math.frexp(abs(x))
+    exponent = exponent2 - 1
+    mantissa = round((fraction * 2.0 - 1.0) * 2**39)
+    if mantissa == 2**39:
+        mantissa = 0
+        exponent += 1
+    biased = exponent + 129
+    if not 0 <= biased <= 0xFF:
+        raise ValueError(f"{x} is outside the Real48 range")
+    return bytes(
+        [
+            biased,
+            mantissa & 0xFF,
+            (mantissa >> 8) & 0xFF,
+            (mantissa >> 16) & 0xFF,
+            (mantissa >> 24) & 0xFF,
+            ((mantissa >> 32) & 0x7F) | sign,
+        ]
+    )
 
 
 def decode_record(

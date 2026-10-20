@@ -2,3 +2,4 @@
 *.ps1 text eol=crlf
 # Fixtures mimic PVsyst's CRLF files: keep bytes as-is.
 tests/fixtures/workspace/** -text
+tests/fixtures/workspace/**/*.PAN binary
