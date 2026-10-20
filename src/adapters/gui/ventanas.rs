@@ -43,9 +43,7 @@ pub(crate) fn rect_of(h: Hwnd) -> Rect {
 }
 
 pub(crate) fn visible(h: Hwnd) -> bool {
-    // SAFETY: Consulta de solo lectura sobre un HWND; un handle inválido devuelve 0.
-    let visible_flag = unsafe { ffi::IsWindowVisible(h) };
-    visible_flag != 0
+    ffi::estado_ventana(h).visible
 }
 
 pub(crate) fn find_pids(exe_name: &str) -> Vec<u32> {
@@ -78,17 +76,15 @@ pub(crate) fn find_pids(exe_name: &str) -> Vec<u32> {
 
 pub(crate) fn window_json(h: Hwnd) -> Value {
     let r = rect_of(h);
+    let estado = ffi::estado_ventana(h);
     json!({
         "hwnd": format!("0x{:X}", h),
         "class": class_of(h),
         "title": text_of(h),
         "pid": pid_of(h),
-        // SAFETY: Consulta de solo lectura sobre un HWND; un handle inválido devuelve 0.
-        "visible": unsafe { ffi::IsWindowVisible(h) } != 0,
-        // SAFETY: Consulta de solo lectura sobre un HWND; un handle inválido devuelve 0.
-        "enabled": unsafe { ffi::IsWindowEnabled(h) } != 0,
-        // SAFETY: Consulta de solo lectura sobre un HWND; un handle inválido devuelve 0.
-        "minimized": unsafe { ffi::IsIconic(h) } != 0,
+        "visible": estado.visible,
+        "enabled": estado.habilitada,
+        "minimized": estado.minimizada,
         "rect": { "left": r.left, "top": r.top, "right": r.right, "bottom": r.bottom,
                   "width": r.right - r.left, "height": r.bottom - r.top },
     })
@@ -175,8 +171,7 @@ pub(crate) fn resolve(haystack: &[Hwnd], reference: &str) -> Option<Hwnd> {
         .or_else(|| reference.strip_prefix("0X"))
     {
         if let Ok(v) = isize::from_str_radix(hex, 16) {
-            // SAFETY: Consulta de solo lectura sobre un HWND; un handle inválido devuelve 0.
-            if unsafe { ffi::IsWindow(v) } != 0 {
+            if ffi::es_ventana(v) {
                 return Some(v);
             }
         }

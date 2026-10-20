@@ -1,55 +1,14 @@
 //! UIA tree building, traversal and caching.
 
-use super::{cadena, error, rol_de, Sesion};
+use super::{com, rol_de, Sesion};
 use crate::error::Result;
 use crate::state::Estado;
 use serde_json::{json, Value};
-use std::ffi::c_void;
 use std::time::{Duration, Instant};
-use windows::core::Interface;
-use windows::Win32::Foundation::HWND;
-use windows::Win32::UI::Accessibility::{
-    IUIAutomationElement, IUIAutomationTreeWalker, UIA_ExpandCollapsePatternId,
-    UIA_InvokePatternId, UIA_SelectionItemPatternId, UIA_TogglePatternId, UIA_ValuePatternId,
-    UIA_PATTERN_ID,
-};
+use windows::Win32::UI::Accessibility::{IUIAutomationElement, IUIAutomationTreeWalker};
 
 /// Lifetime of a cached tree snapshot.
 const CACHE_TTL: Duration = Duration::from_secs(2);
-
-/// The tree walkers signal "no more children/siblings" with a null interface
-/// pointer, which windows-rs surfaces as `Error::empty()` (code S_OK). Any
-/// negative HRESULT is a real COM failure.
-fn es_fin_de_lista(e: &windows::core::Error) -> bool {
-    e.code().is_ok()
-}
-
-/// Direct children of `el` in control view, with the cache request applied.
-/// The error is `Some` when COM failed mid-enumeration: the returned list is
-/// then a prefix and callers must treat the snapshot as incomplete.
-pub(crate) fn hijos(
-    sesion: &Sesion,
-    walker: &IUIAutomationTreeWalker,
-    el: &IUIAutomationElement,
-) -> (Vec<IUIAutomationElement>, Option<windows::core::Error>) {
-    let mut out = Vec::new();
-    // SAFETY: Llamada COM sobre una interfaz viva en el hilo con COM inicializado.
-    let mut c = match unsafe { walker.GetFirstChildElementBuildCache(el, &sesion.req) } {
-        Ok(c) => c,
-        Err(e) if es_fin_de_lista(&e) => return (out, None),
-        Err(e) => return (out, Some(e)),
-    };
-    loop {
-        out.push(c.clone());
-        // SAFETY: Llamada COM sobre una interfaz viva en el hilo con COM inicializado.
-        match unsafe { walker.GetNextSiblingElementBuildCache(&c, &sesion.req) } {
-            Ok(n) => c = n,
-            Err(e) if es_fin_de_lista(&e) => break,
-            Err(e) => return (out, Some(e)),
-        }
-    }
-    (out, None)
-}
 
 /// Traversal state bundling session, walker, remaining node budget and the
 /// facts that make a snapshot incomplete.
@@ -74,11 +33,12 @@ struct PropiedadesNodo {
     errores: Vec<String>,
 }
 
-fn leer_str_prop<F>(f: F, campo: &str, errores: &mut Vec<String>) -> Value
-where
-    F: FnOnce() -> windows::core::Result<windows::core::BSTR>,
-{
-    match cadena(f()) {
+pub(crate) fn leer_str_prop(
+    valor: windows::core::Result<String>,
+    campo: &str,
+    errores: &mut Vec<String>,
+) -> Value {
+    match valor {
         Ok(s) => Value::String(s),
         Err(e) => {
             errores.push(format!("{campo}: {e}"));
@@ -89,41 +49,27 @@ where
 
 fn leer_propiedades(el: &IUIAutomationElement) -> PropiedadesNodo {
     let mut errores = Vec::new();
+    let p = com::propiedades(el);
 
-    // SAFETY: Llamada COM sobre interfaz viva con COM inicializado.
-    let nombre = leer_str_prop(|| unsafe { el.CachedName() }, "nombre", &mut errores);
-
-    // SAFETY: Llamada COM sobre interfaz viva con COM inicializado.
-    let rol = match unsafe { el.CachedControlType() } {
-        Ok(t) => Value::String(rol_de(t.0).to_string()),
+    let nombre = leer_str_prop(p.nombre, "nombre", &mut errores);
+    let rol = match p.tipo {
+        Ok(t) => Value::String(rol_de(t).to_string()),
         Err(e) => {
             errores.push(format!("rol: {e}"));
             Value::Null
         }
     };
-
-    // SAFETY: Llamada COM sobre interfaz viva con COM inicializado.
-    let automation_id = leer_str_prop(
-        || unsafe { el.CachedAutomationId() },
-        "automation_id",
-        &mut errores,
-    );
-
-    // SAFETY: Llamada COM sobre interfaz viva con COM inicializado.
-    let clase = leer_str_prop(|| unsafe { el.CachedClassName() }, "clase", &mut errores);
-
-    // SAFETY: Llamada COM sobre interfaz viva con COM inicializado.
-    let rect = match unsafe { el.CachedBoundingRectangle() } {
+    let automation_id = leer_str_prop(p.automation_id, "automation_id", &mut errores);
+    let clase = leer_str_prop(p.clase, "clase", &mut errores);
+    let rect = match p.rect {
         Ok(r) => json!([r.left, r.top, r.right, r.bottom]),
         Err(e) => {
             errores.push(format!("rect: {e}"));
             Value::Null
         }
     };
-
-    // SAFETY: Llamada COM sobre interfaz viva con COM inicializado.
-    let hwnd = match unsafe { el.CachedNativeWindowHandle() } {
-        Ok(h) => h.0 as isize,
+    let hwnd = match p.hwnd {
+        Ok(h) => h,
         Err(e) => {
             errores.push(format!("hwnd: {e}"));
             0
@@ -141,24 +87,6 @@ fn leer_propiedades(el: &IUIAutomationElement) -> PropiedadesNodo {
     }
 }
 
-fn leer_patrones(el: &IUIAutomationElement) -> Vec<&'static str> {
-    let mut patrones = Vec::new();
-    let nombres_patron: [(UIA_PATTERN_ID, &str); 5] = [
-        (UIA_InvokePatternId, "invoke"),
-        (UIA_ValuePatternId, "valor"),
-        (UIA_TogglePatternId, "alternar"),
-        (UIA_SelectionItemPatternId, "seleccion"),
-        (UIA_ExpandCollapsePatternId, "expandir"),
-    ];
-    for (id, etiqueta) in nombres_patron {
-        // SAFETY: Llamada COM sobre interfaz viva; verifica puntero no nulo.
-        if unsafe { el.GetCachedPattern(id) }.is_ok_and(|p| !p.as_raw().is_null()) {
-            patrones.push(etiqueta);
-        }
-    }
-    patrones
-}
-
 /// Serialises `el` and up to `prof` levels of children, decrementing `budget`
 /// per node visited. A property read or child enumeration failure is recorded
 /// in an `error` field (and an enumeration failure also marks the snapshot as
@@ -168,7 +96,7 @@ pub(crate) fn nodo(ctx: &mut RecorridoContext, el: &IUIAutomationElement, prof: 
     let mut hijos_vec = Vec::new();
     let mut error_enum: Option<String> = None;
     if prof > 0 {
-        let (children, error) = hijos(ctx.sesion, ctx.walker, el);
+        let (children, error) = com::hijos(ctx.sesion, ctx.walker, el);
         if let Some(e) = error {
             // COM falló a mitad de la enumeración: la lista es un prefijo.
             ctx.truncado = true;
@@ -184,7 +112,7 @@ pub(crate) fn nodo(ctx: &mut RecorridoContext, el: &IUIAutomationElement, prof: 
     }
 
     let props = leer_propiedades(el);
-    let patrones = leer_patrones(el);
+    let patrones = com::patrones_soportados(el);
 
     let mut n = json!({
         "nombre": props.nombre,
@@ -228,15 +156,7 @@ pub(crate) fn arbol(
         }
     }
     let sesion = Sesion::nueva()?;
-    // SAFETY: Llamada COM sobre una interfaz viva con COM inicializado.
-    let raiz = unsafe {
-        sesion
-            .auto
-            .ElementFromHandleBuildCache(HWND(hwnd as *mut c_void), &sesion.req)
-    }
-    .map_err(error)?;
-    // SAFETY: Llamada COM sobre una interfaz viva con COM inicializado.
-    let walker = unsafe { sesion.auto.ControlViewWalker() }.map_err(error)?;
+    let (raiz, walker) = com::raiz_y_walker(&sesion, hwnd)?;
     let mut presupuesto = max_nodos;
     let mut ctx = RecorridoContext {
         sesion: &sesion,

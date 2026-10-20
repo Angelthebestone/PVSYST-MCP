@@ -54,8 +54,7 @@ pub(crate) fn teclas(paths: &crate::config::Paths, args: &Value) -> Result<Value
         Some(r) => {
             resolve(&scoped, r).ok_or_else(|| Error::Gui(format!("Window '{r}' not found")))?
         }
-        // SAFETY: Sin argumentos; devuelve 0 si no hay ventana en primer plano.
-        None => unsafe { ffi::GetForegroundWindow() },
+        None => ffi::primer_plano(),
     };
     let combo = req_str(args, &["teclas"], "e.g. \"F1\" or \"CTRL+S\"")?.to_uppercase();
     let parts: Vec<&str> = combo.split('+').map(str::trim).collect();
@@ -70,16 +69,13 @@ pub(crate) fn teclas(paths: &crate::config::Paths, args: &Value) -> Result<Value
         }
     }
     let vk = main.ok_or_else(|| Error::Gui(format!("Unrecognized key in '{combo}'")))?;
-    // SAFETY: `PostMessageW` encola mensajes con enteros; un HWND inválido solo hace fallar la llamada.
-    unsafe {
-        for m in &mods {
-            ffi::PostMessageW(h, WM_KEYDOWN, *m as usize, 0);
-        }
-        ffi::PostMessageW(h, WM_KEYDOWN, vk as usize, 0);
-        ffi::PostMessageW(h, WM_KEYUP, vk as usize, 0);
-        for m in mods.iter().rev() {
-            ffi::PostMessageW(h, WM_KEYUP, *m as usize, 0);
-        }
+    for m in &mods {
+        ffi::post_message(h, WM_KEYDOWN, *m as usize, 0);
+    }
+    ffi::post_message(h, WM_KEYDOWN, vk as usize, 0);
+    ffi::post_message(h, WM_KEYUP, vk as usize, 0);
+    for m in mods.iter().rev() {
+        ffi::post_message(h, WM_KEYUP, *m as usize, 0);
     }
     Ok(json!({ "sent": combo, "hwnd": format!("0x{:X}", h) }))
 }

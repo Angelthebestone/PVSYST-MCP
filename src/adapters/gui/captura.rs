@@ -88,8 +88,7 @@ pub(crate) fn capturar(paths: &crate::config::Paths, args: &Value) -> Result<Val
     let h = hwnd_de(args, "ventana")?;
     let recorte = flag(args, &["recorte"]);
     let raiz = if recorte {
-        // SAFETY: Consulta de solo lectura sobre un HWND; un handle inválido devuelve 0.
-        unsafe { ffi::GetAncestor(h, GA_ROOT) }
+        ffi::get_ancestor(h, GA_ROOT)
     } else {
         h
     };

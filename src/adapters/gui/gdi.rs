@@ -1,4 +1,4 @@
-//! GDI resource management using RAII guards and low-level pixel extraction.
+//! GDI resource management and low-level pixel extraction.
 
 use super::ffi::{self, BitmapInfo, BitmapInfoHeader, Hwnd, PW_CLIENTONLY, PW_RENDERFULLCONTENT};
 use crate::error::{Error, Result};
@@ -6,122 +6,67 @@ use crate::error::{Error, Result};
 const BITS_PER_PIXEL_32: u16 = 32;
 const BYTES_PER_PIXEL_32: usize = 4;
 
-/// RAII guard releasing a window device context on drop.
-pub(crate) struct WindowDcGuard {
-    hwnd: Hwnd,
-    dc: isize,
+struct RecursosGdi {
+    win_dc: isize,
+    mem_dc: isize,
+    bmp: isize,
+    old: isize,
 }
 
-impl WindowDcGuard {
-    pub(crate) fn acquire(hwnd: Hwnd) -> Result<Self> {
-        // SAFETY: Handle de ventana validado; GetDC devuelve 0 en caso de fallo.
-        let dc = unsafe { ffi::GetDC(hwnd) };
-        if dc == 0 {
+fn crear_recursos(h: Hwnd, (w, hgt): (i32, i32)) -> Result<RecursosGdi> {
+    // SAFETY: Handles comprobados tras cada llamada; toda salida de error libera lo ya creado.
+    unsafe {
+        let win_dc = ffi::GetDC(h);
+        if win_dc == 0 {
             return Err(Error::Gui("GetDC failed".into()));
         }
-        Ok(Self { hwnd, dc })
-    }
-
-    pub(crate) fn handle(&self) -> isize {
-        self.dc
-    }
-}
-
-impl Drop for WindowDcGuard {
-    fn drop(&mut self) {
-        // SAFETY: self.dc es un handle de DC obtenido mediante GetDC(self.hwnd) y se libera una sola vez.
-        unsafe {
-            ffi::ReleaseDC(self.hwnd, self.dc);
-        }
-    }
-}
-
-/// RAII guard deleting a compatible memory device context on drop.
-pub(crate) struct MemoryDcGuard {
-    dc: isize,
-}
-
-impl MemoryDcGuard {
-    pub(crate) fn create(src_dc: isize) -> Result<Self> {
-        // SAFETY: src_dc es un DC de ventana válido y no nulo.
-        let dc = unsafe { ffi::CreateCompatibleDC(src_dc) };
-        if dc == 0 {
+        let mem_dc = ffi::CreateCompatibleDC(win_dc);
+        if mem_dc == 0 {
+            ffi::ReleaseDC(h, win_dc);
             return Err(Error::Gui("CreateCompatibleDC failed".into()));
         }
-        Ok(Self { dc })
-    }
-
-    pub(crate) fn handle(&self) -> isize {
-        self.dc
-    }
-}
-
-impl Drop for MemoryDcGuard {
-    fn drop(&mut self) {
-        // SAFETY: self.dc es un DC en memoria obtenido mediante CreateCompatibleDC y se destruye una sola vez.
-        unsafe {
-            ffi::DeleteDC(self.dc);
-        }
-    }
-}
-
-/// RAII guard deleting a compatible GDI bitmap on drop.
-pub(crate) struct BitmapGuard {
-    bmp: isize,
-}
-
-impl BitmapGuard {
-    pub(crate) fn create(src_dc: isize, width: i32, height: i32) -> Result<Self> {
-        // SAFETY: src_dc es un DC válido; width y height son dimensiones positivas.
-        let bmp = unsafe { ffi::CreateCompatibleBitmap(src_dc, width, height) };
+        let bmp = ffi::CreateCompatibleBitmap(win_dc, w, hgt);
         if bmp == 0 {
+            ffi::DeleteDC(mem_dc);
+            ffi::ReleaseDC(h, win_dc);
             return Err(Error::Gui("CreateCompatibleBitmap failed".into()));
         }
-        Ok(Self { bmp })
-    }
-
-    pub(crate) fn handle(&self) -> isize {
-        self.bmp
-    }
-}
-
-impl Drop for BitmapGuard {
-    fn drop(&mut self) {
-        // SAFETY: self.bmp es un handle de bitmap válido creado con CreateCompatibleBitmap y se destruye una sola vez.
-        unsafe {
-            ffi::DeleteObject(self.bmp);
-        }
-    }
-}
-
-/// RAII guard restoring the previous GDI object selection in a memory DC on drop.
-pub(crate) struct SelectedObjectGuard {
-    dc: isize,
-    old_obj: isize,
-}
-
-impl SelectedObjectGuard {
-    pub(crate) fn select(dc: isize, obj: isize) -> Result<Self> {
-        // SAFETY: dc y obj son handles GDI válidos; SelectObject devuelve el objeto previo o 0/-1 en error.
-        let old_obj = unsafe { ffi::SelectObject(dc, obj) };
-        if old_obj == 0 || old_obj == -1 {
+        let old = ffi::SelectObject(mem_dc, bmp);
+        if old == 0 || old == -1 {
+            ffi::DeleteObject(bmp);
+            ffi::DeleteDC(mem_dc);
+            ffi::ReleaseDC(h, win_dc);
             return Err(Error::Gui("SelectObject failed".into()));
         }
-        Ok(Self { dc, old_obj })
+        Ok(RecursosGdi {
+            win_dc,
+            mem_dc,
+            bmp,
+            old,
+        })
     }
 }
 
-impl Drop for SelectedObjectGuard {
-    fn drop(&mut self) {
-        // SAFETY: Restaura el objeto original en el DC antes de que el nuevo objeto o el DC sean eliminados.
-        unsafe {
-            ffi::SelectObject(self.dc, self.old_obj);
+fn liberar_recursos(h: Hwnd, r: &RecursosGdi) {
+    // SAFETY: Handles vivos creados por `crear_recursos`; se liberan una sola vez y en orden inverso.
+    unsafe {
+        ffi::SelectObject(r.mem_dc, r.old);
+        ffi::DeleteObject(r.bmp);
+        ffi::DeleteDC(r.mem_dc);
+        ffi::ReleaseDC(h, r.win_dc);
+    }
+}
+
+fn renderizar(h: Hwnd, dc: isize) {
+    // SAFETY: `dc` es un DC en memoria válido asociado a `h`.
+    unsafe {
+        if ffi::PrintWindow(h, dc, PW_RENDERFULLCONTENT) == 0 {
+            ffi::PrintWindow(h, dc, PW_CLIENTONLY);
         }
     }
 }
 
-fn leer_dibits(mem_dc: isize, bmp: isize, dims: (i32, i32)) -> Result<Vec<u8>> {
-    let (w, hgt) = dims;
+fn leer_pixeles(mem_dc: isize, bmp: isize, (w, hgt): (i32, i32)) -> Result<Vec<u8>> {
     let mut pixels = vec![0u8; (w * hgt) as usize * BYTES_PER_PIXEL_32];
     let mut bi = BitmapInfo {
         header: BitmapInfoHeader {
@@ -151,18 +96,9 @@ fn leer_dibits(mem_dc: isize, bmp: isize, dims: (i32, i32)) -> Result<Vec<u8>> {
 
 /// Renders the window `h` into top-down 32-bpp BGRX pixels (`w * hgt * 4` bytes).
 pub(crate) fn capture_pixels(h: Hwnd, dims: (i32, i32)) -> Result<Vec<u8>> {
-    let (w, hgt) = dims;
-    let win_dc = WindowDcGuard::acquire(h)?;
-    let mem_dc = MemoryDcGuard::create(win_dc.handle())?;
-    let bitmap = BitmapGuard::create(win_dc.handle(), w, hgt)?;
-    let _sel = SelectedObjectGuard::select(mem_dc.handle(), bitmap.handle())?;
-
-    // SAFETY: mem_dc es un DC en memoria válido; PrintWindow dibuja la ventana h en él.
-    let ok = unsafe { ffi::PrintWindow(h, mem_dc.handle(), PW_RENDERFULLCONTENT) };
-    if ok == 0 {
-        // SAFETY: Fallback a copia estándar de cliente si falla la renderización completa.
-        unsafe { ffi::PrintWindow(h, mem_dc.handle(), PW_CLIENTONLY) };
-    }
-
-    leer_dibits(mem_dc.handle(), bitmap.handle(), (w, hgt))
+    let recursos = crear_recursos(h, dims)?;
+    renderizar(h, recursos.mem_dc);
+    let pixels = leer_pixeles(recursos.mem_dc, recursos.bmp, dims);
+    liberar_recursos(h, &recursos);
+    pixels
 }

@@ -173,8 +173,7 @@ pub(crate) fn cascada(ctx: &CascadaContext, obj: &Objetivo) -> Result<&'static s
     }
     if let Some(referencia) = obj.clase.or(obj.titulo) {
         if let Some(h) = resolve(ctx.scoped, referencia) {
-            // SAFETY: `PostMessageW` encola el mensaje sin punteros; un HWND inválido solo hace fallar la llamada.
-            unsafe { ffi::PostMessageW(h, BM_CLICK, 0, 0) };
+            ffi::post_message(h, BM_CLICK, 0, 0);
             return Ok("win32");
         }
     }

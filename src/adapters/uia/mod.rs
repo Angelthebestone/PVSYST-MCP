@@ -3,23 +3,17 @@
 //! call owns its own COM apartment and releases it before returning.
 
 pub(crate) mod arbol;
+pub(crate) mod com;
 pub(crate) mod elemento;
 
 pub(crate) use arbol::arbol;
 pub(crate) use elemento::{centro, invocar};
 
 use crate::error::{Error, Result};
-use windows::core::BSTR;
 use windows::Win32::System::Com::{
     CoCreateInstance, CoInitializeEx, CoUninitialize, CLSCTX_INPROC_SERVER, COINIT_MULTITHREADED,
 };
-use windows::Win32::UI::Accessibility::{
-    CUIAutomation, IUIAutomation, IUIAutomationCacheRequest, UIA_AutomationIdPropertyId,
-    UIA_BoundingRectanglePropertyId, UIA_ClassNamePropertyId, UIA_ControlTypePropertyId,
-    UIA_ExpandCollapsePatternId, UIA_InvokePatternId, UIA_IsEnabledPropertyId,
-    UIA_LocalizedControlTypePropertyId, UIA_NamePropertyId, UIA_NativeWindowHandlePropertyId,
-    UIA_SelectionItemPatternId, UIA_TogglePatternId, UIA_ValuePatternId,
-};
+use windows::Win32::UI::Accessibility::{CUIAutomation, IUIAutomation, IUIAutomationCacheRequest};
 
 /// COM apartment guard: uninitialises the thread's MTA when dropped.
 pub(crate) struct Com;
@@ -48,11 +42,6 @@ impl Drop for Com {
 )]
 pub(crate) fn error(e: windows::core::Error) -> Error {
     Error::Gui(e.to_string())
-}
-
-/// Converts a BSTR result to Result<String, String>, avoiding silent conversion of COM errors to empty strings.
-pub(crate) fn cadena(r: windows::core::Result<BSTR>) -> Result<String, String> {
-    r.map(|s| s.to_string()).map_err(|e| e.to_string())
 }
 
 /// Maps a UIA control-type id to the role names used in tool arguments.
@@ -104,42 +93,16 @@ pub(crate) struct Sesion {
 
 impl Sesion {
     pub(crate) fn nueva() -> Result<Self> {
-        let com = Com::init()?;
+        let guard = Com::init()?;
         let auto: IUIAutomation =
             // SAFETY: CLSID y contexto constantes; COM ya está inicializado en este hilo.
             unsafe { CoCreateInstance(&CUIAutomation, None, CLSCTX_INPROC_SERVER) }
                 .map_err(error)?;
-        // SAFETY: Llamada COM sobre una interfaz viva en el hilo con COM inicializado.
-        let req = unsafe { auto.CreateCacheRequest() }.map_err(error)?;
-        let propiedades = [
-            UIA_NamePropertyId,
-            UIA_ControlTypePropertyId,
-            UIA_LocalizedControlTypePropertyId,
-            UIA_AutomationIdPropertyId,
-            UIA_ClassNamePropertyId,
-            UIA_NativeWindowHandlePropertyId,
-            UIA_BoundingRectanglePropertyId,
-            UIA_IsEnabledPropertyId,
-        ];
-        for p in propiedades {
-            // SAFETY: Llamada COM sobre una interfaz viva en el hilo con COM inicializado.
-            unsafe { req.AddProperty(p) }.map_err(error)?;
-        }
-        let patrones = [
-            UIA_InvokePatternId,
-            UIA_TogglePatternId,
-            UIA_ValuePatternId,
-            UIA_SelectionItemPatternId,
-            UIA_ExpandCollapsePatternId,
-        ];
-        for p in patrones {
-            // SAFETY: Llamada COM sobre una interfaz viva en el hilo con COM inicializado.
-            unsafe { req.AddPattern(p) }.map_err(error)?;
-        }
+        let req = com::configurar_cache(&auto)?;
         Ok(Self {
             auto,
             req,
-            _com: com,
+            _com: guard,
         })
     }
 }

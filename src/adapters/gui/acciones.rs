@@ -1,15 +1,12 @@
 //! Window actions: clicks, messages, physical inputs and desktop interactivity.
 
 use super::ffi::{
-    self, Hwnd, Rect, BM_CLICK, DESKTOP_READOBJECTS, GA_ROOT, MOUSEEVENTF_LEFTDOWN,
-    MOUSEEVENTF_LEFTUP, SW_RESTORE, WM_CLOSE, WM_LBUTTONDOWN, WM_LBUTTONUP,
+    self, Hwnd, BM_CLICK, GA_ROOT, SW_RESTORE, WM_CLOSE, WM_LBUTTONDOWN, WM_LBUTTONUP,
 };
 use super::ventanas::{class_of, rect_of, resolve, ventanas_de, window_json};
 use crate::args::req_str;
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
-
-const CLICK_SETTLE_MS: u64 = 150;
 
 /// Window classes (Win32 and VCL) that implement `BM_CLICK`.
 const CLASES_BOTON: &[&str] = &["Button", "TButton", "TBitBtn", "TCheckBox", "TRadioButton"];
@@ -33,22 +30,13 @@ pub(crate) fn mecanismo_para(clase: &str) -> MecanismoClic {
 
 pub(crate) fn clic_por_mensajes(h: Hwnd) -> Result<()> {
     let encolado = match mecanismo_para(&class_of(h)) {
-        // SAFETY: `PostMessageW` encola mensajes sin punteros; un HWND inválido solo hace fallar la llamada.
-        MecanismoClic::BotonEstandar => unsafe { ffi::PostMessageW(h, BM_CLICK, 0, 0) != 0 },
+        MecanismoClic::BotonEstandar => ffi::post_message(h, BM_CLICK, 0, 0),
         MecanismoClic::Raton => {
-            let mut cr = Rect::default();
-            // SAFETY: `cr` es una local viva y exclusiva durante la llamada; `GetClientRect` solo escribe en ella.
-            unsafe {
-                ffi::GetClientRect(h, &mut cr);
-            }
+            let cr = ffi::rect_cliente(h);
             let x = (cr.right / 2).max(1) as isize;
             let y = (cr.bottom / 2).max(1) as isize;
             let lp = (x & 0xFFFF) | ((y & 0xFFFF) << 16);
-            // SAFETY: `PostMessageW` encola mensajes sin punteros; un HWND inválido solo hace fallar la llamada.
-            unsafe {
-                ffi::PostMessageW(h, WM_LBUTTONDOWN, 1, lp) != 0
-                    && ffi::PostMessageW(h, WM_LBUTTONUP, 0, lp) != 0
-            }
+            ffi::post_message(h, WM_LBUTTONDOWN, 1, lp) && ffi::post_message(h, WM_LBUTTONUP, 0, lp)
         }
     };
     if encolado {
@@ -74,32 +62,27 @@ fn enviar_mensaje(h: Hwnd, args: &Value) -> Result<()> {
         .get("lparam")
         .and_then(serde_json::Value::as_i64)
         .unwrap_or(0) as isize;
-    // SAFETY: `wparam`/`lparam` son enteros que el llamador decide pasar al control; no se desreferencian aquí.
-    unsafe {
-        ffi::SendMessageW(h, msg, wparam, lparam);
-    }
+    ffi::send_message(h, msg, wparam, lparam);
     Ok(())
 }
 
 fn ejecutar_accion(h: Hwnd, action: &str, args: &Value) -> Result<()> {
     match action {
         "click" => clic_por_mensajes(h)?,
-        // SAFETY: `PostMessageW` encola WM_CLOSE sin punteros; un HWND inválido solo hace fallar la llamada.
-        "cerrar" => unsafe {
-            ffi::PostMessageW(h, WM_CLOSE, 0, 0);
-        },
-        // SAFETY: `ShowWindow` y `SetForegroundWindow` solo reciben el HWND `h`; con un handle inválido fallan sin efecto.
-        "activar" => unsafe {
-            ffi::ShowWindow(h, SW_RESTORE);
-            ffi::SetForegroundWindow(h);
-        },
+        "cerrar" => {
+            ffi::post_message(h, WM_CLOSE, 0, 0);
+        }
+        "activar" => {
+            ffi::mostrar_ventana(h, SW_RESTORE);
+            ffi::traer_al_frente(h);
+        }
         "mensaje" => enviar_mensaje(h, args)?,
         "clic_fisico" => {
             let r = rect_of(h);
             if r.right <= r.left {
                 return Err(Error::Gui(format!("Control 0x{h:X} has no rectangle")));
             }
-            clic_fisico_en((r.left + r.right) / 2, (r.top + r.bottom) / 2);
+            ffi::clic_fisico_en((r.left + r.right) / 2, (r.top + r.bottom) / 2);
         }
         other => {
             return Err(Error::Invalid(format!(
@@ -111,26 +94,11 @@ fn ejecutar_accion(h: Hwnd, action: &str, args: &Value) -> Result<()> {
 }
 
 pub(crate) fn clic_fisico_en(x: i32, y: i32) {
-    // SAFETY: Funciones de entrada sin punteros: mueven el cursor y emiten eventos de ratón.
-    unsafe {
-        ffi::SetCursorPos(x, y);
-        std::thread::sleep(std::time::Duration::from_millis(CLICK_SETTLE_MS));
-        ffi::mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
-        ffi::mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
-    }
+    ffi::clic_fisico_en(x, y);
 }
 
 pub(crate) fn escritorio_interactivo() -> bool {
-    // SAFETY: Sin punteros del llamador; el handle devuelto se cierra con `CloseDesktop`.
-    let escritorio = unsafe { ffi::OpenInputDesktop(0, 0, DESKTOP_READOBJECTS) };
-    if escritorio == 0 {
-        return false;
-    }
-    // SAFETY: `escritorio` es el handle no nulo recién abierto y se cierra una sola vez.
-    unsafe { ffi::CloseDesktop(escritorio) };
-    // SAFETY: Sin argumentos; devuelve 0 si no hay ventana en primer plano.
-    let foreground = unsafe { ffi::GetForegroundWindow() };
-    foreground != 0
+    ffi::escritorio_disponible()
 }
 
 pub(crate) fn exigir_escritorio() -> Result<()> {
@@ -155,10 +123,7 @@ pub(crate) fn invocar(_paths: &crate::config::Paths, args: &Value) -> Result<Val
         .get("accion")
         .and_then(|v| v.as_str())
         .unwrap_or("click");
-    // SAFETY: `GetAncestor` y `SetForegroundWindow` solo leen/actúan sobre el HWND `h`.
-    unsafe {
-        ffi::SetForegroundWindow(ffi::GetAncestor(h, GA_ROOT));
-    }
+    ffi::traer_al_frente(ffi::get_ancestor(h, GA_ROOT));
     ejecutar_accion(h, action, args)?;
 
     Ok(json!({

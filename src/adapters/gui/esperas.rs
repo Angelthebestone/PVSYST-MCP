@@ -1,9 +1,6 @@
 //! Window show synchronization using WinEvent hooks and message pumping.
 
-use super::ffi::{
-    self, enum_windows, Hwnd, Msg, EVENT_OBJECT_SHOW, OBJID_WINDOW, TEMPORIZADOR,
-    WINEVENT_OUTOFCONTEXT, WM_TIMER,
-};
+use super::ffi::{self, enum_windows, Hwnd, EVENT_OBJECT_SHOW, OBJID_WINDOW};
 use super::ventanas::{class_of, pid_of, target_pids, text_of, visible, window_json};
 use crate::error::{Error, Result};
 use serde_json::Value;
@@ -58,54 +55,19 @@ unsafe extern "system" fn al_mostrar(
     let coincide = OBJETIVO.with(|o| o.borrow().as_ref().is_some_and(|c| c.coincide(h)));
     if coincide {
         HALLADO.with(|x| x.set(h));
-        // SAFETY: Envía señal de finalización al bucle de mensajes del hilo.
-        unsafe {
-            ffi::PostQuitMessage(0);
-        }
-    }
-}
-
-fn bombear_mensajes() {
-    loop {
-        let mut m = Msg::default();
-        // SAFETY: `m` es un `Msg` local con el layout de MSG que la API rellena.
-        let r = unsafe { ffi::GetMessageW(&mut m, 0, 0, 0) };
-        if r <= 0 || m.message == WM_TIMER {
-            break;
-        }
-        // SAFETY: `m` fue rellenado por `GetMessageW` en esta misma iteración.
-        unsafe {
-            ffi::TranslateMessage(&m);
-            ffi::DispatchMessageW(&m);
-        }
+        ffi::salir_bucle();
     }
 }
 
 fn esperar_evento(criterio: Criterio, timeout_ms: u64) -> Option<Hwnd> {
     OBJETIVO.with(|o| *o.borrow_mut() = Some(criterio));
     HALLADO.with(|x| x.set(0));
-    // SAFETY: `al_mostrar` tiene la firma WINEVENTPROC y se invoca en este hilo.
-    let gancho = unsafe {
-        ffi::SetWinEventHook(
-            EVENT_OBJECT_SHOW,
-            EVENT_OBJECT_SHOW,
-            0,
-            al_mostrar,
-            0,
-            0,
-            WINEVENT_OUTOFCONTEXT,
-        )
-    };
+    let gancho = ffi::instalar_gancho_mostrar(al_mostrar);
     if gancho != 0 {
         let ms = timeout_ms.min(u64::from(u32::MAX)) as u32;
-        // SAFETY: Sin ventana ni callback: el temporizador entrega WM_TIMER a la cola de este hilo.
-        unsafe { ffi::SetTimer(0, TEMPORIZADOR, ms, 0) };
-        bombear_mensajes();
-        // SAFETY: `gancho` es el handle devuelto por SetWinEventHook; TEMPORIZADOR es el id usado en SetTimer.
-        unsafe {
-            ffi::KillTimer(0, TEMPORIZADOR);
-            ffi::UnhookWinEvent(gancho);
-        }
+        ffi::iniciar_temporizador(ms);
+        ffi::bombear_mensajes();
+        ffi::retirar_gancho(gancho);
     }
     OBJETIVO.with(|o| *o.borrow_mut() = None);
     let h = HALLADO.with(Cell::get);
