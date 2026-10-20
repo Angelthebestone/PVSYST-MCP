@@ -173,3 +173,30 @@ fn a_missing_required_argument_is_reported_as_a_tool_error() {
     let text = resp["result"]["content"][0]["text"].as_str().unwrap();
     assert!(text.contains("Falta 'archivo'"), "text={text}");
 }
+
+#[test]
+fn doctor_reports_cold_voc_above_inverter_limit_for_long_strings() {
+    let ws = synthetic_workspace();
+    let prj = ws.path().join("Projects").join("SYNTH_Plant.PRJ");
+    let texto = fs::read_to_string(&prj).unwrap().replacen(
+        "MeteoFileName=",
+        "DesignTempMin=-10\r\nTempOperMax=70\r\nMeteoFileName=",
+        1,
+    );
+    fs::write(&prj, texto).unwrap();
+    let vc0 = ws.path().join("Projects").join("SYNTH_Plant.VC0");
+    let variante = fs::read_to_string(&vc0)
+        .unwrap()
+        .replace("NModSerie=10", "NModSerie=25");
+    fs::write(&vc0, variante).unwrap();
+    let mut c = start(&ws);
+
+    let informe = tool_text(&c.call(
+        2,
+        "proyecto",
+        json!({ "accion": "doctor", "proyecto": "SYNTH_Plant" }),
+    ));
+
+    let errores = informe["errores"].to_string();
+    assert!(errores.contains("Voc en frío"), "informe={informe}");
+}

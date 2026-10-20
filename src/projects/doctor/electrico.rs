@@ -1,16 +1,19 @@
 //! Cold and hot string voltage checks and inverter DC/AC ratio verification.
 
 use crate::components;
-use crate::components::pan::leer_modulo;
+use crate::components::pan::{leer_modulo, DatosModulo};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::object;
 use crate::projects::doctor::{leer_bytes, texto, Informe};
-use serde_json::{json, Value};
+use serde_json::json;
 use std::path::Path;
 
-/// Fallback temperature coefficient of Voc (V/K) when the module has none.
+/// Fallback relative temperature coefficient of Voc (1/K, i.e. −0.29 %/K)
+/// when the module has none.
 const MU_VOC_DEFECTO: f64 = -0.0029;
+/// mV → V.
+const MILIVOLTIOS_POR_VOLTIO: f64 = 1000.0;
 
 pub(crate) struct ContextoElectrico<'a> {
     pub(crate) paths: &'a Paths,
@@ -54,15 +57,15 @@ impl DatosElectricos {
         prj: &object::PvNode,
         var: &object::PvNode,
         inv: &object::PvNode,
-        modulo: &Value,
+        modulo: &DatosModulo,
     ) -> Option<Self> {
         Some(Self {
             ns: num(var, "NModSerie")?,
             tmin: num(prj, "DesignTempMin")?,
             tmax: num(prj, "TempOperMax")?,
-            voc: modulo["voc_v"].as_f64()?,
-            vmpp: modulo["vmpp_v"].as_f64()?,
-            pnom: modulo["pnom_w"].as_f64()?,
+            voc: modulo.voc_v(),
+            vmpp: modulo.vmpp_v(),
+            pnom: modulo.pnom_w(),
             vabs: num(inv, "VAbsMax")?,
             vmin: num(inv, "VMppMin")?,
             vmax: num(inv, "VMPPMax")?,
@@ -110,22 +113,28 @@ pub(crate) fn revisar_electrico(ctx: &ContextoElectrico<'_>, inf: &mut Informe) 
             .push("Sin PVModule/GInverter: revisión eléctrica omitida".into());
         return;
     };
-    let modulo = match leer_modulo(ctx.paths, &json!({"modulo": pan})) {
+    let lectura = match leer_modulo(ctx.paths, &json!({"modulo": pan})) {
         Ok(m) => m,
         Err(e) => return inf.avisos.push(omitido("PAN", pan, &e.to_string())),
+    };
+    let Some(modulo) = DatosModulo::de_lectura(&lectura) else {
+        return inf
+            .avisos
+            .push(omitido("PAN", pan, "faltan Pnom, Voc o Vmpp"));
     };
     let inv = match cargar_inversor(ctx.ws, ond) {
         Ok(inv) => inv,
         Err(motivo) => return inf.avisos.push(omitido("OND", ond, &motivo.to_string())),
     };
-    let mu = modulo["mu_voc_mv_c"].as_f64().map_or_else(
+    // The file gives μVoc in mV/°C; the checks need it relative to Voc (1/K).
+    let mu = modulo.mu_voc_mv_c().map_or_else(
         || {
             inf.avisos.push(format!(
-                "μVoc de '{pan}' ausente: usando {MU_VOC_DEFECTO} V/K"
+                "μVoc de '{pan}' ausente: usando {MU_VOC_DEFECTO} 1/K"
             ));
             MU_VOC_DEFECTO
         },
-        |v| v / 1000.0,
+        |v| v / MILIVOLTIOS_POR_VOLTIO / modulo.voc_v(),
     );
     let Some(d) = DatosElectricos::reunir(&prj, &var, &inv, &modulo) else {
         inf.avisos

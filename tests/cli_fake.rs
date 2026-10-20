@@ -13,7 +13,7 @@
 
 mod common;
 
-use common::{synthetic_workspace, tool_text, Client};
+use common::{fixture, synthetic_workspace, tool_text, Client};
 use serde_json::json;
 use std::fs;
 use std::path::Path;
@@ -118,4 +118,34 @@ fn should_classify_missing_confirmation_as_ambiguous() {
     assert_eq!(v["success"], json!(false));
     assert_eq!(v["clasificacion"], json!("ambiguo"));
     assert_eq!(v["ambiguo"], json!(true));
+}
+
+#[test]
+fn should_use_numeric_kwp_when_computing_economics() {
+    let ws = workspace();
+    let resultados = ws.path().join("Results");
+    for nombre in ["MCP_E2E.csv", "MCP_E2E.pdf"] {
+        fs::copy(
+            fixture(&format!("results/{nombre}")),
+            resultados.join(nombre),
+        )
+        .unwrap();
+    }
+    let mut client = Client::start_env(Some(&ws_str(ws.path())), &fake_env());
+    client.initialize();
+
+    let v = tool_text(&client.call(
+        2,
+        "resultados",
+        json!({
+            "que": "economia",
+            "proyecto": "MCP_E2E",
+            "archivo": resultados.join("MCP_E2E.csv").to_string_lossy(),
+            "kwp": 10,
+            "capex_por_kwp": 1000,
+            "tarifa_por_kwh": 0.1
+        }),
+    ));
+
+    assert_eq!(v["capex_total"], json!(10_000.0), "v={v}");
 }

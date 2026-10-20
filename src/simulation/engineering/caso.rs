@@ -124,8 +124,9 @@ pub(crate) fn caso(paths: &Paths, args: &Value) -> Result<Caso> {
         .and_then(|s| s.rsplit_once('_'))
         .map(|(_, v)| v.to_string())
         .unwrap_or_else(|| variante_pedida.unwrap_or("VC0").to_string());
-    let kwp = opt_str(args, &["kwp"])
-        .and_then(|k| k.parse::<f64>().ok())
+    let kwp = args
+        .get("kwp")
+        .and_then(|v| v.as_f64().or_else(|| v.as_str()?.trim().parse().ok()))
         .or_else(|| {
             let metadata = json!(csv_texto.lines().take(40).collect::<Vec<_>>());
             crate::simulation::results::variant_kwp(&workspace, &metadata)

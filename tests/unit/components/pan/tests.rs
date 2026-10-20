@@ -168,3 +168,34 @@ fn should_reject_module_outside_workspace_without_libre_scope() {
     );
     assert!(res.is_err());
 }
+
+#[test]
+fn should_read_module_figures_when_parsed_from_legacy_layout() {
+    let lectura = serde_json::json!({
+        "pnom": 300.0,
+        "voc": 40.0,
+        "parameters": { "pnom_w": 300.0, "voc_v": 40.0, "vmpp_v": 33.0, "mu_voc_mv_c": -120.0 }
+    });
+    let d = DatosModulo::de_lectura(&lectura).expect("complete legacy data");
+    assert_eq!(
+        (d.pnom_w(), d.voc_v(), d.vmpp_v(), d.mu_voc_mv_c()),
+        (300.0, 40.0, 33.0, Some(-120.0))
+    );
+}
+
+#[test]
+fn should_read_module_figures_when_parsed_from_text_layout() {
+    let texto = "PVObject_=pvModule\r\n  PNom=400\r\n  Voc=49.50\r\n  Vmpp=41.70\r\n  muVocSpec=-130.0\r\nEnd of PVObject pvModule\r\n";
+    let lectura = parse_pan(texto.as_bytes()).expect("text PAN");
+    let d = DatosModulo::de_lectura(&lectura).expect("complete text data");
+    assert_eq!(
+        (d.pnom_w(), d.voc_v(), d.vmpp_v(), d.mu_voc_mv_c()),
+        (400.0, 49.5, 41.7, Some(-130.0))
+    );
+}
+
+#[test]
+fn should_have_no_module_figures_when_vmpp_is_missing() {
+    let lectura = serde_json::json!({ "pnom": 300.0, "voc": 40.0, "parameters": {} });
+    assert_eq!(DatosModulo::de_lectura(&lectura), None);
+}

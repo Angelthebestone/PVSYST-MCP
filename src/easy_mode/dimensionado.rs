@@ -2,7 +2,8 @@
 
 use super::parametros::DimensionadoParametros;
 use super::pasos::PasoDimensionadoSalida;
-use crate::components::{pan, resolve_component};
+use crate::components::pan::{self, DatosModulo};
+use crate::components::resolve_component;
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::object;
@@ -79,11 +80,10 @@ fn disposicion_electrica(
     inversor: Option<&str>,
     kwp: f64,
     pmod: f64,
-    modulo: &Value,
+    modulo: &DatosModulo,
 ) -> Option<(u32, u32)> {
     let inversor = inversor?;
-    let voc = modulo.get("voc_v").and_then(Value::as_f64)?;
-    let vmpp = modulo.get("vmpp_v").and_then(Value::as_f64)?;
+    let (voc, vmpp) = (modulo.voc_v(), modulo.vmpp_v());
     let consulta = crate::components::ConsultaComponente::referencia("OND", inversor);
     let ond = resolve_component(&paths.workspace, &consulta).ok()?;
     let bytes = crate::components::leer_bytes_componente(&ond).ok()?;
@@ -119,7 +119,7 @@ fn serie_de_plantilla(
     paths: &Paths,
     kwp: f64,
     pmod_w: f64,
-    (inversor, modulo): (Option<&str>, Option<&Value>),
+    (inversor, modulo): (Option<&str>, Option<&DatosModulo>),
     refs: &Referencias,
 ) -> Option<(u32, &'static str)> {
     let ventana = modulo.and_then(|m| disposicion_electrica(paths, inversor, kwp, pmod_w, m));
@@ -178,7 +178,7 @@ fn resolver_serie_plantilla(
     paths: &Paths,
     params: &DimensionadoParametros,
     refs: &Referencias,
-    modulo_info: Option<&Value>,
+    modulo_info: Option<&DatosModulo>,
 ) -> (Option<u32>, &'static str) {
     if let Some(ns) = params.n_mod_serie {
         return (Some(ns), "argumento");
@@ -186,7 +186,7 @@ fn resolver_serie_plantilla(
     let inversor = params.inversor.as_deref().or(refs.inversor.as_deref());
     let pnom = params
         .pnom_modulo
-        .or_else(|| modulo_info.and_then(|v| v.get("pnom_w")?.as_f64()));
+        .or_else(|| modulo_info.map(DatosModulo::pnom_w));
     let pnom_nombre = refs.modulo.as_deref().and_then(lifecycle::pnom_from_name);
     let datos = pnom
         .or(refs.pnom_derivado)
@@ -211,7 +211,7 @@ pub(crate) fn ejecutar_paso_dimensionado(
         Some(m) => {
             let val = pan::leer_modulo(paths, &json!({ "modulo": m }))
                 .map_err(|e| Error::Invalid(format!("Error al leer el módulo '{m}': {e}")))?;
-            Some(val)
+            DatosModulo::de_lectura(&val)
         }
         None => None,
     };
@@ -219,7 +219,7 @@ pub(crate) fn ejecutar_paso_dimensionado(
     let (ns_opt, criterio) = resolver_serie_plantilla(paths, params, &refs, modulo_info.as_ref());
     let pnom = params
         .pnom_modulo
-        .or_else(|| modulo_info.as_ref().and_then(|v| v.get("pnom_w")?.as_f64()));
+        .or_else(|| modulo_info.as_ref().map(DatosModulo::pnom_w));
 
     let mut da = Map::new();
     da.insert("proyecto".into(), json!(nombre_proyecto));

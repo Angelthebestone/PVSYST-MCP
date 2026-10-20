@@ -4,11 +4,13 @@
 //! * PVsyst >= 6.40 text — a `PVObject_` document with Key=Value fields.
 //! * Legacy (< 6.40) hybrid — ASCII header followed by Delphi Real48 binary block.
 
+mod datos_modulo;
 pub(crate) mod legacy;
 #[cfg(test)]
 #[path = "../../../tests/unit/components/pan/tests.rs"]
 mod tests;
 
+pub(crate) use datos_modulo::DatosModulo;
 use legacy::parse_legacy;
 
 use crate::args::req_str;
@@ -65,6 +67,7 @@ fn parse_text_module(text: &str) -> Result<Value> {
             "impp": num(alias(&root, &["Impp", "Imp", "IMPP"])),
             "vmpp": num(alias(&root, &["Vmpp", "Vmp", "VMPP"])),
             "mu_isc": num(alias(&root, &["muIsc", "MuISC"])),
+            "mu_voc": num(alias(&root, &["muVocSpec", "muVoc"])),
             "gref": num(root.find_deep("Gref")),
             "tref": num(root.find_deep("Tref")),
         },
