@@ -128,6 +128,15 @@ pub(crate) fn abrir_variante(paths: &Paths, args: &Value) -> Result<VarianteAbie
     })
 }
 
+/// Write edited variant bytes through the history-backed atomic writer.
+pub(crate) fn guardar_variante(
+    v: &VarianteAbierta,
+    nuevo: &[u8],
+    motivo: &str,
+) -> Result<Option<String>> {
+    history::reemplazar(&v.workspace, &v.vpath, nuevo, motivo)
+}
+
 pub(crate) fn crear_variante(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
     let proyecto = req_str(args, &["proyecto"], "")?;

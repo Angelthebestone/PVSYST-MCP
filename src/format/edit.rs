@@ -30,10 +30,6 @@ pub(crate) struct ChangeOutcome {
 }
 
 /// One object selector with the field changes to apply to it.
-#[cfg_attr(
-    not(test),
-    expect(dead_code, reason = "consumed by the follower conversion in 3.3")
-)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct EdicionObjeto {
     pub(crate) selector: String,
@@ -230,10 +226,6 @@ pub(crate) fn edit_fields(
 ///
 /// Refuses with the same errors as [`edit_fields`]; an edition that fails leaves
 /// the bytes of the preceding ones only in memory, never on disk.
-#[cfg_attr(
-    not(test),
-    expect(dead_code, reason = "consumed by the follower conversion in 3.3")
-)]
 pub(crate) fn editar_objetos(
     bytes: &[u8],
     ediciones: &[EdicionObjeto],

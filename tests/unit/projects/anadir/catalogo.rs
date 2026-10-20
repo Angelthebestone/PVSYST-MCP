@@ -5,6 +5,12 @@ fn demo(nombre: &str) -> Vec<u8> {
 }
 
 #[test]
+fn should_list_elements_when_aplicar_elemento_gets_an_unknown_name() {
+    let error = aplicar_elemento(Vec::new(), "nada").expect_err("elemento desconocido");
+    assert!(error.to_string().contains("baterias"));
+}
+
+#[test]
 #[ignore = "needs the PVsyst 8.1.7 demo data: run with --ignored"]
 fn should_have_parent_in_demo_for_every_element() {
     for elemento in ELEMENTOS {
