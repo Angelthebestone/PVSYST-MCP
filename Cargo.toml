@@ -2,6 +2,7 @@
 name = "pvsyst-mcp"
 version = "0.1.1"
 edition = "2021"
+rust-version = "1.88"
 description = "MCP server that operates PVsyst 8.1.7 by manipulating only its data files (no PVsyst code, no simulation engine reimplementation)."
 license = "Apache-2.0"
 repository = "https://github.com/Angelthebestone/PVSYST-MCP"

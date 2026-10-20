@@ -1,3 +1,5 @@
+#![warn(missing_docs)]
+
 //! PVsyst MCP server.
 //!
 //! Operates a PVsyst 8.1.7 installation by reading and writing ONLY its data
@@ -9,11 +11,13 @@
 //! and drive it with [`serve`] (newline-delimited JSON-RPC over any reader and
 //! writer) or one line at a time with [`Server::handle_line`].
 
+#[cfg(not(windows))]
+compile_error!("pvsyst-mcp solo funciona en Windows: PVsyst 8.1.7 es una aplicación Windows.");
+
 // Layout: one folder per PVsyst business area (projects, components, sites,
 // simulation, workspace, easy_mode). `format` is the pure core every area
 // builds on; `adapters` (CLI, GUI) and `server` (MCP stdio) are the edges.
 // Dependencies point inward: `format` imports nothing from the crate.
-#![warn(missing_docs)]
 
 mod adapters;
 mod admin;

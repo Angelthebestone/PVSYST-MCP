@@ -25,6 +25,14 @@ fn should_read_only_the_csv_whose_metadata_matches_project_and_variant() {
 }
 
 #[test]
+fn should_truncate_csv_text_on_a_character_boundary() {
+    let texto = format!("{}é{}", "a".repeat(TOPE_TEXTO_CSV - 1), "resto");
+    let corte = recorte_seguro(&texto, TOPE_TEXTO_CSV);
+    assert_eq!(corte.len(), TOPE_TEXTO_CSV - 1);
+    assert!(corte.is_char_boundary(corte.len()));
+}
+
+#[test]
 fn should_reject_missing_csv_file_when_reading_results() {
     let ws = tempfile::tempdir().expect("ws");
     let args = json!({ "archivo": "no_existe.csv", "workspace": ws.path() });

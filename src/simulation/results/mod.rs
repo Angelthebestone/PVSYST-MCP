@@ -13,6 +13,17 @@ use std::path::Path;
 
 const TOPE_TEXTO_CSV: usize = 32_768;
 
+fn recorte_seguro(texto: &str, tope: usize) -> &str {
+    if texto.len() <= tope {
+        return texto;
+    }
+    let mut fin = tope;
+    while !texto.is_char_boundary(fin) {
+        fin -= 1;
+    }
+    &texto[..fin]
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum IncluirTexto {
     Si,
@@ -40,7 +51,7 @@ pub(crate) fn resumen_de_csv(p: &Path, include_text: IncluirTexto) -> Result<Val
         let body = if text.len() > TOPE_TEXTO_CSV {
             format!(
                 "{}\n...[truncated at {} of {} bytes; use leer_archivo with offset]",
-                &text[..text.floor_char_boundary(TOPE_TEXTO_CSV)],
+                recorte_seguro(&text, TOPE_TEXTO_CSV),
                 TOPE_TEXTO_CSV,
                 text.len()
             )
