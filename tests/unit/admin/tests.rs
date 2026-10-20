@@ -203,3 +203,25 @@ fn should_validate_a_real_small_zip() {
 
     super::archive::validar_entradas_zip(&zip).expect("small zip is valid");
 }
+
+#[test]
+fn should_keep_accented_entries_when_tar_prints_them_in_the_console_code_page() {
+    let salida: &[u8] = b"Projects/\r\nProjects/Bogot\xe1.PRJ\r\n";
+    let lineas: Vec<String> = super::archive::lineas_de_listado(salida)
+        .collect::<std::io::Result<_>>()
+        .expect("listing decodes");
+    assert_eq!(lineas.len(), 2);
+    assert!(lineas[1].starts_with("Projects/Bogot") && lineas[1].ends_with(".PRJ"));
+}
+
+#[test]
+fn should_validate_a_real_zip_with_an_accented_file_name() {
+    let tmp = tempfile::tempdir().expect("create temp dir");
+    let origen = tmp.path().join("origen");
+    fs::create_dir_all(origen.join("Projects")).expect("create Projects");
+    fs::write(origen.join("Projects").join("Bogotá.PRJ"), "x").expect("write prj");
+    let zip = tmp.path().join("ws.zip");
+    super::archive::zip_into(&zip, &origen, &["Projects".into()]).expect("zip");
+
+    super::archive::validar_entradas_zip(&zip).expect("accented zip is valid");
+}

@@ -121,6 +121,20 @@ pub(crate) fn listado_dentro_de_limites(
         })
 }
 
+/// Lines of a tar listing. bsdtar prints entry names in the console code page
+/// (`Bogotá` comes out as byte 0xE1), so lines are decoded lossily: strict
+/// UTF-8 would reject any archive with an accented file name.
+pub(crate) fn lineas_de_listado(
+    lector: impl BufRead,
+) -> impl Iterator<Item = std::io::Result<String>> {
+    lector.split(b'\n').map(|linea| {
+        linea.map(|bytes| {
+            let texto = String::from_utf8_lossy(&bytes);
+            texto.strip_suffix('\r').unwrap_or(&texto).to_string()
+        })
+    })
+}
+
 /// `tar.exe` listing of `zip` (`-tf`, or `-tvf` for the detailed form),
 /// streamed so an archive with millions of entries cannot exhaust memory.
 fn listar(zip: &Path, opcion: &str) -> Result<String> {
@@ -136,7 +150,7 @@ fn listar(zip: &Path, opcion: &str) -> Result<String> {
         .stdout
         .take()
         .ok_or_else(|| Error::Invalid("tar.exe sin salida estándar".into()))?;
-    let listado = listado_dentro_de_limites(BufReader::new(salida).lines(), LIMITES_ZIP);
+    let listado = listado_dentro_de_limites(lineas_de_listado(BufReader::new(salida)), LIMITES_ZIP);
     if listado.is_err() {
         // Best effort: the listing is already rejected; tar must not linger.
         let _ = hijo.kill();
