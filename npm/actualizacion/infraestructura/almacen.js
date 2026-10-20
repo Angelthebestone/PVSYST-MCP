@@ -78,7 +78,20 @@ export function tomarCerrojo(almacen, ahora = Date.now()) {
   mkdirSync(almacen, { recursive: true });
   const ruta = join(almacen, ARCHIVO_CERROJO);
   const tomado = crearCerrojo(ruta) || (!cerrojoVigente(ruta, ahora) && reemplazarCerrojo(ruta));
-  return tomado ? () => retirarCerrojo(ruta) : null;
+  return tomado ? () => liberarCerrojo(ruta) : null;
+}
+
+/**
+ * Releases the lock; never throws, because it runs in a `finally` whose
+ * result must survive. A lock that cannot be removed simply goes stale and is
+ * taken over after CADUCIDAD_CERROJO_MS. `true` when it was removed.
+ */
+function liberarCerrojo(ruta) {
+  try {
+    return retirarCerrojo(ruta);
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -146,6 +159,8 @@ async function renombrarConReintentos(origen, destino, intento = 1) {
 /**
  * Marks the staged install complete and renames it into `versiones/`.
  * Idempotent: if the version is already published the staging is discarded.
+ * On failure the staging is discarded too (best effort) and the error is
+ * rethrown, so no half-published copy is left behind.
  */
 export async function publicarVersion(almacen, version) {
   const destino = directorioVersion(almacen, version);
@@ -154,9 +169,27 @@ export async function publicarVersion(almacen, version) {
     return;
   }
   const staging = directorioStaging(almacen, version);
-  writeFileSync(join(staging, MARCADOR_COMPLETA), "");
-  mkdirSync(directorioVersiones(almacen), { recursive: true });
-  await renombrarConReintentos(staging, destino);
+  try {
+    writeFileSync(join(staging, MARCADOR_COMPLETA), "");
+    mkdirSync(directorioVersiones(almacen), { recursive: true });
+    await renombrarConReintentos(staging, destino);
+  } catch (error) {
+    descartarStagingSiSePuede(almacen, version);
+    throw error;
+  }
+}
+
+/**
+ * `descartarStaging` that cannot hide the failure being reported: if the
+ * folder is still locked, the next run's `prepararStaging` removes it.
+ */
+function descartarStagingSiSePuede(almacen, version) {
+  try {
+    descartarStaging(almacen, version);
+  } catch {
+    return false;
+  }
+  return true;
 }
 
 /**

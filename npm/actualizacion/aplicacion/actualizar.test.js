@@ -112,3 +112,12 @@ test("should release lock after an update pass", async () => {
   await ejecutar(almacen, npmFalso("0.1.2"));
   assert.equal(existsSync(join(almacen, "actualizando.lock")), false);
 });
+
+test("should report error and leave no staging when publication fails", async () => {
+  const almacen = nuevoAlmacen();
+  writeFileSync(join(almacen, "versiones"), "not a directory");
+  const r = await ejecutar(almacen, npmFalso("0.1.2"));
+  assert.equal(r.estado, "error");
+  assert.equal(existsSync(join(almacen, "staging-0.1.2")), false);
+  assert.equal(existsSync(join(almacen, "actualizando.lock")), false);
+});

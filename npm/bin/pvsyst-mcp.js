@@ -22,7 +22,21 @@ const registrar = crearBitacoraStderr();
 const { habilitada, almacen } = leerConfiguracion(process.env);
 const { version } = JSON.parse(readFileSync(join(here, "..", "package.json"), "utf8"));
 const empaquetado = Object.freeze({ version, exe: join(here, "..", "vendor", "pvsyst-mcp.exe") });
-const instaladas = habilitada ? listarVersionesCompletas(almacen) : [];
+
+/** Downloaded versions; a broken store must never keep the server from starting. */
+function versionesDescargadas() {
+  if (!habilitada) {
+    return [];
+  }
+  try {
+    return listarVersionesCompletas(almacen);
+  } catch (error) {
+    registrar({ evento: "almacen_ilegible", almacen, detalle: error.message });
+    return [];
+  }
+}
+
+const instaladas = versionesDescargadas();
 const elegido = elegirBinario({ empaquetado, instaladas });
 
 if (!existsSync(elegido.exe)) {
@@ -53,11 +67,16 @@ child.on("exit", (code, signal) => {
 });
 
 if (habilitada) {
-  spawn(
+  const actualizador = spawn(
     process.execPath,
     [join(here, "..", "actualizacion", "proceso_actualizacion.js"), elegido.version],
     { detached: true, stdio: "ignore", windowsHide: true },
-  ).unref();
+  );
+  // Without a listener a spawn failure would be thrown and end the launcher.
+  actualizador.on("error", (error) =>
+    registrar({ evento: "actualizador_no_iniciado", detalle: error.message }),
+  );
+  actualizador.unref();
 }
 
 registrar({
