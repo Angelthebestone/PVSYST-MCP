@@ -140,11 +140,19 @@ pub(crate) fn entregable(paths: &Paths, args: &Value) -> Result<Value> {
     fs::create_dir_all(&dir)
         .map_err(|e| Error::io(format!("No se pudo crear {}", dir.display()), e))?;
     let destino = dir.join(format!("{}_{}_entregable.md", c.proyecto, c.variante));
-    fs::write(&destino, texto)
-        .map_err(|e| Error::io(format!("No se pudo escribir {}", destino.display()), e))?;
+    let historial_id = crate::history::reemplazar(
+        &c.workspace,
+        &destino,
+        texto.as_bytes(),
+        "resultados entregable",
+    )?;
     let mut v = con_cabecera(
         &c,
-        json!({"archivo": destino.display().to_string(), "p50_p90": p50}),
+        json!({
+            "archivo": destino.display().to_string(),
+            "p50_p90": p50,
+            "historial_id": historial_id,
+        }),
     );
     if let Some(a) = aviso {
         v["aviso"] = json!(a);
