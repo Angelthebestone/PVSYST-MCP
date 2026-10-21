@@ -172,3 +172,40 @@ fn should_include_permitir_fuera_del_workspace_property() {
         );
     }
 }
+
+#[test]
+fn should_annotate_phase_three_schema_constraints() {
+    let paths = Paths::resolve();
+    let schemas = list(&paths);
+    let proyecto = schemas
+        .iter()
+        .find(|s| s["name"] == "proyecto")
+        .expect("proyecto");
+    let proyecto_props = &proyecto["inputSchema"]["properties"];
+    assert_eq!(
+        proyecto_props["estrategia"]["enum"],
+        json!(["autoconsumo", "recorte_picos"])
+    );
+
+    let resultados = schemas
+        .iter()
+        .find(|s| s["name"] == "resultados")
+        .expect("resultados");
+    let medido = &resultados["inputSchema"]["properties"]["medido_kwh"];
+    assert_eq!(medido["minItems"], json!(12));
+    assert_eq!(medido["maxItems"], json!(12));
+    assert_eq!(medido["items"]["type"], "number");
+
+    let disenar = schemas
+        .iter()
+        .find(|s| s["name"] == "disenar_sistema")
+        .expect("disenar_sistema");
+    assert_eq!(
+        disenar["inputSchema"]["properties"]["tipo_sistema"]["enum"],
+        json!(["red", "aislado"])
+    );
+    assert_eq!(
+        disenar["inputSchema"]["properties"]["n_baterias_serie"]["minimum"],
+        json!(1)
+    );
+}

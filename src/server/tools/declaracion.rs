@@ -139,11 +139,7 @@ impl Herramienta {
                     "Ruta del workspace que reemplaza la raíz de confinamiento para esta llamada. Requiere cliente MCP de confianza."
                 );
             }
-            if *clave == "potencia_kw" {
-                prop_val["description"] = json!(
-                    "Potencia límite de inyección en kW. Para quitar el límite, usa editar con PLimGrid: null."
-                );
-            }
+            anotar_restricciones(&mut prop_val, clave);
             props.insert((*clave).to_string(), prop_val);
         }
 
@@ -179,6 +175,32 @@ impl Herramienta {
                 "required": req,
             }
         })
+    }
+}
+
+fn anotar_restricciones(prop_val: &mut Value, clave: &str) {
+    match clave {
+        "potencia_kw" => {
+            prop_val["description"] = json!(
+                "Potencia límite de inyección en kW. Para quitar el límite, usa editar con PLimGrid: null."
+            );
+        }
+        "estrategia" => {
+            prop_val["enum"] = json!(["autoconsumo", "recorte_picos"]);
+        }
+        "tipo_sistema" => {
+            prop_val["enum"] = json!(["red", "aislado"]);
+        }
+        "medido_kwh" => {
+            prop_val["items"] = json!({ "type": "number" });
+            prop_val["minItems"] = json!(12);
+            prop_val["maxItems"] = json!(12);
+        }
+        "n_baterias_serie" | "n_baterias_paralelo" => {
+            prop_val["minimum"] = json!(1);
+            prop_val["description"] = json!("Solo aplica a tipo_sistema:aislado.");
+        }
+        _ => {}
     }
 }
 

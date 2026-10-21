@@ -84,11 +84,14 @@ fn aplicar_cambio(
     doc: &mut Lines,
     indices: &[(usize, String)],
     cambio: &CambioSeccion<'_>,
-) -> ChangeOutcome {
+) -> Result<ChangeOutcome> {
     let Some((_, viejo)) = indices.first() else {
         return match cambio.valor {
-            Some(nuevo) => outcome(cambio.clave, "inserted", None, Some(nuevo)),
-            None => outcome(cambio.clave, "not-found", None, None),
+            Some(nuevo) => Ok(outcome(cambio.clave, "inserted", None, Some(nuevo))),
+            None => Err(Error::NotFound(format!(
+                "Campo '{}' no encontrado en la sección",
+                cambio.clave
+            ))),
         };
     };
     match cambio.valor {
@@ -97,14 +100,19 @@ fn aplicar_cambio(
                 let fin = fin_de(&doc.lines[*i], cambio.fin);
                 doc.lines[*i] = field_line(indent_width(&doc.lines[*i]), cambio.clave, nuevo, fin);
             }
-            outcome(cambio.clave, "replaced", Some(viejo.clone()), Some(nuevo))
+            Ok(outcome(
+                cambio.clave,
+                "replaced",
+                Some(viejo.clone()),
+                Some(nuevo),
+            ))
         }
         None => {
             for (i, _) in indices {
                 doc.lines[*i].clear();
                 doc.newline[*i] = false;
             }
-            outcome(cambio.clave, "deleted", Some(viejo.clone()), None)
+            Ok(outcome(cambio.clave, "deleted", Some(viejo.clone()), None))
         }
     }
 }
@@ -112,7 +120,8 @@ fn aplicar_cambio(
 /// Apply `cambios` to every direct occurrence of each key inside `clave`.
 ///
 /// Replacing touches all duplicated lines (PVsyst repeats `DiscountRate`);
-/// deleting removes them; a missing key is inserted before the closing marker.
+/// deleting removes them; a missing key with a value is inserted before the
+/// closing marker, while deleting a missing key is `NotFound`.
 pub(crate) fn editar_campos_seccion(
     bytes: &[u8],
     clave: &str,
@@ -132,7 +141,7 @@ pub(crate) fn editar_campos_seccion(
 
     // WHY a mutable accumulator: the document is edited in place, and the
     // borrow of `doc` cannot be carried through a purely functional fold.
-    let outcomes = cambios
+    let outcomes: Result<Vec<ChangeOutcome>> = cambios
         .iter()
         .map(|(k, v)| {
             let indices = indices_de_campo(&doc, &seccion, k);
@@ -147,6 +156,7 @@ pub(crate) fn editar_campos_seccion(
             )
         })
         .collect();
+    let outcomes = outcomes?;
 
     for (k, v) in inserts.iter().rev() {
         if let Some(valor) = v {

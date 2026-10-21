@@ -120,14 +120,14 @@ fn should_delete_every_duplicate_line_when_value_is_none() {
 
 #[test]
 fn should_report_not_found_when_deleting_an_absent_field() {
-    let (_, outcomes) = editar_campos_seccion(
+    let error = editar_campos_seccion(
         ECONOMIA.as_bytes(),
         "EconomicEval",
         &[("Currency".into(), None)],
     )
-    .expect("borrar ausente");
+    .expect_err("borrar ausente");
 
-    assert_eq!(outcomes[0].action, "not-found");
+    assert!(matches!(error, Error::NotFound(_)));
 }
 
 #[test]
