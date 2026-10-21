@@ -1,6 +1,10 @@
 //! Input parameters and parsing for the easy-mode pipeline.
 
-use crate::args::{missing, opt_str};
+use super::lectura_argumentos::{
+    parsear_bool_opcional, parsear_f64_opcional, parsear_f64_opcional_sin_defecto,
+    parsear_f64_requerido, parsear_u32_opcional,
+};
+use crate::args::opt_str;
 use crate::error::{Error, Result};
 use crate::workspace;
 use serde_json::Value;
@@ -9,6 +13,9 @@ use std::path::PathBuf;
 pub(crate) const DEFAULT_TILT: f64 = 10.0;
 pub(crate) const DEFAULT_AZIMUT: f64 = 0.0;
 pub(crate) const DEFAULT_PLANTILLA: &str = "_DEMO_Residential";
+pub(crate) const PLANTILLA_AISLADO: &str = "_DEMO_StandAlone";
+pub(crate) const VARIANTE_RED: &str = "VC0";
+pub(crate) const VARIANTE_AISLADO: &str = "VC3";
 pub(crate) const MIN_TILT: f64 = 0.0;
 pub(crate) const MAX_TILT: f64 = 90.0;
 pub(crate) const MIN_AZIMUT: f64 = -180.0;
@@ -18,6 +25,47 @@ pub(crate) const MAX_LATITUD: f64 = 90.0;
 pub(crate) const MIN_LONGITUD: f64 = -180.0;
 pub(crate) const MAX_LONGITUD: f64 = 180.0;
 pub(crate) const MIN_KWP: f64 = 0.0;
+
+/// Design family: grid-connected or stand-alone.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum TipoDiseno {
+    Red,
+    Aislado,
+}
+
+impl TipoDiseno {
+    fn parse(args: &Value) -> Result<Self> {
+        let texto = opt_str(args, &["tipo_sistema"]).unwrap_or("red");
+        match texto.trim().to_lowercase().as_str() {
+            "red" => Ok(Self::Red),
+            "aislado" => Ok(Self::Aislado),
+            otro => Err(Error::Invalid(format!(
+                "'tipo_sistema' debe ser 'red' o 'aislado'; se obtuvo '{otro}'"
+            ))),
+        }
+    }
+
+    pub(crate) fn nombre(self) -> &'static str {
+        match self {
+            Self::Red => "red",
+            Self::Aislado => "aislado",
+        }
+    }
+
+    fn plantilla_por_defecto(self) -> &'static str {
+        match self {
+            Self::Red => DEFAULT_PLANTILLA,
+            Self::Aislado => PLANTILLA_AISLADO,
+        }
+    }
+
+    fn variante_por_defecto(self) -> &'static str {
+        match self {
+            Self::Red => VARIANTE_RED,
+            Self::Aislado => VARIANTE_AISLADO,
+        }
+    }
+}
 
 /// Validated geographic location parameters.
 #[derive(Debug, Clone)]
@@ -54,6 +102,8 @@ pub(crate) struct DimensionadoParametros {
     pub(crate) pnom_modulo: Option<f64>,
     pub(crate) n_mod_serie: Option<u32>,
     pub(crate) n_strings: Option<u32>,
+    pub(crate) n_baterias_serie: Option<u32>,
+    pub(crate) n_baterias_paralelo: Option<u32>,
 }
 
 /// Simulation execution and report parameters.
@@ -68,129 +118,14 @@ pub(crate) struct SimulacionParametros {
 /// Parsed and strictly validated end-to-end design request.
 #[derive(Debug, Clone)]
 pub(crate) struct DisenoParametros {
+    pub(crate) tipo_sistema: TipoDiseno,
+    pub(crate) variante: String,
     pub(crate) ubicacion: UbicacionParametros,
     pub(crate) proyecto: ProyectoParametros,
     pub(crate) orientacion: OrientacionParametros,
     pub(crate) dimensionado: DimensionadoParametros,
     pub(crate) simulacion: SimulacionParametros,
     pub(crate) workspace: Option<PathBuf>,
-}
-
-pub(crate) fn parsear_f64_requerido(args: &Value, claves: &[&str], pista: &str) -> Result<f64> {
-    parsear_f64_opcional_sin_defecto(args, claves)?.ok_or_else(|| missing(claves[0], pista))
-}
-
-pub(crate) fn parsear_f64_opcional(args: &Value, claves: &[&str], defecto: f64) -> Result<f64> {
-    Ok(parsear_f64_opcional_sin_defecto(args, claves)?.unwrap_or(defecto))
-}
-
-pub(crate) fn parsear_f64_opcional_sin_defecto(
-    args: &Value,
-    claves: &[&str],
-) -> Result<Option<f64>> {
-    for clave in claves {
-        if let Some(valor) = args.get(*clave) {
-            if valor.is_null() {
-                continue;
-            }
-            if let Some(n) = valor.as_f64() {
-                if !n.is_finite() {
-                    return Err(Error::Invalid(format!(
-                        "Valor no finito para '{clave}': {n}"
-                    )));
-                }
-                return Ok(Some(n));
-            }
-            if let Some(s) = valor.as_str() {
-                let recortado = s.trim();
-                if recortado.is_empty() {
-                    continue;
-                }
-                let parsed = recortado.parse::<f64>().map_err(|_| {
-                    Error::Invalid(format!(
-                        "Valor no numérico para '{clave}': se esperaba un número, se obtuvo '{s}'"
-                    ))
-                })?;
-                if !parsed.is_finite() {
-                    return Err(Error::Invalid(format!(
-                        "Valor no finito para '{clave}': {parsed}"
-                    )));
-                }
-                return Ok(Some(parsed));
-            }
-            return Err(Error::Invalid(format!(
-                "Tipo no válido para '{clave}': se esperaba un número"
-            )));
-        }
-    }
-    Ok(None)
-}
-
-pub(crate) fn parsear_u32_opcional(args: &Value, claves: &[&str]) -> Result<Option<u32>> {
-    for clave in claves {
-        if let Some(valor) = args.get(*clave) {
-            if valor.is_null() {
-                continue;
-            }
-            if let Some(n) = valor.as_u64() {
-                let u = u32::try_from(n).map_err(|_| {
-                    Error::Invalid(format!(
-                        "Valor entero fuera de rango para '{clave}': '{n}' excede el límite u32 ({})",
-                        u32::MAX
-                    ))
-                })?;
-                return Ok(Some(u));
-            }
-            if let Some(i) = valor.as_i64() {
-                // `as_u64` failed, so the integer is negative.
-                return Err(Error::Invalid(format!(
-                    "Valor entero para '{clave}' no puede ser negativo: {i}"
-                )));
-            }
-            if let Some(s) = valor.as_str() {
-                let recortado = s.trim();
-                if recortado.is_empty() {
-                    continue;
-                }
-                let parsed = recortado.parse::<u32>().map_err(|_| {
-                    Error::Invalid(format!("Valor entero no válido para '{clave}': '{s}'"))
-                })?;
-                return Ok(Some(parsed));
-            }
-            return Err(Error::Invalid(format!(
-                "Tipo no válido para '{clave}': se esperaba un entero positivo"
-            )));
-        }
-    }
-    Ok(None)
-}
-
-pub(crate) fn parsear_bool_opcional(args: &Value, claves: &[&str], defecto: bool) -> Result<bool> {
-    for clave in claves {
-        if let Some(valor) = args.get(*clave) {
-            if valor.is_null() {
-                continue;
-            }
-            if let Some(b) = valor.as_bool() {
-                return Ok(b);
-            }
-            if let Some(s) = valor.as_str() {
-                match s.trim().to_lowercase().as_str() {
-                    "true" | "1" | "si" | "yes" => return Ok(true),
-                    "false" | "0" | "no" => return Ok(false),
-                    _ => {
-                        return Err(Error::Invalid(format!(
-                            "Valor booleano no válido para '{clave}': '{s}'"
-                        )))
-                    }
-                }
-            }
-            return Err(Error::Invalid(format!(
-                "Tipo no válido para '{clave}': se esperaba un booleano"
-            )));
-        }
-    }
-    Ok(defecto)
 }
 
 impl UbicacionParametros {
@@ -219,12 +154,12 @@ impl UbicacionParametros {
 }
 
 impl ProyectoParametros {
-    pub(crate) fn parse(args: &Value, kwp: f64) -> Result<Self> {
+    pub(crate) fn parse(args: &Value, kwp: f64, tipo_sistema: TipoDiseno) -> Result<Self> {
         let nombre =
             opt_str(args, &["nombre"]).map_or_else(|| format!("Sistema_{kwp}kWp"), String::from);
         workspace::validar_nombre(&nombre)?;
         let plantilla = opt_str(args, &["plantilla"])
-            .unwrap_or(DEFAULT_PLANTILLA)
+            .unwrap_or_else(|| tipo_sistema.plantilla_por_defecto())
             .to_string();
         let sobrescribir = parsear_bool_opcional(args, &["sobrescribir"], false)?;
         Ok(Self {
@@ -255,6 +190,17 @@ impl OrientacionParametros {
 
 impl DimensionadoParametros {
     pub(crate) fn parse(args: &Value, kwp: f64) -> Result<Self> {
+        let n_baterias_serie = parsear_u32_opcional(args, &["n_baterias_serie"])?;
+        let n_baterias_paralelo = parsear_u32_opcional(args, &["n_baterias_paralelo"])?;
+        if [n_baterias_serie, n_baterias_paralelo]
+            .into_iter()
+            .flatten()
+            .any(|n| n == 0)
+        {
+            return Err(Error::Invalid(
+                "n_baterias_serie y n_baterias_paralelo deben ser mayores que cero".into(),
+            ));
+        }
         Ok(Self {
             kwp,
             modulo: opt_str(args, &["modulo"]).map(String::from),
@@ -262,6 +208,8 @@ impl DimensionadoParametros {
             pnom_modulo: parsear_f64_opcional_sin_defecto(args, &["pnom_modulo"])?,
             n_mod_serie: parsear_u32_opcional(args, &["n_mod_serie"])?,
             n_strings: parsear_u32_opcional(args, &["n_strings"])?,
+            n_baterias_serie,
+            n_baterias_paralelo,
         })
     }
 }
@@ -287,11 +235,27 @@ impl DisenoParametros {
                 "kwp debe ser un número finito mayor que cero: {kwp}"
             )));
         }
+        let tipo_sistema = TipoDiseno::parse(args)?;
+        let dimensionado = DimensionadoParametros::parse(args, kwp)?;
+        if tipo_sistema == TipoDiseno::Red
+            && (dimensionado.n_baterias_serie.is_some()
+                || dimensionado.n_baterias_paralelo.is_some())
+        {
+            return Err(Error::Invalid(
+                "n_baterias_serie y n_baterias_paralelo solo aplican a tipo_sistema 'aislado'"
+                    .into(),
+            ));
+        }
+        let variante = opt_str(args, &["variante"])
+            .map(str::to_string)
+            .unwrap_or_else(|| tipo_sistema.variante_por_defecto().to_string());
         Ok(Self {
+            tipo_sistema,
+            variante,
             ubicacion,
-            proyecto: ProyectoParametros::parse(args, kwp)?,
+            proyecto: ProyectoParametros::parse(args, kwp, tipo_sistema)?,
             orientacion: OrientacionParametros::parse(args)?,
-            dimensionado: DimensionadoParametros::parse(args, kwp)?,
+            dimensionado,
             simulacion: SimulacionParametros::parse(args)?,
             workspace: opt_str(args, &["workspace"]).map(PathBuf::from),
         })

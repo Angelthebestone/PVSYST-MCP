@@ -54,7 +54,7 @@ pub(crate) const TOOL_ENTORNO: Herramienta = Herramienta {
 
 pub(crate) const TOOL_DISENAR_SISTEMA: Herramienta = Herramienta {
     nombre: "disenar_sistema",
-    descripcion: "E2E en una llamada: coordenadas + kWp -> sitio -> proyecto -> dimensionado -> simulacion -> KPIs. / EN: End-to-end in one call: coordinates + kWp -> site -> project -> sizing -> simulation -> KPIs.",
+    descripcion: "E2E en una llamada: coordenadas + kWp (red o aislado) -> sitio -> proyecto -> dimensionado -> simulacion -> KPIs. / EN: End-to-end in one call: coordinates + kWp (grid or stand-alone) -> site -> project -> sizing -> simulation -> KPIs.",
     acceso: Acceso::Normal,
     anotaciones: Anotaciones {
         titulo: "Diseñar sistema / Design system",
@@ -67,6 +67,10 @@ pub(crate) const TOOL_DISENAR_SISTEMA: Herramienta = Herramienta {
         ("latitud", TipoDato::Number),
         ("longitud", TipoDato::Number),
         ("kwp", TipoDato::Number),
+        ("tipo_sistema", TipoDato::String),
+        ("variante", TipoDato::String),
+        ("n_baterias_serie", TipoDato::Integer),
+        ("n_baterias_paralelo", TipoDato::Integer),
         ("nombre", TipoDato::String),
         ("plantilla", TipoDato::String),
         ("modulo", TipoDato::String),

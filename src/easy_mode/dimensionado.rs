@@ -1,17 +1,19 @@
 //! Step 4: Array sizing and inverter electrical window calculations.
 
-use super::parametros::DimensionadoParametros;
+use super::baterias::aplicar_baterias_al_resultado;
+use super::parametros::{DisenoParametros, TipoDiseno};
 use super::pasos::PasoDimensionadoSalida;
+use super::serie_plantilla::{
+    referencias_de_variante, resolver_serie_plantilla, Referencias, ResolucionSerie,
+};
 use crate::components::pan::{self, DatosModulo};
-use crate::components::resolve_component;
 use crate::config::Paths;
 use crate::error::{Error, Result};
-use crate::format::object;
 use crate::projects::lifecycle;
 use serde_json::{json, Map, Value};
 
 const FACTOR_SEGURIDAD_VOC: f64 = 1.15;
-const WATTS_POR_KILOWATT: f64 = 1000.0;
+pub(crate) const WATTS_POR_KILOWATT: f64 = 1000.0;
 const RANGO_SERIE_OFFSET: u32 = 2;
 
 /// Electrical parameters for series string sizing.
@@ -73,27 +75,6 @@ fn mejor_disposicion(
         .map(|(ns, np, _)| (ns, np))
 }
 
-/// Layout from the inverter's DC window (`VMppMin`, `VAbsMax` of the OND file)
-/// and the module's STC values. `None` when any electrical datum is missing.
-fn disposicion_electrica(
-    paths: &Paths,
-    inversor: Option<&str>,
-    kwp: f64,
-    pmod: f64,
-    modulo: &DatosModulo,
-) -> Option<(u32, u32)> {
-    let inversor = inversor?;
-    let (voc, vmpp) = (modulo.voc_v(), modulo.vmpp_v());
-    let consulta = crate::components::ConsultaComponente::referencia("OND", inversor);
-    let ond = resolve_component(&paths.workspace, &consulta).ok()?;
-    let bytes = crate::components::leer_bytes_componente(&ond).ok()?;
-    let texto = String::from_utf8_lossy(&bytes).into_owned();
-    let root = object::parse_first(&texto)?;
-    let vmin = root.find_deep("VMppMin")?.trim().parse::<f64>().ok()?;
-    let vabs = root.find_deep("VAbsMax")?.trim().parse::<f64>().ok()?;
-    dimensionar_serie(kwp, pmod, voc, vmpp, vmin, vabs)
-}
-
 /// Series count within ±2 of the template's `ns0` and the parallel count that
 /// gets closest to `kwp` for a module of `pmod_w`. Used when the inverter window
 /// is unknown. Returns (Ns, Np, realised kWp); ties go to the larger Ns.
@@ -113,88 +94,26 @@ pub(crate) fn ajustar_serie(kwp: f64, pmod_w: f64, ns0: u32) -> Option<(u32, u32
     })
 }
 
-/// Series count and the criterion that chose it: the inverter's DC window when the
-/// datasheets allow it, else a local search around the template's series count.
-fn serie_de_plantilla(
+fn leer_modulo(
     paths: &Paths,
-    kwp: f64,
-    pmod_w: f64,
-    (inversor, modulo): (Option<&str>, Option<&DatosModulo>),
+    params: &DisenoParametros,
     refs: &Referencias,
-) -> Option<(u32, &'static str)> {
-    let ventana = modulo.and_then(|m| disposicion_electrica(paths, inversor, kwp, pmod_w, m));
-    if let Some((ns, _)) = ventana {
-        return Some((ns, "ventana_electrica"));
-    }
-    refs.ns_plantilla
-        .and_then(|ns0| ajustar_serie(kwp, pmod_w, ns0))
-        .map(|(ns, _, _)| (ns, "ajuste_local"))
-}
-
-/// References and sizing hints of the variant created for `nombre`. Each field
-/// is `None` when the variant or the value is missing.
-#[derive(Default)]
-pub(crate) struct Referencias {
-    pub(crate) modulo: Option<String>,
-    pub(crate) inversor: Option<String>,
-    pub(crate) ns_plantilla: Option<u32>,
-    pub(crate) pnom_derivado: Option<f64>,
-}
-
-pub(crate) fn referencias_de_variante(paths: &Paths, nombre: &str) -> Referencias {
-    let ruta = paths
-        .workspace
-        .join("Projects")
-        .join(format!("{nombre}.VC0"));
-    let Ok(bytes) = std::fs::read(ruta) else {
-        return Referencias::default();
+) -> Result<Option<DatosModulo>> {
+    let explicito = params.dimensionado.modulo.is_some();
+    let Some(m) = params
+        .dimensionado
+        .modulo
+        .as_deref()
+        .or(refs.modulo.as_deref())
+    else {
+        return Ok(None);
     };
-    let texto = String::from_utf8_lossy(&bytes);
-    let Some(root) = object::parse_first(&texto) else {
-        return Referencias::default();
-    };
-    let numero = |clave: &str| {
-        root.find_deep(clave)
-            .and_then(|v| v.trim().parse::<f64>().ok())
-    };
-    let ns = numero("NModSerie");
-    let pnom_derivado = match (numero("PNomSizing"), ns, numero("NStringCh")) {
-        (Some(kwp), Some(serie), Some(cadenas)) if serie > 0.0 && cadenas > 0.0 => {
-            Some(kwp * WATTS_POR_KILOWATT / (serie * cadenas))
-        }
-        _ => None,
-    };
-    Referencias {
-        modulo: root.find_deep("PVModule").map(str::to_string),
-        inversor: root.find_deep("GInverter").map(str::to_string),
-        ns_plantilla: ns.filter(|n| *n >= 1.0).map(|n| n as u32),
-        pnom_derivado,
-    }
-}
-
-/// Step 4: size the array to the target kWp; returns the realised kWp.
-/// If module reading fails, the error is propagated with context.
-fn resolver_serie_plantilla(
-    paths: &Paths,
-    params: &DimensionadoParametros,
-    refs: &Referencias,
-    modulo_info: Option<&DatosModulo>,
-) -> (Option<u32>, &'static str) {
-    if let Some(ns) = params.n_mod_serie {
-        return (Some(ns), "argumento");
-    }
-    let inversor = params.inversor.as_deref().or(refs.inversor.as_deref());
-    let pnom = params
-        .pnom_modulo
-        .or_else(|| modulo_info.map(DatosModulo::pnom_w));
-    let pnom_nombre = refs.modulo.as_deref().and_then(lifecycle::pnom_from_name);
-    let datos = pnom
-        .or(refs.pnom_derivado)
-        .or(pnom_nombre)
-        .and_then(|p| serie_de_plantilla(paths, params.kwp, p, (inversor, modulo_info), refs));
-    match datos {
-        Some((ns, por)) => (Some(ns), por),
-        None => (None, "plantilla"),
+    match pan::leer_modulo(paths, &json!({ "modulo": m })) {
+        Ok(val) => Ok(DatosModulo::de_lectura(&val)),
+        Err(_) if !explicito && params.tipo_sistema == TipoDiseno::Aislado => Ok(None),
+        Err(e) => Err(Error::Invalid(format!(
+            "Error al leer el módulo '{m}': {e}"
+        ))),
     }
 }
 
@@ -202,29 +121,28 @@ fn resolver_serie_plantilla(
 /// If module reading fails, the error is propagated with context.
 pub(crate) fn ejecutar_paso_dimensionado(
     paths: &Paths,
-    nombre_proyecto: &str,
-    params: &DimensionadoParametros,
+    params: &DisenoParametros,
 ) -> Result<PasoDimensionadoSalida> {
-    let refs = referencias_de_variante(paths, nombre_proyecto);
-    let modulo_ref = params.modulo.as_deref().or(refs.modulo.as_deref());
-    let modulo_info = match modulo_ref {
-        Some(m) => {
-            let val = pan::leer_modulo(paths, &json!({ "modulo": m }))
-                .map_err(|e| Error::Invalid(format!("Error al leer el módulo '{m}': {e}")))?;
-            DatosModulo::de_lectura(&val)
-        }
-        None => None,
-    };
+    let refs = referencias_de_variante(paths, &params.proyecto.nombre, &params.variante);
+    let modulo_info = leer_modulo(paths, params, &refs)?;
 
-    let (ns_opt, criterio) = resolver_serie_plantilla(paths, params, &refs, modulo_info.as_ref());
+    let (ns_opt, criterio) = resolver_serie_plantilla(
+        paths,
+        &ResolucionSerie {
+            params: &params.dimensionado,
+            refs: &refs,
+            modulo_info: modulo_info.as_ref(),
+        },
+    );
     let pnom = params
+        .dimensionado
         .pnom_modulo
         .or_else(|| modulo_info.as_ref().map(DatosModulo::pnom_w));
 
     let mut da = Map::new();
-    da.insert("proyecto".into(), json!(nombre_proyecto));
-    da.insert("variante".into(), json!("VC0"));
-    da.insert("kwp".into(), json!(params.kwp));
+    da.insert("proyecto".into(), json!(params.proyecto.nombre));
+    da.insert("variante".into(), json!(params.variante));
+    da.insert("kwp".into(), json!(params.dimensionado.kwp));
     if let Some(p) = pnom {
         da.insert("pnom_modulo".into(), json!(p));
     }
@@ -234,6 +152,7 @@ pub(crate) fn ejecutar_paso_dimensionado(
 
     let sizing = lifecycle::dimensionar_variante(paths, &Value::Object(da))?;
     let realised_kwp = sizing.get("realised_kwp").and_then(Value::as_f64);
+    let detalle = aplicar_baterias_al_resultado(paths, params, sizing)?;
     let avisos = if criterio == "ajuste_local" {
         vec![
             "Sin ventana eléctrica del inversor: Ns ajustado localmente alrededor de la plantilla"
@@ -248,6 +167,6 @@ pub(crate) fn ejecutar_paso_dimensionado(
         criterio,
         avisos,
         ok: true,
-        detalle: sizing,
+        detalle,
     })
 }

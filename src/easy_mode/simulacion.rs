@@ -1,6 +1,6 @@
 //! Step 5: Simulation execution, result collection and KPI extraction.
 
-use super::parametros::SimulacionParametros;
+use super::parametros::DisenoParametros;
 use super::pasos::{EstadoSimulacion, KpisSalida, PasoSimulacionSalida};
 use super::proyecto::sustituir_sitio;
 use crate::args::{opt_str, workspace_of};
@@ -163,21 +163,21 @@ pub(crate) fn extraer_kpis(paths: &Paths, csv_path: &str) -> Result<KpisSalida> 
 /// Step 5: simulate, write the site into the project and read the KPIs.
 pub(crate) fn ejecutar_paso_simulacion(
     paths: &Paths,
-    nombre_proyecto: &str,
+    params: &DisenoParametros,
     sit_file: &str,
-    params: &SimulacionParametros,
 ) -> Result<PasoSimulacionSalida> {
+    let nombre_proyecto = &params.proyecto.nombre;
     let results_dir = paths.workspace.join("Results");
     std::fs::create_dir_all(&results_dir)
         .map_err(|e| Error::io(format!("crear directorio '{}'", results_dir.display()), e))?;
 
-    let csv_out = params.output_csv.clone().unwrap_or_else(|| {
+    let csv_out = params.simulacion.output_csv.clone().unwrap_or_else(|| {
         results_dir
             .join(format!("{nombre_proyecto}.csv"))
             .to_string_lossy()
             .to_string()
     });
-    let pdf_out = params.report_pdf.clone().unwrap_or_else(|| {
+    let pdf_out = params.simulacion.report_pdf.clone().unwrap_or_else(|| {
         results_dir
             .join(format!("{nombre_proyecto}.pdf"))
             .to_string_lossy()
@@ -186,9 +186,9 @@ pub(crate) fn ejecutar_paso_simulacion(
 
     let sv = json!({
         "proyecto": nombre_proyecto,
-        "variante": "VC0",
+        "variante": params.variante,
         "site": sit_file,
-        "synthetic_weather": params.synthetic_weather,
+        "synthetic_weather": params.simulacion.synthetic_weather,
         "output_csv": csv_out,
         "report_pdf": pdf_out,
         "log_level": SIMULATION_LOG_LEVEL,

@@ -1,5 +1,8 @@
 use super::dimensionado::{ajustar_serie, dimensionar_serie, ejecutar_paso_dimensionado};
-use super::parametros::{DimensionadoParametros, DisenoParametros};
+use super::parametros::{
+    DisenoParametros, TipoDiseno, DEFAULT_PLANTILLA, PLANTILLA_AISLADO, VARIANTE_AISLADO,
+    VARIANTE_RED,
+};
 use super::simulacion::meteo_de_metadatos;
 use super::*;
 use serde_json::json;
@@ -162,18 +165,107 @@ fn should_reject_invalid_kwp_at_input_parse() {
 #[test]
 fn should_reject_unreadable_or_nonexistent_module_in_sizing() {
     let paths = Paths::resolve();
-    let params = DimensionadoParametros {
-        kwp: 10.0,
-        modulo: Some("ModuloInexistente_12345.PAN".to_string()),
-        inversor: None,
-        pnom_modulo: None,
-        n_mod_serie: None,
-        n_strings: None,
-    };
-    let err = ejecutar_paso_dimensionado(&paths, "TestPrj", &params).unwrap_err();
+    let params = DisenoParametros::parse(&json!({
+        "latitud": 10.0,
+        "longitud": -70.0,
+        "kwp": 10.0,
+        "modulo": "ModuloInexistente_12345.PAN"
+    }))
+    .expect("parámetros");
+    let err = ejecutar_paso_dimensionado(&paths, &params).unwrap_err();
     let msg = err.to_string();
     assert!(
         msg.contains("ModuloInexistente_12345.PAN"),
         "expected error to explicitly mention the missing module name, got: {msg}"
     );
+}
+
+#[test]
+fn should_default_to_a_grid_design_with_the_residential_template() {
+    let params = DisenoParametros::parse(&json!({
+        "latitud": 7.07,
+        "longitud": -73.84,
+        "kwp": 5
+    }))
+    .expect("parámetros");
+
+    assert_eq!(params.tipo_sistema, TipoDiseno::Red);
+    assert_eq!(params.variante, VARIANTE_RED);
+    assert_eq!(params.proyecto.plantilla, DEFAULT_PLANTILLA);
+    assert_eq!(params.proyecto.nombre, "Sistema_5kWp");
+}
+
+#[test]
+fn should_default_to_the_stand_alone_template_and_variant() {
+    let params = DisenoParametros::parse(&json!({
+        "latitud": 7.07,
+        "longitud": -73.84,
+        "kwp": 5,
+        "tipo_sistema": "aislado"
+    }))
+    .expect("parámetros");
+
+    assert_eq!(params.tipo_sistema, TipoDiseno::Aislado);
+    assert_eq!(params.variante, VARIANTE_AISLADO);
+    assert_eq!(params.proyecto.plantilla, PLANTILLA_AISLADO);
+}
+
+#[test]
+fn should_honor_explicit_template_variant_and_battery_counts() {
+    let params = DisenoParametros::parse(&json!({
+        "latitud": 7.07,
+        "longitud": -73.84,
+        "kwp": 5,
+        "tipo_sistema": "aislado",
+        "plantilla": "Otra",
+        "variante": "VC7",
+        "n_baterias_serie": 2,
+        "n_baterias_paralelo": 3
+    }))
+    .expect("parámetros");
+
+    assert_eq!(params.proyecto.plantilla, "Otra");
+    assert_eq!(params.variante, "VC7");
+    assert_eq!(params.dimensionado.n_baterias_serie, Some(2));
+    assert_eq!(params.dimensionado.n_baterias_paralelo, Some(3));
+}
+
+#[test]
+fn should_reject_an_unknown_tipo_sistema() {
+    let error = DisenoParametros::parse(&json!({
+        "latitud": 7.07,
+        "longitud": -73.84,
+        "kwp": 5,
+        "tipo_sistema": "hibrido"
+    }))
+    .expect_err("tipo desconocido");
+
+    assert!(error.to_string().contains("tipo_sistema"));
+}
+
+#[test]
+fn should_reject_battery_counts_on_a_grid_design() {
+    let error = DisenoParametros::parse(&json!({
+        "latitud": 7.07,
+        "longitud": -73.84,
+        "kwp": 5,
+        "n_baterias_serie": 2
+    }))
+    .expect_err("baterías en red");
+
+    assert!(error.to_string().contains("aislado"));
+}
+
+#[test]
+fn should_reject_zero_battery_counts() {
+    let error = DisenoParametros::parse(&json!({
+        "latitud": 7.07,
+        "longitud": -73.84,
+        "kwp": 5,
+        "tipo_sistema": "aislado",
+        "n_baterias_paralelo": 0
+    }))
+    .expect_err("cero baterías");
+
+    assert!(error.to_string().contains("mayores que cero"));
 }

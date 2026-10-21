@@ -5,11 +5,14 @@
 //! a full study with **one** tool call instead of orchestrating a dozen, which
 //! also removes most of the per-turn latency.
 
+mod baterias;
 mod diagnostico;
 mod dimensionado;
+mod lectura_argumentos;
 mod parametros;
 mod pasos;
 mod proyecto;
+mod serie_plantilla;
 mod simulacion;
 mod sitio;
 
@@ -58,7 +61,7 @@ pub(crate) fn disenar_sistema(paths: &Paths, args: &Value) -> Result<Value> {
         simular: params.simulacion.simular,
     };
     let ejecuciones = u32::from(fases.crear_sitio) + u32::from(fases.simular);
-    let plan = plan_de(&params.proyecto.nombre, &fases);
+    let plan = plan_de(&params.proyecto.nombre, &params.variante, &fases);
     if let Some(aviso) = ledger::requiere_confirmacion(&paths.workspace, args, ejecuciones, &plan) {
         return Ok(aviso);
     }
@@ -108,6 +111,8 @@ fn serializar_resultado(params: &DisenoParametros, c: &Corrida) -> Value {
         "errores": errores,
         "avisos": avisos,
         "proyecto": params.proyecto.nombre,
+        "tipo_sistema": params.tipo_sistema.nombre(),
+        "variante": params.variante,
         "ubicacion": { "latitud": params.ubicacion.latitud, "longitud": params.ubicacion.longitud },
         "kwp_objetivo": params.dimensionado.kwp,
         "kwp_realizado": kwp_realizado_val,
@@ -132,22 +137,11 @@ fn correr_pasos(
         &params.proyecto.nombre,
         sitio_origen,
     )?;
-    let paso_proyecto =
-        proyecto::ejecutar_paso_proyecto(paths, &params.proyecto, &params.dimensionado)?;
-    let paso_orientacion =
-        proyecto::ejecutar_paso_orientacion(paths, &params.proyecto.nombre, &params.orientacion)?;
-    let paso_dimensionado = dimensionado::ejecutar_paso_dimensionado(
-        paths,
-        &params.proyecto.nombre,
-        &params.dimensionado,
-    )?;
+    let paso_proyecto = proyecto::ejecutar_paso_proyecto(paths, params)?;
+    let paso_orientacion = proyecto::ejecutar_paso_orientacion(paths, params)?;
+    let paso_dimensionado = dimensionado::ejecutar_paso_dimensionado(paths, params)?;
     let paso_simulacion = if params.simulacion.simular {
-        let sim = simulacion::ejecutar_paso_simulacion(
-            paths,
-            &params.proyecto.nombre,
-            &paso_sitio.sit_file,
-            &params.simulacion,
-        )?;
+        let sim = simulacion::ejecutar_paso_simulacion(paths, params, &paso_sitio.sit_file)?;
         Some(sim)
     } else {
         None
@@ -163,13 +157,15 @@ fn correr_pasos(
 }
 
 /// Trial executions the plan will use, for the confirmation gate.
-fn plan_de(nombre: &str, fases: &Fases) -> Vec<String> {
+fn plan_de(nombre: &str, variante: &str, fases: &Fases) -> Vec<String> {
     let mut plan = Vec::new();
     if fases.crear_sitio {
         plan.push(format!("crear sitio {nombre}_Site (PVsystCLI create-site)"));
     }
     if fases.simular {
-        plan.push(format!("simular {nombre} VC0 (PVsystCLI run-simulation)"));
+        plan.push(format!(
+            "simular {nombre} {variante} (PVsystCLI run-simulation)"
+        ));
     }
     plan
 }
