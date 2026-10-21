@@ -9,6 +9,39 @@ fn aliases_are_tried_in_order_and_empty_counts_as_missing() {
 }
 
 #[test]
+fn should_read_optional_numbers_and_reject_bad_types() {
+    assert_eq!(opt_f64(&json!({"x": 1.5}), "x").unwrap(), Some(1.5));
+    assert_eq!(opt_f64(&json!({"x": null}), "x").unwrap(), None);
+    assert_eq!(opt_f64(&json!({}), "x").unwrap(), None);
+    assert!(matches!(
+        opt_f64(&json!({"x": "1"}), "x"),
+        Err(Error::Invalid(_))
+    ));
+    assert!(matches!(
+        opt_f64(&json!({"x": true}), "x"),
+        Err(Error::Invalid(_))
+    ));
+}
+
+#[test]
+fn should_read_optional_u32_and_reject_bad_types() {
+    assert_eq!(opt_u32(&json!({"n": 3}), "n").unwrap(), Some(3));
+    assert_eq!(opt_u32(&json!({"n": null}), "n").unwrap(), None);
+    assert!(matches!(
+        opt_u32(&json!({"n": -1}), "n"),
+        Err(Error::Invalid(_))
+    ));
+    assert!(matches!(
+        opt_u32(&json!({"n": 1.5}), "n"),
+        Err(Error::Invalid(_))
+    ));
+    assert!(matches!(
+        opt_u32(&json!({"n": 4_294_967_296u64}), "n"),
+        Err(Error::Invalid(_))
+    ));
+}
+
+#[test]
 fn required_error_names_canonical_key_and_hint() {
     let args = json!({});
     assert_eq!(

@@ -1,7 +1,7 @@
 //! Battery-storage parameters and the `pvSystem` / `pvGridStorage` changes
 //! that configure them.
 
-use crate::args::missing;
+use crate::args::{missing, opt_f64, opt_u32};
 use crate::error::{Error, Result};
 use crate::format::edit::EdicionObjeto;
 use serde_json::{json, Value};
@@ -66,11 +66,11 @@ impl EntradaAlmacenamiento {
         Ok(Self {
             estrategia: texto(args, "estrategia"),
             bateria: texto(args, "bateria"),
-            n_serie: entero(args, "n_serie")?,
-            n_paralelo: entero(args, "n_paralelo")?,
-            p_max_carga_kw: numero(args, "p_max_carga_kw")?,
-            p_max_descarga_kw: numero(args, "p_max_descarga_kw")?,
-            soc_inicial: numero(args, "soc_inicial")?,
+            n_serie: opt_u32(args, "n_serie")?,
+            n_paralelo: opt_u32(args, "n_paralelo")?,
+            p_max_carga_kw: opt_f64(args, "p_max_carga_kw")?,
+            p_max_descarga_kw: opt_f64(args, "p_max_descarga_kw")?,
+            soc_inicial: opt_f64(args, "soc_inicial")?,
         })
     }
 }
@@ -81,28 +81,6 @@ fn texto(args: &Value, clave: &str) -> Option<String> {
         .map(str::trim)
         .filter(|s| !s.is_empty())
         .map(str::to_string)
-}
-
-fn numero(args: &Value, clave: &str) -> Result<Option<f64>> {
-    match args.get(clave) {
-        None | Some(Value::Null) => Ok(None),
-        Some(v) => v
-            .as_f64()
-            .filter(|n| n.is_finite())
-            .map(Some)
-            .ok_or_else(|| Error::Invalid(format!("'{clave}' debe ser un número finito"))),
-    }
-}
-
-fn entero(args: &Value, clave: &str) -> Result<Option<u32>> {
-    match args.get(clave) {
-        None | Some(Value::Null) => Ok(None),
-        Some(v) => v
-            .as_u64()
-            .and_then(|n| u32::try_from(n).ok())
-            .map(Some)
-            .ok_or_else(|| Error::Invalid(format!("'{clave}' debe ser un entero positivo"))),
-    }
 }
 
 fn validar_bateria(bateria: &str) -> Result<()> {

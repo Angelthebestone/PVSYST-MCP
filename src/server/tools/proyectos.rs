@@ -64,6 +64,7 @@ pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
         ("inflacion", TipoDato::Number),
         ("tarifa_venta_kwh", TipoDato::Number),
         ("workspace", TipoDato::String),
+        ("permitir_fuera_del_workspace", TipoDato::Boolean),
     ],
     requeridos: &[],
     discriminador: Some(Discriminador {

@@ -110,7 +110,9 @@ fn leer_modulo(
     };
     match pan::leer_modulo(paths, &json!({ "modulo": m })) {
         Ok(val) => Ok(DatosModulo::de_lectura(&val)),
-        Err(_) if !explicito && params.tipo_sistema == TipoDiseno::Aislado => Ok(None),
+        Err(Error::NotFound(_)) if !explicito && params.tipo_sistema == TipoDiseno::Aislado => {
+            Ok(None)
+        }
         Err(e) => Err(Error::Invalid(format!(
             "Error al leer el módulo '{m}': {e}"
         ))),

@@ -67,13 +67,9 @@ fn leer_plantilla() -> Result<Vec<u8>> {
 }
 
 fn texto_de_objeto(bytes: &[u8], selector: &str) -> Option<String> {
-    let spans = edit::spans_of(bytes);
-    let indice = edit::find_span(&spans, selector)?;
-    let span = &spans[indice];
-    let texto = String::from_utf8_lossy(bytes);
-    let lineas: Vec<&str> = texto.lines().collect();
-    let limite = span.close.min(lineas.len().saturating_sub(1));
-    Some(lineas[span.open..=limite].join("\n"))
+    insert::extraer_objeto(bytes, selector)
+        .ok()
+        .map(|bloque| String::from_utf8_lossy(&bloque).into_owned())
 }
 
 fn exigir_una_orientacion(bytes: &[u8]) -> Result<()> {
@@ -87,7 +83,9 @@ fn exigir_una_orientacion(bytes: &[u8]) -> Result<()> {
                 .parse::<usize>()
                 .ok()
         })
-        .unwrap_or(0);
+        .ok_or_else(|| {
+            Error::Invalid("La variante no declara 'Orientations, list of=...'".into())
+        })?;
     let objetos = edit::spans_of(bytes)
         .iter()
         .filter(|span| span.ty.eq_ignore_ascii_case("pvOrient"))
@@ -124,8 +122,8 @@ fn rechazar_bifacial(bytes: &[u8]) -> Result<()> {
 
 fn no_orient(bytes: &[u8]) -> Result<String> {
     let bloque = texto_de_objeto(bytes, "pvOrient")
-        .ok_or_else(|| Error::Format("La variante no tiene pvOrient".into()))?;
+        .ok_or_else(|| Error::NotFound("La variante no tiene pvOrient".into()))?;
     object::parse_first(&bloque)
         .and_then(|nodo| nodo.find_deep("NoOrient").map(str::to_string))
-        .ok_or_else(|| Error::Format("pvOrient no declara NoOrient".into()))
+        .ok_or_else(|| Error::NotFound("pvOrient no declara NoOrient".into()))
 }

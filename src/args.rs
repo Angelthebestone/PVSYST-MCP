@@ -27,6 +27,30 @@ pub(crate) fn flag(args: &Value, keys: &[&str]) -> bool {
         .unwrap_or(false)
 }
 
+/// Optional finite JSON number; absent or `null` means `None`.
+pub(crate) fn opt_f64(args: &Value, key: &str) -> Result<Option<f64>> {
+    match args.get(key) {
+        None | Some(Value::Null) => Ok(None),
+        Some(v) => v
+            .as_f64()
+            .filter(|n| n.is_finite())
+            .map(Some)
+            .ok_or_else(|| Error::Invalid(format!("'{key}' debe ser un número finito"))),
+    }
+}
+
+/// Optional JSON integer that fits `u32`; absent or `null` means `None`.
+pub(crate) fn opt_u32(args: &Value, key: &str) -> Result<Option<u32>> {
+    match args.get(key) {
+        None | Some(Value::Null) => Ok(None),
+        Some(v) => v
+            .as_u64()
+            .and_then(|n| u32::try_from(n).ok())
+            .map(Some)
+            .ok_or_else(|| Error::Invalid(format!("'{key}' debe ser un entero positivo"))),
+    }
+}
+
 /// Required string argument; the error names `keys[0]` and, if given, `hint`.
 pub(crate) fn req_str<'a>(args: &'a Value, keys: &[&str], hint: &str) -> Result<&'a str> {
     opt_str(args, keys).ok_or_else(|| missing(keys[0], hint))

@@ -1,6 +1,6 @@
 //! Pumping parameters and the `pvSystem` / `WaterUse` changes they require.
 
-use crate::args::missing;
+use crate::args::{missing, opt_f64};
 use crate::error::{Error, Result};
 use crate::format::edit::EdicionObjeto;
 use serde_json::{json, Value};
@@ -21,8 +21,8 @@ pub(crate) struct EntradaBombeo {
 impl EntradaBombeo {
     pub(crate) fn de_args(args: &Value) -> Result<Self> {
         Ok(Self {
-            caudal_m3_dia: numero(args, "caudal_m3_dia")?,
-            profundidad_estatica_m: numero(args, "profundidad_estatica_m")?,
+            caudal_m3_dia: opt_f64(args, "caudal_m3_dia")?,
+            profundidad_estatica_m: opt_f64(args, "profundidad_estatica_m")?,
             bomba: args
                 .get("bomba")
                 .and_then(Value::as_str)
@@ -30,17 +30,6 @@ impl EntradaBombeo {
                 .filter(|s| !s.is_empty())
                 .map(str::to_string),
         })
-    }
-}
-
-fn numero(args: &Value, clave: &str) -> Result<Option<f64>> {
-    match args.get(clave) {
-        None | Some(Value::Null) => Ok(None),
-        Some(v) => v
-            .as_f64()
-            .filter(|n| n.is_finite())
-            .map(Some)
-            .ok_or_else(|| Error::Invalid(format!("'{clave}' debe ser un número finito"))),
     }
 }
 
@@ -140,7 +129,11 @@ impl ParametrosBombeo {
         let profundidad = self
             .profundidad_texto()
             .map(|valor| ("StaticDepth".to_string(), Some(valor)));
-        std::iter::once(("FlowModul".to_string(), Some("Yearly".to_string())))
+        let flow_modul = self
+            .caudal_m3_dia
+            .map(|_| ("FlowModul".to_string(), Some("Yearly".to_string())));
+        flow_modul
+            .into_iter()
             .chain(caudal)
             .chain(profundidad)
             .collect()

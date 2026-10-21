@@ -1,6 +1,6 @@
 //! Variant loss parameters and the `pvMainArray` / `pvSubArray` changes.
 
-use crate::args::missing;
+use crate::args::{missing, opt_f64};
 use crate::error::{Error, Result};
 use crate::format::edit::EdicionObjeto;
 use serde_json::{json, Value};
@@ -25,22 +25,11 @@ pub(crate) struct EntradaPerdidas {
 impl EntradaPerdidas {
     pub(crate) fn de_args(args: &Value) -> Result<Self> {
         Ok(Self {
-            suciedad_pct: numero(args, "suciedad_pct")?,
-            uc_termico: numero(args, "uc_termico")?,
-            lid_pct: numero(args, "lid_pct")?,
-            mismatch_pct: numero(args, "mismatch_pct")?,
+            suciedad_pct: opt_f64(args, "suciedad_pct")?,
+            uc_termico: opt_f64(args, "uc_termico")?,
+            lid_pct: opt_f64(args, "lid_pct")?,
+            mismatch_pct: opt_f64(args, "mismatch_pct")?,
         })
-    }
-}
-
-fn numero(args: &Value, clave: &str) -> Result<Option<f64>> {
-    match args.get(clave) {
-        None | Some(Value::Null) => Ok(None),
-        Some(v) => v
-            .as_f64()
-            .filter(|n| n.is_finite())
-            .map(Some)
-            .ok_or_else(|| Error::Invalid(format!("'{clave}' debe ser un número finito"))),
     }
 }
 

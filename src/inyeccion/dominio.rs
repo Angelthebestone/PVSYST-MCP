@@ -1,6 +1,6 @@
 //! Grid-injection limit parameters and their `pvSystem` field changes.
 
-use crate::args::missing;
+use crate::args::{missing, opt_f64};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
 
@@ -44,21 +44,10 @@ pub(crate) struct EntradaInyeccion {
 impl EntradaInyeccion {
     pub(crate) fn de_args(args: &Value) -> Result<Self> {
         Ok(Self {
-            potencia_kw: numero(args, "potencia_kw")?,
+            potencia_kw: opt_f64(args, "potencia_kw")?,
             perdida_separada: args.get("perdida_separada").and_then(Value::as_bool),
-            tan_phi: numero(args, "tan_phi")?,
+            tan_phi: opt_f64(args, "tan_phi")?,
         })
-    }
-}
-
-fn numero(args: &Value, clave: &str) -> Result<Option<f64>> {
-    match args.get(clave) {
-        None | Some(Value::Null) => Ok(None),
-        Some(v) => v
-            .as_f64()
-            .filter(|n| n.is_finite())
-            .map(Some)
-            .ok_or_else(|| Error::Invalid(format!("'{clave}' debe ser un número finito"))),
     }
 }
 

@@ -1,5 +1,6 @@
 //! One-axis tracker parameters and the `pvOrient` changes they require.
 
+use crate::args::{opt_f64, opt_u32};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
 
@@ -52,35 +53,13 @@ pub(crate) struct EntradaSeguidor {
 impl EntradaSeguidor {
     pub(crate) fn de_args(args: &Value) -> Result<Self> {
         Ok(Self {
-            azimut_eje: numero(args, "azimut_eje")?,
-            angulo_max: numero(args, "angulo_max")?,
-            pitch_m: numero(args, "pitch_m")?,
-            ancho_colector_m: numero(args, "ancho_colector_m")?,
-            n_filas: entero(args, "n_filas")?,
+            azimut_eje: opt_f64(args, "azimut_eje")?,
+            angulo_max: opt_f64(args, "angulo_max")?,
+            pitch_m: opt_f64(args, "pitch_m")?,
+            ancho_colector_m: opt_f64(args, "ancho_colector_m")?,
+            n_filas: opt_u32(args, "n_filas")?,
             backtracking: args.get("backtracking").and_then(Value::as_bool),
         })
-    }
-}
-
-fn numero(args: &Value, clave: &str) -> Result<Option<f64>> {
-    match args.get(clave) {
-        None | Some(Value::Null) => Ok(None),
-        Some(v) => v
-            .as_f64()
-            .filter(|n| n.is_finite())
-            .map(Some)
-            .ok_or_else(|| Error::Invalid(format!("'{clave}' debe ser un número finito"))),
-    }
-}
-
-fn entero(args: &Value, clave: &str) -> Result<Option<u32>> {
-    match args.get(clave) {
-        None | Some(Value::Null) => Ok(None),
-        Some(v) => v
-            .as_u64()
-            .and_then(|n| u32::try_from(n).ok())
-            .map(Some)
-            .ok_or_else(|| Error::Invalid(format!("'{clave}' debe ser un entero positivo"))),
     }
 }
 
@@ -95,7 +74,7 @@ pub(crate) struct ParametrosSeguidor {
     backtracking: Backtracking,
 }
 
-fn rango(valor: f64, min: f64, max: f64, clave: &str) -> Result<()> {
+fn rango(valor: f64, (min, max): (f64, f64), clave: &str) -> Result<()> {
     if (min..=max).contains(&valor) {
         return Ok(());
     }
@@ -107,14 +86,14 @@ fn rango(valor: f64, min: f64, max: f64, clave: &str) -> Result<()> {
 impl ParametrosSeguidor {
     pub(crate) fn nuevo(entrada: EntradaSeguidor) -> Result<Self> {
         let azimut_eje = entrada.azimut_eje.unwrap_or(AZIMUT_EJE_DEFECTO);
-        rango(azimut_eje, MIN_AZIMUT, MAX_AZIMUT, "azimut_eje")?;
+        rango(azimut_eje, (MIN_AZIMUT, MAX_AZIMUT), "azimut_eje")?;
         let angulo_max = entrada.angulo_max.unwrap_or(ANGULO_MAX_DEFECTO);
         if angulo_max <= 0.0 {
             return Err(Error::Invalid(format!(
                 "'angulo_max' debe ser mayor que 0: {angulo_max}"
             )));
         }
-        rango(angulo_max, 0.0, MAX_ANGULO, "angulo_max")?;
+        rango(angulo_max, (0.0, MAX_ANGULO), "angulo_max")?;
         let pitch_m = entrada.pitch_m.unwrap_or(PITCH_DEFECTO_M);
         let ancho_colector_m = entrada.ancho_colector_m.unwrap_or(ANCHO_COLECTOR_DEFECTO_M);
         if pitch_m <= ancho_colector_m || ancho_colector_m <= 0.0 {

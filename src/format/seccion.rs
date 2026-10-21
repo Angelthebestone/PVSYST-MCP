@@ -74,33 +74,37 @@ fn fin_de(linea: &[u8], defecto: FinDeLinea) -> FinDeLinea {
     }
 }
 
+struct CambioSeccion<'a> {
+    clave: &'a str,
+    valor: Option<&'a str>,
+    fin: FinDeLinea,
+}
+
 fn aplicar_cambio(
     doc: &mut Lines,
     indices: &[(usize, String)],
-    clave: &str,
-    valor: Option<&str>,
-    defecto: FinDeLinea,
+    cambio: &CambioSeccion<'_>,
 ) -> ChangeOutcome {
     let Some((_, viejo)) = indices.first() else {
-        return match valor {
-            Some(nuevo) => outcome(clave, "inserted", None, Some(nuevo)),
-            None => outcome(clave, "not-found", None, None),
+        return match cambio.valor {
+            Some(nuevo) => outcome(cambio.clave, "inserted", None, Some(nuevo)),
+            None => outcome(cambio.clave, "not-found", None, None),
         };
     };
-    match valor {
+    match cambio.valor {
         Some(nuevo) => {
             for (i, _) in indices {
-                let fin = fin_de(&doc.lines[*i], defecto);
-                doc.lines[*i] = field_line(indent_width(&doc.lines[*i]), clave, nuevo, fin);
+                let fin = fin_de(&doc.lines[*i], cambio.fin);
+                doc.lines[*i] = field_line(indent_width(&doc.lines[*i]), cambio.clave, nuevo, fin);
             }
-            outcome(clave, "replaced", Some(viejo.clone()), Some(nuevo))
+            outcome(cambio.clave, "replaced", Some(viejo.clone()), Some(nuevo))
         }
         None => {
             for (i, _) in indices {
                 doc.lines[*i].clear();
                 doc.newline[*i] = false;
             }
-            outcome(clave, "deleted", Some(viejo.clone()), None)
+            outcome(cambio.clave, "deleted", Some(viejo.clone()), None)
         }
     }
 }
@@ -132,7 +136,15 @@ pub(crate) fn editar_campos_seccion(
         .iter()
         .map(|(k, v)| {
             let indices = indices_de_campo(&doc, &seccion, k);
-            aplicar_cambio(&mut doc, &indices, k, v.as_deref(), defecto)
+            aplicar_cambio(
+                &mut doc,
+                &indices,
+                &CambioSeccion {
+                    clave: k,
+                    valor: v.as_deref(),
+                    fin: defecto,
+                },
+            )
         })
         .collect();
 

@@ -8,9 +8,9 @@ use common::{copiar_proyecto_demo, tool_text, Client};
 use serde_json::json;
 use std::fs;
 
-fn proyecto_demo(variante: &str) -> tempfile::TempDir {
+fn proyecto_demo(nombre: &str, variante: &str) -> tempfile::TempDir {
     let tmp = tempfile::tempdir().expect("tempdir");
-    copiar_proyecto_demo(tmp.path(), "_DEMO_Commercial", variante);
+    copiar_proyecto_demo(tmp.path(), nombre, variante);
     tmp
 }
 
@@ -24,7 +24,7 @@ fn cliente(tmp: &tempfile::TempDir) -> Client {
 #[test]
 #[ignore = "needs the PVsyst 8.1.7 demo data: run with --ignored"]
 fn should_update_every_discount_rate_and_the_other_economic_fields() {
-    let tmp = proyecto_demo("VC9");
+    let tmp = proyecto_demo("_DEMO_Commercial", "VC9");
     let mut client = cliente(&tmp);
 
     let respuesta = client.call(
@@ -56,7 +56,7 @@ fn should_update_every_discount_rate_and_the_other_economic_fields() {
 #[test]
 #[ignore = "needs the PVsyst 8.1.7 demo data: run with --ignored"]
 fn should_report_not_found_when_the_variant_has_no_economic_evaluation() {
-    let tmp = proyecto_demo("VC0");
+    let tmp = proyecto_demo("_DEMO_Commercial", "VC0");
     let mut client = cliente(&tmp);
 
     let respuesta = client.call(
@@ -74,4 +74,27 @@ fn should_report_not_found_when_the_variant_has_no_economic_evaluation() {
         .as_str()
         .expect("mensaje de error");
     assert!(mensaje.contains("evaluación económica"), "{mensaje}");
+}
+
+#[test]
+#[ignore = "needs the PVsyst 8.1.7 demo data: run with --ignored"]
+fn should_reject_a_feed_in_tariff_when_the_tariff_is_variable() {
+    let tmp = proyecto_demo("_DEMO_Residential", "VC6");
+    let mut client = cliente(&tmp);
+
+    let respuesta = client.call(
+        9,
+        "proyecto",
+        json!({
+            "accion": "economia",
+            "proyecto": "_DEMO_Residential",
+            "variante": "VC6",
+            "tarifa_venta_kwh": 0.15
+        }),
+    );
+    assert_eq!(respuesta["result"]["isError"], true);
+    let mensaje = respuesta["result"]["content"][0]["text"]
+        .as_str()
+        .expect("mensaje de error");
+    assert!(mensaje.contains("Tarifa variable"), "{mensaje}");
 }

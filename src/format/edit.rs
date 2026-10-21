@@ -88,12 +88,12 @@ fn is_marker(trimmed: &str) -> bool {
         || trimmed.starts_with("End Remarks")
 }
 
-fn field_indent(lines: &Lines, span: &ObjSpan) -> usize {
+fn field_indent(lines: &Lines, span: &ObjSpan, in_child: &dyn Fn(usize) -> bool) -> usize {
     let limit = span.close.min(lines.lines.len().saturating_sub(1));
     for i in (span.open + 1)..=limit {
         let t = lines.text(i);
         let trimmed = tstart(&t);
-        if trimmed.is_empty() || is_marker(trimmed) {
+        if in_child(i) || trimmed.is_empty() || is_marker(trimmed) {
             continue;
         }
         if trimmed.contains('=') {
@@ -186,7 +186,6 @@ pub(crate) fn edit_fields(
     let idx = find_span_by_segs(&spans, &segs)
         .ok_or_else(|| Error::NotFound(format!("Object '{selector}' not found")))?;
     let span = spans[idx].clone();
-    let find = field_indent(&doc, &span);
 
     let children: Vec<(usize, usize)> = spans
         .iter()
@@ -194,6 +193,7 @@ pub(crate) fn edit_fields(
         .map(|s| (s.open, s.close))
         .collect();
     let in_child = |i: usize| children.iter().any(|&(o, c)| (o..=c).contains(&i));
+    let find = field_indent(&doc, &span, &in_child);
 
     let mut outcomes = Vec::with_capacity(changes.len());
     let mut inserts: Vec<(&str, &str)> = Vec::new();

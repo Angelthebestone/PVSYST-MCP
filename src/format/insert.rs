@@ -176,10 +176,12 @@ pub(crate) fn insertar_objeto(
 pub(crate) fn reemplazar_objeto(destino: &[u8], selector: &str, bloque: &[u8]) -> Result<Vec<u8>> {
     object::validar_estructura(destino)?;
     object::validar_estructura(bloque)?;
+    let segs = parse_selector(selector)?;
     let spans = edit::spans_of(destino);
-    let si = edit::find_span(&spans, selector)
+    let si = find_span_by_segs(&spans, &segs)
         .ok_or_else(|| Error::NotFound(format!("Object '{selector}' not found")))?;
     let span = spans[si].clone();
+    // WHY a mutable accumulator: splice replaces a contiguous line range in place.
     let mut lineas = split(destino);
     let fin = if lineas
         .get(span.open)
@@ -192,7 +194,7 @@ pub(crate) fn reemplazar_objeto(destino: &[u8], selector: &str, bloque: &[u8]) -
     let opts = OpcionesBloque {
         fin,
         indent: span.indent,
-        rol: None,
+        rol: span.role.as_deref(),
     };
     let nuevo = preparar_bloque(bloque, &opts)?;
     lineas.splice(span.open..=span.close, nuevo);

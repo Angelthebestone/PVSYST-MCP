@@ -16,6 +16,8 @@ pub(crate) const DEFAULT_PLANTILLA: &str = "_DEMO_Residential";
 pub(crate) const PLANTILLA_AISLADO: &str = "_DEMO_StandAlone";
 pub(crate) const VARIANTE_RED: &str = "VC0";
 pub(crate) const VARIANTE_AISLADO: &str = "VC3";
+const TIPO_SISTEMA_RED: &str = "red";
+const TIPO_SISTEMA_AISLADO: &str = "aislado";
 pub(crate) const MIN_TILT: f64 = 0.0;
 pub(crate) const MAX_TILT: f64 = 90.0;
 pub(crate) const MIN_AZIMUT: f64 = -180.0;
@@ -35,10 +37,10 @@ pub(crate) enum TipoDiseno {
 
 impl TipoDiseno {
     fn parse(args: &Value) -> Result<Self> {
-        let texto = opt_str(args, &["tipo_sistema"]).unwrap_or("red");
+        let texto = opt_str(args, &["tipo_sistema"]).unwrap_or(TIPO_SISTEMA_RED);
         match texto.trim().to_lowercase().as_str() {
-            "red" => Ok(Self::Red),
-            "aislado" => Ok(Self::Aislado),
+            TIPO_SISTEMA_RED => Ok(Self::Red),
+            TIPO_SISTEMA_AISLADO => Ok(Self::Aislado),
             otro => Err(Error::Invalid(format!(
                 "'tipo_sistema' debe ser 'red' o 'aislado'; se obtuvo '{otro}'"
             ))),
@@ -47,8 +49,8 @@ impl TipoDiseno {
 
     pub(crate) fn nombre(self) -> &'static str {
         match self {
-            Self::Red => "red",
-            Self::Aislado => "aislado",
+            Self::Red => TIPO_SISTEMA_RED,
+            Self::Aislado => TIPO_SISTEMA_AISLADO,
         }
     }
 

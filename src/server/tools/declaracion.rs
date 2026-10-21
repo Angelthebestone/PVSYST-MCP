@@ -177,7 +177,6 @@ impl Herramienta {
                 "type": "object",
                 "properties": props,
                 "required": req,
-                "additionalProperties": false,
             }
         })
     }

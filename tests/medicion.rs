@@ -116,6 +116,7 @@ fn should_compare_the_fixture_with_a_measured_series_from_csv() {
             "que": "medido_vs_simulado",
             "proyecto": "SYNTH_Plant",
             "archivo": "Results/MCP_E2E.csv",
+            "medido_kwh": null,
             "medido_csv": "medido.csv",
             "umbral_pct": 15
         }),

@@ -7,6 +7,7 @@ use serde::Serialize;
 pub(crate) const UMBRAL_DEFECTO_PCT: f64 = 10.0;
 const MESES: usize = 12;
 const DECIMALES_DESVIACION: i32 = 2;
+const KWH_POR_MWH: f64 = 1_000.0;
 
 /// Twelve monthly energy values in kWh.
 #[derive(Debug, Clone, PartialEq)]
@@ -124,6 +125,17 @@ pub(crate) fn serie_de_csv(texto: &str) -> Result<SerieMensual> {
         })
         .collect();
     SerieMensual::nuevo(&valores?)
+}
+
+/// kWh per unit of the monthly PDF energy column.
+pub(crate) fn factor_de_unidad(unidad: &str) -> Result<f64> {
+    match unidad.trim().to_ascii_lowercase().as_str() {
+        "mwh" => Ok(KWH_POR_MWH),
+        "kwh" => Ok(1.0),
+        otra => Err(Error::Format(format!(
+            "Unidad no soportada para E_Grid: '{otra}'"
+        ))),
+    }
 }
 
 #[cfg(test)]

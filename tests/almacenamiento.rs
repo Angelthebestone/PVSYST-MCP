@@ -77,6 +77,17 @@ fn should_insert_storage_and_apply_peak_shaving_after_the_limit() {
         valor["parametros"]["estrategia"], "recorte_picos",
         "{valor}"
     );
+    let insertados = valor["insertados"].as_array().expect("insertados");
+    assert!(
+        insertados.iter().any(|objeto| objeto["tipo"] == "pvLoad"),
+        "{valor}"
+    );
+    assert!(
+        insertados
+            .iter()
+            .any(|objeto| objeto["tipo"] == "pvGridStorage"),
+        "{valor}"
+    );
 
     let variante = fs::read_to_string(tmp.path().join("Projects/_DEMO_Commercial.VC0"))
         .expect("leer variante");
@@ -86,4 +97,6 @@ fn should_insert_storage_and_apply_peak_shaving_after_the_limit() {
     assert!(variante.contains("NBattSerie=10"));
     assert!(variante.contains("NBattParall=20"));
     assert!(variante.contains("BattSoCInit=0.600"));
+    assert!(variante.contains("PMaxCharge=380.000"));
+    assert!(variante.contains("PMaxDisch=170.000"));
 }

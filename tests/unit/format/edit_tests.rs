@@ -80,6 +80,17 @@ fn should_insert_missing_field() {
 }
 
 #[test]
+fn should_insert_at_direct_level_when_the_object_only_has_nested_fields() {
+    let doc = "PVObject_=pvRoot\r\n  PVObject_=pvChild\r\n    A=1\r\n  \
+End of PVObject pvChild\r\nEnd of PVObject pvRoot\r\n";
+    let (out, _) = edit_fields(doc.as_bytes(), "pvRoot", &[("B".into(), Some("2".into()))])
+        .expect("insert direct field");
+    let text = String::from_utf8(out).expect("utf8");
+    assert!(text.contains("\r\n  B=2\r\n"), "{text}");
+    assert!(!text.contains("\r\n    B=2\r\n"), "{text}");
+}
+
+#[test]
 fn should_keep_binary_bytes_identical() {
     let raw = b"PVObject_=pvProject\r\n  Comment=X\r\nEnd of PVObject pvProject\r\n\x8c\x00\x00\xff\xfe\r\n".to_vec();
     let (out, res) = edit_fields(&raw, "pvProject", &[]).unwrap();

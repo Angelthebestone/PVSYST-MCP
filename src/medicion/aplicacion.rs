@@ -4,7 +4,9 @@
 use crate::args::{missing, opt_str, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
-use crate::medicion::dominio::{comparar, serie_de_csv, SerieMensual, UMBRAL_DEFECTO_PCT};
+use crate::medicion::dominio::{
+    comparar, factor_de_unidad, serie_de_csv, SerieMensual, UMBRAL_DEFECTO_PCT,
+};
 use crate::simulation::{engineering, report_pdf};
 use crate::workspace::{leer_bytes, resolver_ruta, Alcance};
 use serde_json::{json, Value};
@@ -54,15 +56,15 @@ fn serie_medida(paths: &Paths, args: &Value) -> Result<(SerieMensual, &'static s
                 .collect();
             Ok((SerieMensual::nuevo(&numeros?)?, "medido_kwh"))
         }
-        Some(_) => Err(Error::Invalid(
-            "'medido_kwh' debe ser un array de 12 números".into(),
-        )),
-        None => {
+        None | Some(Value::Null) => {
             let ruta = opt_str(args, &["medido_csv"])
                 .ok_or_else(|| missing("medido_kwh", "o medido_csv"))?;
             let serie = serie_de_archivo(paths, args, ruta)?;
             Ok((serie, "medido_csv"))
         }
+        Some(_) => Err(Error::Invalid(
+            "'medido_kwh' debe ser un array de 12 números".into(),
+        )),
     }
 }
 
@@ -107,14 +109,4 @@ fn simulada_de(mensual: &Value) -> Result<SerieMensual> {
         })
         .collect();
     SerieMensual::nuevo(&valores?)
-}
-
-fn factor_de_unidad(unidad: &str) -> Result<f64> {
-    match unidad.trim().to_ascii_lowercase().as_str() {
-        "mwh" => Ok(1_000.0),
-        "kwh" => Ok(1.0),
-        otra => Err(Error::Format(format!(
-            "Unidad no soportada para E_Grid: '{otra}'"
-        ))),
-    }
 }

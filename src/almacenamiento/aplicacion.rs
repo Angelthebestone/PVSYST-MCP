@@ -16,18 +16,20 @@ pub(crate) fn configurar_almacenamiento(paths: &Paths, args: &Value) -> Result<V
     TipoSistema::exigir(&variante.bytes, TipoSistema::Red)?;
 
     let bytes = std::mem::take(&mut variante.bytes);
-    let bytes = if edit::find_span(&edit::spans_of(&bytes), "pvGridStorage").is_none() {
-        crate::projects::anadir::catalogo::aplicar_elemento(bytes, "baterias")?.bytes
-    } else {
-        bytes
-    };
-    let (bytes, outcomes) = edit::editar_objetos(&bytes, &parametros.ediciones())?;
     if parametros.es_recorte_picos() && !tiene_plim_grid(&bytes) {
         return Err(Error::Invalid(
             "El recorte de picos usa PLimGrid como umbral: define antes proyecto accion:limite_inyeccion"
                 .into(),
         ));
     }
+    let (bytes, insertados) = if edit::find_span(&edit::spans_of(&bytes), "pvGridStorage").is_none()
+    {
+        let aplicado = crate::projects::anadir::catalogo::aplicar_elemento(bytes, "baterias")?;
+        (aplicado.bytes, aplicado.insertados)
+    } else {
+        (bytes, Vec::new())
+    };
+    let (bytes, outcomes) = edit::editar_objetos(&bytes, &parametros.ediciones())?;
     let historial_id = guardar_variante(&variante, &bytes, "proyecto almacenamiento")?;
 
     let aviso = aviso_bateria(&variante, parametros.bateria());
@@ -37,6 +39,7 @@ pub(crate) fn configurar_almacenamiento(paths: &Paths, args: &Value) -> Result<V
         "archivo": variante.vpath.display().to_string(),
         "parametros": parametros.como_json(),
         "cambios": outcomes.iter().map(edit::ChangeOutcome::to_json).collect::<Vec<_>>(),
+        "insertados": insertados,
         "historial_id": historial_id,
     });
     if let Some(texto) = aviso {

@@ -33,6 +33,21 @@ pub(super) const INTRO: &str =
 pub(super) const CONSEJO: &str =
     "Si dudas, llama a 'entorno' y luego a 'disenar_sistema'. Todo lo demás es opcional.";
 
+static PROYECTO_Y_VARIANTE: [ArgumentoReceta; 2] = [
+    ArgumentoReceta {
+        nombre: "proyecto",
+        descripcion: "Nombre del proyecto",
+        requerido: Requerido::Si,
+        defecto: "",
+    },
+    ArgumentoReceta {
+        nombre: "variante",
+        descripcion: "Variante del proyecto",
+        requerido: Requerido::No,
+        defecto: "VC0",
+    },
+];
+
 /// Every recipe, in the order shown to clients.
 pub(crate) static RECETAS: &[Receta] = &[
     Receta {
@@ -93,20 +108,7 @@ pub(crate) static RECETAS: &[Receta] = &[
         tools: &["resultados kpis", "resultados csv", "resultados perdidas"],
         ejemplo: None,
         nota: None,
-        argumentos: &[
-            ArgumentoReceta {
-                nombre: "proyecto",
-                descripcion: "Nombre del proyecto",
-                requerido: Requerido::Si,
-                defecto: "",
-            },
-            ArgumentoReceta {
-                nombre: "variante",
-                descripcion: "Variante del proyecto",
-                requerido: Requerido::No,
-                defecto: "VC0",
-            },
-        ],
+        argumentos: &PROYECTO_Y_VARIANTE,
         plantilla: "Lee los resultados de {proyecto} variante {variante} con resultados kpis, csv y perdidas, y explica las tres pérdidas mayores.",
     },
     Receta {
@@ -193,20 +195,7 @@ pub(crate) static RECETAS: &[Receta] = &[
         tools: &["proyecto seguidor", "proyecto doctor", "simular ejecutar"],
         ejemplo: None,
         nota: Some("La variante debe tener una sola orientación y no usar escena 3D ni bifacial."),
-        argumentos: &[
-            ArgumentoReceta {
-                nombre: "proyecto",
-                descripcion: "Nombre del proyecto",
-                requerido: Requerido::Si,
-                defecto: "",
-            },
-            ArgumentoReceta {
-                nombre: "variante",
-                descripcion: "Variante del proyecto",
-                requerido: Requerido::No,
-                defecto: "VC0",
-            },
-        ],
+        argumentos: &PROYECTO_Y_VARIANTE,
         plantilla: "Convierte {proyecto} variante {variante} a seguidor de un eje con proyecto accion:seguidor, ejecuta proyecto doctor y simula para comparar con la variante fija.",
     },
     Receta {
@@ -220,20 +209,7 @@ pub(crate) static RECETAS: &[Receta] = &[
         ],
         ejemplo: None,
         nota: Some("Para recorte de picos define antes el límite de inyección con proyecto limite_inyeccion."),
-        argumentos: &[
-            ArgumentoReceta {
-                nombre: "proyecto",
-                descripcion: "Nombre del proyecto",
-                requerido: Requerido::Si,
-                defecto: "",
-            },
-            ArgumentoReceta {
-                nombre: "variante",
-                descripcion: "Variante del proyecto",
-                requerido: Requerido::No,
-                defecto: "VC0",
-            },
-        ],
+        argumentos: &PROYECTO_Y_VARIANTE,
         plantilla: "Configura {proyecto} variante {variante} para autoconsumo con baterías: define el límite de inyección si vas a recortar picos, aplica proyecto accion:almacenamiento y revisa con proyecto doctor.",
     },
     Receta {
@@ -243,20 +219,7 @@ pub(crate) static RECETAS: &[Receta] = &[
         tools: &["resultados medido_vs_simulado"],
         ejemplo: None,
         nota: Some("La serie medida puede ir como 12 valores kWh o como CSV 'mes;energia_kwh'."),
-        argumentos: &[
-            ArgumentoReceta {
-                nombre: "proyecto",
-                descripcion: "Nombre del proyecto",
-                requerido: Requerido::Si,
-                defecto: "",
-            },
-            ArgumentoReceta {
-                nombre: "variante",
-                descripcion: "Variante del proyecto",
-                requerido: Requerido::No,
-                defecto: "VC0",
-            },
-        ],
+        argumentos: &PROYECTO_Y_VARIANTE,
         plantilla: "Compara la energía mensual medida de {proyecto} variante {variante} con la simulada usando resultados que:medido_vs_simulado; pásame la serie medida en kWh o un CSV y explica los meses fuera del umbral.",
     },
 ];

@@ -34,6 +34,7 @@ fn should_repeat_static_depth_in_system_and_water_use() {
     let seccion = p.cambios_seccion();
     assert_eq!(valor(&seccion, "StaticDepth").as_deref(), Some("-80.1"));
     assert_eq!(valor(&seccion, "FlowYear"), None);
+    assert_eq!(valor(&seccion, "FlowModul"), None);
 }
 
 #[test]

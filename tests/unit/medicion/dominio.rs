@@ -83,6 +83,13 @@ fn should_reject_a_non_numeric_row_after_the_header() {
 }
 
 #[test]
+fn should_convert_pdf_energy_units_to_kwh() {
+    assert_eq!(factor_de_unidad("MWh").unwrap(), 1000.0);
+    assert_eq!(factor_de_unidad(" kWh ").unwrap(), 1.0);
+    assert!(matches!(factor_de_unidad("GWh"), Err(Error::Format(_))));
+}
+
+#[test]
 fn should_reject_a_series_with_nan() {
     let mut valores = [1.0; 12];
     valores[0] = f64::NAN;

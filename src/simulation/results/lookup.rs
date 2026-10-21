@@ -149,8 +149,10 @@ pub(super) fn resultado_de_con_alcance(
             }
             filtrados.sort_by_key(|p| std::cmp::Reverse(mtime_secs(p)));
             filtrados.into_iter().next().ok_or_else(|| {
+                let proyecto = proyecto.unwrap_or("(sin proyecto)");
+                let variante = variante.unwrap_or("(sin variante)");
                 Error::NotFound(format!(
-                    "No hay resultados CSV para proyecto {proyecto:?} variante {variante:?} en {}",
+                    "No hay resultados CSV para proyecto '{proyecto}' variante '{variante}' en {}",
                     dir.display()
                 ))
             })?

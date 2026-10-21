@@ -12,7 +12,7 @@ fn cambio(cambios: &[(String, Option<String>)], clave: &str) -> Option<String> {
 }
 
 #[test]
-fn should_use_demo_defaults_when_no_arguments_are_given() {
+fn should_use_documented_defaults_when_no_arguments_are_given() {
     let parametros = ParametrosSeguidor::nuevo(entrada(&json!({}))).expect("defectos");
     let cambios = cambios_orientacion(&parametros, "2");
 

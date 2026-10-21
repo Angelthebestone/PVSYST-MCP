@@ -1,11 +1,13 @@
 //! PVsyst economic-evaluation parameters and their section changes.
 
-use crate::args::missing;
+use crate::args::{missing, opt_f64, opt_u32};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
 
 const MAX_VIDA_ANIOS: u32 = 100;
+const MAX_TASA: f64 = 1.0;
 const MAX_TARIFA_KWH: f64 = 100.0;
+const LONGITUD_CODIGO_MONEDA: usize = 3;
 const DECIMALES_TASA: usize = 4;
 const DECIMALES_TARIFA: usize = 5;
 
@@ -27,33 +29,11 @@ impl<'a> EntradaEconomicos<'a> {
                 .and_then(Value::as_str)
                 .map(str::trim)
                 .filter(|s| !s.is_empty()),
-            vida_anios: entero(args, "vida_anios")?,
-            tasa_descuento: numero(args, "tasa_descuento")?,
-            inflacion: numero(args, "inflacion")?,
-            tarifa_venta_kwh: numero(args, "tarifa_venta_kwh")?,
+            vida_anios: opt_u32(args, "vida_anios")?,
+            tasa_descuento: opt_f64(args, "tasa_descuento")?,
+            inflacion: opt_f64(args, "inflacion")?,
+            tarifa_venta_kwh: opt_f64(args, "tarifa_venta_kwh")?,
         })
-    }
-}
-
-fn numero(args: &Value, clave: &str) -> Result<Option<f64>> {
-    match args.get(clave) {
-        None | Some(Value::Null) => Ok(None),
-        Some(v) => v
-            .as_f64()
-            .filter(|n| n.is_finite())
-            .map(Some)
-            .ok_or_else(|| Error::Invalid(format!("'{clave}' debe ser un número finito"))),
-    }
-}
-
-fn entero(args: &Value, clave: &str) -> Result<Option<u32>> {
-    match args.get(clave) {
-        None | Some(Value::Null) => Ok(None),
-        Some(v) => v
-            .as_u64()
-            .and_then(|n| u32::try_from(n).ok())
-            .map(Some)
-            .ok_or_else(|| Error::Invalid(format!("'{clave}' debe ser un entero positivo"))),
     }
 }
 
@@ -70,7 +50,7 @@ fn rango(valor: Option<f64>, max: f64, clave: &str) -> Result<()> {
 }
 
 fn validar_moneda(moneda: &str) -> Result<()> {
-    if moneda.len() == 3 && moneda.chars().all(|c| c.is_ascii_uppercase()) {
+    if moneda.len() == LONGITUD_CODIGO_MONEDA && moneda.chars().all(|c| c.is_ascii_uppercase()) {
         return Ok(());
     }
     Err(Error::Invalid(format!(
@@ -111,8 +91,8 @@ impl ParametrosEconomicos {
                 )));
             }
         }
-        rango(entrada.tasa_descuento, 1.0, "tasa_descuento")?;
-        rango(entrada.inflacion, 1.0, "inflacion")?;
+        rango(entrada.tasa_descuento, MAX_TASA, "tasa_descuento")?;
+        rango(entrada.inflacion, MAX_TASA, "inflacion")?;
         rango(entrada.tarifa_venta_kwh, MAX_TARIFA_KWH, "tarifa_venta_kwh")?;
         Ok(Self {
             moneda: entrada.moneda.map(str::to_string),
