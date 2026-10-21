@@ -44,7 +44,7 @@ fn cobertura() -> Value {
         ],
         "gui_automation_note": "GUI-only features (3D shading editor, informative I/V & table tools, import wizards, dialogs) are covered by enumerating the real Win32/VCL windows and posting standard window messages. No PVsyst code is read or disassembled.",
         "areas": [
-            { "area": "Easy mode / end-to-end (LLM-friendly)", "tools": ["entorno", "disenar_sistema", "sitio crear", "resultados kpis"], "notes": "Intention-level tools that collapse many steps into one call; the LLM asks 'entorno' then 'disenar_sistema'." },
+            { "area": "Easy mode / end-to-end (LLM-friendly)", "tools": ["entorno", "disenar_sistema", "sitio crear", "resultados kpis"], "notes": "Intention-level tools that collapse many steps into one call; tipo_sistema:red|aislado selects the template and variant." },
             { "area": "Workspace", "tools": ["entorno diagnostico", "listar que:archivos", "leer", "escribir_archivo"] },
             { "area": "Projects & variants", "tools": ["listar que:proyectos", "leer", "proyecto crear", "proyecto eliminar", "proyecto renombrar", "proyecto crear_variante", "editar campos", "proyecto dimensionar"] },
             { "area": "Orientation / array sizing", "tools": ["editar campos", "proyecto dimensionar", "editar"] },
@@ -62,6 +62,14 @@ fn cobertura() -> Value {
             { "area": "Workspace management (create/export/import)", "tools": ["workspace crear", "workspace exportar", "workspace importar", "listar que:archivos"] },
             { "area": "Component & project import/export", "tools": ["componente importar", "componente exportar", "workspace exportar_proyecto"] },
             { "area": "Licensing / logs / version / help", "tools": ["entorno licencia", "entorno exportar_logs", "pvsyst_cli"] },
+            { "area": "Trackers (one-axis)", "tools": ["proyecto seguidor"], "notes": "Replaces pvOrient/pvShading from _DEMO_Tracking and preserves NoOrient; refuses 3D scenes and bifacial sheds." },
+            { "area": "Injection limit", "tools": ["proyecto limite_inyeccion"], "notes": "PLimGrid, LimGrSeparLoss and TanPhi in pvSystem." },
+            { "area": "Battery storage / self-consumption", "tools": ["proyecto almacenamiento", "proyecto limite_inyeccion"], "notes": "pvGridStorage with self-consumption or peak-shaving strategies." },
+            { "area": "Variant losses", "tools": ["proyecto perdidas"], "notes": "Soiling, thermal, LID and mismatch on pvMainArray/pvSubArray." },
+            { "area": "Pumping", "tools": ["proyecto bombeo"], "notes": "Pump file, static depth and the WaterUse section." },
+            { "area": "Economic evaluation (EconomicEval)", "tools": ["proyecto economia", "resultados economia"], "notes": "Updates every DiscountRate plus currency, life, inflation and feed-in tariff." },
+            { "area": "Measured vs simulated monthly energy", "tools": ["resultados medido_vs_simulado"], "notes": "Compares E_Grid from the PDF with a measured kWh array or CSV." },
+            { "area": "Stand-alone systems", "tools": ["disenar_sistema"], "notes": "tipo_sistema:aislado uses _DEMO_StandAlone.VC3 and optional battery counts." },
             { "area": "GUI-only authoring (3D shading editor, informative I/V & tables, wizards, dialogs)", "tools": ["gui_observar", "gui_actuar"], "notes": "Win32 UI automation; covers invocation/reading/capture of GUI-only functions." },
             { "area": "Any other PVsyst field", "tools": ["leer", "listar que:objetos", "editar"] }
         ]

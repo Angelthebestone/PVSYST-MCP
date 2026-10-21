@@ -186,4 +186,77 @@ pub(crate) static RECETAS: &[Receta] = &[
         argumentos: &[],
         plantilla: "Ejecuta entorno accion:diagnostico y explica cualquier problema de instalación, licencia o rutas.",
     },
+    Receta {
+        id: "convertir_a_seguidor",
+        nombre: "Convertir a seguidor de un eje",
+        cuando: "Se quiere pasar una variante de plano fijo a seguidor de un eje.",
+        tools: &["proyecto seguidor", "proyecto doctor", "simular ejecutar"],
+        ejemplo: None,
+        nota: Some("La variante debe tener una sola orientación y no usar escena 3D ni bifacial."),
+        argumentos: &[
+            ArgumentoReceta {
+                nombre: "proyecto",
+                descripcion: "Nombre del proyecto",
+                requerido: Requerido::Si,
+                defecto: "",
+            },
+            ArgumentoReceta {
+                nombre: "variante",
+                descripcion: "Variante del proyecto",
+                requerido: Requerido::No,
+                defecto: "VC0",
+            },
+        ],
+        plantilla: "Convierte {proyecto} variante {variante} a seguidor de un eje con proyecto accion:seguidor, ejecuta proyecto doctor y simula para comparar con la variante fija.",
+    },
+    Receta {
+        id: "autoconsumo_con_baterias",
+        nombre: "Autoconsumo con baterías",
+        cuando: "Se quiere añadir almacenamiento para autoconsumo o recorte de picos.",
+        tools: &[
+            "proyecto limite_inyeccion",
+            "proyecto almacenamiento",
+            "proyecto doctor",
+        ],
+        ejemplo: None,
+        nota: Some("Para recorte de picos define antes el límite de inyección con proyecto limite_inyeccion."),
+        argumentos: &[
+            ArgumentoReceta {
+                nombre: "proyecto",
+                descripcion: "Nombre del proyecto",
+                requerido: Requerido::Si,
+                defecto: "",
+            },
+            ArgumentoReceta {
+                nombre: "variante",
+                descripcion: "Variante del proyecto",
+                requerido: Requerido::No,
+                defecto: "VC0",
+            },
+        ],
+        plantilla: "Configura {proyecto} variante {variante} para autoconsumo con baterías: define el límite de inyección si vas a recortar picos, aplica proyecto accion:almacenamiento y revisa con proyecto doctor.",
+    },
+    Receta {
+        id: "comparar_medido",
+        nombre: "Comparar medido vs simulado",
+        cuando: "Hay una serie mensual medida y un informe PDF de PVsyst.",
+        tools: &["resultados medido_vs_simulado"],
+        ejemplo: None,
+        nota: Some("La serie medida puede ir como 12 valores kWh o como CSV 'mes;energia_kwh'."),
+        argumentos: &[
+            ArgumentoReceta {
+                nombre: "proyecto",
+                descripcion: "Nombre del proyecto",
+                requerido: Requerido::Si,
+                defecto: "",
+            },
+            ArgumentoReceta {
+                nombre: "variante",
+                descripcion: "Variante del proyecto",
+                requerido: Requerido::No,
+                defecto: "VC0",
+            },
+        ],
+        plantilla: "Compara la energía mensual medida de {proyecto} variante {variante} con la simulada usando resultados que:medido_vs_simulado; pásame la serie medida en kWh o un CSV y explica los meses fuera del umbral.",
+    },
 ];

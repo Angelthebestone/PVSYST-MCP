@@ -53,10 +53,28 @@ fn should_reject_unknown_prompt() {
 }
 
 #[test]
-fn should_keep_seven_recipes_available_as_resource_and_prompts() {
-    assert_eq!(como_recurso()["recetas"].as_array().map(Vec::len), Some(7));
+fn should_keep_ten_recipes_available_as_resource_and_prompts() {
+    assert_eq!(como_recurso()["recetas"].as_array().map(Vec::len), Some(10));
     assert_eq!(
         listar_prompts()["prompts"].as_array().map(Vec::len),
-        Some(7)
+        Some(10)
     );
+}
+
+#[test]
+fn should_expose_the_phase_three_recipes() {
+    let prompts = listar_prompts();
+    let ids: Vec<&str> = prompts["prompts"]
+        .as_array()
+        .expect("prompts")
+        .iter()
+        .filter_map(|prompt| prompt["name"].as_str())
+        .collect();
+    for id in [
+        "convertir_a_seguidor",
+        "autoconsumo_con_baterias",
+        "comparar_medido",
+    ] {
+        assert!(ids.contains(&id), "falta la receta {id}: {ids:?}");
+    }
 }

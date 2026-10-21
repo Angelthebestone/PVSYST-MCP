@@ -14,9 +14,9 @@ fn prompts_and_templates_lists_are_not_errors() {
 }
 
 #[test]
-fn prompts_list_exposes_the_seven_recipes() {
+fn prompts_list_exposes_the_ten_recipes() {
     let v = call(r#"{"jsonrpc":"2.0","id":4,"method":"prompts/list"}"#);
-    assert_eq!(v["result"]["prompts"].as_array().unwrap().len(), 7);
+    assert_eq!(v["result"]["prompts"].as_array().unwrap().len(), 10);
 }
 
 #[test]
@@ -40,11 +40,11 @@ fn prompts_get_without_a_required_argument_is_invalid_params() {
 }
 
 #[test]
-fn recipes_resource_still_lists_the_seven_recipes() {
+fn recipes_resource_still_lists_the_ten_recipes() {
     let v = call(
         r#"{"jsonrpc":"2.0","id":7,"method":"resources/read","params":{"uri":"pvsyst://recetas"}}"#,
     );
     let text = v["result"]["contents"][0]["text"].as_str().expect("text");
     let resource: Value = serde_json::from_str(text).expect("valid json");
-    assert_eq!(resource["recetas"].as_array().unwrap().len(), 7);
+    assert_eq!(resource["recetas"].as_array().unwrap().len(), 10);
 }
