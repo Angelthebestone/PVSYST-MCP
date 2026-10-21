@@ -7,6 +7,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-20
+
+### Added
+
+- **Trackers**: `proyecto accion:seguidor` converts a single-orientation variant
+  to one-axis tracking from the `_DEMO_Tracking` template, preserves `NoOrient`,
+  and refuses 3D shading scenes, bifacial sheds and multi-orientation variants.
+  `proyecto doctor` now checks tracker geometry.
+- **Injection limit**: `proyecto accion:limite_inyeccion` writes `PLimGrid`,
+  `LimGrSeparLoss` and optional `TanPhi`.
+- **Battery storage**: `proyecto accion:almacenamiento` configures
+  self-consumption or peak shaving in `pvGridStorage`, creates the storage
+  objects when missing, and reports every inserted object.
+- **Variant losses**: `proyecto accion:perdidas` writes soiling, thermal, LID and
+  mismatch losses on `pvMainArray`/`pvSubArray`; the new PVsyst soiling model is
+  rejected with an explicit message.
+- **Pumping**: `proyecto accion:bombeo` edits the pump file, static depth and the
+  `WaterUse` section.
+- **PVsyst economics**: `proyecto accion:economia` updates every `DiscountRate`
+  plus currency, project life, inflation and feed-in tariff in `EconomicEval`.
+- **Measured vs simulated**: `resultados que:medido_vs_simulado` compares monthly
+  `E_Grid` from the PDF with a measured kWh array or CSV and flags months over a
+  threshold.
+- **Stand-alone easy mode**: `disenar_sistema` accepts `tipo_sistema:aislado`,
+  uses `_DEMO_StandAlone.VC3`, and applies optional `n_baterias_serie` /
+  `n_baterias_paralelo` after sizing.
+- **Format primitives**: multi-object edits, object replacement and section
+  editing with duplicate-key, insertion, CRLF and missing-section coverage.
+- **Recipes and coverage**: three new prompts (`convertir_a_seguidor`,
+  `autoconsumo_con_baterias`, `comparar_medido`), ten prompts total, and the
+  coverage resource names every new action.
+- **Schema constraints**: enums for `estrategia`/`tipo_sistema`, a 12-item
+  `medido_kwh`, and battery-count minimums.
+
+### Changed
+
+- `format::seccion` treats deleting an absent field as `NotFound`, matching
+  `editar`.
+- Numeric argument readers are shared from `args`, and the new recipes share
+  their project/variant arguments.
+- The catalogue applier is a value-returning function
+  (`aplicar_elemento`/`ElementoAplicado`) reused by storage.
+
+### Fixed
+
+- Injection-limit and storage actions reject peak shaving without `PLimGrid`
+  before writing.
+- The pumping action no longer forces `FlowModul=Yearly` when only the static
+  depth changes.
+- Stand-alone sizing tolerates variant-derived generic modules that have no file,
+  while still rejecting explicit unreadable modules.
+- New direct fields are inserted at the object's direct level even when only
+  nested fields exist.
+- `mcpb/manifest.json` descriptions match the tool schemas.
+
+### Verification
+
+- `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test`,
+  `cargo +1.88-x86_64-pc-windows-gnu check --all-targets`, `cargo audit`,
+  `cargo deny check`, `npm test` and `npm audit --audit-level=high` pass.
+- The 14 demo-backed tests (trackers, injection, storage, losses, pumping,
+  economics and stand-alone) pass against PVsyst 8.1.7 demo data without
+  consuming a trial execution; GUI/network/real-simulation suites remain
+  `#[ignore]`.
+
 ## [0.2.0] - 2026-10-20
 
 ### Added
