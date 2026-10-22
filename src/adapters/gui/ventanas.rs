@@ -11,6 +11,9 @@ const TEXT_BUFFER_LEN: usize = 512;
 const CLASS_BUFFER_LEN: usize = 256;
 
 pub(crate) fn text_of(h: Hwnd) -> String {
+    if !ffi::es_ventana(h) {
+        return String::new();
+    }
     let mut buf = [0u16; TEXT_BUFFER_LEN];
     // SAFETY: `buf` es un array local y se pasa su longitud real; la API escribe como máximo `buf.len()` unidades.
     let n = unsafe { ffi::GetWindowTextW(h, buf.as_mut_ptr(), buf.len() as i32) };
@@ -19,6 +22,9 @@ pub(crate) fn text_of(h: Hwnd) -> String {
 }
 
 pub(crate) fn class_of(h: Hwnd) -> String {
+    if !ffi::es_ventana(h) {
+        return String::new();
+    }
     let mut buf = [0u16; CLASS_BUFFER_LEN];
     // SAFETY: `buf` es un array local y se pasa su longitud real; la API escribe como máximo `buf.len()` unidades.
     let n = unsafe { ffi::GetClassNameW(h, buf.as_mut_ptr(), buf.len() as i32) };

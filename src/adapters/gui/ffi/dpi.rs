@@ -1,6 +1,7 @@
 //! DPI awareness, monitor scaling and client coordinates.
 
 use super::puntos::Punto;
+use super::ventanas::es_ventana;
 use super::Hwnd;
 
 /// DPI at which Windows lays out an unscaled window.
@@ -31,6 +32,9 @@ extern "system" {
 
 /// Screen position of the client-area origin of `h`.
 pub(crate) fn origen_cliente(h: Hwnd) -> (i32, i32) {
+    if !es_ventana(h) {
+        return (0, 0);
+    }
     let mut p = Punto::default();
     // SAFETY: `p` es una estructura local en la pila con el layout exacto de POINT;
     // la API `ClientToScreen` únicamente escribe las coordenadas (x, y) en ella.
@@ -43,6 +47,9 @@ pub(crate) fn origen_cliente(h: Hwnd) -> (i32, i32) {
 /// Whether `h` belongs to a DPI-unaware process: Windows virtualises its
 /// coordinates and bitmaps to a 96-DPI layout.
 pub(crate) fn ventana_ignora_dpi(h: Hwnd) -> bool {
+    if !es_ventana(h) {
+        return false;
+    }
     // SAFETY: Consultas Win32 de solo lectura pasando el HWND validado;
     // devuelven contextos enteros por valor sin desreferenciar punteros.
     unsafe {
@@ -69,6 +76,9 @@ pub(crate) fn declarar_dpi_por_monitor() {
 /// window reports 96 for itself but is stretched to the monitor's scale, so its
 /// 96-DPI layout positions map to physical pixels by the monitor's DPI.
 pub(crate) fn dpi_de(h: Hwnd) -> u32 {
+    if !es_ventana(h) {
+        return DPI_BASE;
+    }
     let (mut x, mut y) = (0u32, 0u32);
     // SAFETY: `x` e `y` son enteros locales vivos en la pila donde la API escribe;
     // `MonitorFromWindow` devuelve un HMONITOR válido o 0 si no se encuentra.

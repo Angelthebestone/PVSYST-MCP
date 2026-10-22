@@ -2,7 +2,7 @@
 //! `#32768` window whose `HMENU` Windows hands out, which exposes the command
 //! id of every item without reading a single pixel.
 
-use super::ventanas::{send_message_res, Mensaje};
+use super::ventanas::{es_ventana, send_message_res, Mensaje};
 use super::Hwnd;
 
 /// `MN_GETHMENU`: asks a popup for its menu handle.
@@ -41,6 +41,9 @@ pub(crate) struct ItemMenu {
 
 /// Entries of the menu shown in `popup`; `None` when the popup has no menu.
 pub(crate) fn items_de_popup(popup: Hwnd) -> Option<Vec<ItemMenu>> {
+    if !es_ventana(popup) {
+        return None;
+    }
     let menu = send_message_res(popup, Mensaje::simple(MN_GETHMENU));
     if menu == 0 {
         return None;

@@ -2,7 +2,7 @@
 //! window at a point of its client area. Controls without a window of their
 //! own (VCL speed buttons, grid cells, tree nodes) are reached this way.
 
-use super::ventanas::{post_message, Mensaje, WM_LBUTTONDOWN, WM_LBUTTONUP};
+use super::ventanas::{es_ventana, post_message, Mensaje, WM_LBUTTONDOWN, WM_LBUTTONUP};
 use super::Hwnd;
 
 const WM_MOUSEMOVE: u32 = 0x0200;
@@ -28,6 +28,9 @@ extern "system" {
 /// `(x, y)` screen pixels as client pixels of `h`; `None` when Windows cannot
 /// convert (a destroyed window).
 pub(crate) fn a_cliente(h: Hwnd, (x, y): (i32, i32)) -> Option<(i32, i32)> {
+    if !es_ventana(h) {
+        return None;
+    }
     let mut p = Punto { x, y };
     // SAFETY: `p` es una estructura POINT local en la pila donde `ScreenToClient` escribe (x, y).
     let convertido = unsafe { ScreenToClient(h, &mut p) } != 0;

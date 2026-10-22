@@ -1,7 +1,7 @@
 //! Control-level Win32 calls: text in and out of edit controls, combo boxes,
 //! tab pages and keyboard navigation.
 
-use super::ventanas::{send_message, Mensaje};
+use super::ventanas::{es_ventana, send_message_timeout, Mensaje};
 use super::Hwnd;
 
 const WM_GETTEXT: u32 = 0x000D;
@@ -25,12 +25,22 @@ const CB_ERR: isize = -1;
 /// `CB_FINDSTRING` start index meaning "search the whole list".
 const DESDE_EL_PRINCIPIO: usize = usize::MAX;
 const TCM_SETCURFOCUS: u32 = 0x1330;
+const SMTO_ABORTIFHUNG: u32 = 0x0002;
+const TIMEOUT_MENSAJE_MS: u32 = 3000;
 /// Longest text read back from a PVsyst edit control.
 const LARGO_TEXTO: usize = 1024;
 
 #[link(name = "user32")]
 extern "system" {
-    fn SendMessageW(h: Hwnd, msg: u32, w: usize, l: isize) -> isize;
+    fn SendMessageTimeoutW(
+        h: Hwnd,
+        msg: u32,
+        w: usize,
+        l: isize,
+        flags: u32,
+        timeout: u32,
+        res: *mut isize,
+    ) -> isize;
     fn GetParent(h: Hwnd) -> Hwnd;
     fn GetDlgCtrlID(h: Hwnd) -> i32;
     fn GetWindowLongPtrW(h: Hwnd, indice: i32) -> isize;
@@ -38,34 +48,99 @@ extern "system" {
 
 /// Text of a control in another process (`WM_GETTEXT` is marshalled by Windows).
 pub(crate) fn texto_control(h: Hwnd) -> String {
+    if !es_ventana(h) {
+        return String::new();
+    }
     let mut buf = vec![0u16; LARGO_TEXTO];
+    let mut res = 0isize;
     // SAFETY: `buf` vive durante la llamada síncrona en este marco de pila y su longitud
-    // se pasa en `wparam`; `SendMessageW` no escribe más allá de `buf.len()` unidades.
-    let n = unsafe { SendMessageW(h, WM_GETTEXT, buf.len(), buf.as_mut_ptr() as isize) };
-    let n = usize::try_from(n).unwrap_or(0).min(buf.len());
+    // se pasa en `wparam`; `SendMessageTimeoutW` no escribe más allá de `buf.len()` unidades.
+    let ok = unsafe {
+        SendMessageTimeoutW(
+            h,
+            WM_GETTEXT,
+            buf.len(),
+            buf.as_mut_ptr() as isize,
+            SMTO_ABORTIFHUNG,
+            TIMEOUT_MENSAJE_MS,
+            &mut res,
+        )
+    };
+    if ok == 0 {
+        return String::new();
+    }
+    let n = usize::try_from(res).unwrap_or(0).min(buf.len());
     let slice = buf.get(..n).unwrap_or(&[]);
     String::from_utf16_lossy(slice)
 }
 
 /// Text of item `indice` of a combo box.
 fn texto_de_item(h: Hwnd, indice: usize) -> Option<String> {
-    // SAFETY: Consulta síncrona a un control COMBOBOX.
-    let largo = unsafe { SendMessageW(h, CB_GETLBTEXTLEN, indice, 0) };
-    let largo = usize::try_from(largo).ok()?;
+    if !es_ventana(h) {
+        return None;
+    }
+    let mut res_len = 0isize;
+    // SAFETY: Consulta síncrona a un control COMBOBOX validado con tiempo límite.
+    let ok_len = unsafe {
+        SendMessageTimeoutW(
+            h,
+            CB_GETLBTEXTLEN,
+            indice,
+            0,
+            SMTO_ABORTIFHUNG,
+            TIMEOUT_MENSAJE_MS,
+            &mut res_len,
+        )
+    };
+    if ok_len == 0 {
+        return None;
+    }
+    let largo = usize::try_from(res_len).ok()?;
     let mut buf = vec![0u16; largo + 1];
+    let mut res_txt = 0isize;
     // SAFETY: `buf` tiene capacidad para `largo + 1` caracteres UTF-16; la API escribe como máximo
     // la longitud reportada por `CB_GETLBTEXTLEN` más el terminador nulo.
-    let n = unsafe { SendMessageW(h, CB_GETLBTEXT, indice, buf.as_mut_ptr() as isize) };
-    let n = usize::try_from(n).ok()?.min(largo);
+    let ok_txt = unsafe {
+        SendMessageTimeoutW(
+            h,
+            CB_GETLBTEXT,
+            indice,
+            buf.as_mut_ptr() as isize,
+            SMTO_ABORTIFHUNG,
+            TIMEOUT_MENSAJE_MS,
+            &mut res_txt,
+        )
+    };
+    if ok_txt == 0 {
+        return None;
+    }
+    let n = usize::try_from(res_txt).ok()?.min(largo);
     let slice = buf.get(..n).unwrap_or(&[]);
     Some(String::from_utf16_lossy(slice))
 }
 
 /// Items of a combo box in order: what a user could pick. Complexity: O(items).
 pub(crate) fn opciones_de_combo(h: Hwnd) -> Vec<String> {
-    // SAFETY: Consulta síncrona pasando HWND.
-    let total = unsafe { SendMessageW(h, CB_GETCOUNT, 0, 0) };
-    (0..usize::try_from(total).unwrap_or(0))
+    if !es_ventana(h) {
+        return Vec::new();
+    }
+    let mut total_res = 0isize;
+    // SAFETY: Consulta síncrona pasando HWND validado; timeout previene bloqueos si la GUI cuelga.
+    let ok = unsafe {
+        SendMessageTimeoutW(
+            h,
+            CB_GETCOUNT,
+            0,
+            0,
+            SMTO_ABORTIFHUNG,
+            TIMEOUT_MENSAJE_MS,
+            &mut total_res,
+        )
+    };
+    if ok == 0 {
+        return Vec::new();
+    }
+    (0..usize::try_from(total_res).unwrap_or(0))
         .filter_map(|i| texto_de_item(h, i))
         .collect()
 }
@@ -73,15 +148,29 @@ pub(crate) fn opciones_de_combo(h: Hwnd) -> Vec<String> {
 /// Replaces the content of a focused edit control as if typed, so the owning
 /// form sees every change (VCL recalculates on each keystroke).
 pub(crate) fn teclear_en(h: Hwnd, texto: &str) {
-    send_message(h, Mensaje::nuevo(EM_SETSEL, 0, -1));
+    if !es_ventana(h) {
+        return;
+    }
+    send_message_timeout(h, Mensaje::nuevo(EM_SETSEL, 0, -1), TIMEOUT_MENSAJE_MS);
     for unidad in texto.encode_utf16() {
-        send_message(h, Mensaje::nuevo(WM_CHAR, usize::from(unidad), 0));
+        send_message_timeout(
+            h,
+            Mensaje::nuevo(WM_CHAR, usize::from(unidad), 0),
+            TIMEOUT_MENSAJE_MS,
+        );
     }
 }
 
 /// Shows tab page `indice` of a page control.
 pub(crate) fn mostrar_pagina(h: Hwnd, indice: usize) {
-    send_message(h, Mensaje::nuevo(TCM_SETCURFOCUS, indice, 0));
+    if !es_ventana(h) {
+        return;
+    }
+    send_message_timeout(
+        h,
+        Mensaje::nuevo(TCM_SETCURFOCUS, indice, 0),
+        TIMEOUT_MENSAJE_MS,
+    );
 }
 
 /// Window messages of a list control: find an item, select it.
@@ -101,50 +190,71 @@ const LISTA: MensajesLista = MensajesLista {
 
 /// Whether the list box `h` keeps several items selected at once.
 fn es_multiseleccion(h: Hwnd) -> bool {
-    // SAFETY: Consulta de solo lectura del estilo de un HWND; devuelve un entero.
+    if !es_ventana(h) {
+        return false;
+    }
+    // SAFETY: Consulta de solo lectura del estilo de un HWND validado; devuelve un entero.
     unsafe { GetWindowLongPtrW(h, GWL_STYLE) & ESTILO_MULTISELECCION != 0 }
 }
 
 /// Makes item `indice` the selection. In a multi-select list `LB_SETCURSEL` is
 /// ignored, so the previous selection is cleared and the item set explicitly.
 fn marcar_indice(h: Hwnd, mensajes: &MensajesLista, indice: usize) {
+    if !es_ventana(h) {
+        return;
+    }
     if mensajes.elegir == LB_SETCURSEL && es_multiseleccion(h) {
-        send_message(h, Mensaje::nuevo(LB_SETSEL, 0, -1));
-        send_message(
+        send_message_timeout(h, Mensaje::nuevo(LB_SETSEL, 0, -1), TIMEOUT_MENSAJE_MS);
+        send_message_timeout(
             h,
             Mensaje::nuevo(LB_SETSEL, 1, isize::try_from(indice).unwrap_or(0)),
+            TIMEOUT_MENSAJE_MS,
         );
         return;
     }
-    send_message(h, Mensaje::nuevo(mensajes.elegir, indice, 0));
+    send_message_timeout(
+        h,
+        Mensaje::nuevo(mensajes.elegir, indice, 0),
+        TIMEOUT_MENSAJE_MS,
+    );
 }
 
 fn elegir_item(h: Hwnd, mensajes: &MensajesLista, prefijo: &str) -> bool {
+    if !es_ventana(h) {
+        return false;
+    }
     let texto: Vec<u16> = prefijo.encode_utf16().chain(std::iter::once(0)).collect();
+    let mut indice_res = 0isize;
     // SAFETY: `texto` es una cadena UTF-16 terminada en nulo viva durante la llamada;
-    // Windows la serializa entre procesos de forma síncrona.
-    let indice = unsafe {
-        SendMessageW(
+    // Windows la serializa entre procesos de forma síncrona con tiempo límite.
+    let ok = unsafe {
+        SendMessageTimeoutW(
             h,
             mensajes.buscar,
             DESDE_EL_PRINCIPIO,
             texto.as_ptr() as isize,
+            SMTO_ABORTIFHUNG,
+            TIMEOUT_MENSAJE_MS,
+            &mut indice_res,
         )
     };
-    if indice == CB_ERR {
+    if ok == 0 || indice_res == CB_ERR {
         return false;
     }
-    marcar_indice(h, mensajes, usize::try_from(indice).unwrap_or(0));
-    // SAFETY: Llamadas auxiliares sobre ventanas; enteros por valor.
+    marcar_indice(h, mensajes, usize::try_from(indice_res).unwrap_or(0));
+    // SAFETY: Llamadas auxiliares sobre ventanas validadas; enteros por valor.
     let (padre, id) = unsafe {
         let padre = GetParent(h);
         let id = usize::try_from(GetDlgCtrlID(h)).unwrap_or(0) & 0xFFFF;
         (padre, id)
     };
-    send_message(
-        padre,
-        Mensaje::nuevo(WM_COMMAND, (CBN_SELCHANGE << 16) | id, h),
-    );
+    if es_ventana(padre) {
+        send_message_timeout(
+            padre,
+            Mensaje::nuevo(WM_COMMAND, (CBN_SELCHANGE << 16) | id, h),
+            TIMEOUT_MENSAJE_MS,
+        );
+    }
     true
 }
 

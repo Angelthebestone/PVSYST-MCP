@@ -14,6 +14,9 @@ struct RecursosGdi {
 }
 
 fn crear_recursos(h: Hwnd, (w, hgt): (i32, i32)) -> Result<RecursosGdi> {
+    if !ffi::es_ventana(h) {
+        return Err(Error::Gui(format!("Window handle 0x{h:X} is not valid")));
+    }
     // SAFETY: Handles comprobados tras cada llamada; toda salida de error libera lo ya creado.
     unsafe {
         let win_dc = ffi::GetDC(h);
