@@ -23,7 +23,8 @@ pub(crate) fn parse_escena_3d(bytes: &[u8], tipo: TipoArchivoEscena) -> Result<E
         return Err(Error::Invalid("Cabecera 3D insuficiente".into()));
     }
 
-    let (clase_raiz, descripcion) = parsear_linea_ident(lineas[0]);
+    let primera = lineas.first().copied().unwrap_or_default();
+    let (clase_raiz, descripcion) = parsear_linea_ident(primera);
     let clase_esperada = match tipo {
         TipoArchivoEscena::Shd => "pvShading",
         TipoArchivoEscena::Bld => "pvShdBuilding",
@@ -35,7 +36,8 @@ pub(crate) fn parse_escena_3d(bytes: &[u8], tipo: TipoArchivoEscena) -> Result<E
             tipo
         )));
     }
-    let (version, calcul) = parsear_linea_version_raiz(lineas[1])?;
+    let segunda = lineas.get(1).copied().unwrap_or_default();
+    let (version, calcul) = parsear_linea_version_raiz(segunda)?;
     let objetos = parsear_objetos_escena(&lineas)?;
     Escena3d::nueva(DatosEscena3d {
         tipo,
@@ -49,13 +51,17 @@ pub(crate) fn parse_escena_3d(bytes: &[u8], tipo: TipoArchivoEscena) -> Result<E
 
 fn parsear_objetos_escena(lineas: &[&[u8]]) -> Result<Vec<ObjetoEscena3d>> {
     let mut idx = 2;
-    while idx < lineas.len() && !es_inicio_objeto(lineas[idx]) {
+    while idx < lineas.len() {
+        let Some(linea) = lineas.get(idx) else { break };
+        if es_inicio_objeto(linea) {
+            break;
+        }
         idx += 1;
     }
 
     let mut objetos = Vec::new();
     while idx < lineas.len() {
-        if es_inicio_objeto(lineas[idx]) {
+        if lineas.get(idx).is_some_and(|l| es_inicio_objeto(l)) {
             let (obj, prox_idx) = parsear_objeto_3d(lineas, idx)?;
             objetos.push(obj);
             idx = prox_idx;
@@ -68,19 +74,18 @@ fn parsear_objetos_escena(lineas: &[&[u8]]) -> Result<Vec<ObjetoEscena3d>> {
 
 fn dividir_por_crlf(bytes: &[u8]) -> Vec<&[u8]> {
     let mut lineas = Vec::new();
-    let mut inicio = 0;
-    let mut i = 0;
-    while i + 1 < bytes.len() {
-        if bytes[i] == b'\r' && bytes[i + 1] == b'\n' {
-            lineas.push(&bytes[inicio..i]);
-            inicio = i + 2;
-            i += 2;
-        } else {
-            i += 1;
-        }
+    let mut rest = bytes;
+    while let Some(pos) = rest.windows(2).position(|w| w == b"\r\n") {
+        let Some(linea) = rest.get(..pos) else { break };
+        lineas.push(linea);
+        let Some(siguiente) = rest.get(pos + 2..) else {
+            rest = &[];
+            break;
+        };
+        rest = siguiente;
     }
-    if inicio < bytes.len() {
-        lineas.push(&bytes[inicio..]);
+    if !rest.is_empty() {
+        lineas.push(rest);
     }
     lineas
 }
@@ -133,22 +138,27 @@ fn es_inicio_objeto(linea: &[u8]) -> bool {
 }
 
 fn parsear_objeto_3d(lineas: &[&[u8]], inicio: usize) -> Result<(ObjetoEscena3d, usize)> {
-    let (clase, nombre) = parsear_linea_ident(lineas[inicio]);
+    let linea_ini = lineas.get(inicio).copied().unwrap_or_default();
+    let (clase, nombre) = parsear_linea_ident(linea_ini);
     let mut version = "4.0".to_string();
     let mut calcul = "$0000".to_string();
     let mut curr = inicio + 1;
 
-    if curr < lineas.len() && lineas[curr].starts_with(b"Version ") {
-        let (v, c) = parsear_linea_version(lineas[curr]);
-        version = v;
-        calcul = c;
-        curr += 1;
+    if let Some(linea) = lineas.get(curr).copied() {
+        if linea.starts_with(b"Version ") {
+            let (v, c) = parsear_linea_version(linea);
+            version = v;
+            calcul = c;
+            curr += 1;
+        }
     }
 
     let mut cuenta_linea = None;
-    if curr < lineas.len() && es_linea_conteo(lineas[curr]) {
-        cuenta_linea = Some(decodificar_texto_flexible(lineas[curr]));
-        curr += 1;
+    if let Some(linea) = lineas.get(curr).copied() {
+        if es_linea_conteo(linea) {
+            cuenta_linea = Some(decodificar_texto_flexible(linea));
+            curr += 1;
+        }
     }
 
     let (posicion, geometria, prox_idx) = extraer_bloques_objeto(lineas, curr);
@@ -171,10 +181,12 @@ fn extraer_bloques_objeto(
     let mut posicion = None;
     let mut geometria = None;
     while curr < lineas.len() {
-        if es_inicio_objeto(lineas[curr]) {
+        let Some(&raw) = lineas.get(curr) else {
+            break;
+        };
+        if es_inicio_objeto(raw) {
             break;
         }
-        let raw = lineas[curr];
         if raw.len() == LONGITUD_BLOQUE_POSICION
             && raw.last() == Some(&TERMINADOR_SLASH)
             && posicion.is_none()

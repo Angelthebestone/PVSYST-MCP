@@ -48,29 +48,34 @@ pub(crate) fn leer_escena(paths: &Paths, args: &Value) -> Result<Value> {
 }
 
 fn objeto_a_json(obj: &ObjetoEscena3d) -> Value {
-    let mut val = json!({
-        "clase": obj.clase(),
-        "nombre": obj.nombre(),
-        "version": obj.version(),
-        "calcul": obj.calcul()
-    });
+    let mut map = serde_json::Map::new();
+    map.insert("clase".to_string(), json!(obj.clase()));
+    map.insert("nombre".to_string(), json!(obj.nombre()));
+    map.insert("version".to_string(), json!(obj.version()));
+    map.insert("calcul".to_string(), json!(obj.calcul()));
     if let Some(conteo) = obj.cuenta_linea() {
-        val["cuenta_linea"] = json!(conteo);
+        map.insert("cuenta_linea".to_string(), json!(conteo));
     }
     if let Some(pos) = obj.posicion() {
-        val["posicion"] = json!({
-            "x": pos.x,
-            "y": pos.y,
-            "z": pos.z,
-            "rotacion_azimut": pos.rotacion_azimut,
-            "rotacion_inclinacion": pos.rotacion_inclinacion
-        });
+        map.insert(
+            "posicion".to_string(),
+            json!({
+                "x": pos.x,
+                "y": pos.y,
+                "z": pos.z,
+                "rotacion_azimut": pos.rotacion_azimut,
+                "rotacion_inclinacion": pos.rotacion_inclinacion
+            }),
+        );
     }
     if let Some(geo) = obj.geometria() {
-        val["geometria"] = json!({
-            "forma": geo.forma.nombre(),
-            "dimensiones": geo.dimensiones
-        });
+        map.insert(
+            "geometria".to_string(),
+            json!({
+                "forma": geo.forma.nombre(),
+                "dimensiones": geo.dimensiones
+            }),
+        );
     }
-    val
+    Value::Object(map)
 }

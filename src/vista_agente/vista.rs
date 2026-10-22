@@ -12,40 +12,26 @@ use crate::args::{flag, opt_str};
 use crate::error::Result;
 use serde_json::{json, Value};
 
-fn tipo_json(tipo: TipoValor) -> Value {
-    match tipo {
-        TipoValor::Numero { minimo, maximo } => {
-            json!({"tipo": "numero", "minimo": minimo, "maximo": maximo})
-        }
-        TipoValor::Entero { minimo, maximo } => {
-            json!({"tipo": "entero", "minimo": minimo, "maximo": maximo})
-        }
-        TipoValor::Texto => json!({"tipo": "texto"}),
-        TipoValor::Lista => json!({"tipo": "lista"}),
-    }
-}
-
 fn campo_json(campo: &CampoEsquema, vivo: Option<&CampoVivo>) -> Value {
-    let mut v = json!({
-        "clave": campo.clave,
-        "etiqueta": campo.etiqueta,
-        "unidad": campo.unidad,
-        "clave_archivo": campo.clave_archivo,
-        "editable": campo.es_editable(),
-        "tipo": tipo_json(campo.tipo)["tipo"],
-    });
+    let mut map = serde_json::Map::new();
+    map.insert("clave".into(), json!(campo.clave));
+    map.insert("etiqueta".into(), json!(campo.etiqueta));
+    map.insert("unidad".into(), json!(campo.unidad));
+    map.insert("clave_archivo".into(), json!(campo.clave_archivo));
+    map.insert("editable".into(), json!(campo.es_editable()));
+    map.insert("tipo".into(), json!(campo.tipo.nombre()));
     let Some(vivo) = vivo else {
-        v["presente"] = json!(false);
-        return v;
+        map.insert("presente".into(), json!(false));
+        return Value::Object(map);
     };
-    v["presente"] = json!(true);
-    v["valor"] = json!(vivo.texto);
-    v["habilitado"] = json!(vivo.habilitado);
-    v["valido"] = json!(es_valido(campo, &vivo.texto));
+    map.insert("presente".into(), json!(true));
+    map.insert("valor".into(), json!(vivo.texto));
+    map.insert("habilitado".into(), json!(vivo.habilitado));
+    map.insert("valido".into(), json!(es_valido(campo, &vivo.texto)));
     if campo.tipo == TipoValor::Lista {
-        v["opciones"] = json!(ffi::opciones_de_combo(vivo.hwnd));
+        map.insert("opciones".into(), json!(ffi::opciones_de_combo(vivo.hwnd)));
     }
-    v
+    Value::Object(map)
 }
 
 fn sin_mapear(ent: &Entidad, vivos: &[CampoVivo]) -> Vec<Value> {
@@ -99,23 +85,27 @@ pub(crate) fn vista(paths: &crate::config::Paths, args: &Value) -> Result<Value>
         .collect();
     let presentes = campos
         .iter()
-        .filter(|c| c["presente"] == json!(true))
+        .filter(|c| c.get("presente").and_then(Value::as_bool).unwrap_or(false))
         .count();
-    let mut v = json!({
-        "entidad": ent.clave,
-        "ventana": format!("0x{h:X}"),
-        "titulo": text_of(h),
-        "campos": campos,
-        "sin_mapear": sin_mapear(ent, &vivos),
-    });
+    let mut map = serde_json::Map::new();
+    map.insert("entidad".into(), json!(ent.clave));
+    map.insert("ventana".into(), json!(format!("0x{h:X}")));
+    map.insert("titulo".into(), json!(text_of(h)));
+    map.insert("campos".into(), json!(campos));
+    map.insert("sin_mapear".into(), json!(sin_mapear(ent, &vivos)));
     if presentes == 0 {
-        v["aviso"] = json!("la ventana no muestra los campos del esquema: hay otra pestaña activa");
+        map.insert(
+            "aviso".into(),
+            json!("la ventana no muestra los campos del esquema: hay otra pestaña activa"),
+        );
     }
     if flag(args, &["ocr"]) {
         let ficha = ocr::formulario(paths, &json!({"ventana": format!("0x{h:X}")}))?;
-        v["textos"] = ficha["textos"].clone();
+        if let Some(textos) = ficha.get("textos") {
+            map.insert("textos".into(), textos.clone());
+        }
     }
-    Ok(v)
+    Ok(Value::Object(map))
 }
 
 /// `gui_observar que:esquema`: every entity and its fields.

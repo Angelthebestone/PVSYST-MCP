@@ -3,12 +3,13 @@
 
 use super::dominio::{buscar, pedido_de_menu, Acceso, Efecto, Funcion, PedidoMenu};
 use super::entradas::funciones;
+use super::espera::{esperar_nuevas, Resultado, SolicitudEspera};
 use crate::adapters::gui::acciones::clic_por_mensajes;
 use crate::adapters::gui::conduccion::Formulario;
 use crate::adapters::gui::ffi::{self, Hwnd, WM_COMMAND};
 use crate::adapters::gui::menu_por_posicion::{contar_menus, id_en_posicion, Posicion};
 use crate::adapters::gui::ventanas::{
-    class_of, hijo_visible_con_texto, hwnd_de, text_of, ventanas_de, visible, window_json,
+    class_of, hijo_visible_con_texto, hwnd_de, text_of, ventanas_de, visible,
 };
 use crate::args::req_str;
 use crate::error::{Error, Result};
@@ -57,12 +58,20 @@ fn abrir_funcion(args: &Value, funcion: &Funcion) -> Result<Value> {
     // Nothing is left to watch once PVsyst itself is closing.
     let visto = match funcion.efecto {
         Efecto::Cierra => Resultado::vacio(),
-        _ => esperar_nuevas(args, &antes, funcion.abre)?,
+        _ => esperar_nuevas(
+            SolicitudEspera {
+                antes: &antes,
+                esperada: funcion.abre,
+                limite: espera_pedida(args),
+            },
+            || visibles(args),
+        )?,
     };
+    let efecto_json = funcion.efecto.nombre();
     Ok(json!({
         "funcion": funcion.clave,
         "etiqueta": funcion.etiqueta,
-        "efecto": funcion.a_json()["efecto"],
+        "efecto": efecto_json,
         "ventanas_nuevas": visto.nuevas_json(),
         "ya_abiertas": visto.ya_abiertas_json(),
         "nota": funcion.nota,
@@ -91,7 +100,14 @@ pub(crate) fn menu(args: &Value) -> Result<Value> {
     let id = id_de_pedido(anfitrion, pedido)?;
     let antes = visibles(args)?;
     enviar_comando(anfitrion, id)?;
-    let visto = esperar_nuevas(args, &antes, None)?;
+    let visto = esperar_nuevas(
+        SolicitudEspera {
+            antes: &antes,
+            esperada: None,
+            limite: espera_pedida(args),
+        },
+        || visibles(args),
+    )?;
     Ok(json!({
         "id": id,
         "ventanas_nuevas": visto.nuevas_json(),
@@ -230,77 +246,4 @@ fn espera_pedida(args: &Value) -> Duration {
         .and_then(Value::as_u64)
         .unwrap_or(ESPERA_POR_DEFECTO_MS);
     Duration::from_millis(ms.min(ESPERA_MAXIMA_MS))
-}
-
-/// Windows that appeared since `antes`.
-fn ventanas_nuevas(ahora: &[Hwnd], antes: &[Hwnd]) -> Vec<Hwnd> {
-    ahora
-        .iter()
-        .copied()
-        .filter(|h| !antes.contains(h))
-        .collect()
-}
-
-/// Windows of class `clase` among `ventanas`.
-fn de_clase(ventanas: &[Hwnd], clase: &str) -> Vec<Hwnd> {
-    ventanas
-        .iter()
-        .copied()
-        .filter(|h| class_of(*h) == clase)
-        .collect()
-}
-
-/// What an invocation showed.
-struct Resultado {
-    nuevas: Vec<Hwnd>,
-    /// Windows of the expected class that were already open: the command may
-    /// have only raised them.
-    ya_abiertas: Vec<Hwnd>,
-}
-
-impl Resultado {
-    fn vacio() -> Self {
-        Self {
-            nuevas: Vec::new(),
-            ya_abiertas: Vec::new(),
-        }
-    }
-
-    fn nuevas_json(&self) -> Vec<Value> {
-        self.nuevas.iter().map(|h| window_json(*h)).collect()
-    }
-
-    fn ya_abiertas_json(&self) -> Vec<Value> {
-        self.ya_abiertas.iter().map(|h| window_json(*h)).collect()
-    }
-}
-
-/// Waits for a window that was not there before (of class `esperada` when one
-/// is expected). Returns an empty list on timeout: some items open nothing. A
-/// PVsyst that went away meanwhile (the command closed it) ends the wait.
-fn esperar_nuevas(args: &Value, antes: &[Hwnd], esperada: Option<&str>) -> Result<Resultado> {
-    let fin = Instant::now() + espera_pedida(args);
-    loop {
-        let Ok(ahora) = visibles(args) else {
-            return Ok(Resultado::vacio());
-        };
-        let nuevas = ventanas_nuevas(&ahora, antes);
-        let llegada = match esperada {
-            Some(clase) => !de_clase(&nuevas, clase).is_empty(),
-            None => !nuevas.is_empty(),
-        };
-        if llegada || Instant::now() >= fin {
-            let ya_abiertas = esperada.map_or_else(Vec::new, |c| {
-                de_clase(antes, c)
-                    .into_iter()
-                    .filter(|h| ahora.contains(h))
-                    .collect()
-            });
-            return Ok(Resultado {
-                nuevas,
-                ya_abiertas,
-            });
-        }
-        std::thread::sleep(SONDEO);
-    }
 }

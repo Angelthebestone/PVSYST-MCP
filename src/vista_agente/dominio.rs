@@ -21,6 +21,17 @@ pub(crate) enum TipoValor {
     Lista,
 }
 
+impl TipoValor {
+    pub(crate) const fn nombre(&self) -> &'static str {
+        match self {
+            Self::Numero { .. } => "numero",
+            Self::Entero { .. } => "entero",
+            Self::Texto => "texto",
+            Self::Lista => "lista",
+        }
+    }
+}
+
 /// Whether the agent may change the field.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Acceso {
@@ -61,32 +72,27 @@ impl CampoEsquema {
         Self::base(clave, etiqueta, ancla)
     }
 
-    pub(crate) const fn numero(
-        clave: &'static str,
-        etiqueta: &'static str,
-        ancla: Ancla,
-        rango: (f64, f64),
-    ) -> Self {
+    pub(crate) const fn numero(clave: &'static str, etiqueta: &'static str, ancla: Ancla) -> Self {
+        Self::base(clave, etiqueta, ancla)
+    }
+
+    pub(crate) const fn con_rango(mut self, minimo: f64, maximo: f64) -> Self {
+        self.tipo = TipoValor::Numero { minimo, maximo };
+        self
+    }
+
+    pub(crate) const fn entero(clave: &'static str, etiqueta: &'static str, ancla: Ancla) -> Self {
         let mut c = Self::base(clave, etiqueta, ancla);
-        c.tipo = TipoValor::Numero {
-            minimo: rango.0,
-            maximo: rango.1,
+        c.tipo = TipoValor::Entero {
+            minimo: i64::MIN,
+            maximo: i64::MAX,
         };
         c
     }
 
-    pub(crate) const fn entero(
-        clave: &'static str,
-        etiqueta: &'static str,
-        ancla: Ancla,
-        rango: (i64, i64),
-    ) -> Self {
-        let mut c = Self::base(clave, etiqueta, ancla);
-        c.tipo = TipoValor::Entero {
-            minimo: rango.0,
-            maximo: rango.1,
-        };
-        c
+    pub(crate) const fn con_rango_entero(mut self, minimo: i64, maximo: i64) -> Self {
+        self.tipo = TipoValor::Entero { minimo, maximo };
+        self
     }
 
     pub(crate) const fn lista(clave: &'static str, etiqueta: &'static str, ancla: Ancla) -> Self {
