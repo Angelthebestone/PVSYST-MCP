@@ -1,4 +1,3 @@
-use super::caso::pais_simulado;
 use super::comparacion::excluida;
 use super::incertidumbre::{coef_variacion, incertidumbre};
 
@@ -15,16 +14,6 @@ fn p90_and_p99_use_combined_sigma() {
     let v = incertidumbre(1000.0, 5.0, 3.0, "defecto");
     assert!((v["p90_kwh"].as_f64().unwrap() - 925.3).abs() < 0.5);
     assert!((v["p99_kwh"].as_f64().unwrap() - 864.4).abs() < 0.5);
-}
-
-#[test]
-fn simulated_country_comes_from_results_csv() {
-    let csv = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/tests/fixtures/results/MCP_E2E.csv"
-    ));
-    assert_eq!(pais_simulado(csv).as_deref(), Some("Colombia"));
-    assert_eq!(pais_simulado("Project;X;\n"), None);
 }
 
 #[test]

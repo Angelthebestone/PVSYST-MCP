@@ -51,19 +51,6 @@ pub(crate) fn leer_sitio(workspace: &Path, proyecto: &str) -> Result<Sitio> {
     })
 }
 
-/// Country PVsyst writes in the `Geographical Site;<file>;<date>;<name>;<country>;…` line.
-#[allow(dead_code)]
-pub(crate) fn pais_simulado(texto: &str) -> Option<String> {
-    texto
-        .lines()
-        .map(|l| l.trim_start_matches('\u{feff}'))
-        .find(|l| l.starts_with("Geographical Site;"))?
-        .split(';')
-        .nth(4)
-        .map(|p| p.trim().to_string())
-        .filter(|p| !p.is_empty())
-}
-
 pub(crate) fn round1(x: f64) -> f64 {
     crate::format::redondear(x, 1)
 }

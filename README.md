@@ -504,8 +504,8 @@ and your subscription contract. How this project positions itself against them:
   give any connected client real filesystem reach.
 * **GUI automation stays on the workstation.** PVsyst 8 must not be used on a server or
   operated through a Windows Remote Desktop client; `PVsystCLI` explicitly may. That maps
-  to this project's surface: the CLI-based tools are fine on a server, the expert-mode
-  `gui_observar` / `gui_actuar` tools are not.
+  to this project's surface: the CLI-based tools are fine on a server, the GUI tools
+  `gui_observar` / `gui_actuar` are not.
 * **Never touch the clock.** Licences depend on the machine's date and time never having
   been amended; nothing in this project reads or changes it.
 * **No Meteonorm data leaves PVsyst.** The GCU prohibits exporting Meteonorm data to

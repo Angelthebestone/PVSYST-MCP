@@ -9,8 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Evitar pánico por dimensiones nulas en recorte de captura RGB.** `recortar_rgb` entraba en pánico con `clamp: min > max` cuando `ancho` o `alto` eran 0, y podía desbordar al indexar si el búfer de píxeles estaba truncado. Ahora valida dimensiones no positivas retornando una imagen vacía y asegura los rangos con `.get()`.
-- **Limitar llamadas FFI SendMessage con timeout y validar HWND antes de usarlos.** Las llamadas a `SendMessageW` podían bloquearse indefinidamente si la GUI de PVsyst dejaba de responder o no procesaba su bucle de mensajes. Se migraron a `SendMessageTimeoutW` con un límite de 3000 ms y bandera `SMTO_ABORTIFHUNG`. Además, se añadieron validaciones de `HWND` (`IsWindow`) para evitar operaciones sobre identificadores de ventana nulos o destruidos.
+- **GUI capture crop no longer panics on a zero-sized window.** `recortar_rgb`
+  called `clamp(0, ancho - 1)` with `ancho == 0` (`min > max` panics).
+- **GUI messages can no longer hang the server.** `SendMessageW` waited without
+  limit when PVsyst stopped pumping messages; every synchronous message now uses
+  `SendMessageTimeoutW` (3 s, `SMTO_ABORTIFHUNG`) and window handles are checked
+  with `IsWindow` before use.
+- **Creating a site in another workspace no longer writes into the default one.**
+  `sitio crear` by coordinates and `disenar_sistema` dropped the `workspace`
+  argument on the inner call, so the ledger cost and `UserData/mcp_cache/` went to
+  `PVsyst8.1_Data` (the `MCP_*_Site_Monthly.csv` files left behind by tests).
+- **Tests no longer reach the installed PVsyst.** The integration-test client left
+  `PVSYST_GUI`/`PVSYST_CLI` unset, so the server under test resolved the real
+  executables in `C:\Program Files\PVsyst8.1.7`. They now point to missing paths;
+  live `#[ignore]` tests opt in with `Client::start_instalacion_real`.
 
 ### Changed
 

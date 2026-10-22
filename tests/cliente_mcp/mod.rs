@@ -28,6 +28,9 @@ pub const DEMO_WS: &str = r"C:\Program Files\PVsyst8.1.7\DataRO\PVsyst8.1_Data";
 pub fn protocol_server() -> Server {
     let mut paths = Paths::resolve();
     paths.aproximaciones = false;
+    let temp = std::env::temp_dir().join("mcp_test_protocol_ws");
+    let _ = std::fs::create_dir_all(&temp);
+    paths.workspace = temp;
     Server::new(paths)
 }
 
@@ -41,6 +44,7 @@ pub struct Client {
     stdin: ChildStdin,
     reader: BufReader<ChildStdout>,
     child: Child,
+    _temp_ws: Option<tempfile::TempDir>,
 }
 
 impl Client {
@@ -56,9 +60,21 @@ impl Client {
         // Pin the default surface: a developer shell that exports this must
         // not change what the "default" tests see.
         cmd.env_remove("PVSYST_MCP_APROXIMACIONES");
-        if let Some(w) = workspace {
-            cmd.env("PVSYST_WORKSPACE", w);
-        }
+        let (ws_str, temp_ws) = match workspace {
+            Some(w) => (w.to_string(), None),
+            None => {
+                let tmp = tempfile::tempdir().expect("temp dir for test client");
+                (tmp.path().to_string_lossy().to_string(), Some(tmp))
+            }
+        };
+        cmd.env("PVSYST_WORKSPACE", &ws_str);
+        // By default, shield tests from the workstation's real PVsyst installation (§4b.8):
+        // PVSYST_GUI and PVSYST_CLI point to non-existent executables unless explicitly overridden.
+        let default_gui = Path::new(&ws_str).join("nonexistent_pvsyst_gui.exe");
+        let default_cli = Path::new(&ws_str).join("nonexistent_pvsyst_cli.exe");
+        cmd.env("PVSYST_GUI", default_gui);
+        cmd.env("PVSYST_CLI", default_cli);
+        cmd.env("PVSYST_DATARO", r"C:\Program Files\PVsyst8.1.7\DataRO");
         for (k, v) in env {
             cmd.env(k, v);
         }
@@ -74,6 +90,34 @@ impl Client {
             stdin,
             reader: BufReader::new(stdout),
             child,
+            _temp_ws: temp_ws,
+        }
+    }
+
+    /// Starts the client with access to the real workstation PVsyst installation
+    /// (only for tests explicitly marked #[ignore]).
+    pub fn start_instalacion_real(workspace: Option<&str>) -> Client {
+        let exe = env!("CARGO_BIN_EXE_pvsyst-mcp");
+        let mut cmd = Command::new(exe);
+        cmd.env_remove("PVSYST_MCP_APROXIMACIONES");
+        cmd.env_remove("PVSYST_GUI");
+        cmd.env_remove("PVSYST_CLI");
+        if let Some(w) = workspace {
+            cmd.env("PVSYST_WORKSPACE", w);
+        }
+        let mut child = cmd
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .spawn()
+            .expect("spawn pvsyst-mcp");
+        let stdin = child.stdin.take().unwrap();
+        let stdout = child.stdout.take().unwrap();
+        Client {
+            stdin,
+            reader: BufReader::new(stdout),
+            child,
+            _temp_ws: None,
         }
     }
 

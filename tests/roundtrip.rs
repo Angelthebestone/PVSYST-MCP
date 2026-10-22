@@ -12,9 +12,9 @@
     unreachable_pub
 )]
 
-mod common;
+mod cliente_mcp;
 
-use common::{tool_text, Client, DEMO_WS};
+use cliente_mcp::{tool_text, Client, DEMO_WS};
 use serde_json::json;
 use std::fs;
 use std::path::{Path, PathBuf};

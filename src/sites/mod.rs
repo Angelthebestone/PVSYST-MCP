@@ -230,21 +230,7 @@ pub(crate) fn crear_sitio_coordenadas(paths: &Paths, args: &Value) -> Result<Val
             .map_err(|e| Error::io(format!("No se pudo crear {}", parent.display()), e))?;
     }
 
-    let v = json!({
-        "nombre_sitio": name,
-        "latitud": lat,
-        "longitud": lon,
-        "altitud": args.get("altitud").cloned().unwrap_or(json!(0)),
-        "timezone": num(args, &["timezone", "zona_horaria"]).unwrap_or_else(|| (lon / 15.0).round()),
-        "weather_data_file": csv_path.to_string_lossy(),
-        "output_sit_file": out_sit,
-        "country_code": args.get("country_code").cloned().unwrap_or(json!("")),
-        "region": args.get("region").cloned().unwrap_or(json!("")),
-        "source": format!("NASA SSE grid cell {}/{}", clim.cell_lat, clim.cell_lon),
-        "dry_run": args.get("dry_run").cloned().unwrap_or(json!(false)),
-        "timeout_s": args.get("timeout_s").cloned().unwrap_or(Value::Null),
-    });
-
+    let v = construir_peticion_crear(&name, (lat, lon), &clim, &csv_path, &out_sit, args);
     let create_site = crear_sitio(paths, &v)?;
     let mut out = resumen_clima(
         json!({
@@ -261,6 +247,34 @@ pub(crate) fn crear_sitio_coordenadas(paths: &Paths, args: &Value) -> Result<Val
         );
     }
     Ok(out)
+}
+
+fn construir_peticion_crear(
+    name: &str,
+    (lat, lon): (f64, f64),
+    clim: &nasa::Climatology,
+    csv_path: &std::path::Path,
+    out_sit: &str,
+    args: &Value,
+) -> Value {
+    let mut v = json!({
+        "nombre_sitio": name,
+        "latitud": lat,
+        "longitud": lon,
+        "altitud": args.get("altitud").cloned().unwrap_or(json!(0)),
+        "timezone": num(args, &["timezone", "zona_horaria"]).unwrap_or_else(|| (lon / 15.0).round()),
+        "weather_data_file": csv_path.to_string_lossy(),
+        "output_sit_file": out_sit,
+        "country_code": args.get("country_code").cloned().unwrap_or(json!("")),
+        "region": args.get("region").cloned().unwrap_or(json!("")),
+        "source": format!("NASA SSE grid cell {}/{}", clim.cell_lat, clim.cell_lon),
+        "dry_run": args.get("dry_run").cloned().unwrap_or(json!(false)),
+        "timeout_s": args.get("timeout_s").cloned().unwrap_or(Value::Null),
+    });
+    if let Some(ws_val) = args.get("workspace") {
+        v["workspace"] = ws_val.clone();
+    }
+    v
 }
 
 /// Adds the NASA climatology summary to a site response (fresh or reused).

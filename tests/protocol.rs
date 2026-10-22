@@ -17,9 +17,9 @@
     unreachable_pub
 )]
 
-mod common;
+mod cliente_mcp;
 
-use common::{protocol_call as call, protocol_server as server_with};
+use cliente_mcp::{protocol_call as call, protocol_server as server_with};
 use serde_json::Value;
 
 /// Latest protocol revision the server speaks, as documented in the README.

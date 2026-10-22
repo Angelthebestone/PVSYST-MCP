@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         This project can only automate what PVsyst exposes **through its files or the
-        documented `PVsystCLI` commands** (plus the Windows GUI bridge in expert mode).
+        documented `PVsystCLI` commands** (plus the Windows GUI bridge).
         Requests that need a reimplementation of the simulation engine are out of scope.
   - type: textarea
     id: problem

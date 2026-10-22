@@ -36,6 +36,7 @@ pub(crate) fn ejecutar_paso_sitio(
     if let Some(reg) = &ubicacion.region {
         sa.insert("region".into(), json!(reg));
     }
+    sa.insert("workspace".into(), json!(paths.workspace.to_string_lossy()));
 
     let site_info = sites::crear_sitio_coordenadas(paths, &Value::Object(sa))?;
     let ok = site_info
