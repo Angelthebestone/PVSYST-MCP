@@ -47,21 +47,12 @@ pub(crate) fn recortar(v: &mut Value, lim: (usize, usize)) {
     match v {
         Value::Object(mapa) => {
             let mut totales = Vec::new();
+            let mut ctx = ContextoRecorte {
+                lim,
+                totales: &mut totales,
+            };
             for (k, hijo) in mapa.iter_mut() {
-                if SIN_RECORTE.contains(&k.as_str()) {
-                    continue;
-                }
-                match hijo {
-                    Value::Array(items) if items.len() > max_arr => {
-                        totales.push((format!("{k}_total"), items.len()));
-                        items.truncate(max_arr);
-                    }
-                    Value::String(s) if s.chars().count() > max_str => {
-                        let corto: String = s.chars().take(max_str).collect();
-                        *s = format!("{corto}…");
-                    }
-                    _ => recortar(hijo, lim),
-                }
+                recortar_campo_objeto(k, hijo, &mut ctx);
             }
             for (k, total) in totales {
                 mapa.insert(k, Value::from(total));
@@ -100,4 +91,27 @@ pub(crate) fn siguiente(tool: &str, valor: &str) -> Option<&'static str> {
         }
         _ => return None,
     })
+}
+
+struct ContextoRecorte<'a> {
+    lim: (usize, usize),
+    totales: &'a mut Vec<(String, usize)>,
+}
+
+fn recortar_campo_objeto(k: &str, hijo: &mut Value, ctx: &mut ContextoRecorte<'_>) {
+    if SIN_RECORTE.contains(&k) {
+        return;
+    }
+    let (max_arr, max_str) = ctx.lim;
+    match hijo {
+        Value::Array(items) if items.len() > max_arr => {
+            ctx.totales.push((format!("{k}_total"), items.len()));
+            items.truncate(max_arr);
+        }
+        Value::String(s) if s.chars().count() > max_str => {
+            let corto: String = s.chars().take(max_str).collect();
+            *s = format!("{corto}…");
+        }
+        _ => recortar(hijo, ctx.lim),
+    }
 }

@@ -16,6 +16,7 @@ pub(crate) mod entorno;
 pub(crate) mod nativos;
 pub(crate) mod proyectos;
 pub(crate) mod recorte;
+mod restricciones_esquema;
 pub(crate) mod resultados;
 pub(crate) mod simulacion;
 pub(crate) mod sitios;
@@ -61,10 +62,7 @@ pub(crate) fn list(paths: &Paths) -> Vec<Value> {
         .map(|h| {
             let mut esquema = h.esquema();
             if !paths.aproximaciones {
-                if let Some(disc) = &h.discriminador {
-                    aproximadas::ocultar(h.nombre, disc.campo, &mut esquema);
-                }
-                aproximadas::ocultar_via(&mut esquema);
+                filtrar_aproximaciones(h, &mut esquema);
             }
             esquema
         })
@@ -116,4 +114,11 @@ pub(crate) fn call_seguido(solicitud: &Solicitud<'_>) -> Result<Value> {
     }
 
     Ok(v)
+}
+
+fn filtrar_aproximaciones(h: &Herramienta, esquema: &mut Value) {
+    if let Some(disc) = &h.discriminador {
+        aproximadas::ocultar(h.nombre, disc.campo, esquema);
+    }
+    aproximadas::ocultar_via(esquema);
 }

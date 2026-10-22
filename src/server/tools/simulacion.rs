@@ -123,8 +123,10 @@ fn preparar_entrada(paths: &Paths, args: &Value) -> Result<(Value, Map<String, V
         let r = batch::crear_batch(paths, args)?;
         pasar(
             &r,
-            &mut vivos,
-            &mut preparados,
+            &mut DestinosPreparacion {
+                vivos: &mut vivos,
+                preparados: &mut preparados,
+            },
             &["batch_params_file", "batch_rvt_file"],
         );
     }
@@ -138,16 +140,18 @@ fn preparar_entrada(paths: &Paths, args: &Value) -> Result<(Value, Map<String, V
     Ok((Value::Object(vivos), preparados))
 }
 
-fn pasar(
-    origen: &Value,
-    destino: &mut Map<String, Value>,
-    preparados: &mut Map<String, Value>,
-    claves: &[&str],
-) {
+struct DestinosPreparacion<'a> {
+    vivos: &'a mut Map<String, Value>,
+    preparados: &'a mut Map<String, Value>,
+}
+
+fn pasar(origen: &Value, destinos: &mut DestinosPreparacion<'_>, claves: &[&str]) {
     for clave in claves {
         if let Some(valor) = origen.get(*clave) {
-            destino.insert((*clave).to_string(), valor.clone());
-            preparados.insert((*clave).to_string(), valor.clone());
+            destinos.vivos.insert((*clave).to_string(), valor.clone());
+            destinos
+                .preparados
+                .insert((*clave).to_string(), valor.clone());
         }
     }
 }

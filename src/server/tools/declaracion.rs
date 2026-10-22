@@ -122,24 +122,15 @@ impl Herramienta {
         let mut props = Map::new();
         let mut req: Vec<&str> = self.requeridos.to_vec();
 
-        for (clave, tipo) in self.propiedades {
+        for &(clave, tipo) in self.propiedades {
             let mut prop_val = tipo.esquema_json();
-            if *clave == "workspace" {
-                prop_val["description"] = json!(
-                    "Ruta del workspace que reemplaza la raíz de confinamiento para esta llamada. Requiere cliente MCP de confianza."
-                );
-            }
-            anotar_restricciones(&mut prop_val, clave);
-            props.insert((*clave).to_string(), prop_val);
+            anotar_workspace_si_aplica(&mut prop_val, clave);
+            super::restricciones_esquema::anotar_restricciones(&mut prop_val, clave);
+            props.insert(clave.to_string(), prop_val);
         }
 
         if let Some(disc) = &self.discriminador {
-            let mut prop = json!({ "type": "string", "enum": disc.valores });
-            if let Some(defecto) = disc.defecto {
-                prop["default"] = json!(defecto);
-            } else {
-                req.push(disc.campo);
-            }
+            let prop = construir_prop_discriminador(disc, &mut req);
             props.insert(disc.campo.to_string(), prop);
         }
 
@@ -168,69 +159,29 @@ impl Herramienta {
     }
 }
 
-fn anotar_restricciones(prop_val: &mut Value, clave: &str) {
-    match clave {
-        "potencia_kw" => {
-            prop_val["description"] = json!(
-                "Potencia límite de inyección en kW. Para quitar el límite, usa editar con PLimGrid: null."
-            );
-        }
-        "estrategia" => {
-            prop_val["enum"] = json!(["autoconsumo", "recorte_picos"]);
-        }
-        "tipo_sistema" => {
-            prop_val["enum"] = json!(["red", "aislado"]);
-        }
-        "via" => {
-            prop_val["enum"] = json!(["pvsyst", "aproximacion"]);
-            prop_val["description"] = json!(
-                "pvsyst (defecto): la ruta de PVsyst. aproximacion: cálculo propio del MCP, oculto salvo con PVSYST_MCP_APROXIMACIONES=1."
-            );
-        }
-        "medido_kwh" => {
-            prop_val["items"] = json!({ "type": "number" });
-            prop_val["minItems"] = json!(12);
-            prop_val["maxItems"] = json!(12);
-        }
-        "n_baterias_serie" | "n_baterias_paralelo" => {
-            prop_val["minimum"] = json!(1);
-            prop_val["description"] = json!("Solo aplica a tipo_sistema:aislado.");
-        }
-        _ => anotar_gui(prop_val, clave),
+fn anotar_workspace_si_aplica(prop_val: &mut Value, clave: &str) {
+    if clave != "workspace" {
+        return;
+    }
+    if let Some(obj) = prop_val.as_object_mut() {
+        obj.insert(
+            "description".to_string(),
+            json!("Ruta del workspace que reemplaza la raíz de confinamiento para esta llamada. Requiere cliente MCP de confianza."),
+        );
     }
 }
 
-/// Schema details of the GUI-automation arguments.
-fn anotar_gui(prop_val: &mut Value, clave: &str) {
-    match clave {
-        "campo" => {
-            prop_val["description"] =
-                json!("Campo sin rótulo: clase VCL y centro en px a 96 DPI dentro del formulario.");
-            prop_val["properties"] = json!({
-                "clase": {
-                    "type": "string",
-                    "enum": ["TEdit", "TComboBox", "TRadioButton", "TCheckBox"],
-                    "default": "TEdit"
-                },
-                "x": { "type": "integer" },
-                "y": { "type": "integer" }
-            });
-            prop_val["required"] = json!(["x", "y"]);
+fn construir_prop_discriminador(disc: &Discriminador, req: &mut Vec<&str>) -> Value {
+    let mut prop = json!({ "type": "string", "enum": disc.valores });
+    match disc.defecto {
+        Some(defecto) => {
+            if let Some(obj) = prop.as_object_mut() {
+                obj.insert("default".to_string(), json!(defecto));
+            }
         }
-        "texto" => {
-            prop_val["description"] =
-                json!("Texto a escribir, o prefijo del ítem del combo a seleccionar.");
-        }
-        "pids" => {
-            prop_val["items"] = json!({ "type": "integer" });
-            prop_val["description"] = json!("Procesos objetivo; si se omite, se usa PVsyst.exe.");
-        }
-        "lineas" => {
-            prop_val["minimum"] = json!(1);
-            prop_val["maximum"] = json!(500);
-        }
-        _ => {}
+        None => req.push(disc.campo),
     }
+    prop
 }
 
 /// Produces a copy of `args` with the given key/value set.

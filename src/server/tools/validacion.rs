@@ -35,29 +35,10 @@ impl Herramienta {
         let Some(disc) = &self.discriminador else {
             return Ok(String::new());
         };
-        let valor = match args.get(disc.campo) {
-            Some(v) => {
-                let Some(s) = v.as_str() else {
-                    return Err(Error::Invalid(format!(
-                        "Tipo incorrecto para '{}' (esperado string, recibido {})",
-                        disc.campo,
-                        nombre_tipo_recibido(v)
-                    )));
-                };
-                s
-            }
-            None => match disc.defecto {
-                Some(def) => def,
-                None => {
-                    let pista =
-                        format!("para {}; valores: {}", self.nombre, disc.valores.join(", "));
-                    return Err(missing(disc.campo, &pista));
-                }
-            },
-        };
+        let valor = self.extraer_valor_discriminador(disc, args)?;
 
-        if disc.valores.contains(&valor) {
-            Ok(valor.to_string())
+        if disc.valores.contains(&valor.as_str()) {
+            Ok(valor)
         } else {
             Err(Error::Invalid(format!(
                 "Valor '{valor}' no válido para {} ({}); valores: {}",
@@ -65,6 +46,31 @@ impl Herramienta {
                 disc.campo,
                 disc.valores.join(", ")
             )))
+        }
+    }
+
+    fn extraer_valor_discriminador(
+        &self,
+        disc: &super::declaracion::Discriminador,
+        args: &Value,
+    ) -> Result<String> {
+        match args.get(disc.campo) {
+            Some(v) => match v.as_str() {
+                Some(s) => Ok(s.to_string()),
+                None => Err(Error::Invalid(format!(
+                    "Tipo incorrecto para '{}' (esperado string, recibido {})",
+                    disc.campo,
+                    nombre_tipo_recibido(v)
+                ))),
+            },
+            None => match disc.defecto {
+                Some(def) => Ok(def.to_string()),
+                None => {
+                    let pista =
+                        format!("para {}; valores: {}", self.nombre, disc.valores.join(", "));
+                    Err(missing(disc.campo, &pista))
+                }
+            },
         }
     }
 
@@ -91,30 +97,31 @@ impl Herramienta {
     }
 
     fn validar_requeridos_globales(&self, args: &Value) -> Result<()> {
-        for req in self.requeridos {
-            if args.get(*req).is_none_or(Value::is_null) {
-                return Err(missing(req, self.nombre));
-            }
+        if let Some(req) = self
+            .requeridos
+            .iter()
+            .find(|&&r| esta_vacio_o_nulo(args, r))
+        {
+            return Err(missing(req, self.nombre));
         }
         Ok(())
     }
 
     fn validar_requeridos_por_accion(&self, args: &Value, accion: &str) -> Result<()> {
-        if let Some((_, claves)) = self
+        let Some((_, claves)) = self
             .requeridos_por_accion
             .iter()
             .find(|(acc, _)| *acc == accion)
-        {
-            for req in *claves {
-                if args.get(*req).is_none_or(Value::is_null) {
-                    let destino = if accion.is_empty() {
-                        self.nombre.to_string()
-                    } else {
-                        format!("{} {accion}", self.nombre)
-                    };
-                    return Err(missing(req, &destino));
-                }
-            }
+        else {
+            return Ok(());
+        };
+        let destino = if accion.is_empty() {
+            self.nombre.to_string()
+        } else {
+            format!("{} {accion}", self.nombre)
+        };
+        if let Some(req) = claves.iter().find(|&&r| esta_vacio_o_nulo(args, r)) {
+            return Err(missing(req, &destino));
         }
         Ok(())
     }
@@ -140,16 +147,30 @@ impl Herramienta {
 
     fn validar_tipos(&self, args: &Value) -> Result<()> {
         for (prop_nombre, prop_tipo) in self.propiedades {
-            if let Some(val) = args.get(*prop_nombre) {
-                if !val.is_null() && !prop_tipo.es_compatible(val) {
-                    return Err(Error::Invalid(format!(
-                        "Tipo incorrecto para '{prop_nombre}' (esperado {}, recibido {})",
-                        prop_tipo.nombre_esperado(),
-                        nombre_tipo_recibido(val)
-                    )));
-                }
-            }
+            validar_tipo_propiedad(prop_nombre, *prop_tipo, args)?;
         }
         Ok(())
     }
+}
+
+fn validar_tipo_propiedad(
+    prop_nombre: &str,
+    prop_tipo: super::declaracion::TipoDato,
+    args: &Value,
+) -> Result<()> {
+    let Some(val) = args.get(prop_nombre) else {
+        return Ok(());
+    };
+    if val.is_null() || prop_tipo.es_compatible(val) {
+        return Ok(());
+    }
+    Err(Error::Invalid(format!(
+        "Tipo incorrecto para '{prop_nombre}' (esperado {}, recibido {})",
+        prop_tipo.nombre_esperado(),
+        nombre_tipo_recibido(val)
+    )))
+}
+
+fn esta_vacio_o_nulo(args: &Value, clave: &str) -> bool {
+    matches!(args.get(clave), None | Some(Value::Null))
 }
