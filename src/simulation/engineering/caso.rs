@@ -51,7 +51,6 @@ pub(crate) fn leer_sitio(workspace: &Path, proyecto: &str) -> Result<Sitio> {
     })
 }
 
-
 pub(crate) fn round1(x: f64) -> f64 {
     crate::format::redondear(x, 1)
 }

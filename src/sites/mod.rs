@@ -230,7 +230,7 @@ pub(crate) fn crear_sitio_coordenadas(paths: &Paths, args: &Value) -> Result<Val
             .map_err(|e| Error::io(format!("No se pudo crear {}", parent.display()), e))?;
     }
 
-    let v = json!({
+    let mut v = json!({
         "nombre_sitio": name,
         "latitud": lat,
         "longitud": lon,
@@ -244,6 +244,9 @@ pub(crate) fn crear_sitio_coordenadas(paths: &Paths, args: &Value) -> Result<Val
         "dry_run": args.get("dry_run").cloned().unwrap_or(json!(false)),
         "timeout_s": args.get("timeout_s").cloned().unwrap_or(Value::Null),
     });
+    if let Some(ws_val) = args.get("workspace") {
+        v["workspace"] = ws_val.clone();
+    }
 
     let create_site = crear_sitio(paths, &v)?;
     let mut out = resumen_clima(

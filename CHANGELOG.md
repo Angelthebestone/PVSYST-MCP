@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Aislamiento de workspace en creación de sitios y ledger (§4b.9).** `sites::crear_sitio_coordenadas`
+  y `easy_mode::sitio` propagan ahora explícitamente el parámetro `workspace` hacia la petición
+  interna de `crear_sitio`, evitando que el costo del ledger y la carpeta `UserData/mcp_cache/`
+  se creen en el workspace por defecto del usuario (`PVsyst8.1_Data`).
+
 ### Changed
 
 - **Agent view of forms.** `gui_observar que:esquema` lists the forms PVsyst
