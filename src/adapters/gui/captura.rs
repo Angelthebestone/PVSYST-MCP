@@ -59,20 +59,65 @@ pub(crate) fn ruta_salida(paths: &crate::config::Paths, args: &Value, h: Hwnd) -
     }
 }
 
-fn aplicar_recorte(handles: (Hwnd, Hwnd), rgb: &[u8], dim: (i32, i32)) -> (Vec<u8>, usize, usize) {
+/// Pixels a capture really holds. A DPI-unaware window (PVsyst) is drawn at
+/// 96 DPI in the top-left of a bitmap as large as its physical size: the rest
+/// stays black, so only `1/escala` of each side is the window.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct Lienzo {
+    pub(crate) ancho: usize,
+    pub(crate) alto: usize,
+    pub(crate) escala: f64,
+}
+
+impl Lienzo {
+    /// Drawn area of a `ancho` x `alto` capture at `escala` (>= 1). O(1).
+    pub(crate) fn dibujado((ancho, alto): (i32, i32), escala: f64) -> Self {
+        let lado = |v: i32| ((f64::from(v) / escala).round() as usize).max(1);
+        Self {
+            ancho: lado(ancho),
+            alto: lado(alto),
+            escala,
+        }
+    }
+
+    /// A physical-pixel distance expressed in drawn pixels.
+    fn a_dibujado(&self, v: i32) -> i32 {
+        (f64::from(v) / self.escala).round() as i32
+    }
+}
+
+fn aplicar_recorte(handles: (Hwnd, Hwnd), rgb: &[u8], lienzo: Lienzo) -> (Vec<u8>, usize, usize) {
     let (h, raiz) = handles;
-    let (w, alto) = dim;
     let rect = rect_of(h);
     let rect_raiz = rect_of(raiz);
     let dims = DimensionesRecorte {
-        ancho: w as usize,
-        alto: alto as usize,
-        x: rect.left - rect_raiz.left,
-        y: rect.top - rect_raiz.top,
-        ancho_corte: rect.right - rect.left,
-        alto_corte: rect.bottom - rect.top,
+        ancho: lienzo.ancho,
+        alto: lienzo.alto,
+        x: lienzo.a_dibujado(rect.left - rect_raiz.left),
+        y: lienzo.a_dibujado(rect.top - rect_raiz.top),
+        ancho_corte: lienzo.a_dibujado(rect.right - rect.left),
+        alto_corte: lienzo.a_dibujado(rect.bottom - rect.top),
     };
     recortar_rgb(rgb, &dims)
+}
+
+/// Drops the black margin a DPI-unaware window leaves in its capture. `rgb` is
+/// `ancho_fisico` pixels wide; it is returned as is when nothing is to drop.
+fn solo_area_dibujada(rgb: Vec<u8>, ancho_fisico: usize, lienzo: Lienzo) -> Vec<u8> {
+    if lienzo.ancho == ancho_fisico && rgb.len() == ancho_fisico * lienzo.alto * BYTES_PER_PIXEL_RGB
+    {
+        return rgb;
+    }
+    let alto_fisico = rgb.len() / (ancho_fisico * BYTES_PER_PIXEL_RGB).max(1);
+    let dims = DimensionesRecorte {
+        ancho: ancho_fisico,
+        alto: alto_fisico,
+        x: 0,
+        y: 0,
+        ancho_corte: lienzo.ancho as i32,
+        alto_corte: lienzo.alto as i32,
+    };
+    recortar_rgb(&rgb, &dims).0
 }
 
 fn escribir_png(out: &PathBuf, png: &[u8]) -> Result<()> {
@@ -101,10 +146,12 @@ pub(crate) fn capturar(paths: &crate::config::Paths, args: &Value) -> Result<Val
             "Captura negra: escritorio no interactivo".into(),
         ));
     }
+    let lienzo = Lienzo::dibujado((w, alto), ffi::escala_de_captura(raiz));
+    let rgb_dibujado = solo_area_dibujada(rgb, w as usize, lienzo);
     let (rgb_final, ancho, alto_img) = if recorte {
-        aplicar_recorte((h, raiz), &rgb, (w, alto))
+        aplicar_recorte((h, raiz), &rgb_dibujado, lienzo)
     } else {
-        (rgb, w as usize, alto as usize)
+        (rgb_dibujado, lienzo.ancho, lienzo.alto)
     };
     let png = png_rgb(ancho as u32, alto_img as u32, &rgb_final);
     let out = ruta_salida(paths, args, h)?;

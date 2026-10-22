@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`gui_observar que:capturar` no longer returns a black margin.** PVsyst is
+  DPI-unaware: it draws its 96-DPI layout in the top-left of a bitmap as large
+  as the physical window. The capture is now cut to the drawn area (800x640
+  instead of 1200x960 at 150 %), and `recorte:true` scales the control's
+  rectangle the same way.
+
 - **OCR of the GUI is much faster.** Enlarging and sharpening the capture
   computed neighbour indices per pixel; they are now tabulated once per axis.
   In a release build `gui_observar que:formulario` and `gui_actuar

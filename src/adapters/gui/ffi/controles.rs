@@ -112,6 +112,17 @@ pub(crate) fn dpi_de(h: Hwnd) -> u32 {
     }
 }
 
+/// Factor from capture pixels to physical pixels. `PrintWindow` renders a
+/// DPI-unaware window (PVsyst) at its 96-DPI layout inside a bitmap as large
+/// as the physical window, so its text sits at `1/scale` of the real position.
+pub(crate) fn escala_de_captura(h: Hwnd) -> f64 {
+    if ventana_ignora_dpi(h) {
+        f64::from(dpi_de(h)) / f64::from(DPI_BASE)
+    } else {
+        1.0
+    }
+}
+
 /// `v` laid out at 96 DPI, scaled to `dpi`. O(1).
 pub(crate) fn escalar_a_dpi(v: i32, dpi: u32) -> i32 {
     let base = i64::from(DPI_BASE);

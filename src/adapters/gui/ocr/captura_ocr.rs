@@ -78,7 +78,7 @@ fn reconocer_png_guardado(p: &ParametrosCaptura, ruta: &str) -> Result<Vec<Linea
 /// physical window: only that area is enlarged and read, and the lines come
 /// back scaled to physical pixels.
 fn reconocer_ventana_viva(h: Hwnd, (w, alto): (i32, i32)) -> Result<Vec<LineaOcr>> {
-    let escala = escala_de_captura(h);
+    let escala = ffi::escala_de_captura(h);
     let region = Region {
         ancho: ((f64::from(w) / escala) as u32).max(1),
         alto: ((f64::from(alto) / escala) as u32).max(1),
@@ -105,15 +105,4 @@ fn reconocer_ventana_viva(h: Hwnd, (w, alto): (i32, i32)) -> Result<Vec<LineaOcr
         .into_iter()
         .map(|l| l.escalada(escala / f64::from(factor)))
         .collect())
-}
-
-/// Factor from capture pixels to physical pixels. `PrintWindow` renders a
-/// DPI-unaware window (PVsyst) at its 96-DPI layout inside a bitmap as large
-/// as the physical window, so its text sits at `1/scale` of the real position.
-fn escala_de_captura(h: Hwnd) -> f64 {
-    if ffi::ventana_ignora_dpi(h) {
-        f64::from(ffi::dpi_de(h)) / f64::from(ffi::DPI_BASE)
-    } else {
-        1.0
-    }
 }

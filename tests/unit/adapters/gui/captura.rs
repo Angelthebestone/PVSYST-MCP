@@ -76,3 +76,37 @@ fn should_allow_capture_output_path_outside_workspace_when_explicitly_permitted(
         "Must allow outside path when explicitly permitted"
     );
 }
+
+#[test]
+fn drawn_area_is_the_physical_size_divided_by_the_scale() {
+    let lienzo = Lienzo::dibujado((1200, 960), 1.5);
+    assert_eq!((lienzo.ancho, lienzo.alto), (800, 640));
+}
+
+#[test]
+fn drawn_area_is_the_whole_capture_at_100_percent() {
+    let lienzo = Lienzo::dibujado((1200, 960), 1.0);
+    assert_eq!((lienzo.ancho, lienzo.alto), (1200, 960));
+}
+
+#[test]
+fn black_margin_of_a_scaled_capture_is_dropped() {
+    // 4x3 capture of a window drawn in its top-left 2x2 at scale 2: the
+    // marked pixels are the window, the zeros the margin.
+    let mut rgb = vec![0u8; 4 * 3 * 3];
+    for (x, y) in [(0, 0), (1, 0), (0, 1), (1, 1)] {
+        let i = (y * 4 + x) * 3;
+        rgb[i..i + 3].copy_from_slice(&[9, 9, 9]);
+    }
+    let lienzo = Lienzo::dibujado((4, 3), 2.0);
+    let recortado = solo_area_dibujada(rgb, 4, lienzo);
+    assert_eq!((lienzo.ancho, lienzo.alto), (2, 2));
+    assert_eq!(recortado, vec![9u8; 2 * 2 * 3]);
+}
+
+#[test]
+fn unscaled_capture_is_returned_untouched() {
+    let rgb: Vec<u8> = (0u8..18).collect();
+    let lienzo = Lienzo::dibujado((3, 2), 1.0);
+    assert_eq!(solo_area_dibujada(rgb.clone(), 3, lienzo), rgb);
+}
