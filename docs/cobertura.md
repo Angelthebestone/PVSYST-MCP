@@ -40,7 +40,7 @@ Everything else is a convenience layer on top. So coverage is bounded by the
 
 **Workspace / admin:** `workspace` (`accion`: `crear`, `exportar`, `importar`, `exportar_proyecto`, `historial`, `restaurar`).
 
-**GUI automation:** `gui_observar` (`que`: `ventanas`, `controles`, `leer`, `capturar`, `uia`, `arbol`, `mensajes`, `funciones`, `formulario`), `gui_actuar` (`accion`: `click`, `clic_fisico`, `mensaje`, `cerrar`, `activar`, `teclas`, `escribir`, `seleccionar`, `pagina`, `esperar_cierre`, `lanzar`, `uia_invocar`, `esperar`, `paso`, `funcion`, `menu`, `campo`). `PVSYST_MCP_ESCRITORIO=aislado` runs PVsyst and these tools on a private hidden desktop.
+**GUI automation:** `gui_observar` (`que`: `ventanas`, `controles`, `leer`, `capturar`, `uia`, `arbol`, `mensajes`, `funciones`, `formulario`, `vista`, `esquema`, `menus`), `gui_actuar` (`accion`: `click`, `clic_fisico`, `mensaje`, `cerrar`, `activar`, `teclas`, `escribir`, `seleccionar`, `pagina`, `esperar_cierre`, `lanzar`, `uia_invocar`, `esperar`, `paso`, `funcion`, `menu`, `campo`, `rellenar`, `clic_texto`, `reiniciar`). `PVSYST_MCP_ESCRITORIO=aislado` runs PVsyst and these tools on a private hidden desktop.
 
 **Resources:** `pvsyst://recetas`, `pvsyst://cobertura`, `pvsyst://formato`, `pvsyst://cli`, `pvsyst://gui`.
 
