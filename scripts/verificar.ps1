@@ -35,6 +35,11 @@ function Kill-NewPVsystPids($initialPids) {
         }
     }
 }
+$PvsystIniciales = Get-PVsystPids
+if ($PvsystIniciales.Count -gt 0) {
+    Write-Host "AVISO: Se detecto PVsyst.exe en ejecucion previamente (PIDs: $($PvsystIniciales -join ', '))." -ForegroundColor Yellow
+    Write-Host "AVISO: Esto invalida las pruebas de GUI/procesos huerfanos. No se cerrara para proteger la sesion del usuario." -ForegroundColor Yellow
+}
 
 function Run-StepWithTimeout($name, $cmd, $argsList, $timeoutSeconds, $logFile) {
     Write-Host "`n=== [$name] ===" -ForegroundColor Cyan

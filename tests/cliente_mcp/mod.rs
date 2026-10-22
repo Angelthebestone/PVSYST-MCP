@@ -68,6 +68,13 @@ impl Client {
             }
         };
         cmd.env("PVSYST_WORKSPACE", &ws_str);
+        // By default, shield tests from the workstation's real PVsyst installation (§4b.8):
+        // PVSYST_GUI and PVSYST_CLI point to non-existent executables unless explicitly overridden.
+        let default_gui = Path::new(&ws_str).join("nonexistent_pvsyst_gui.exe");
+        let default_cli = Path::new(&ws_str).join("nonexistent_pvsyst_cli.exe");
+        cmd.env("PVSYST_GUI", default_gui);
+        cmd.env("PVSYST_CLI", default_cli);
+
         for (k, v) in env {
             cmd.env(k, v);
         }
@@ -84,6 +91,33 @@ impl Client {
             reader: BufReader::new(stdout),
             child,
             _temp_ws: temp_ws,
+        }
+    }
+
+    /// Starts the client with access to the real workstation PVsyst installation
+    /// (only for tests explicitly marked #[ignore]).
+    pub fn start_instalacion_real(workspace: Option<&str>) -> Client {
+        let exe = env!("CARGO_BIN_EXE_pvsyst-mcp");
+        let mut cmd = Command::new(exe);
+        cmd.env_remove("PVSYST_MCP_APROXIMACIONES");
+        cmd.env_remove("PVSYST_GUI");
+        cmd.env_remove("PVSYST_CLI");
+        if let Some(w) = workspace {
+            cmd.env("PVSYST_WORKSPACE", w);
+        }
+        let mut child = cmd
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .spawn()
+            .expect("spawn pvsyst-mcp");
+        let stdin = child.stdin.take().unwrap();
+        let stdout = child.stdout.take().unwrap();
+        Client {
+            stdin,
+            reader: BufReader::new(stdout),
+            child,
+            _temp_ws: None,
         }
     }
 

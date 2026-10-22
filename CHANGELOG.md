@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   y `easy_mode::sitio` propagan ahora explícitamente el parámetro `workspace` hacia la petición
   interna de `crear_sitio`, evitando que el costo del ledger y la carpeta `UserData/mcp_cache/`
   se creen en el workspace por defecto del usuario (`PVsyst8.1_Data`).
+- **Blindaje de clientes de test frente a ejecutables reales de PVsyst (§4b.8).** `Client::start_env`
+  configura por defecto `PVSYST_GUI` y `PVSYST_CLI` apuntando a rutas inexistentes dentro del directorio
+  temporal para impedir que los tests ejecuten `PVsyst.exe` o `PVsystCLI.exe` reales de
+  `C:\Program Files\PVsyst8.1.7`. Los tests en vivo marcados con `#[ignore]` optan explícitamente
+  mediante `Client::start_instalacion_real`.
 
 ### Changed
 

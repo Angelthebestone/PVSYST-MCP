@@ -150,7 +150,7 @@ fn proyecto_crear_sets_module_reference() {
 #[test]
 #[ignore = "needs the PVsyst GUI to be closed: run with --ignored"]
 fn gui_tools_report_when_pvsyst_not_running() {
-    let mut c = Client::start(None);
+    let mut c = Client::start_instalacion_real(None);
     let resp = c.call(21, "gui_observar", json!({ "que": "ventanas" }));
     assert_eq!(resp["result"]["isError"], true);
     let msg = resp["result"]["content"][0]["text"].as_str().unwrap();
@@ -163,7 +163,7 @@ fn gui_tools_report_when_pvsyst_not_running() {
 #[test]
 #[ignore = "needs a running PVsyst GUI: run with --ignored"]
 fn gui_automation_drives_running_pvsyst() {
-    let mut c = Client::start(None);
+    let mut c = Client::start_instalacion_real(None);
 
     let resp = c.call(
         22,
@@ -209,7 +209,7 @@ fn gui_automation_drives_running_pvsyst() {
 #[test]
 #[ignore = "needs a running PVsyst GUI: run with --ignored"]
 fn gui_invokes_button_and_opens_window() {
-    let mut c = Client::start(None);
+    let mut c = Client::start_instalacion_real(None);
     for dlg in ["TDEMOForm", "TToolsForm"] {
         let _ = c.call(
             27,

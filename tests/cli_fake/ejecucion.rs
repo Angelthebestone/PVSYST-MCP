@@ -231,3 +231,43 @@ fn should_classify_missing_confirmation_as_ambiguous() {
     assert_eq!(v["clasificacion"], json!("ambiguo"));
     assert_eq!(v["ambiguo"], json!(true));
 }
+
+#[test]
+fn should_write_ledger_cache_to_requested_workspace_not_server_default() {
+    let default_ws = workspace();
+    let target_ws = workspace();
+    let mut client = Client::start_env(Some(&ws_str(default_ws.path())), &fake_env());
+    client.initialize();
+
+    let resp = client.call(
+        99,
+        "sitio",
+        json!({
+            "accion": "crear",
+            "origen": "coordenadas",
+            "latitud": 46.2,
+            "longitud": 6.1,
+            "nombre_sitio": "MCP_Ledger_Test",
+            "workspace": ws_str(target_ws.path()),
+        }),
+    );
+    assert_eq!(resp["result"]["isError"], false, "resp={resp}");
+
+    assert!(
+        target_ws
+            .path()
+            .join("UserData")
+            .join("mcp_cache")
+            .join("ledger.json")
+            .exists(),
+        "ledger.json must exist in target_ws"
+    );
+    assert!(
+        !default_ws
+            .path()
+            .join("UserData")
+            .join("mcp_cache")
+            .exists(),
+        "default_ws must not be polluted with mcp_cache!"
+    );
+}

@@ -262,3 +262,17 @@ fn should_complete_meteo_with_pvgis_rounding_artifacts() {
     let met = ws.path().join("Meteo").join("MCP_Redondeo_PVGIS.MET");
     assert!(met.is_file(), "MET publicado en el workspace pedido");
 }
+
+#[test]
+fn default_client_rejects_launching_gui_with_missing_executable() {
+    let mut c = Client::start(None);
+    c.initialize();
+
+    let resp = c.call(105, "gui_actuar", json!({ "accion": "lanzar" }));
+    assert_eq!(resp["result"]["isError"], true, "resp={resp}");
+    let msg = error_text(&resp);
+    assert!(
+        msg.contains("PVsyst GUI not found") || msg.contains("nonexistent_pvsyst_gui.exe"),
+        "expected missing GUI error, got: {msg}"
+    );
+}
