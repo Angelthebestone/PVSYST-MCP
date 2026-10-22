@@ -9,6 +9,29 @@ pub(crate) const BM_CLICK: u32 = 0x00F5;
 pub(crate) const SW_RESTORE: i32 = 9;
 pub(crate) const GA_ROOT: u32 = 2;
 pub(crate) const TH32CS_SNAPPROCESS: u32 = 0x0000_0002;
+const SMTO_ABORTIFHUNG: u32 = 0x0002;
+const TIMEOUT_MENSAJE_MS: u32 = 3000;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct Mensaje {
+    pub(crate) id: u32,
+    pub(crate) wparam: usize,
+    pub(crate) lparam: isize,
+}
+
+impl Mensaje {
+    pub(crate) const fn nuevo(id: u32, wparam: usize, lparam: isize) -> Self {
+        Self { id, wparam, lparam }
+    }
+
+    pub(crate) const fn simple(id: u32) -> Self {
+        Self {
+            id,
+            wparam: 0,
+            lparam: 0,
+        }
+    }
+}
 
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
@@ -46,7 +69,15 @@ extern "system" {
     fn IsIconic(h: Hwnd) -> i32;
     pub(crate) fn GetWindowRect(h: Hwnd, r: *mut Rect) -> i32;
     fn GetClientRect(h: Hwnd, r: *mut Rect) -> i32;
-    fn SendMessageW(h: Hwnd, msg: u32, w: usize, l: isize) -> isize;
+    fn SendMessageTimeoutW(
+        h: Hwnd,
+        msg: u32,
+        w: usize,
+        l: isize,
+        flags: u32,
+        timeout: u32,
+        res: *mut isize,
+    ) -> isize;
     fn PostMessageW(h: Hwnd, msg: u32, w: usize, l: isize) -> i32;
     fn ShowWindow(h: Hwnd, cmd: i32) -> i32;
     fn SetForegroundWindow(h: Hwnd) -> i32;
@@ -79,6 +110,9 @@ pub(crate) fn enum_windows() -> Vec<Hwnd> {
 
 pub(crate) fn enum_children(parent: Hwnd) -> Vec<Hwnd> {
     let mut v: Vec<Hwnd> = Vec::new();
+    if !es_ventana(parent) {
+        return v;
+    }
     // SAFETY: `collect_enum` solo reinterpreta `lparam` como el `Vec<Hwnd>` local `v`, vivo y sin alias durante la enumeración síncrona.
     unsafe {
         EnumChildWindows(parent, Some(collect_enum), &mut v as *mut _ as isize);
@@ -87,6 +121,7 @@ pub(crate) fn enum_children(parent: Hwnd) -> Vec<Hwnd> {
 }
 
 /// Cheap window state flags used by the JSON snapshots.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct EstadoVentana {
     pub(crate) visible: bool,
     pub(crate) habilitada: bool,
@@ -94,7 +129,10 @@ pub(crate) struct EstadoVentana {
 }
 
 pub(crate) fn estado_ventana(h: Hwnd) -> EstadoVentana {
-    // SAFETY: Consultas de solo lectura sobre un HWND; un handle inválido devuelve 0.
+    if !es_ventana(h) {
+        return EstadoVentana::default();
+    }
+    // SAFETY: Consultas de solo lectura sobre un HWND validado; devuelven enteros por valor.
     unsafe {
         EstadoVentana {
             visible: IsWindowVisible(h) != 0,
@@ -105,49 +143,84 @@ pub(crate) fn estado_ventana(h: Hwnd) -> EstadoVentana {
 }
 
 pub(crate) fn es_ventana(h: Hwnd) -> bool {
-    // SAFETY: Consulta de solo lectura sobre un HWND; un handle inválido devuelve 0.
+    if h == 0 {
+        return false;
+    }
+    // SAFETY: Consulta de solo lectura sobre un HWND; un handle inválido devuelve 0 de forma segura.
     unsafe { IsWindow(h) != 0 }
 }
 
-pub(crate) fn post_message(h: Hwnd, msg: u32, w: usize, l: isize) -> bool {
-    // SAFETY: `PostMessageW` encola mensajes sin punteros del llamador.
-    unsafe { PostMessageW(h, msg, w, l) != 0 }
-}
-
-pub(crate) fn send_message(h: Hwnd, msg: u32, w: usize, l: isize) {
-    // SAFETY: `SendMessageW` recibe enteros y el HWND del llamador; no desreferencia punteros.
-    unsafe {
-        SendMessageW(h, msg, w, l);
+pub(crate) fn post_message(h: Hwnd, msg: Mensaje) -> bool {
+    if !es_ventana(h) {
+        return false;
     }
+    // SAFETY: `PostMessageW` encola enteros sobre un HWND validado sin retener punteros.
+    unsafe { PostMessageW(h, msg.id, msg.wparam, msg.lparam) != 0 }
 }
 
-pub(crate) fn send_message_res(h: Hwnd, msg: u32, w: usize, l: isize) -> isize {
-    // SAFETY: `SendMessageW` recibe enteros y el HWND del llamador; no desreferencia punteros.
-    unsafe { SendMessageW(h, msg, w, l) }
+pub(crate) fn send_message_timeout(h: Hwnd, msg: Mensaje, timeout_ms: u32) -> Option<isize> {
+    if !es_ventana(h) {
+        return None;
+    }
+    let mut respuesta = 0isize;
+    // SAFETY: `SendMessageTimeoutW` previene bloqueos infinitos usando SMTO_ABORTIFHUNG;
+    // `respuesta` es una variable local viva de 64 bits donde la API escribe el resultado.
+    let ok = unsafe {
+        SendMessageTimeoutW(
+            h,
+            msg.id,
+            msg.wparam,
+            msg.lparam,
+            SMTO_ABORTIFHUNG,
+            timeout_ms,
+            &mut respuesta,
+        )
+    };
+    (ok != 0).then_some(respuesta)
+}
+
+pub(crate) fn send_message(h: Hwnd, msg: Mensaje) {
+    let _ = send_message_timeout(h, msg, TIMEOUT_MENSAJE_MS);
+}
+
+pub(crate) fn send_message_res(h: Hwnd, msg: Mensaje) -> isize {
+    send_message_timeout(h, msg, TIMEOUT_MENSAJE_MS).unwrap_or(0)
 }
 
 pub(crate) fn mostrar_ventana(h: Hwnd, cmd: i32) {
-    // SAFETY: `ShowWindow` solo actúa sobre el HWND recibido.
+    if !es_ventana(h) {
+        return;
+    }
+    // SAFETY: `ShowWindow` solo actúa sobre el HWND validado; cmd se pasa por valor.
     unsafe {
         ShowWindow(h, cmd);
     }
 }
 
 pub(crate) fn traer_al_frente(h: Hwnd) {
-    // SAFETY: `SetForegroundWindow` solo actúa sobre el HWND recibido.
+    if !es_ventana(h) {
+        return;
+    }
+    // SAFETY: `SetForegroundWindow` solo actúa sobre el HWND validado.
     unsafe {
         SetForegroundWindow(h);
     }
 }
 
 pub(crate) fn get_ancestor(h: Hwnd, flags: u32) -> Hwnd {
-    // SAFETY: Consulta de solo lectura sobre un HWND.
+    if !es_ventana(h) {
+        return 0;
+    }
+    // SAFETY: Consulta de solo lectura sobre un HWND validado.
     unsafe { GetAncestor(h, flags) }
 }
 
 pub(crate) fn rect_cliente(h: Hwnd) -> Rect {
     let mut r = Rect::default();
-    // SAFETY: `r` es una local viva; la API solo escribe en ella.
+    if !es_ventana(h) {
+        return r;
+    }
+    // SAFETY: `r` es una local viva con el layout exacto de RECT; la API solo escribe en ella.
     unsafe {
         GetClientRect(h, &mut r);
     }

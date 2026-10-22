@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Evitar pánico por dimensiones nulas en recorte de captura RGB.** `recortar_rgb` entraba en pánico con `clamp: min > max` cuando `ancho` o `alto` eran 0, y podía desbordar al indexar si el búfer de píxeles estaba truncado. Ahora valida dimensiones no positivas retornando una imagen vacía y asegura los rangos con `.get()`.
+- **Limitar llamadas FFI SendMessage con timeout y validar HWND antes de usarlos.** Las llamadas a `SendMessageW` podían bloquearse indefinidamente si la GUI de PVsyst dejaba de responder o no procesaba su bucle de mensajes. Se migraron a `SendMessageTimeoutW` con un límite de 3000 ms y bandera `SMTO_ABORTIFHUNG`. Además, se añadieron validaciones de `HWND` (`IsWindow`) para evitar operaciones sobre identificadores de ventana nulos o destruidos.
+
 ### Changed
 
 - **Agent view of forms.** `gui_observar que:esquema` lists the forms PVsyst

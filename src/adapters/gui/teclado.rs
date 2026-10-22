@@ -37,16 +37,10 @@ fn vk_for(key: &str) -> Option<u8> {
         "UP" => Some(0x26),
         "RIGHT" => Some(0x27),
         "DOWN" => Some(0x28),
-        _ => {
-            let bytes = k.as_bytes();
-            if bytes.len() == 1 {
-                let c = bytes[0];
-                if c.is_ascii_uppercase() || c.is_ascii_digit() {
-                    return Some(c);
-                }
-            }
-            None
-        }
+        _ => match k.as_bytes() {
+            &[c] if c.is_ascii_uppercase() || c.is_ascii_digit() => Some(c),
+            _ => None,
+        },
     }
 }
 

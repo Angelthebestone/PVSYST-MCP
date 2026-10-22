@@ -85,7 +85,7 @@ impl Sesion {
     pub(crate) fn aceptar_mensajes(&self) -> usize {
         let mut n = 0;
         while let Ok(m) = esperar(self.pid, MENSAJE, Duration::from_millis(600)) {
-            descartar_formulario_mensaje(&m, ROTULOS.botones_mensaje);
+            cerrar_con_boton(&m, ROTULOS.botones_mensaje);
             n += 1;
         }
         n
@@ -115,7 +115,7 @@ impl Sesion {
         else {
             return false;
         };
-        cerrar_formulario_usuario(h, ROTULOS.salidas);
+        cerrar_con_boton(&Formulario::de(h), ROTULOS.salidas);
         true
     }
 
@@ -130,16 +130,9 @@ impl Sesion {
     }
 }
 
-fn descartar_formulario_mensaje(m: &Formulario, botones: &[&str]) {
-    let cerrado = botones.iter().any(|b| m.pulsar(b).is_ok());
-    if !cerrado {
-        ffi::post_message(m.h, ffi::WM_CLOSE, 0, 0);
-    }
-}
-
-fn cerrar_formulario_usuario(h: ffi::Hwnd, salidas: &[&str]) {
-    let f = Formulario::de(h);
-    if !salidas.iter().any(|b| f.pulsar(b).is_ok()) {
-        ffi::post_message(h, ffi::WM_CLOSE, 0, 0);
+/// Presses the first of `botones` the form has; `WM_CLOSE` when it has none.
+fn cerrar_con_boton(f: &Formulario, botones: &[&str]) {
+    if !botones.iter().any(|b| f.pulsar(b).is_ok()) {
+        ffi::post_message(f.h, ffi::Mensaje::simple(ffi::WM_CLOSE));
     }
 }

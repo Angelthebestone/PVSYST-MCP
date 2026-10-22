@@ -11,17 +11,25 @@ const TEXT_BUFFER_LEN: usize = 512;
 const CLASS_BUFFER_LEN: usize = 256;
 
 pub(crate) fn text_of(h: Hwnd) -> String {
+    if !ffi::es_ventana(h) {
+        return String::new();
+    }
     let mut buf = [0u16; TEXT_BUFFER_LEN];
     // SAFETY: `buf` es un array local y se pasa su longitud real; la API escribe como máximo `buf.len()` unidades.
     let n = unsafe { ffi::GetWindowTextW(h, buf.as_mut_ptr(), buf.len() as i32) };
-    String::from_utf16_lossy(&buf[..n.max(0) as usize])
+    let slice = buf.get(..n.max(0) as usize).unwrap_or(&[]);
+    String::from_utf16_lossy(slice)
 }
 
 pub(crate) fn class_of(h: Hwnd) -> String {
+    if !ffi::es_ventana(h) {
+        return String::new();
+    }
     let mut buf = [0u16; CLASS_BUFFER_LEN];
     // SAFETY: `buf` es un array local y se pasa su longitud real; la API escribe como máximo `buf.len()` unidades.
     let n = unsafe { ffi::GetClassNameW(h, buf.as_mut_ptr(), buf.len() as i32) };
-    String::from_utf16_lossy(&buf[..n.max(0) as usize])
+    let slice = buf.get(..n.max(0) as usize).unwrap_or(&[]);
+    String::from_utf16_lossy(slice)
 }
 
 pub(crate) fn pid_of(h: Hwnd) -> u32 {
@@ -73,9 +81,13 @@ pub(crate) fn find_pids(exe_name: &str) -> Vec<u32> {
         pe.dw_size = std::mem::size_of::<ProcessEntry32W>() as u32;
         if ffi::Process32FirstW(snap, &mut pe) != 0 {
             loop {
-                let name = String::from_utf16_lossy(
-                    &pe.sz_exe_file[..pe.sz_exe_file.iter().position(|&c| c == 0).unwrap_or(260)],
-                );
+                let fin = pe
+                    .sz_exe_file
+                    .iter()
+                    .position(|&c| c == 0)
+                    .unwrap_or(pe.sz_exe_file.len());
+                let slice = pe.sz_exe_file.get(..fin).unwrap_or(&[]);
+                let name = String::from_utf16_lossy(slice);
                 if name.eq_ignore_ascii_case(exe_name) {
                     pids.push(pe.th32_process_id);
                 }
@@ -181,34 +193,33 @@ fn matches(win: &Value, needle: &str) -> bool {
 /// Resolve a window reference: `0xHEX`, else class/title substring among the
 /// target process' top windows, then among all controls.
 pub(crate) fn resolve(haystack: &[Hwnd], reference: &str) -> Option<Hwnd> {
-    if let Some(hex) = reference
+    let hex_val = reference
         .strip_prefix("0x")
         .or_else(|| reference.strip_prefix("0X"))
-    {
-        if let Ok(v) = isize::from_str_radix(hex, 16) {
-            if ffi::es_ventana(v) {
-                return Some(v);
-            }
+        .and_then(|hex| isize::from_str_radix(hex, 16).ok());
+    if let Some(v) = hex_val {
+        if ffi::es_ventana(v) {
+            return Some(v);
         }
     }
     let mut fallback: Option<Hwnd> = None;
     for &h in haystack {
-        if matches(&window_json(h), reference) {
-            if visible(h) {
-                return Some(h);
-            }
-            fallback.get_or_insert(h);
+        if !matches(&window_json(h), reference) {
+            continue;
         }
+        if visible(h) {
+            return Some(h);
+        }
+        fallback.get_or_insert(h);
     }
-    for &h in haystack {
-        for c in enum_children(h) {
-            if matches(&window_json(c), reference) {
-                if visible(c) {
-                    return Some(c);
-                }
-                fallback.get_or_insert(c);
-            }
+    for c in haystack.iter().flat_map(|&h| enum_children(h)) {
+        if !matches(&window_json(c), reference) {
+            continue;
         }
+        if visible(c) {
+            return Some(c);
+        }
+        fallback.get_or_insert(c);
     }
     fallback
 }
@@ -220,13 +231,15 @@ pub(crate) fn ventanas(_paths: &crate::config::Paths, args: &Value) -> Result<Va
     let all = enum_windows();
     let mut out = Vec::new();
     for h in all {
-        if flag(args, &["todos"]) || pids.contains(&pid_of(h)) {
-            out.push(if compact {
-                window_brief(h)
-            } else {
-                window_json(h)
-            });
+        if !flag(args, &["todos"]) && !pids.contains(&pid_of(h)) {
+            continue;
         }
+        let info = if compact {
+            window_brief(h)
+        } else {
+            window_json(h)
+        };
+        out.push(info);
     }
     let visible_only = args
         .get("visibles")
@@ -256,14 +269,13 @@ pub(crate) fn controles(_paths: &crate::config::Paths, args: &Value) -> Result<V
     };
     let compact = compact_default(args);
     let mut out = Vec::new();
-    for root in roots {
-        for c in enum_children(root) {
-            out.push(if compact {
-                window_brief(c)
-            } else {
-                window_json(c)
-            });
-        }
+    for c in roots.into_iter().flat_map(enum_children) {
+        let info = if compact {
+            window_brief(c)
+        } else {
+            window_json(c)
+        };
+        out.push(info);
     }
     Ok(json!({ "count": out.len(), "controls": out }))
 }

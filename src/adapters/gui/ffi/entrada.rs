@@ -1,5 +1,6 @@
 //! Keyboard, mouse, desktop and message-loop entry points.
 
+use super::escritorio::ModificadorAlt;
 use super::ventanas::primer_plano;
 use super::{Hwnd, WinEventProc};
 
@@ -12,6 +13,9 @@ pub(crate) const MOUSEEVENTF_LEFTDOWN: u32 = 0x0002;
 pub(crate) const MOUSEEVENTF_LEFTUP: u32 = 0x0004;
 pub(crate) const TEMPORIZADOR: usize = 1;
 const CLICK_SETTLE_MS: u64 = 150;
+const VK_TAB: u8 = 0x09;
+const VK_ALT: u8 = 0x12;
+const KEYEVENTF_KEYUP: u32 = 0x0002;
 
 #[repr(C)]
 #[derive(Default)]
@@ -47,6 +51,7 @@ extern "system" {
     fn SetTimer(h: Hwnd, id: usize, ms: u32, cb: isize) -> usize;
     fn KillTimer(h: Hwnd, id: usize) -> i32;
     fn PostQuitMessage(code: i32);
+    fn keybd_event(vk: u8, scan: u8, flags: u32, extra: usize);
 }
 
 pub(crate) fn clic_fisico_en(x: i32, y: i32) {
@@ -60,6 +65,46 @@ pub(crate) fn clic_fisico_en(x: i32, y: i32) {
         std::thread::sleep(std::time::Duration::from_millis(CLICK_SETTLE_MS));
         mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
         mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+    }
+}
+
+/// Presses Tab in the foreground window, which commits the focused field.
+pub(crate) fn pulsar_tabulador() {
+    if super::aislado() {
+        super::tecla_emulada(VK_TAB, ModificadorAlt::SinAlt);
+        return;
+    }
+    // SAFETY: Genera eventos virtuales de teclado a nivel de sistema; sin punteros.
+    unsafe {
+        keybd_event(VK_TAB, 0, 0, 0);
+        keybd_event(VK_TAB, 0, KEYEVENTF_KEYUP, 0);
+    }
+}
+
+/// Sends a key combination to the foreground window as real keyboard input,
+/// which VCL forms honour (posted `WM_KEY*` messages are usually ignored). On
+/// a private desktop there is no real input, so the key is posted instead and
+/// only Alt is kept (see `tecla_emulada`).
+pub(crate) fn pulsar_combinacion(vk: u8, modificadores: &[u8]) {
+    if super::aislado() {
+        let alt = if modificadores.contains(&VK_ALT) {
+            ModificadorAlt::ConAlt
+        } else {
+            ModificadorAlt::SinAlt
+        };
+        super::tecla_emulada(vk, alt);
+        return;
+    }
+    // SAFETY: Secuencia de eventos de pulsación y liberación de teclado sin punteros.
+    unsafe {
+        for m in modificadores {
+            keybd_event(*m, 0, 0, 0);
+        }
+        keybd_event(vk, 0, 0, 0);
+        keybd_event(vk, 0, KEYEVENTF_KEYUP, 0);
+        for m in modificadores.iter().rev() {
+            keybd_event(*m, 0, KEYEVENTF_KEYUP, 0);
+        }
     }
 }
 

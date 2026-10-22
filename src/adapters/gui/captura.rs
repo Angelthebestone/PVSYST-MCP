@@ -16,9 +16,10 @@ const BYTES_PER_PIXEL_RGB: usize = 3;
 
 /// Converts top-down BGRX pixels to packed RGB.
 pub(crate) fn rgb_desde_bgrx(px: &[u8]) -> Vec<u8> {
-    px.chunks(BYTES_PER_PIXEL_32)
-        .filter(|p| p.len() == BYTES_PER_PIXEL_32)
-        .flat_map(|p| [p[2], p[1], p[0]])
+    px.as_chunks::<BYTES_PER_PIXEL_32>()
+        .0
+        .iter()
+        .flat_map(|&[b, g, r, _]| [r, g, b])
         .collect()
 }
 
@@ -34,14 +35,22 @@ pub(crate) struct DimensionesRecorte {
 /// Crops packed RGB (`w` x `h`) to the rectangle at (`x`, `y`) of size
 /// `cw` x `ch`, clamped to the image. Returns the pixels and the final size.
 pub(crate) fn recortar_rgb(rgb: &[u8], dims: &DimensionesRecorte) -> (Vec<u8>, usize, usize) {
-    let x = dims.x.clamp(0, dims.ancho as i32 - 1) as usize;
-    let y = dims.y.clamp(0, dims.alto as i32 - 1) as usize;
-    let cw = (dims.ancho_corte.max(1) as usize).min(dims.ancho - x);
-    let ch = (dims.alto_corte.max(1) as usize).min(dims.alto - y);
+    if dims.ancho == 0 || dims.alto == 0 || dims.ancho_corte <= 0 || dims.alto_corte <= 0 {
+        return (Vec::new(), 0, 0);
+    }
+    let max_x = (dims.ancho as i32 - 1).max(0);
+    let max_y = (dims.alto as i32 - 1).max(0);
+    let x = dims.x.clamp(0, max_x) as usize;
+    let y = dims.y.clamp(0, max_y) as usize;
+    let cw = (dims.ancho_corte as usize).min(dims.ancho.saturating_sub(x));
+    let ch = (dims.alto_corte as usize).min(dims.alto.saturating_sub(y));
     let mut out = Vec::with_capacity(cw * ch * BYTES_PER_PIXEL_RGB);
     for fila in y..y + ch {
         let ini = (fila * dims.ancho + x) * BYTES_PER_PIXEL_RGB;
-        out.extend_from_slice(&rgb[ini..ini + cw * BYTES_PER_PIXEL_RGB]);
+        let fin = ini.saturating_add(cw * BYTES_PER_PIXEL_RGB);
+        if let Some(trozo) = rgb.get(ini..fin) {
+            out.extend_from_slice(trozo);
+        }
     }
     (out, cw, ch)
 }
@@ -166,7 +175,9 @@ pub(crate) fn capturar(paths: &crate::config::Paths, args: &Value) -> Result<Val
         "bytes": png.len(),
     });
     if flag(args, &["imagen"]) {
-        res["_imagen_png_base64"] = json!(base64(&png));
+        if let Some(obj) = res.as_object_mut() {
+            obj.insert("_imagen_png_base64".to_string(), json!(base64(&png)));
+        }
     }
     Ok(res)
 }

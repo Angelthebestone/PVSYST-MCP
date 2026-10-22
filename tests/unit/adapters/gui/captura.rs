@@ -39,6 +39,21 @@ fn crop_is_clamped_to_the_image() {
 }
 
 #[test]
+fn should_handle_zero_dimensions_without_panic() {
+    let dims = DimensionesRecorte {
+        ancho: 0,
+        alto: 0,
+        x: 0,
+        y: 0,
+        ancho_corte: 10,
+        alto_corte: 10,
+    };
+    let (out, cw, ch) = recortar_rgb(&[], &dims);
+    assert_eq!((cw, ch), (0, 0));
+    assert!(out.is_empty());
+}
+
+#[test]
 fn should_reject_capture_output_path_outside_workspace_by_default() {
     let ws = std::env::temp_dir().join("test_pvsyst_ws_confined");
     let paths = crate::config::Paths {

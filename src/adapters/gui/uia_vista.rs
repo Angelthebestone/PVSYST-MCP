@@ -216,7 +216,7 @@ pub(crate) fn cascada(ctx: &CascadaContext, obj: &Objetivo) -> Result<&'static s
     }
     if let Some(referencia) = obj.clase.or(obj.titulo) {
         if let Some(h) = resolve(ctx.scoped, referencia) {
-            ffi::post_message(h, BM_CLICK, 0, 0);
+            ffi::post_message(h, ffi::Mensaje::simple(BM_CLICK));
             return Ok("win32");
         }
     }

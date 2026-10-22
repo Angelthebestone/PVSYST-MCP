@@ -4,6 +4,7 @@
 //! `ventanas`, `gdi` and `entrada`.
 
 mod controles;
+mod dpi;
 mod entrada;
 mod escritorio;
 mod gdi;
@@ -12,6 +13,7 @@ mod puntos;
 mod ventanas;
 
 pub(crate) use controles::*;
+pub(crate) use dpi::*;
 pub(crate) use entrada::*;
 pub(crate) use escritorio::*;
 pub(crate) use gdi::*;
