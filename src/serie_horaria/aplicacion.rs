@@ -3,7 +3,8 @@
 use super::dominio::{
     fisico_a_crudo, validar_serie, MetadatosVariable, SerieHoraria, TipoVariable,
 };
-use super::{codificar, decodificar};
+use super::codificar::codificar;
+use super::decodificar::decodificar;
 use crate::args::{req_str, workspace_of};
 use crate::config::{data_ro, Paths};
 use crate::error::{Error, Result};
