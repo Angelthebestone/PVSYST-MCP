@@ -36,11 +36,6 @@ fn verificar_span(
 pub(crate) fn editar_objeto(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
     let path = resolve_file(&workspace, args)?;
-    let selector = req_str(
-        args,
-        &["objeto", "object"],
-        "e.g. \"pvSubArray\", \"role:SitePrj\"",
-    )?;
     let cambios = args
         .get("campos")
         .or_else(|| args.get("fields"))
@@ -51,11 +46,37 @@ pub(crate) fn editar_objeto(paths: &Paths, args: &Value) -> Result<Value> {
 
     let bytes =
         fs::read(&path).map_err(|e| Error::io(format!("Cannot read {}", path.display()), e))?;
+
+    if crate::components::pan::es_pan_legacy(&bytes) {
+        let selector = crate::args::opt_str(args, &["objeto", "object"]).unwrap_or("pvModule");
+        let (new_bytes, outcomes) =
+            crate::components::pan::parchear_campos_legacy(&bytes, &changes)?;
+        let historial_id =
+            history::snapshot(&workspace, std::slice::from_ref(&path), "editar_objeto")?;
+        history::escribir_atomico(&path, &new_bytes)?;
+        let mut verified = serde_json::Map::new();
+        for o in &outcomes {
+            verified.insert(o.key.clone(), json!(o.new_value));
+        }
+        return Ok(json!({
+            "file": path.to_string_lossy(),
+            "object": selector,
+            "historial_id": historial_id,
+            "changes": outcomes.iter().map(edit::ChangeOutcome::to_json).collect::<Vec<_>>(),
+            "verified_after_write": verified,
+        }));
+    }
+
+    let selector = req_str(
+        args,
+        &["objeto", "object"],
+        "e.g. \"pvSubArray\", \"role:SitePrj\"",
+    )?;
+
     let (new_bytes, outcomes) = edit::edit_fields(&bytes, selector, &changes)?;
     let historial_id = history::snapshot(&workspace, std::slice::from_ref(&path), "editar_objeto")?;
     history::escribir_atomico(&path, &new_bytes)?;
     let verified = verificar_span(&new_bytes, selector, &changes);
-
     Ok(json!({
         "file": path.to_string_lossy(),
         "object": selector,

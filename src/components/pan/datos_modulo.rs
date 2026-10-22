@@ -7,13 +7,14 @@
 
 use serde_json::Value;
 
-/// Pnom, Voc, Vmpp and the optional Voc temperature coefficient of a module.
+/// Pnom, Voc, Vmpp and optional temperature coefficients of a module.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct DatosModulo {
     pnom_w: f64,
     voc_v: f64,
     vmpp_v: f64,
     mu_voc_mv_c: Option<f64>,
+    mu_pnom_pct_c: Option<f64>,
 }
 
 /// First numeric value among `claves` inside `parameters`.
@@ -32,6 +33,7 @@ impl DatosModulo {
             voc_v: v.get("voc")?.as_f64()?,
             vmpp_v: parametro(v, &["vmpp_v", "vmpp"])?,
             mu_voc_mv_c: parametro(v, &["mu_voc_mv_c", "mu_voc"]),
+            mu_pnom_pct_c: parametro(v, &["mu_pnom_pct_c", "mu_pnom", "mu_pmpp", "gamma"]),
         })
     }
 
@@ -53,5 +55,10 @@ impl DatosModulo {
     /// Temperature coefficient of Voc (mV/°C), when the file has it.
     pub(crate) fn mu_voc_mv_c(&self) -> Option<f64> {
         self.mu_voc_mv_c
+    }
+
+    /// Temperature coefficient of Pnom / Vmpp (%/°C), when the file has it.
+    pub(crate) fn mu_pnom_pct_c(&self) -> Option<f64> {
+        self.mu_pnom_pct_c
     }
 }

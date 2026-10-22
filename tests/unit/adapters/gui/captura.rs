@@ -45,7 +45,7 @@ fn should_reject_capture_output_path_outside_workspace_by_default() {
         workspace: ws,
         cli_exe: PathBuf::new(),
         gui_exe: PathBuf::new(),
-        experto: false,
+        aproximaciones: false,
         estado: Arc::default(),
     };
     let args = json!({
@@ -62,7 +62,7 @@ fn should_allow_capture_output_path_outside_workspace_when_explicitly_permitted(
         workspace: ws,
         cli_exe: PathBuf::new(),
         gui_exe: PathBuf::new(),
-        experto: false,
+        aproximaciones: false,
         estado: Arc::default(),
     };
     let outside = std::env::temp_dir().join("safe_capture_outside.png");

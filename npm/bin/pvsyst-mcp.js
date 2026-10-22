@@ -2,7 +2,7 @@
 // Launcher for the bundled Windows binary. It spawns the server with inherited
 // stdio, so an MCP client that runs `npx pvsyst-mcp` speaks to the server
 // directly, and forwards environment variables (PVSYST_WORKSPACE, PVSYST_CLI,
-// PVSYST_GUI, PVSYST_MCP_EXPERTO) untouched.
+// PVSYST_GUI, PVSYST_MCP_APROXIMACIONES) untouched.
 //
 // Auto-update: the session runs the newest of the packaged binary and the
 // versions already downloaded to the store. After the server starts, a

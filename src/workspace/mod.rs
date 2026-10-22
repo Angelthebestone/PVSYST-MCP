@@ -17,9 +17,11 @@ mod rutas;
 mod tests;
 
 pub(crate) use crate::config::Alcance;
-pub(crate) use escritura::escribir_archivo;
-pub(crate) use lectura::{leer_archivo, leer_bytes};
+pub(crate) use escritura::{comprobar_coincidencia_exacta, escribir_archivo};
+pub(crate) use lectura::{leer_archivo, leer_bytes, leer_bytes_acotados, MAX_BYTES_MAXIMO};
 pub(crate) use listado::{listar_archivos, ResumenRecorrido};
 pub(crate) use nombres::validar_nombre;
 pub(crate) use recorrido::walk_ext;
-pub(crate) use rutas::{mover_a_papelera, resolver_ruta};
+pub(crate) use rutas::{
+    mover_a_papelera, resolver_archivo_con_fallback, resolver_ruta, PeticionResolucion,
+};

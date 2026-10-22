@@ -3,6 +3,26 @@
 use crate::error::{Error, Result};
 use serde_json::{json, Map, Value};
 
+/// Parses a PVsyst report number. When a token has more than one `.`,
+/// the last `.` is the decimal separator and preceding ones are thousands
+/// separators (`23.410.00` -> 23410.0); otherwise normal parse.
+pub(crate) fn parse_numero(t: &str) -> Option<f64> {
+    let s = t.trim();
+    if s.is_empty() {
+        return None;
+    }
+    let dots = s.matches('.').count();
+    if dots > 1 {
+        let last_dot = s.rfind('.')?;
+        let enteros = &s[..last_dot];
+        let decimales = &s[last_dot + 1..];
+        let normalizado = format!("{}.{}", enteros.replace(['.', ' '], ""), decimales);
+        normalizado.parse::<f64>().ok()
+    } else {
+        s.replace(' ', "").parse::<f64>().ok()
+    }
+}
+
 /// `+0.9%`, `-10.1%`: a signed percentage token.
 pub(super) fn parse_pct(t: &str) -> Option<f64> {
     let body = t.strip_suffix('%')?;
@@ -25,17 +45,8 @@ pub(super) fn parse_energia(t: &str) -> Option<(f64, &'static str)> {
     let unidad = ["kWh/m²", "MWh", "kWh"]
         .into_iter()
         .find(|u| t.ends_with(u))?;
-    let numero: String = t[..t.len() - unidad.len()]
-        .chars()
-        .filter(|c| !c.is_whitespace())
-        .collect();
-    let valida = numero.starts_with(|c: char| c.is_ascii_digit())
-        && numero.chars().all(|c| c.is_ascii_digit() || c == '.');
-    if valida {
-        numero.parse::<f64>().ok().map(|v| (v, unidad))
-    } else {
-        None
-    }
+    let numero = &t[..t.len() - unidad.len()];
+    parse_numero(numero).map(|v| (v, unidad))
 }
 
 /// A label token: text that is neither a percentage nor an energy value.
@@ -151,7 +162,7 @@ pub(crate) fn mensual(tokens: &[String]) -> Result<Value> {
         let numeros = tramo(tokens, k + 1, 8)?;
         let mut valores = Map::new();
         for (col, raw) in columnas.iter().zip(numeros) {
-            let n = raw.replace(' ', "").parse::<f64>().map_err(|_| {
+            let n = parse_numero(raw).ok_or_else(|| {
                 Error::Invalid(format!("Valor mensual no numérico '{raw}' en {etiqueta}"))
             })?;
             valores.insert(col.clone(), json!(n));
@@ -170,15 +181,32 @@ pub(crate) fn mensual(tokens: &[String]) -> Result<Value> {
 
 /// Headline results: produced energy (required), specific production and PR.
 pub(crate) fn resumen(tokens: &[String]) -> Result<Value> {
-    let valor_tras = |etiqueta: &str| -> Option<f64> {
-        let p = tokens.iter().position(|t| t == etiqueta)?;
-        tokens.get(p + 1)?.replace(' ', "").parse::<f64>().ok()
-    };
-    let energia = valor_tras("Produced Energy")
+    let energia = valor_de_etiqueta(tokens, "Produced Energy")
         .ok_or_else(|| Error::Format("El informe no contiene Produced Energy".into()))?;
     Ok(json!({
         "energia_anual_kwh": energia,
-        "produccion_especifica_kwh_kwp": valor_tras("Specific production"),
-        "pr_pct": valor_tras("Perf. Ratio PR"),
+        "produccion_especifica_kwh_kwp": valor_de_etiqueta(tokens, "Specific production"),
+        "pr_pct": valor_de_etiqueta(tokens, "Perf. Ratio PR"),
     }))
+}
+
+/// Value printed for `etiqueta` in a PVsyst results box.
+///
+/// The report lays a box out either as `label value` pairs or as a row of
+/// labels followed by a row of values (`Produced Energy`, `Used Energy`,
+/// `16539`, `40515`). The labels after `etiqueta` and before the first number
+/// tell its column among the values that follow. O(n) in the tokens.
+pub(crate) fn valor_de_etiqueta(tokens: &[String], etiqueta: &str) -> Option<f64> {
+    let p = tokens.iter().position(|t| t == etiqueta)?;
+    let resto = &tokens[p + 1..];
+    let etiquetas_detras = resto
+        .iter()
+        .take_while(|t| parse_numero(t).is_none())
+        .count();
+    let valores: Vec<f64> = resto[etiquetas_detras..]
+        .iter()
+        .map_while(|t| parse_numero(t))
+        .collect();
+    let columna = valores.len().checked_sub(etiquetas_detras + 1)?;
+    valores.get(columna).copied()
 }

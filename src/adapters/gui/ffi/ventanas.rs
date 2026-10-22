@@ -121,6 +121,11 @@ pub(crate) fn send_message(h: Hwnd, msg: u32, w: usize, l: isize) {
     }
 }
 
+pub(crate) fn send_message_res(h: Hwnd, msg: u32, w: usize, l: isize) -> isize {
+    // SAFETY: `SendMessageW` recibe enteros y el HWND del llamador; no desreferencia punteros.
+    unsafe { SendMessageW(h, msg, w, l) }
+}
+
 pub(crate) fn mostrar_ventana(h: Hwnd, cmd: i32) {
     // SAFETY: `ShowWindow` solo actúa sobre el HWND recibido.
     unsafe {

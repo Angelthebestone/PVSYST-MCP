@@ -32,10 +32,11 @@ Capabilities that matter when you decide which client to trust:
   call. Treat any caller that can set it as having filesystem write access.
 * **The `workspace` argument moves the confinement root itself**, so an untrusted
   caller can redirect the server at another folder tree you can write to.
-* **`PVSYST_MCP_EXPERTO=1` is a privileged mode.** It exposes `pvsyst_cli` (runs any
-  `PVsystCLI` command with raw options) and the GUI tools (`gui_observar`,
-  `gui_actuar`: synthetic input, window control, screenshots). Do not enable it for a
-  client or a prompt chain you do not control.
+* **`pvsyst_cli` and the GUI tools are privileged by nature.** They are available by
+  default: `pvsyst_cli` runs any `PVsystCLI` command with raw options, and
+  `gui_observar` / `gui_actuar` perform synthetic input, window control, form-field
+  typing and screenshots. Connect only MCP clients and prompt chains you control, and
+  keep the server on the workstation that holds the PVsyst licence.
 * **The server never activates or deactivates the licence**: `entorno` with
   `accion: licencia_activar` / `licencia_desactivar` only returns the command for you
   to run yourself with your own key.
@@ -50,4 +51,4 @@ Capabilities that matter when you decide which client to trust:
 * Anything requiring an attacker who already controls your machine, your workspace, or
   the MCP client configuration.
 * Prompt-injection style attacks where the attacker is the model's own input chain: the
-  mitigation is not to connect clients you do not trust, and to keep expert mode off.
+  mitigation is not to connect clients you do not trust, and to keep the server local.

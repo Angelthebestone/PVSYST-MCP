@@ -366,3 +366,99 @@ PVsystCLI.exe run-simulation -w:"<workspace>" -p:"<Project>.PRJ" -v:"<VC0>"
 * `--workspace` must be a genuine `*_Data` workspace folder.
 
 Other commands: `create-site`, `convert-meteo`, `export-logs`, `lic-*`, `version`.
+
+---
+
+## 7. 3D Shading scenes: `.SHD`, `.BLD`, `.SHO` (Read-only; Hybrid ASCII + Delphi Real48)
+
+Near-shading 3D representations are stored across three file extensions in `Shadings/` and are strictly **read-only** in the MCP (writing is rejected with `Error::Invalid`):
+* `.SHD`: Complete 3D scene (root `pvShading;`).
+* `.BLD`: Building or obstacle cluster (root `pvShdBuilding;`).
+* `.SHO`: Shading object definition or tracker array (root `pvShdObjects;`).
+### 7.1 General structure (PROVEN)
+
+Every file consists of two-line ASCII object headers followed by binary blocks delimited by `/` (`0x2F`):
+1. Root header:
+   * Line 0: `<RootClass>;<Description>;\r\n` (e.g. `pvShading;...;`, `pvShdBuilding;...;`, `pvShdObjects;...;`).
+   * Line 1: `Version <Ver>; Calcul=$<HexFlags>;\r\n`.
+   * Lines 2..: Root metadata / parameters ending with `/\r\n` before first child object.
+2. Child objects (`pvShdArrayShed`, `pvShdBuilding`, `pvShdElemObject`, `pvShdArrayTracking`):
+   * Line 0: `<ObjectClass>;<ObjectName>;\r\n`.
+   * Line 1: `Version <Ver>; Calcul=$<HexFlags>;\r\n`.
+   * Line 2 (optional): `<Count1>; <Count2>/\r\n`.
+
+### 7.2 Spatial placement block (PROVEN)
+
+For placed objects, a fixed 44-byte binary block (43 bytes payload + `/`) encodes position and rotation:
+
+| Byte offset | Length | Type | Role |
+|---|---|---|---|
+| 0..3 | 4 bytes | u32 LE | Object ID / status flags |
+| 4..7 | 4 bytes | u32 LE | Delphi TColor (render color, e.g. `$0000C0FF`) |
+| 8..11 | 4 bytes | u32 LE | Group / selection flags |
+| 12..17 | 6 bytes | Delphi Real48 | X coordinate (meters) |
+| 18..23 | 6 bytes | Delphi Real48 | Y coordinate (meters) |
+| 24..29 | 6 bytes | Delphi Real48 | Z coordinate (meters) |
+| 30..35 | 6 bytes | Delphi Real48 | Primary rotation / Azimuth (radians/degrees) |
+| 36..41 | 6 bytes | Delphi Real48 | Secondary rotation / Tilt |
+| 42 | 1 byte | u8 | Visibility flag (`0x01` = visible) |
+| 43 | 1 byte | ASCII `/` | Block terminator (`0x2F`) |
+
+### 7.3 Elementary geometric shapes (`pvShdElemObject`) (PROVEN)
+
+Elementary objects define their dimensions via a 39-byte block (2 bytes shape ID + 6x Real48 slots + `/`):
+* Shape ID `11` (`0x000B`): `Parallélépipède` -> [Length, Width, Height, 0, 0, 1].
+* Shape ID `23` (`0x0017`): `Toiture + pignons` (gabled roof) -> [Length, Width, Tilt (°), 0, 0, 1].
+* Shape ID `25` (`0x0019`): `Prism - chimney` -> [Width, Length, Height, Tilt (°), 1, 1].
+* Shape ID `21` (`0x0015`): `Tree` (tree obstacle) -> [Crown radius, Trunk radius, Height, ...].
+
+### 7.4 What is NOT proven (INFERRED) & Read-only policy
+
+* Arbitrary polygonal mesh topologies (non-regular 3D polygons).
+* Internal tracking algorithm state bits in `Calcul=$...`.
+* Scene creation/serialization: mesh structure is not proven. Writing is rejected with `Error::Invalid("escena 3D: solo lectura; el formato de las mallas no está demostrado, créala con la GUI de PVsyst (Construcción / Perspectiva)")`.
+---
+
+## 8. Weather format specifications: `.MEF`
+
+`.MEF` files define how PVsyst imports external CSV/text weather time series into `.MET` binary files.
+
+### 8.1 Modern format (≥ 6.40, PVObject `pvMeteoFormat`) (PROVEN)
+
+Standard UTF-8 text object tree starting with `PVObject_=pvMeteoFormat` and ending with `End of PVObject pvMeteoFormat`:
+* `Comment`, `Version`, `Flags`: format metadata.
+* `DateFmtType`: date parsing pattern (e.g. `MM_DD_hh_mm` or `YYxMMxDDxhhxmm`).
+* `Separ`: delimiter byte (e.g. `$003B` for `;`, `$002C` for `,`).
+* `MeasureStep`: time step in minutes (e.g. `60`).
+* `RefTimeS`: time reference (`LegalTime`, `SolarTime`).
+* `AlbedoSolMF`: ground albedo fraction (e.g. `0.2`).
+* `NoFieldDate`: 1-based column indices for date components, followed by `0` as an unused date component sentinel (e.g. `NoFieldDate=2,3,4,5,0,`).
+* `VarASCIIList`: sub-object array of variables to import (`GlobHor`, `DiffHor`, `T_Amb`, `WindVel`):
+  * `VarIdent`: variable identifier.
+  * `VarType`: physical quantity category (`Irrad`, `Temper`, `WindVel`).
+  * `NoField`: 1-based CSV column index.
+  * `FieldMult`: multiplier to convert values to standard PVsyst units (e.g. `1.00000` or `0.00360`).
+  * `UnitId`: target unit (`W_m2`, `DegC`, `m_s`).
+
+### 8.2 Legacy format (< 6.40, Delphi ASCII + Real48) (PROVEN / READ-ONLY)
+
+Legacy MEF is strictly **read-only** (writing is rejected with `Error::Invalid("no hay escritor legacy demostrado")`).
+The parser decodes:
+* Line 0: `pvMeteoFormat;<Description>;\r\n` -> `comentario`.
+* Line 1: `Version <Ver>; Calcul=$<HexFlags>;\r\n` -> `version` and `calcul` (with prefixes `Version ` and `Calcul=` stripped).
+* Column mapping lines: `<VarIdent>;<VarType>;<ColIndex>;<Min>;<Max>;<Mult>;\r\n` -> `VarIdent`, `VarType`, 1-based column index, multiplier, and unit derived from `VarType` (`DegC` for `Temper`, `m_s` for `WindVel`, `W_m2` for `Irrad`).
+* Tail: binary Delphi Real48 parameters (such as default albedo) are not decoded into domain fields.
+---
+
+## 9. Currency exchange rate table: `Currency.dat` (Read-only; PROVEN)
+
+Located in `DataRO\Currency.dat`, this semicolon-delimited text file defines foreign currency exchange rates relative to the base currency (EUR). It is strictly **read-only** (writing is rejected with `Error::Invalid("solo lectura: PVsyst lo lee de su instalación (DataRO) y no está demostrado que lea una copia del workspace")` because PVsyst reads it from DataRO and has not been proven to read a workspace copy):
+* Line 0: Format header `CURRENCY_RATES_V2;\r\n`.
+* Line 1: `<Count>; <BaseCurrencyIndex>;<Flag>;\r\n` (e.g. `33; 1;1;\r\n` where 33 is total rows, 1 is 1-based base currency EUR).
+* Lines 2..34: Currency rows `<Code>;<Name>;<FormattedRate>;` (33 rows).
+  * `<Code>`: 3-letter uppercase ISO currency code (`EUR`, `USD`, `GBP`...).
+  * `<Name>`: English name in Latin-1 / DOS OEM encoding (e.g. `Icelandic Króna`).
+  * `<FormattedRate>`: Exchange rate formatted in a strict 10-character right-aligned column:
+    `width = 10`, `decimals = min(6, 10 - 1 - integer_digits)`.
+  * Note: The final line does not include a trailing `\r\n`.
+* GUI check (PVsyst 8.1.7, `Eco → Tasas`, `TCurrenciesForm`): the window shows `EUR - Euro` as reference currency and lists GBP, CHF, AUD, CAD, CNY, JPY, BGN, BRL, CZK, DKK, HKD with the same code, name and rate as `leer` returns for those rows (e.g. `GBP 0.89470000`, `JPY 131.57890000`). Only those 11 rows were visible in the viewport; the USD row and rows 14–33 were not compared. The grid rows are TEdit controls whose text could not be read by handle (they return their component name), so the comparison is from a capture.

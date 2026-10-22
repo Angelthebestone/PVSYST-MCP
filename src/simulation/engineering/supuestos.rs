@@ -1,5 +1,4 @@
-//! User-supplied engineering assumptions (rates, lifetimes, costs) with
-//! business bounds, so no calculation runs on non-finite or absurd inputs.
+//! User-supplied engineering assumptions with business bounds.
 
 use crate::args::missing;
 use crate::error::{Error, Result};
@@ -11,16 +10,6 @@ pub(super) struct Rango {
     pub(super) min: f64,
     pub(super) max: f64,
 }
-
-/// Longest economic or carbon horizon accepted, in years.
-pub(super) const MAX_ANIOS: u32 = 100;
-
-/// Annual degradation, as a fraction.
-pub(super) const DEGRADACION: Rango = Rango {
-    clave: "degradacion",
-    min: 0.0,
-    max: 0.5,
-};
 
 /// `rango.clave` from `args` (or `defecto` when absent), finite and inside the range.
 pub(super) fn acotado(args: &Value, rango: &Rango, defecto: Option<f64>) -> Result<f64> {
@@ -37,23 +26,6 @@ pub(super) fn acotado(args: &Value, rango: &Rango, defecto: Option<f64>) -> Resu
         )));
     }
     Ok(valor)
-}
-
-/// Whole number of years `clave` (or `defecto`), in `1..=MAX_ANIOS`.
-pub(super) fn anios(args: &Value, clave: &'static str, defecto: f64) -> Result<u32> {
-    let rango = Rango {
-        clave,
-        min: 1.0,
-        max: f64::from(MAX_ANIOS),
-    };
-    let valor = acotado(args, &rango, Some(defecto))?;
-    if valor.fract() != 0.0 {
-        return Err(Error::Invalid(format!(
-            "'{clave}'={valor} debe ser un número entero de años"
-        )));
-    }
-    // In 1..=MAX_ANIOS and integral, so the conversion is exact.
-    Ok(valor as u32)
 }
 
 #[cfg(test)]

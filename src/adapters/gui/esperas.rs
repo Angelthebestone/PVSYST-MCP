@@ -64,9 +64,20 @@ fn esperar_evento(criterio: Criterio, timeout_ms: u64) -> Option<Hwnd> {
     HALLADO.with(|x| x.set(0));
     let gancho = ffi::instalar_gancho_mostrar(al_mostrar);
     if gancho != 0 {
-        let ms = timeout_ms.min(u64::from(u32::MAX)) as u32;
-        ffi::iniciar_temporizador(ms);
-        ffi::bombear_mensajes();
+        // A window can appear between the caller's scan and the hook: rescan
+        // once the hook is live so that event is never lost.
+        let ya_visible = OBJETIVO.with(|o| {
+            enum_windows()
+                .into_iter()
+                .find(|h| o.borrow().as_ref().is_some_and(|c| c.coincide(*h)))
+        });
+        if let Some(h) = ya_visible {
+            HALLADO.with(|x| x.set(h));
+        } else {
+            let ms = timeout_ms.min(u64::from(u32::MAX)) as u32;
+            ffi::iniciar_temporizador(ms);
+            ffi::bombear_mensajes();
+        }
         ffi::retirar_gancho(gancho);
     }
     OBJETIVO.with(|o| *o.borrow_mut() = None);

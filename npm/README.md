@@ -41,7 +41,8 @@ Optional environment variables:
 | `PVSYST_WORKSPACE` | PVsyst user workspace | `%USERPROFILE%\PVsyst8.1_Data` |
 | `PVSYST_CLI` | Path to `PVsystCLI.exe` | `C:\Program Files\PVsyst8.1.7\PVsystCLI.exe` |
 | `PVSYST_GUI` | Path to `PVsyst.exe` | `C:\Program Files\PVsyst8.1.7\PVsyst.exe` |
-| `PVSYST_MCP_EXPERTO` | `1` also exposes the raw CLI and GUI tools (15 tools instead of 12) | unset |
+| `PVSYST_MCP_APROXIMACIONES` | `1` enables the MCP's own approximations of PVsyst calculations (labelled `origen: "aproximacion_mcp"`) | unset (PVsyst results only) |
+| `PVSYST_MCP_ESCRITORIO` | `aislado` runs PVsyst and the GUI tools on a private hidden desktop so the agent never takes your focus, cursor or keyboard | `compartido` |
 | `PVSYST_MCP_AUTO_ACTUALIZAR` | `0` disables the auto-update | enabled |
 | `PVSYST_MCP_ALMACEN` | Where updates are downloaded | `%LOCALAPPDATA%\pvsyst-mcp` |
 

@@ -1,9 +1,20 @@
 //! MCP prompts: catalogue, template filling and the recipes resource.
 
+// Test code: failing loudly on unexpected state is the point.
+#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+
 mod common;
 
 use common::protocol_call as call;
+use pvsyst_mcp::{Paths, Server};
 use serde_json::Value;
+
+fn call_aproximaciones(line: &str) -> Value {
+    let mut paths = Paths::resolve();
+    paths.aproximaciones = true;
+    let out = Server::new(paths).handle_line(line).expect("response");
+    serde_json::from_str(&out).expect("valid json")
+}
 
 #[test]
 fn prompts_and_templates_lists_are_not_errors() {
@@ -14,8 +25,14 @@ fn prompts_and_templates_lists_are_not_errors() {
 }
 
 #[test]
-fn prompts_list_exposes_the_ten_recipes() {
+fn prompts_list_exposes_nine_native_recipes_by_default() {
     let v = call(r#"{"jsonrpc":"2.0","id":4,"method":"prompts/list"}"#);
+    assert_eq!(v["result"]["prompts"].as_array().unwrap().len(), 9);
+}
+
+#[test]
+fn prompts_list_adds_the_approximation_recipes_with_the_flag() {
+    let v = call_aproximaciones(r#"{"jsonrpc":"2.0","id":4,"method":"prompts/list"}"#);
     assert_eq!(v["result"]["prompts"].as_array().unwrap().len(), 10);
 }
 
@@ -40,8 +57,18 @@ fn prompts_get_without_a_required_argument_is_invalid_params() {
 }
 
 #[test]
-fn recipes_resource_still_lists_the_ten_recipes() {
+fn recipes_resource_lists_nine_native_recipes_by_default() {
     let v = call(
+        r#"{"jsonrpc":"2.0","id":7,"method":"resources/read","params":{"uri":"pvsyst://recetas"}}"#,
+    );
+    let text = v["result"]["contents"][0]["text"].as_str().expect("text");
+    let resource: Value = serde_json::from_str(text).expect("valid json");
+    assert_eq!(resource["recetas"].as_array().unwrap().len(), 9);
+}
+
+#[test]
+fn recipes_resource_lists_ten_recipes_with_approximations() {
+    let v = call_aproximaciones(
         r#"{"jsonrpc":"2.0","id":7,"method":"resources/read","params":{"uri":"pvsyst://recetas"}}"#,
     );
     let text = v["result"]["contents"][0]["text"].as_str().expect("text");

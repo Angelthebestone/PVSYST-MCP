@@ -11,7 +11,7 @@ pub(crate) mod legacy;
 mod tests;
 
 pub(crate) use datos_modulo::DatosModulo;
-use legacy::parse_legacy;
+pub(crate) use legacy::{es_pan_legacy, parchear_campos_legacy, parse_legacy};
 
 use crate::args::req_str;
 use crate::args::workspace_of;
@@ -68,6 +68,7 @@ fn parse_text_module(text: &str) -> Result<Value> {
             "vmpp": num(alias(&root, &["Vmpp", "Vmp", "VMPP"])),
             "mu_isc": num(alias(&root, &["muIsc", "MuISC"])),
             "mu_voc": num(alias(&root, &["muVocSpec", "muVoc"])),
+            "mu_pnom": num(alias(&root, &["muPnom", "muPmpp", "muPmpReq", "Gamma", "gamma"])),
             "gref": num(root.find_deep("Gref")),
             "tref": num(root.find_deep("Tref")),
         },

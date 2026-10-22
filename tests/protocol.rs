@@ -22,14 +22,8 @@ use serde_json::Value;
 /// Latest protocol revision the server speaks, as documented in the README.
 const LATEST_PROTOCOL: &str = "2025-06-18";
 
-#[derive(Clone, Copy)]
-enum Superficie {
-    Normal,
-    Experta,
-}
-
-fn tools_list_len(superficie: Superficie) -> usize {
-    let out = server_with(matches!(superficie, Superficie::Experta))
+fn tools_list_len() -> usize {
+    let out = server_with()
         .handle_line(r#"{"jsonrpc":"2.0","id":1,"method":"tools/list"}"#)
         .expect("response");
     serde_json::from_str::<Value>(&out).expect("valid json")["result"]["tools"]
@@ -49,7 +43,7 @@ fn initialize_echoes_client_protocol_version() {
 
 #[test]
 fn initialize_negotiates_once_and_keeps_the_first_version() {
-    let server = server_with(false);
+    let server = server_with();
     let first = server
         .handle_line(
             r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26"}}"#,
@@ -116,14 +110,14 @@ fn handle_line_rejects_non_object_params() {
 
 #[test]
 fn tools_list_as_notification_yields_no_response() {
-    assert!(server_with(false)
+    assert!(server_with()
         .handle_line(r#"{"jsonrpc":"2.0","method":"tools/list"}"#)
         .is_none());
 }
 
 #[test]
 fn tools_list_with_id_yields_response() {
-    let resp = server_with(false)
+    let resp = server_with()
         .handle_line(r#"{"jsonrpc":"2.0","id":1,"method":"tools/list"}"#)
         .expect("requests with id get a response");
     assert!(resp.contains(r#""id":1"#));
@@ -132,7 +126,7 @@ fn tools_list_with_id_yields_response() {
 
 #[test]
 fn notification_calls_never_generate_responses() {
-    let server = server_with(false);
+    let server = server_with();
     for line in [
         r#"{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-03-26"}}"#,
         r#"{"jsonrpc":"2.0","method":"resources/read","params":{"uri":"pvsyst://recetas"}}"#,
@@ -148,18 +142,13 @@ fn notification_calls_never_generate_responses() {
 }
 
 #[test]
-fn tools_list_exposes_12_tools_without_expert_flag() {
-    assert_eq!(tools_list_len(Superficie::Normal), 12);
-}
-
-#[test]
-fn tools_list_adds_the_expert_tools_with_flag() {
-    assert_eq!(tools_list_len(Superficie::Experta), 15);
+fn tools_list_exposes_all_fifteen_pvsyst_tools_by_default() {
+    assert_eq!(tools_list_len(), 15);
 }
 
 #[test]
 fn notifications_get_no_response() {
-    assert!(server_with(false)
+    assert!(server_with()
         .handle_line(r#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#)
         .is_none());
 }
@@ -172,7 +161,7 @@ fn unknown_method_errors() {
 
 #[test]
 fn tools_list_exposes_annotations_and_bilingual_descriptions() {
-    let out = server_with(true)
+    let out = server_with()
         .handle_line(r#"{"jsonrpc":"2.0","id":1,"method":"tools/list"}"#)
         .expect("response");
     let v: Value = serde_json::from_str(&out).expect("valid json");
@@ -197,9 +186,35 @@ fn tools_list_exposes_annotations_and_bilingual_descriptions() {
 }
 
 #[test]
-fn resource_list_has_four_entries() {
+fn resource_list_has_five_entries() {
     let v = call(r#"{"jsonrpc":"2.0","id":3,"method":"resources/list"}"#);
-    assert_eq!(v["result"]["resources"].as_array().unwrap().len(), 4);
+    assert_eq!(v["result"]["resources"].as_array().unwrap().len(), 5);
+}
+
+#[test]
+fn gui_resource_maps_every_catalogued_function_and_the_observed_windows() {
+    let v = call(
+        r#"{"jsonrpc":"2.0","id":4,"method":"resources/read","params":{"uri":"pvsyst://gui"}}"#,
+    );
+    let text = v["result"]["contents"][0]["text"].as_str().unwrap();
+    let gui: serde_json::Value = serde_json::from_str(text).unwrap();
+    let funciones = gui["funciones"].as_array().unwrap();
+    assert!(funciones
+        .iter()
+        .any(|f| f["clave"] == "variante.orientacion"));
+    let ventana = &gui["mapa"]["ventanas"]["TDetailedLossesForm"];
+    assert!(
+        ventana["instancias"][0]["pestanas"]
+            .as_array()
+            .unwrap()
+            .len()
+            >= 9
+    );
+    assert!(ventana["abierta_con"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|k| k == "variante.perdidas_detalladas"));
 }
 
 #[test]
@@ -212,7 +227,7 @@ fn resource_read_unknown_uri_is_invalid_params() {
 
 #[test]
 fn structured_content_depends_on_the_negotiated_protocol_version() {
-    let server = server_with(false);
+    let server = server_with();
     server.handle_line(
         r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}"#,
     );
@@ -224,7 +239,7 @@ fn structured_content_depends_on_the_negotiated_protocol_version() {
     let v: Value = serde_json::from_str(&out).expect("valid json");
     assert!(v["result"]["structuredContent"].is_object(), "v={v}");
 
-    let old = server_with(false);
+    let old = server_with();
     old.handle_line(
         r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26"}}"#,
     );
@@ -239,7 +254,7 @@ fn structured_content_depends_on_the_negotiated_protocol_version() {
 
 #[test]
 fn serve_reads_any_reader_and_writes_any_writer() {
-    let server = server_with(false);
+    let server = server_with();
     let input = std::io::Cursor::new(
         br#"{"jsonrpc":"2.0","id":1,"method":"ping"}
 "#

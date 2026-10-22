@@ -6,7 +6,7 @@ pub(crate) mod arbol;
 pub(crate) mod com;
 pub(crate) mod elemento;
 
-pub(crate) use arbol::arbol;
+pub(crate) use arbol::{arbol, invalidar as invalidar_cache};
 pub(crate) use elemento::{centro, invocar};
 
 use crate::error::{Error, Result};

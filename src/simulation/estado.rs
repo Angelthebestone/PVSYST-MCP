@@ -65,7 +65,11 @@ pub(crate) fn estado_simulacion(paths: &Paths, args: &Value) -> Result<Value> {
         v["error"] = json!(e);
     }
     if let Some(out) = estado.salida {
-        v["resultado"] = final_de(paths, id, &out)?;
+        let fin = final_de(paths, id, &out)?;
+        if let Some(avisos) = fin.get("avisos_pvsyst") {
+            v["avisos_pvsyst"] = avisos.clone();
+        }
+        v["resultado"] = fin;
     }
     Ok(v)
 }

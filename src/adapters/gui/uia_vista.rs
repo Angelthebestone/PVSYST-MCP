@@ -1,6 +1,6 @@
 //! Hybrid GUI view fusing Win32 window handles with the UI Automation tree.
 
-use super::acciones::{clic_fisico_en, escritorio_interactivo};
+use super::acciones::escritorio_interactivo;
 use super::esperas::{esperar_ventana, EsperarParams};
 use super::ffi::{self, enum_children, Hwnd, BM_CLICK};
 use super::teclado::teclas;
@@ -74,7 +74,11 @@ pub(crate) fn fusionar(ventanas_win: Vec<Value>, arbol: &Value) -> Value {
 pub(crate) fn controles_con_uia(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     let mut r = super::ventanas::controles(paths, args)?;
     if flag(args, &["incluir_uia"]) {
-        let h = hwnd_de(args, "ventana")?;
+        let h = match args.get("ventana").and_then(Value::as_str) {
+            Some(_) => hwnd_de(args, "ventana")?,
+            None => raiz_por_defecto(&ventanas_de(args)?)
+                .ok_or_else(|| Error::Gui("No hay una ventana visible para inspeccionar".into()))?,
+        };
         let arbol = uia::arbol(&paths.estado, h, DEFAULT_UIA_DEPTH, DEFAULT_UIA_MAX_NODES)?;
         let mut plano = Vec::new();
         aplanar(&arbol, &mut plano);
@@ -180,7 +184,7 @@ pub(crate) fn cascada(ctx: &CascadaContext, obj: &Objetivo) -> Result<&'static s
     if let Some(h) = ctx.raiz {
         if escritorio_interactivo() {
             if let Ok((x, y)) = uia::centro(h, obj.nombre, obj.rol) {
-                clic_fisico_en(x, y);
+                ffi::clic_fisico_en(x, y);
                 return Ok("fisico");
             }
         }

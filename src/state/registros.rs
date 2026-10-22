@@ -45,6 +45,7 @@ pub(crate) struct Plan {
     pub(crate) rpf: Option<String>,
     pub(crate) antes: (Option<u64>, Option<u64>),
     pub(crate) ejecuciones: u32,
+    pub(crate) inicio: std::time::SystemTime,
 }
 
 /// Background simulation waiting for its result to be finalised (`estado`).

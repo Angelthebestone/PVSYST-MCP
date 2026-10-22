@@ -34,7 +34,6 @@ fn fake_env() -> Vec<(&'static str, &'static str)> {
             "FAKE_PVSYST_FIXTURES",
             concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/cli"),
         ),
-        ("PVSYST_MCP_EXPERTO", "1"),
     ]
 }
 
@@ -78,6 +77,32 @@ fn simulation_reports_success_from_fixture() {
     let v = tool_text(&client.call(2, "simular", args));
     assert_eq!(v["success"], json!(true));
     assert_eq!(v["mode"], json!("cli"));
+}
+
+#[test]
+fn simulation_reports_avisos_pvsyst_from_fake_cli_log() {
+    let ws = workspace();
+    let temp_local_app_data = tempfile::tempdir().unwrap();
+    let mut env = fake_env();
+    let local_str = temp_local_app_data.path().to_string_lossy().to_string();
+    env.push(("LOCALAPPDATA", &local_str));
+    let mut client = Client::start_env(Some(&ws_str(ws.path())), &env);
+    client.initialize();
+    let args = json!({ "proyecto": "SYNTH_Plant", "variante": "VC0" });
+    let v = tool_text(&client.call(2, "simular", args));
+    assert_eq!(v["success"], json!(true));
+    let avisos = v["avisos_pvsyst"].as_array().expect("avisos_pvsyst");
+    assert_eq!(avisos.len(), 4);
+    assert_eq!(avisos[0], "ErrorList: 1882 error messages");
+    assert_eq!(
+        avisos[1],
+        "The array Vmpp at 60 °C  is lower than the inverter minimum operating voltage."
+    );
+    assert_eq!(avisos[2], "This may result in some undervoltage loss.");
+    assert_eq!(
+        avisos[3],
+        "1879 occurrences of MPP voltage lower than min. voltage input of the inverter"
+    );
 }
 
 #[test]
@@ -223,7 +248,7 @@ fn should_classify_missing_confirmation_as_ambiguous() {
 }
 
 #[test]
-fn should_use_numeric_kwp_when_computing_economics() {
+fn should_report_missing_economics_when_pdf_lacks_economic_evaluation() {
     let ws = workspace();
     let resultados = ws.path().join("Results");
     for nombre in ["MCP_E2E.csv", "MCP_E2E.pdf"] {
@@ -236,20 +261,48 @@ fn should_use_numeric_kwp_when_computing_economics() {
     let mut client = Client::start_env(Some(&ws_str(ws.path())), &fake_env());
     client.initialize();
 
-    let v = tool_text(&client.call(
+    let resp = client.call(
         2,
         "resultados",
         json!({
             "que": "economia",
             "proyecto": "MCP_E2E",
             "archivo": resultados.join("MCP_E2E.csv").to_string_lossy(),
-            "kwp": 10,
-            "capex_por_kwp": 1000,
-            "tarifa_por_kwh": 0.1
         }),
-    ));
+    );
 
-    assert_eq!(v["capex_total"], json!(10_000.0), "v={v}");
+    assert_eq!(resp["result"]["isError"], true, "resp={resp}");
+    let msg = resp["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(msg.contains("proyecto accion:economia"), "msg={msg}");
+}
+
+#[test]
+fn should_report_missing_carbon_when_pdf_lacks_carbon_balance() {
+    let ws = workspace();
+    let resultados = ws.path().join("Results");
+    for nombre in ["MCP_E2E.csv", "MCP_E2E.pdf"] {
+        fs::copy(
+            fixture(&format!("results/{nombre}")),
+            resultados.join(nombre),
+        )
+        .unwrap();
+    }
+    let mut client = Client::start_env(Some(&ws_str(ws.path())), &fake_env());
+    client.initialize();
+
+    let resp = client.call(
+        2,
+        "resultados",
+        json!({
+            "que": "carbono",
+            "proyecto": "MCP_E2E",
+            "archivo": resultados.join("MCP_E2E.csv").to_string_lossy(),
+        }),
+    );
+
+    assert_eq!(resp["result"]["isError"], true, "resp={resp}");
+    let msg = resp["result"]["content"][0]["text"].as_str().unwrap();
+    assert!(msg.contains("PrintInReport"), "msg={msg}");
 }
 
 #[test]

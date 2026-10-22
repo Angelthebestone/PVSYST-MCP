@@ -1,16 +1,20 @@
 //! Keyboard shortcuts, modifier combination and virtual key mapping.
 
-use super::ffi::{self, WM_KEYDOWN, WM_KEYUP};
+use super::escritorio;
+use super::ffi;
 use super::ventanas::{resolve, ventanas_de};
 use crate::args::req_str;
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
+use std::time::Duration;
 
-const VK_CONTROL: u32 = 0x11;
-const VK_SHIFT: u32 = 0x10;
-const VK_MENU: u32 = 0x12;
+const VK_CONTROL: u8 = 0x11;
+const VK_SHIFT: u8 = 0x10;
+const VK_MENU: u8 = 0x12;
+/// Lets Windows move the focus to the target window before typing.
+const FOCO: Duration = Duration::from_millis(80);
 
-fn vk_for(key: &str) -> Option<u32> {
+fn vk_for(key: &str) -> Option<u8> {
     let k = key.trim().to_uppercase();
     match k.as_str() {
         "F1" => Some(0x70),
@@ -38,7 +42,7 @@ fn vk_for(key: &str) -> Option<u32> {
             if bytes.len() == 1 {
                 let c = bytes[0];
                 if c.is_ascii_uppercase() || c.is_ascii_digit() {
-                    return Some(u32::from(c));
+                    return Some(c);
                 }
             }
             None
@@ -56,6 +60,9 @@ pub(crate) fn teclas(paths: &crate::config::Paths, args: &Value) -> Result<Value
         }
         None => ffi::primer_plano(),
     };
+    if h == 0 {
+        return Err(Error::Gui("No hay una ventana en primer plano".into()));
+    }
     let combo = req_str(args, &["teclas"], "e.g. \"F1\" or \"CTRL+S\"")?.to_uppercase();
     let parts: Vec<&str> = combo.split('+').map(str::trim).collect();
     let mut mods = Vec::new();
@@ -69,13 +76,17 @@ pub(crate) fn teclas(paths: &crate::config::Paths, args: &Value) -> Result<Value
         }
     }
     let vk = main.ok_or_else(|| Error::Gui(format!("Unrecognized key in '{combo}'")))?;
-    for m in &mods {
-        ffi::post_message(h, WM_KEYDOWN, *m as usize, 0);
+    if escritorio::es_aislado() && mods.iter().any(|m| *m != VK_MENU) {
+        return Err(Error::Gui(
+            "En el escritorio aislado solo se admite Alt como modificador: Ctrl y Mayús no se pueden enviar como mensajes".into(),
+        ));
     }
-    ffi::post_message(h, WM_KEYDOWN, vk as usize, 0);
-    ffi::post_message(h, WM_KEYUP, vk as usize, 0);
-    for m in mods.iter().rev() {
-        ffi::post_message(h, WM_KEYUP, *m as usize, 0);
-    }
-    Ok(json!({ "sent": combo, "hwnd": format!("0x{:X}", h) }))
+    ffi::traer_al_frente(h);
+    std::thread::sleep(FOCO);
+    ffi::pulsar_combinacion(vk, &mods);
+    Ok(json!({
+        "sent": combo,
+        "hwnd": format!("0x{:X}", h),
+        "via": if escritorio::es_aislado() { "mensajes" } else { "keybd_event" },
+    }))
 }

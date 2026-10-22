@@ -124,3 +124,22 @@ fn componentes_en(carpeta: &Path, kind: &str) -> Vec<String> {
         .filter_map(|p| p.file_name().and_then(|s| s.to_str()).map(str::to_string))
         .collect()
 }
+
+/// Files in `dir` with extension `ext` (lowercase, no dot), sorted.
+pub(crate) fn files_with_ext(dir: &Path, ext: &str) -> Vec<PathBuf> {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return Vec::new();
+    };
+    let mut found: Vec<PathBuf> = entries
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| {
+            p.is_file()
+                && p.extension()
+                    .and_then(|x| x.to_str())
+                    .is_some_and(|x| x.eq_ignore_ascii_case(ext))
+        })
+        .collect();
+    found.sort();
+    found
+}

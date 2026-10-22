@@ -50,7 +50,10 @@ fn main() -> ExitCode {
     print!("{}", String::from_utf8_lossy(&stdout));
 
     match command {
-        "run-simulation" => copy_outputs(dir, &args),
+        "run-simulation" => {
+            copy_outputs(dir, &args);
+            write_simulation_log();
+        }
         "create-site" => touch_output(&args, "-osf:"),
         _ => {}
     }
@@ -79,6 +82,37 @@ fn copy_outputs(dir: &Path, args: &[String]) {
             let _ = fs::copy(results.join(source), target);
         }
     }
+}
+/// Writes a realistic PVsystCLI log on run-simulation if LOCALAPPDATA is set.
+fn write_simulation_log() {
+    let Some(local_app_data) = env::var_os("LOCALAPPDATA") else {
+        return;
+    };
+    let admin_dir = Path::new(&local_app_data)
+        .join("PVsystCLI")
+        .join("8.1")
+        .join("Admin");
+    if fs::create_dir_all(&admin_dir).is_err() {
+        return;
+    }
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let log_path = admin_dir.join(format!("{now}Err.log"));
+    let log_content = concat!(
+        "23:16:40|Norm|TSimulationHandl|ExecSimulation      |LErrorList.Count = 3Incident global = 657 W/m², :The MPP voltage is lower (by 3 V) than the minimum MPP voltage of the inverter.\n",
+        "23:16:49|Warn|TSimulation     |HandleErrorMessages |Errors during the simulation:\n",
+        "        |    |                |                    |ErrorList: 1882 error messages\n",
+        "        |    |                |                    |The array Vmpp at 60 °C  is lower than the inverter minimum operating voltage.\n",
+        "        |    |                |                    |This may result in some undervoltage loss. \n",
+        "        |    |                |                    |\n",
+        "        |    |                |                    |1879 occurrences of MPP voltage lower than min. voltage input of the inverter\n",
+        "        |    |                |                    |Incident global = 657 W/m², :The MPP voltage is lower (by 3 V) than the minimum MPP voltage of the inverter.\n",
+        "23:16:49|Warn|TEnvManager     |InitLicense         |No license file\n",
+        "23:16:49|Err |PVsystCLI       |CMD OUTPUT          |The license file C:\\license.lic is missing.\n",
+    );
+    let _ = fs::write(log_path, log_content);
 }
 
 /// Create an empty file at the value of `flag` (e.g. the `-osf:` output).

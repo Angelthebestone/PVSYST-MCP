@@ -20,7 +20,6 @@ pub(crate) struct Caso {
     pub(crate) tokens: Vec<String>,
     pub(crate) energia_kwh: f64,
     pub(crate) kwp: Option<f64>,
-    pub(crate) pais_csv: Option<String>,
     /// Site read from the project; the failure is kept as text so the case stays `Clone`-free.
     pub(crate) prj: Result<Sitio, String>,
 }
@@ -35,15 +34,6 @@ impl Caso {
 pub(crate) struct Sitio {
     pub(crate) lat: Option<f64>,
     pub(crate) lon: Option<f64>,
-    pub(crate) pais: Option<String>,
-}
-
-pub(crate) fn num(args: &Value, key: &str) -> Option<f64> {
-    args.get(key).and_then(Value::as_f64)
-}
-
-pub(crate) fn sin_potencia() -> Error {
-    Error::Format("No se pudo leer la potencia (PNomSizing) de la variante".into())
 }
 
 pub(crate) fn leer_sitio(workspace: &Path, proyecto: &str) -> Result<Sitio> {
@@ -58,11 +48,11 @@ pub(crate) fn leer_sitio(workspace: &Path, proyecto: &str) -> Result<Sitio> {
         lon: raiz
             .find_deep("Longitude")
             .and_then(|v| v.trim().parse().ok()),
-        pais: raiz.find_deep("Country").map(|v| v.trim().to_string()),
     })
 }
 
 /// Country PVsyst writes in the `Geographical Site;<file>;<date>;<name>;<country>;…` line.
+#[allow(dead_code)]
 pub(crate) fn pais_simulado(texto: &str) -> Option<String> {
     texto
         .lines()
@@ -114,14 +104,16 @@ pub(crate) fn caso(paths: &Paths, args: &Value) -> Result<Caso> {
         .as_f64()
         .ok_or_else(|| Error::Format("El informe PDF no incluye la energía anual".into()))?;
     let csv_texto = String::from_utf8_lossy(&leer_bytes(&csv)?).into_owned();
-    let pais_csv = pais_simulado(&csv_texto);
     let prj = leer_sitio(&workspace, &proyecto).map_err(|e| e.to_string());
-    let variante = csv
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .and_then(|s| s.rsplit_once('_'))
-        .map(|(_, v)| v.to_string())
-        .unwrap_or_else(|| variante_pedida.unwrap_or("VC0").to_string());
+    let variante = variante_pedida.map_or_else(
+        || {
+            csv.file_stem()
+                .and_then(|s| s.to_str())
+                .and_then(|s| s.rsplit_once('_'))
+                .map_or_else(|| "VC0".to_string(), |(_, v)| v.to_string())
+        },
+        str::to_string,
+    );
     let kwp = args
         .get("kwp")
         .and_then(|v| v.as_f64().or_else(|| v.as_str()?.trim().parse().ok()))
@@ -137,7 +129,6 @@ pub(crate) fn caso(paths: &Paths, args: &Value) -> Result<Caso> {
         tokens,
         energia_kwh,
         kwp,
-        pais_csv,
         prj,
     })
 }

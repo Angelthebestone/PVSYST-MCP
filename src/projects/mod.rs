@@ -2,6 +2,7 @@
 
 pub(crate) mod anadir;
 pub(crate) mod doctor;
+pub(crate) mod gui;
 pub(crate) mod lifecycle;
 pub(crate) mod temporales;
 pub(crate) mod tipo_sistema;

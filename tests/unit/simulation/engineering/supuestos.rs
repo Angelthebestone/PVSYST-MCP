@@ -1,16 +1,20 @@
 use super::*;
 use serde_json::json;
 
+const SIGMA_TEST: Rango = Rango {
+    clave: "sigma_test",
+    min: 0.0,
+    max: 100.0,
+};
+
 #[test]
-fn should_reject_non_finite_out_of_range_and_fractional_assumptions() {
-    assert!(acotado(&json!({"degradacion": 1.5}), &DEGRADACION, None).is_err());
-    assert!(acotado(&json!({"degradacion": -0.1}), &DEGRADACION, None).is_err());
-    assert!(acotado(&json!({}), &DEGRADACION, None).is_err());
+fn should_reject_non_finite_out_of_range_assumptions() {
+    assert!(acotado(&json!({"sigma_test": 150.0}), &SIGMA_TEST, None).is_err());
+    assert!(acotado(&json!({"sigma_test": -0.1}), &SIGMA_TEST, None).is_err());
+    assert!(acotado(&json!({}), &SIGMA_TEST, None).is_err());
+    assert_eq!(acotado(&json!({}), &SIGMA_TEST, Some(5.0)).ok(), Some(5.0));
     assert_eq!(
-        acotado(&json!({}), &DEGRADACION, Some(0.01)).ok(),
-        Some(0.01)
+        acotado(&json!({"sigma_test": 10.0}), &SIGMA_TEST, Some(5.0)).ok(),
+        Some(10.0)
     );
-    assert!(anios(&json!({"anios": 2.5}), "anios", 25.0).is_err());
-    assert!(anios(&json!({"anios": 1e9}), "anios", 25.0).is_err());
-    assert_eq!(anios(&json!({}), "anios", 25.0).ok(), Some(25));
 }

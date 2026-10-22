@@ -44,8 +44,32 @@ pub(crate) struct PeticionSitioMeteo<'a> {
     pub(crate) nombre: &'a str,
 }
 
+/// The MCP's own horizon factors (`FHHDiffus` as the mean of cos² h).
+const APROXIMACION_HORIZONTE: crate::aproximaciones::Aproximacion =
+    crate::aproximaciones::Aproximacion {
+        funcion: "sitio horizonte_pvgis via aproximacion (FHHDiffus calculado por el MCP)",
+        alternativa: "sitio horizonte_pvgis sin 'via': PVsyst importa PVGIS y calcula los factores",
+    };
+
+/// PVGIS horizon of the project site: imported by PVsyst's horizon window by
+/// default, or by the MCP with `via: "aproximacion"`.
+pub(crate) fn horizonte(paths: &Paths, args: &Value) -> Result<Value> {
+    let proyecto = req_str(args, &["proyecto", "project"], "")?;
+    let proyecto = proyecto.strip_suffix(".PRJ").unwrap_or(proyecto);
+    let variante = opt_str(args, &["variante", "variant"]).unwrap_or("VC0");
+    crate::aproximaciones::segun_via(
+        paths,
+        args,
+        &APROXIMACION_HORIZONTE,
+        (
+            || crate::projects::gui::horizonte::importar_pvgis(paths, proyecto, variante),
+            || horizonte_pvgis(paths, args),
+        ),
+    )
+}
+
 /// Fill the variant's `pvHorizon` with the PVGIS horizon profile of the project site.
-pub(crate) fn horizonte_pvgis(paths: &Paths, args: &Value) -> Result<Value> {
+fn horizonte_pvgis(paths: &Paths, args: &Value) -> Result<Value> {
     let ws = workspace_of(paths, args);
     let proyecto = req_str(args, &["proyecto", "project"], "")?;
     let variante = opt_str(args, &["variante", "variant"]).unwrap_or("VC0");

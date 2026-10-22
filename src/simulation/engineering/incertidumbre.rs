@@ -93,12 +93,37 @@ pub(crate) fn incertidumbre(p50: f64, sigma_meteo: f64, sigma_modelo: f64, fuent
     })
 }
 
+/// The MCP's own Gaussian P50/P90 with fixed default sigmas.
+const APROXIMACION_P50: crate::aproximaciones::Aproximacion =
+    crate::aproximaciones::Aproximacion {
+        funcion: "resultados p50_p90 via aproximacion (sigmas por defecto del MCP)",
+        alternativa: "resultados p50_p90 sin 'via': lee la página P50-P90 del informe de PVsyst (configúrala con proyecto accion:p50_p90)",
+    };
+
+/// P50/P90 from PVsyst's report page, or the MCP's approximation with `via`.
 pub(crate) fn p50_p90(paths: &Paths, args: &Value) -> Result<Value> {
     let c = caso(paths, args)?;
-    let (sm, fuente, aviso) = sigma_meteo(&c, args)?;
+    let v = crate::aproximaciones::segun_via(
+        paths,
+        args,
+        &APROXIMACION_P50,
+        (
+            || {
+                let mut v = crate::simulation::report_pdf::p50(&c.tokens)?;
+                v["origen"] = json!("pvsyst");
+                Ok(v)
+            },
+            || aproximar(&c, args),
+        ),
+    )?;
+    Ok(con_cabecera(&c, v))
+}
+
+fn aproximar(c: &Caso, args: &Value) -> Result<Value> {
+    let (sm, fuente, aviso) = sigma_meteo(c, args)?;
     let mut v = incertidumbre(c.energia_kwh, sm, sigma_modelo(args)?, &fuente);
     if let Some(a) = aviso {
         v["aviso"] = json!(a);
     }
-    Ok(con_cabecera(&c, v))
+    Ok(v)
 }

@@ -29,21 +29,24 @@ pub(super) fn accumulate_columns(rows: &[&str], ncols: usize) -> (Vec<f64>, Vec<
     (totals, counts, row_count)
 }
 
-pub(super) fn column_total(sum: f64, n: usize, unit: &str) -> Value {
+/// Energy integral of an hourly power column, labelled with its energy unit.
+///
+/// Only power columns are integrated: averaging ratios (`PR`) or summing
+/// angles would invent figures PVsyst never reports; its PR is in the PDF
+/// (`resultados que:kpis`).
+pub(super) fn column_total(sum: f64, unit: &str) -> Option<Value> {
     let round = |v: f64, d: i32| (v * 10f64.powi(d)).round() / 10f64.powi(d);
-    if unit.eq_ignore_ascii_case("ratio") {
-        #[expect(clippy::cast_precision_loss, reason = "row counts are far below 2^52")]
-        let mean = sum / n as f64;
-        return json!({ "mean": round(mean, 3) });
-    }
-    let unit = match unit {
-        "W" => "Wh".to_string(),
-        "kW" => "kWh".to_string(),
-        u => u
-            .strip_prefix("W/")
-            .map_or_else(|| u.to_string(), |rest| format!("Wh/{rest}")),
+    let energia = match unit {
+        "W" | "kW" | "MW" => format!("{unit}h"),
+        u => {
+            let (potencia, resto) = u.split_once('/')?;
+            if !matches!(potencia, "W" | "kW" | "MW") {
+                return None;
+            }
+            format!("{potencia}h/{resto}")
+        }
     };
-    json!({ "sum": round(sum, 1), "unit": unit })
+    Some(json!({ "sum": round(sum, 1), "unit": energia }))
 }
 
 pub(super) fn summarize_csv(text: &str) -> Value {
@@ -81,9 +84,9 @@ pub(super) fn summarize_csv(text: &str) -> Value {
         .enumerate()
         .skip(1)
         .filter(|(idx, _)| counts[*idx] > 0)
-        .map(|(idx, name)| {
+        .filter_map(|(idx, name)| {
             let unit = units.get(idx).map_or("", String::as_str);
-            (name.clone(), column_total(totals[idx], counts[idx], unit))
+            column_total(totals[idx], unit).map(|t| (name.clone(), t))
         })
         .collect();
 

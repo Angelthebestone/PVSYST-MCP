@@ -26,6 +26,8 @@ pub(crate) struct Receta {
     pub(crate) nota: Option<&'static str>,
     pub(crate) argumentos: &'static [ArgumentoReceta],
     pub(crate) plantilla: &'static str,
+    /// The playbook needs the MCP's own calculations, not PVsyst's route.
+    pub(crate) requiere_aproximaciones: bool,
 }
 
 pub(super) const INTRO: &str =
@@ -52,10 +54,13 @@ static PROYECTO_Y_VARIANTE: [ArgumentoReceta; 2] = [
 pub(crate) static RECETAS: &[Receta] = &[
     Receta {
         id: "disenar_desde_coordenadas",
+        requiere_aproximaciones: false,
         nombre: "Disenar sistema desde coordenadas (recomendada)",
         cuando: "El usuario da coordenadas y una potencia (p.ej. '10 kWp en 7.07,-73.84').",
         tools: &["disenar_sistema"],
-        ejemplo: Some(r#"{"latitud":7.07,"longitud":-73.84,"kwp":10}"#),
+        ejemplo: Some(
+            r#"{"latitud":7.07,"longitud":-73.84,"kwp":10,"n_mod_serie":10,"n_strings":3}"#,
+        ),
         nota: None,
         argumentos: &[
             ArgumentoReceta {
@@ -77,10 +82,11 @@ pub(crate) static RECETAS: &[Receta] = &[
                 defecto: "",
             },
         ],
-        plantilla: "Diseña un sistema fotovoltaico de {kwp} kWp en latitud {latitud}, longitud {longitud} con la tool disenar_sistema. Después resume energía anual, producción específica y PR, y señala los avisos.",
+        plantilla: "Diseña un sistema fotovoltaico de {kwp} kWp en latitud {latitud}, longitud {longitud} con la tool disenar_sistema. Pide o propón los módulos en serie y el número de strings y pásalos como n_mod_serie y n_strings (el dimensionado automático es una aproximación del MCP y solo existe con PVSYST_MCP_APROXIMACIONES=1). Después resume energía anual, producción específica y PR del informe de PVsyst, y señala los avisos de PVsyst.",
     },
     Receta {
         id: "estudio_paso_a_paso",
+        requiere_aproximaciones: false,
         nombre: "Estudio completo paso a paso",
         cuando: "Se quiere control fino de cada fase.",
         tools: &[
@@ -103,6 +109,7 @@ pub(crate) static RECETAS: &[Receta] = &[
     },
     Receta {
         id: "leer_resultados",
+        requiere_aproximaciones: false,
         nombre: "Leer resultados",
         cuando: "Ya hay una simulación hecha.",
         tools: &["resultados kpis", "resultados csv", "resultados perdidas"],
@@ -113,41 +120,23 @@ pub(crate) static RECETAS: &[Receta] = &[
     },
     Receta {
         id: "optimizar_orientacion",
+        requiere_aproximaciones: false,
         nombre: "Optimizar inclinacion/azimut",
         cuando: "Se busca el ángulo óptimo.",
-        tools: &["simular barrido", "simular ejecutar", "resultados kpis"],
+        tools: &["simular ejecutar", "resultados kpis"],
         ejemplo: None,
-        nota: Some("Barrido: simular con 'filas' crea el CSV de batch y lanza con batch_params_file."),
-        argumentos: &[
-            ArgumentoReceta {
-                nombre: "proyecto",
-                descripcion: "Nombre del proyecto",
-                requerido: Requerido::Si,
-                defecto: "",
-            },
-            ArgumentoReceta {
-                nombre: "latitud",
-                descripcion: "Latitud del sitio en grados",
-                requerido: Requerido::Si,
-                defecto: "",
-            },
-            ArgumentoReceta {
-                nombre: "longitud",
-                descripcion: "Longitud del sitio en grados",
-                requerido: Requerido::Si,
-                defecto: "",
-            },
-            ArgumentoReceta {
-                nombre: "kwp",
-                descripcion: "Potencia nominal en kWp",
-                requerido: Requerido::Si,
-                defecto: "",
-            },
-        ],
-        plantilla: "Busca la mejor inclinación y azimut para {proyecto} ({kwp} kWp en {latitud}, {longitud}) con simular barrido y compara los mejores casos con resultados kpis.",
+        nota: Some("Cada fila de 'filas' (tilt/azim) es una simulación de PVsyst en modo lote (-bpf) y cuenta como una ejecución."),
+        argumentos: &[ArgumentoReceta {
+            nombre: "proyecto",
+            descripcion: "Nombre del proyecto",
+            requerido: Requerido::Si,
+            defecto: "",
+        }],
+        plantilla: "Busca la mejor inclinación y azimut para {proyecto} con PVsyst: propone un conjunto de orientaciones, dime cuántas ejecuciones gastará, lánzalas con simular accion:ejecutar y 'filas' (tilt/azim por fila) y compara los casos con resultados kpis.",
     },
     Receta {
         id: "operar_gui",
+        requiere_aproximaciones: false,
         nombre: "Operar la GUI (funciones solo-GUI)",
         cuando: "Editor 3D, gráficos I/V, tablas, asistentes, diálogos.",
         tools: &[
@@ -157,14 +146,18 @@ pub(crate) static RECETAS: &[Receta] = &[
             "gui_actuar accion:click",
             "gui_observar que:capturar",
             "gui_actuar accion:cerrar",
+            "gui_actuar accion:funcion",
+            "gui_actuar accion:clic_texto",
+            "gui_observar que:formulario",
         ],
         ejemplo: None,
-        nota: Some("gui_actuar con accion:'clic_fisico' mueve el cursor real."),
+        nota: Some("accion:'clic_fisico' mueve el cursor real; accion:'clic_texto' y accion:'menu' (menu+item) no. Con un dialogo modal abierto no lances comandos de menu; tras un fallo de PVsyst usa accion:'reiniciar'."),
         argumentos: &[],
-        plantilla: "Opera la GUI de PVsyst con gui_actuar y gui_observar (modo experto): lanza, enumera ventanas y controles, actúa y captura el resultado.",
+        plantilla: "Opera la GUI de PVsyst con gui_actuar y gui_observar: lanza, enumera ventanas y controles, escribe en los campos, actúa y captura el resultado.",
     },
     Receta {
         id: "explorar_archivo",
+        requiere_aproximaciones: false,
         nombre: "Explorar/editar cualquier archivo",
         cuando: "Ajustes finos no cubiertos por tools de dominio.",
         tools: &["leer", "listar que:objetos", "editar campos", "listar que:archivos"],
@@ -180,6 +173,7 @@ pub(crate) static RECETAS: &[Receta] = &[
     },
     Receta {
         id: "diagnostico_entorno",
+        requiere_aproximaciones: false,
         nombre: "Diagnostico del entorno",
         cuando: "Antes de empezar o si algo falla.",
         tools: &["entorno diagnostico", "entorno licencia"],
@@ -190,6 +184,7 @@ pub(crate) static RECETAS: &[Receta] = &[
     },
     Receta {
         id: "convertir_a_seguidor",
+        requiere_aproximaciones: false,
         nombre: "Convertir a seguidor de un eje",
         cuando: "Se quiere pasar una variante de plano fijo a seguidor de un eje.",
         tools: &["proyecto seguidor", "proyecto doctor", "simular ejecutar"],
@@ -200,6 +195,7 @@ pub(crate) static RECETAS: &[Receta] = &[
     },
     Receta {
         id: "autoconsumo_con_baterias",
+        requiere_aproximaciones: false,
         nombre: "Autoconsumo con baterías",
         cuando: "Se quiere añadir almacenamiento para autoconsumo o recorte de picos.",
         tools: &[
@@ -214,11 +210,12 @@ pub(crate) static RECETAS: &[Receta] = &[
     },
     Receta {
         id: "comparar_medido",
+        requiere_aproximaciones: true,
         nombre: "Comparar medido vs simulado",
         cuando: "Hay una serie mensual medida y un informe PDF de PVsyst.",
         tools: &["resultados medido_vs_simulado"],
         ejemplo: None,
-        nota: Some("La serie medida puede ir como 12 valores kWh o como CSV 'mes;energia_kwh'."),
+        nota: Some("Aproximación del MCP (requiere PVSYST_MCP_APROXIMACIONES=1); el equivalente de PVsyst es su herramienta de datos medidos en la GUI. La serie medida puede ir como 12 valores kWh o como CSV 'mes;energia_kwh'."),
         argumentos: &PROYECTO_Y_VARIANTE,
         plantilla: "Compara la energía mensual medida de {proyecto} variante {variante} con la simulada usando resultados que:medido_vs_simulado; pásame la serie medida en kWh o un CSV y explica los meses fuera del umbral.",
     },

@@ -1,4 +1,5 @@
 /target
+/target-b
 /.scratch
 **/*.rs.bk
 Cargo.lock.orig

@@ -14,6 +14,38 @@ use std::path::Path;
 pub(crate) fn leer_bytes(ruta: &Path) -> Result<Vec<u8>> {
     fs::read(ruta).map_err(|e| Error::io(format!("No se pudo leer {}", ruta.display()), e))
 }
+/// Reads a file ensuring its size on disk does not exceed `max_bytes`.
+pub(crate) fn leer_bytes_acotados(ruta: &Path, max_bytes: usize) -> Result<Vec<u8>> {
+    let mut file = File::open(ruta)
+        .map_err(|e| Error::io(format!("No se pudo abrir {}", ruta.display()), e))?;
+    let meta = file.metadata().map_err(|e| {
+        Error::io(
+            format!("No se pudo leer metadatos de {}", ruta.display()),
+            e,
+        )
+    })?;
+    if meta.len() > max_bytes as u64 {
+        return Err(Error::Invalid(format!(
+            "Archivo {} excede el límite máximo de tamaño ({} bytes, máx {})",
+            ruta.display(),
+            meta.len(),
+            max_bytes
+        )));
+    }
+    let mut buf = Vec::with_capacity(usize::try_from(meta.len()).unwrap_or(0).min(max_bytes));
+    file.by_ref()
+        .take(max_bytes as u64 + 1)
+        .read_to_end(&mut buf)
+        .map_err(|e| Error::io(format!("No se pudo leer {}", ruta.display()), e))?;
+    if buf.len() > max_bytes {
+        return Err(Error::Invalid(format!(
+            "Archivo {} excede el límite máximo de tamaño tras lectura (máx {})",
+            ruta.display(),
+            max_bytes
+        )));
+    }
+    Ok(buf)
+}
 
 /// Default maximum bytes to return per read call (~10k tokens).
 pub(crate) const MAX_BYTES_DEFECTO: usize = 32_768;
@@ -50,15 +82,16 @@ fn es_texto_limpio(bytes: &[u8]) -> bool {
     !bytes.contains(&0) && std::str::from_utf8(bytes).is_ok()
 }
 
-/// Read a binary window using seek and exact bounded read.
-fn leer_ventana_binaria(
-    file: &mut File,
+struct RangoVentana {
     tamano: usize,
     offset: usize,
     cap: usize,
-) -> Result<(usize, usize, Vec<u8>)> {
-    let start = offset.min(tamano);
-    let end = start.saturating_add(cap).min(tamano);
+}
+
+/// Read a binary window using seek and exact bounded read.
+fn leer_ventana_binaria(file: &mut File, r: &RangoVentana) -> Result<(usize, usize, Vec<u8>)> {
+    let start = r.offset.min(r.tamano);
+    let end = start.saturating_add(r.cap).min(r.tamano);
     let cant = end - start;
     let mut chunk = vec![0u8; cant];
     if cant > 0 {
@@ -71,21 +104,16 @@ fn leer_ventana_binaria(
 }
 
 /// Read a text window with UTF-8 character boundary snapping at both edges.
-fn leer_ventana_texto(
-    file: &mut File,
-    tamano: usize,
-    offset: usize,
-    cap: usize,
-) -> Result<(usize, usize, Vec<u8>)> {
-    if tamano == 0 || offset >= tamano {
-        let pos = offset.min(tamano);
+fn leer_ventana_texto(file: &mut File, r: &RangoVentana) -> Result<(usize, usize, Vec<u8>)> {
+    if r.tamano == 0 || r.offset >= r.tamano {
+        let pos = r.offset.min(r.tamano);
         return Ok((pos, pos, Vec::new()));
     }
-    let pos_inicio = offset.saturating_sub(3);
-    let a_leer = (offset - pos_inicio)
-        .saturating_add(cap)
+    let pos_inicio = r.offset.saturating_sub(3);
+    let a_leer = (r.offset - pos_inicio)
+        .saturating_add(r.cap)
         .saturating_add(1)
-        .min(tamano.saturating_sub(pos_inicio));
+        .min(r.tamano.saturating_sub(pos_inicio));
     let mut buf = vec![0u8; a_leer];
     file.seek(SeekFrom::Start(pos_inicio as u64))
         .map_err(|e| Error::io("Seek para lectura de texto", e))?;
@@ -93,22 +121,26 @@ fn leer_ventana_texto(
         .map_err(|e| Error::io("Lectura de buffer de texto", e))?;
 
     let snap_archivo = |pos: usize| -> usize {
-        let mut p = pos.min(tamano);
-        while p > 0 && p < tamano {
-            let idx = p.saturating_sub(pos_inicio);
+        let mut p = pos.min(r.tamano);
+        while p > pos_inicio && p <= r.tamano {
+            let idx = p - pos_inicio;
             if idx < buf.len() && (buf[idx] & 0xC0) == 0x80 {
                 p -= 1;
             } else {
                 break;
             }
         }
-        p
+        p.max(pos_inicio)
     };
 
-    let start = snap_archivo(offset);
-    let nominal_end = start.saturating_add(cap).min(tamano);
+    let start = snap_archivo(r.offset);
+    let nominal_end = start.saturating_add(r.cap).min(r.tamano);
     let end = snap_archivo(nominal_end).max(start);
-    let chunk = buf[start - pos_inicio..end - pos_inicio].to_vec();
+    let start_idx = start.saturating_sub(pos_inicio);
+    let end_idx = end.saturating_sub(pos_inicio).max(start_idx).min(buf.len());
+    let chunk = buf
+        .get(start_idx..end_idx)
+        .map_or_else(Vec::new, <[u8]>::to_vec);
     Ok((start, end, chunk))
 }
 
@@ -132,28 +164,24 @@ pub(crate) fn leer_archivo(paths: &Paths, args: &Value) -> Result<Value> {
     let as_base64 = flag(args, &["base64"]);
     let parece_texto = detectar_si_es_texto(&mut file, meta.len())?;
 
-    let num = |k: &str| {
-        args.get(k)
-            .and_then(Value::as_u64)
-            .and_then(|n| usize::try_from(n).ok())
-    };
-    let cap = num("max_bytes")
-        .unwrap_or(MAX_BYTES_DEFECTO)
-        .min(MAX_BYTES_MAXIMO);
-    let offset = num("offset").unwrap_or(0);
+    let (offset, cap) = determinar_offset_y_cap(args);
 
     // The leading sample can miss binary content further in: the window actually
     // returned must itself be clean UTF-8, else it is served as base64.
+    let rango = RangoVentana {
+        tamano: total_size,
+        offset,
+        cap,
+    };
     let texto = if parece_texto && !as_base64 {
-        Some(leer_ventana_texto(&mut file, total_size, offset, cap)?)
-            .filter(|v| es_texto_limpio(&v.2))
+        Some(leer_ventana_texto(&mut file, &rango)?).filter(|v| es_texto_limpio(&v.2))
     } else {
         None
     };
     let is_text = parece_texto && (as_base64 || texto.is_some());
     let (start, end, chunk) = match texto {
         Some(v) => v,
-        None => leer_ventana_binaria(&mut file, total_size, offset, cap)?,
+        None => leer_ventana_binaria(&mut file, &rango)?,
     };
 
     let ventana = VentanaLectura {
@@ -164,6 +192,18 @@ pub(crate) fn leer_archivo(paths: &Paths, args: &Value) -> Result<Value> {
         as_base64,
     };
     Ok(formatear_respuesta_lectura(&path, &ventana, &chunk))
+}
+fn determinar_offset_y_cap(args: &Value) -> (usize, usize) {
+    let num = |k: &str| {
+        args.get(k)
+            .and_then(Value::as_u64)
+            .and_then(|n| usize::try_from(n).ok())
+    };
+    let cap = num("max_bytes")
+        .unwrap_or(MAX_BYTES_DEFECTO)
+        .min(MAX_BYTES_MAXIMO);
+    let offset = num("offset").unwrap_or(0);
+    (offset, cap)
 }
 
 struct VentanaLectura {

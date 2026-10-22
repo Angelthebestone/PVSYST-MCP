@@ -1,11 +1,12 @@
 //! PVsyst GUI process execution, probing and project path confinement.
 
+use super::escritorio;
 use super::ffi::enum_windows;
 use super::ventanas::{find_pids, pid_of, ventanas, visible, window_brief};
 use crate::error::{Error, Result};
 use crate::workspace::{resolver_ruta, Alcance};
 use serde_json::{json, Value};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 const DEFAULT_LAUNCH_WAIT_SECS: u64 = 30;
 const MAX_LAUNCH_WAIT_SECS: u64 = 120;
@@ -45,6 +46,37 @@ fn esperar_formulario_principal(pid: u32, timeout_secs: u64) -> bool {
     ready()
 }
 
+/// Starts PVsyst (with `proyecto` when given) on the right desktop and returns
+/// its process id.
+fn iniciar_proceso(exe: &Path, proyecto: Option<&Path>) -> Result<u32> {
+    if escritorio::es_aislado() {
+        let args: Vec<&Path> = proyecto.into_iter().collect();
+        return escritorio::lanzar_proceso(exe, &args, exe.parent());
+    }
+    let mut cmd = std::process::Command::new(exe);
+    if let Some(p) = proyecto {
+        cmd.arg(p);
+    }
+    cmd.spawn()
+        .map(|child| child.id())
+        .map_err(|e| Error::Gui(format!("Failed to launch PVsyst GUI: {e}")))
+}
+
+/// PVsyst allows one instance per session: a second one, even on the private
+/// desktop, stops at the box "PVsyst is already running." and never opens. So
+/// on the private desktop a running PVsyst (anywhere) is an error up front.
+fn exigir_sin_otra_instancia() -> Result<()> {
+    if !escritorio::es_aislado() {
+        return Ok(());
+    }
+    match find_pids("PVsyst.exe").first() {
+        None => Ok(()),
+        Some(pid) => Err(Error::Gui(format!(
+            "PVsyst ya está en ejecución (pid {pid}): con PVSYST_MCP_ESCRITORIO=aislado una segunda instancia se detiene en «PVsyst is already running». Ciérralo, o usa el escritorio compartido para manejar esa instancia"
+        ))),
+    }
+}
+
 pub(crate) fn lanzar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     if !paths.gui_exe.exists() {
         return Err(Error::Gui(format!(
@@ -52,15 +84,12 @@ pub(crate) fn lanzar(paths: &crate::config::Paths, args: &Value) -> Result<Value
             paths.gui_exe.display()
         )));
     }
-    let mut cmd = std::process::Command::new(&paths.gui_exe);
-    if let Some(p) = args.get("proyecto").and_then(|v| v.as_str()) {
-        let path = resolver_proyecto(paths, args, p)?;
-        cmd.arg(path);
-    }
-    let child = cmd
-        .spawn()
-        .map_err(|e| Error::Gui(format!("Failed to launch PVsyst GUI: {e}")))?;
-    let pid = child.id();
+    exigir_sin_otra_instancia()?;
+    let proyecto = match args.get("proyecto").and_then(|v| v.as_str()) {
+        Some(p) => Some(resolver_proyecto(paths, args, p)?),
+        None => None,
+    };
+    let pid = iniciar_proceso(&paths.gui_exe, proyecto.as_deref())?;
     let wait = args
         .get("esperar_segundos")
         .and_then(serde_json::Value::as_u64)

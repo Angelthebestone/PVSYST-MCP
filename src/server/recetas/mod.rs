@@ -10,9 +10,15 @@ use serde_json::{json, Value};
 
 use datos::RECETAS;
 
+fn visibles(aproximaciones: bool) -> impl Iterator<Item = &'static Receta> {
+    RECETAS
+        .iter()
+        .filter(move |r| !r.requiere_aproximaciones || aproximaciones)
+}
+
 /// Resource payload for `pvsyst://recetas`.
-pub(crate) fn como_recurso() -> Value {
-    let recetas: Vec<Value> = RECETAS.iter().map(recurso_de).collect();
+pub(crate) fn como_recurso(aproximaciones: bool) -> Value {
+    let recetas: Vec<Value> = visibles(aproximaciones).map(recurso_de).collect();
     json!({
         "intro": INTRO,
         "recetas": recetas,
@@ -38,8 +44,8 @@ fn recurso_de(receta: &Receta) -> Value {
 }
 
 /// Prompt catalogue for `prompts/list`.
-pub(crate) fn listar_prompts() -> Value {
-    let prompts: Vec<Value> = RECETAS.iter().map(prompt_de).collect();
+pub(crate) fn listar_prompts(aproximaciones: bool) -> Value {
+    let prompts: Vec<Value> = visibles(aproximaciones).map(prompt_de).collect();
     json!({ "prompts": prompts })
 }
 
@@ -64,14 +70,13 @@ fn prompt_de(receta: &Receta) -> Value {
 }
 
 /// One filled prompt for `prompts/get`.
-pub(crate) fn obtener_prompt(params: &Value) -> Result<Value> {
+pub(crate) fn obtener_prompt(params: &Value, aproximaciones: bool) -> Result<Value> {
     let nombre = params
         .get("name")
         .and_then(Value::as_str)
         .filter(|n| !n.is_empty())
         .ok_or_else(|| args::missing("name", "id de la receta"))?;
-    let receta = RECETAS
-        .iter()
+    let receta = visibles(aproximaciones)
         .find(|r| r.id == nombre)
         .ok_or_else(|| Error::NotFound(format!("Prompt desconocido: {nombre}")))?;
     let argumentos = params.get("arguments").unwrap_or(&Value::Null);

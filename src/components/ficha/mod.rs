@@ -1,15 +1,20 @@
 //! Component creation from datasheet values (`componente crear_desde_ficha`).
 //!
+//! By default PVsyst's own component window takes the datasheet, fits the
+//! model and saves the file ([`pvsyst`]). With `via: "aproximacion"` (and
+//! `PVSYST_MCP_APROXIMACIONES=1`) the MCP clones a template instead:
 //! * **OND** inverters are cloned from the generic DataRO template, the
 //!   datasheet values are applied and the DC efficiency profile is rescaled.
 //! * **PAN** modules clone an existing text `.PAN` template in the workspace or DataRO.
 
 pub(crate) mod inversor;
 pub(crate) mod modulo;
+pub(crate) mod pvsyst;
 #[cfg(test)]
 #[path = "../../../tests/unit/components/ficha/tests.rs"]
 mod tests;
 
+use crate::aproximaciones::{self, Aproximacion};
 use crate::args::{missing, req_str, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
@@ -81,6 +86,12 @@ pub(crate) fn destino(ws: &Path, carpeta: &str, archivo: &str) -> Result<PathBuf
     Ok(dest)
 }
 
+/// Same datasheet, approximated by cloning a template instead of PVsyst's fit.
+const APROXIMACION_FICHA: Aproximacion = Aproximacion {
+    funcion: "componente crear_desde_ficha via aproximacion (parámetros del modelo heredados de una plantilla)",
+    alternativa: "componente crear_desde_ficha sin 'via': PVsyst ajusta el modelo en su ventana de componente",
+};
+
 /// Create a component of kind `tipo` (`OND` or `PAN`) named `nombre_nuevo`
 /// from the values in `datos`.
 pub(crate) fn crear_desde_ficha(paths: &Paths, args: &Value) -> Result<Value> {
@@ -91,15 +102,23 @@ pub(crate) fn crear_desde_ficha(paths: &Paths, args: &Value) -> Result<Value> {
         .get("datos")
         .and_then(Value::as_object)
         .ok_or_else(|| missing("datos", "objeto con los valores de la ficha"))?;
-    let ws = workspace_of(paths, args);
     let nombre = sin_extension(&tipo, nombre);
-    match tipo.as_str() {
-        "OND" => inversor::ond(&ws, &nombre, datos),
-        "PAN" => modulo::pan(&ws, &nombre, datos),
-        otro => Err(Error::Invalid(format!(
-            "Tipo '{otro}' no soportado: usa OND o PAN"
-        ))),
-    }
+    let ws = workspace_of(paths, args);
+    aproximaciones::segun_via(
+        paths,
+        args,
+        &APROXIMACION_FICHA,
+        (
+            || pvsyst::crear(paths, &tipo, &nombre, datos),
+            || match tipo.as_str() {
+                "OND" => inversor::ond(&ws, &nombre, datos),
+                "PAN" => modulo::pan(&ws, &nombre, datos),
+                otro => Err(Error::Invalid(format!(
+                    "Tipo '{otro}' no soportado: usa OND o PAN"
+                ))),
+            },
+        ),
+    )
 }
 
 /// `nombre` without a trailing extension equal to `tipo`: each creator appends

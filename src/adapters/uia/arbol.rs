@@ -137,6 +137,13 @@ pub(crate) fn nodo(ctx: &mut RecorridoContext, el: &IUIAutomationElement, prof: 
     n
 }
 
+/// Drops every cached snapshot; any action may have changed the tree.
+pub(crate) fn invalidar(estado: &Estado) {
+    if let Ok(mut mapa) = estado.arboles.lock() {
+        mapa.clear();
+    }
+}
+
 /// Snapshot of the element tree under `hwnd`, `profundidad` levels deep and at
 /// most `max_nodos` nodes. Results are cached for two seconds per argument set.
 pub(crate) fn arbol(

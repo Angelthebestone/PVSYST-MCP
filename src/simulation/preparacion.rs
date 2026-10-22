@@ -150,5 +150,6 @@ pub(crate) fn preparar(args: &Value, workspace: &Path, cli_args: &[String]) -> R
         rpf,
         antes,
         ejecuciones,
+        inicio: std::time::SystemTime::now(),
     }))
 }

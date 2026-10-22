@@ -20,7 +20,10 @@ fn should_create_a_stand_alone_variant_with_battery_system_type() {
         "Source=NASA SSE grid cell 7/-74\nLatitude=7.07\nLongitude=-73.84\nAltitude=0\n",
     )
     .expect("sitio reutilizable");
-    let mut client = Client::start(Some(tmp.path().to_str().expect("workspace utf8")));
+    let mut client = Client::start_env(
+        Some(tmp.path().to_str().expect("workspace utf8")),
+        &[("PVSYST_MCP_APROXIMACIONES", "1")],
+    );
     client.initialize();
 
     let respuesta = client.call(

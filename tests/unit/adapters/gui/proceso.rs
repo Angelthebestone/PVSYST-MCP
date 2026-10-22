@@ -8,7 +8,7 @@ fn should_reject_project_outside_workspace_by_default() {
         workspace: ws,
         cli_exe: PathBuf::new(),
         gui_exe: PathBuf::new(),
-        experto: false,
+        aproximaciones: false,
         estado: Arc::default(),
     };
     let args = json!({});

@@ -7,6 +7,151 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **OCR of the GUI is much faster.** Enlarging and sharpening the capture
+  computed neighbour indices per pixel; they are now tabulated once per axis.
+  In a release build `gui_observar que:formulario` and `gui_actuar
+  accion:clic_texto` take about 0.4 s on THomeForm (1.4 s with the previous
+  release code, 6-10 s in a debug build). Use the release binary.
+
+- **All 15 PVsyst-native tools are available by default.** `pvsyst_cli`,
+  `gui_observar` and `gui_actuar` no longer need `PVSYST_MCP_EXPERTO`; the
+  variable and the expert access level are gone.
+- **Only the MCP's own calculations are opt-in.** They sit behind
+  `PVSYST_MCP_APROXIMACIONES=1`; without it they are hidden from `tools/list`,
+  from `prompts/list`, from `pvsyst://recetas` and from `pvsyst://cobertura`,
+  and calling them returns the PVsyst route that replaces them. With it, their
+  results carry `origen: "aproximacion_mcp"` and `aviso_origen`. Gated:
+  `simular preestimar`/`barrido`, `sitio geometria_solar`,
+  `resultados medido_vs_simulado` and the automatic sizing of
+  `disenar_sistema`. Actions whose default is already PVsyst stay visible:
+  `componente crear_desde_ficha`, `sitio horizonte_pvgis`,
+  `resultados p50_p90` and `proyecto dimensionar` by `kwp` use PVsyst's own
+  windows and only run the MCP calculation when called with
+  `via: "aproximacion"` and the flag is on.
+- `resultados que:carbono` and `que:economia` read PVsyst's report (Carbon
+  Balance page; investment, yearly costs, payback and LCOE from the
+  economic-evaluation block) instead of computing their own models; the
+  `capex_por_kwp`, `tarifa_por_kwh`, `opex_anual_por_kwp`, `tasa_descuento`,
+  `anios`, `moneda`, `vida_anios`, `degradacion` and `lce_kgco2_por_kwp`
+  arguments are gone. Report numbers with `.` as thousands and decimal
+  separator (`23.410.00`) are parsed correctly.
+- `proyecto dimensionar` writes `n_mod_serie`/`n_strings` as given; `kwp` is
+  optional. `disenar_sistema` uses them directly when both are passed.
+- `disenar_sistema` and `resultados que:kpis` take energy, specific production
+  and PR (in %) from PVsyst's PDF report, not from CSV column sums; the KPI
+  `e_grid_kwh` is now `energia_producida_kwh` (PVsyst's "Produced Energy") and
+  `poa_kwh_m2` is gone. Summary boxes printed as a row of labels followed by a
+  row of values (battery and self-consumption reports) are read correctly.
+- `resultados que:csv` integrates only power columns; it no longer reports an
+  hourly average of ratios (`PR`) or sums of angles.
+- `resultados que:entregable` contains only PVsyst data; the P50/P90 section
+  appears only with approximations enabled, marked as such.
+
+### Added
+
+- **GUI automation of controls without a window handle.**
+  `gui_actuar accion:clic_texto ventana texto [indice]` clicks the text a
+  person reads (Windows OCR on an enlarged, sharpened capture): speed buttons
+  of the toolbars, rows of `TVirtualStringTree` lists (project load) and
+  `TStringGrid` grids. Several matches without `indice` are refused, not
+  guessed. `accion:click` and `clic_fisico` take `dx`/`dy` (px at 96 DPI from
+  the control's corner).
+- **Menus by position.** The command ids of a secondary form's menu change
+  with the instance (the project window's moved by 3 between two runs), so
+  `gui_actuar accion:menu ventana menu item` reads the id from the open popup
+  (`MN_GETHMENU`); `gui_observar que:menus` lists every menu of a window with
+  ids, separators and submenus. Needs a real desktop (VCL ignores posted keys).
+  The project window and the 3D scene editor are catalogued this way.
+- `gui_actuar accion:reiniciar` recovers from PVsyst's madExcept dialog or the
+  "unstable after a crash" warning (restart button, or No + launch); it refuses
+  to act on any other screen.
+- Menu commands are refused while the host form is disabled (a modal dialog is
+  open): PVsyst raised an internal exception and had to be restarted.
+- `gui_observar que:formulario` returns `textos` (captions outside controls,
+  e.g. a message box's question) and `pestanas_error`; labels are read from
+  segmented OCR words, so a caption no longer glues to its neighbour field.
+- Catalogue: second-level dialogs of every project-window form (`dialogos_*`),
+  entries carry `pagina` (tab of the host) and `nota` (what could not be
+  observed). `docs/gui_mapa.json` now maps every window with its tabs, fields
+  and buttons, the menus of the home, project and 3D-editor windows, and a
+  decision per control type without handle.
+- `leer` decodes `Currency.dat`, `.MEF` (modern and legacy) and the 3D scenes
+  `.SHD/.BLD/.SHO` (read-only); `escribir_archivo` refuses scenes, `Currency.dat`
+  and legacy `.MEF`, and accepts a modern `.MEF` only if it re-serialises
+  identically.
+
+- **GUI function catalogue.** `gui_observar que:funciones` lists 203 PVsyst
+  functions (the start page's menus and buttons, Herramientas, Bases de datos,
+  Datos medidos, Ayuda, Licencia, Idioma and the project window's buttons and
+  menus) with the window each opens and its `efecto` (`abre`, `modifica`,
+  `cierra`). `gui_actuar accion:funcion funcion:<clave>` runs one, first
+  opening the host window it needs (`herramientas.factor_transposicion` opens
+  Herramientas first); `accion:menu ventana id` posts any other menu command
+  id (the main form's ids are stable; the project window's are not, see below).
+  New resource `pvsyst://gui` (five resources now) returns the catalogue and
+  `docs/gui_mapa.json`: 82 windows with titles, tabs, fields and buttons observed on
+  PVsyst 8.1.7 (Spanish interface).
+- **Forms by label.** `gui_observar que:formulario` pairs each field of a VCL
+  dialog with the caption a person reads next to it (Windows built-in OCR; the
+  captions are windowless `TLabel`s that Win32 and UI Automation cannot see),
+  with checked state, values, buttons and tabs; ambiguous pairings are
+  reported, never guessed. `gui_actuar accion:campo etiqueta valor` sets a
+  field by that label (text, combo or list item, check or radio) and returns
+  the value before and after; a label that matches several fields is an error
+  listing them. `seleccionar` now handles list boxes, including multi-select.
+  Needs a Windows OCR language pack (Spanish or English).
+- **Isolated desktop.** `PVSYST_MCP_ESCRITORIO=aislado` creates a private Win32
+  desktop, runs PVsyst there (`gui_actuar accion:lanzar`) and posts every click
+  and key as window messages, so the agent never takes the user's focus,
+  cursor or keyboard. Verified with PVsyst: window enumeration, UI Automation,
+  captures, catalogue functions, label-addressed fields and posted clicks.
+  Limits: PVsyst shows "already running" when the user has it open (answer it
+  yourself); posted keys are ignored by VCL controls and Ctrl/Shift
+  combinations are refused. `entorno` reports `escritorio`.
+- `gui_actuar accion:cerrar` answers the madExcept crash dialog with
+  *Continuar* only and never answers a Sí/No question for you.
+- **`.HOR` horizon files.** `leer` decodes them and `sitio accion:escribir_horizonte`
+  writes them (Delphi Real48 records, cubic profile). Byte-exact round trip on
+  PVsyst's own `DEMO_Geneve.HOR`; a generated file loaded in PVsyst's horizon
+  window shows the five points and the profile.
+- **Hourly series of `.MET` and `.DAM`.** `leer serie:true offset limite`
+  decodes the packed days (base-62 tokens, per-variable scale) and
+  `sitio accion:escribir_serie` rewrites chosen variables keeping the header
+  bytes. Re-encoding real files is byte-identical; a file with `T_Amb` +20 °C
+  opened in PVsyst's weather tables with monthly means shifted by 20 °C.
+- **Legacy `.PAN` editing.** `componente accion:editar`, `editar` and
+  `componente crear` patch only the Real48 slots of the edited fields in
+  pre-6.40 binary modules (new exact `encode_real48`).
+- **More templates and `.RVT` editing.** `proyecto anadir` gains `domo`,
+  `zona_campo`, `bifacial_seguidor` and `circuito_hidraulico`, taken from
+  variants that exist in PVsyst's demos; `editar accion:rvt` lists, adds,
+  removes and reorders result variables of `.RVT` templates against the names
+  PVsyst itself writes.
+- **GUI field automation.** `gui_actuar` now has `escribir` (type into a measured
+  96-DPI field or directly into a control), `seleccionar` (combo item by prefix),
+  `pagina` (tab page) and `esperar_cierre`. `gui_observar que:mensajes` returns
+  PVsyst's message-box and warning log. Keys are sent with `keybd_event` instead
+  of posted `WM_KEY*`, which VCL forms ignored. Log discovery no longer hardcodes
+  PVsyst 8.1, message-box acceptance covers OK/Sí/Aceptar/Continuar/Cerrar,
+  variant saving compares file bytes instead of `mtime`, and every GUI action
+  invalidates the UIA tree cache.
+- `avisos_pvsyst` on every finished simulation (`simular ejecutar`, `estado`,
+  `disenar_sistema`): the summary PVsyst wrote to its CLI log, such as
+  "The array Vmpp at 60 °C is lower than the inverter minimum operating
+  voltage" and "1879 occurrences of MPP voltage lower than min. voltage input
+  of the inverter", without the per-hour detail lines or licence noise.
+
+### Fixed
+
+- **GUI coordinates on scaled screens.** The process now declares itself
+  Per-Monitor-DPI-aware (v2) at start-up and scales 96-DPI positions by the
+  DPI of the monitor, not of the PVsyst window (which reports 96 when PVsyst is
+  DPI-unaware). Before, on a 150 % screen the MCP saw PVsyst's window at
+  801x701 instead of 1202x1052, so coordinate clicks missed. Verified at 150 %
+  only; 100 % and 125 % are covered by unit tests of the scaling.
+
 ## [0.3.0] - 2026-10-20
 
 ### Added

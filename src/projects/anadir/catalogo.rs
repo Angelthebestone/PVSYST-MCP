@@ -74,6 +74,37 @@ pub(crate) const ELEMENTOS: &[Elemento] = &[
         complementos: &[],
         campos_sistema: &[],
     },
+    Elemento {
+        nombre: "domo",
+        demo: "_DEMO_Commercial.VC7",
+        tipos: &["pvDomeOrient"],
+        complementos: &[],
+        campos_sistema: &[],
+    },
+    Elemento {
+        nombre: "zona_campo",
+        demo: "_DEMO_Tracking.VC2",
+        tipos: &["pvShdFieldZone"],
+        complementos: &[],
+        campos_sistema: &[],
+    },
+    Elemento {
+        nombre: "bifacial_seguidor",
+        demo: "_DEMO_Utility.VC5",
+        tipos: &["pvBiFacial", "pvBiFacialTrackers"],
+        complementos: &[],
+        campos_sistema: &[],
+    },
+    Elemento {
+        nombre: "circuito_hidraulico",
+        demo: "_DEMO_Pumping.VC0",
+        tipos: &["pvHydrCircuit"],
+        complementos: &[],
+        campos_sistema: &[
+            ("SystemType", "Pumping"),
+            ("PumpFile", "Generic_6kW_H60_160_FR10.PMP"),
+        ],
+    },
 ];
 
 fn elementos_pendientes(
@@ -120,13 +151,11 @@ fn insertar_elemento(nuevo: Vec<u8>, elem: &Elemento) -> Result<(Vec<u8>, Vec<Va
             } else {
                 bloque
             };
-            let actual = insert::insertar_objeto(
-                &actual,
-                &padre,
-                &bloque,
-                None,
-                insert::SiExiste::Rechazar,
-            )?;
+            let actual = if edit::find_span(&edit::spans_of(&actual), tipo).is_some() {
+                actual
+            } else {
+                insert::insertar_objeto(&actual, &padre, &bloque, None, insert::SiExiste::Rechazar)?
+            };
             let insertado = json!({"tipo": tipo, "padre": padre, "campos": campos_de(&bloque)});
             Ok((
                 actual,

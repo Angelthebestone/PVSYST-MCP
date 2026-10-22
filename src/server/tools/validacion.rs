@@ -15,6 +15,7 @@ impl Herramienta {
         self.validar_requeridos_globales(args)?;
         self.validar_requeridos_por_accion(args, &accion)?;
         self.validar_tipos(args)?;
+        self.validar_via(args)?;
         Ok(accion)
     }
 
@@ -116,6 +117,25 @@ impl Herramienta {
             }
         }
         Ok(())
+    }
+
+    fn validar_via(&self, args: &Value) -> Result<()> {
+        let Some(v) = args.get("via") else {
+            return Ok(());
+        };
+        if v.is_null() {
+            return Ok(());
+        }
+        let Some(via) = v.as_str() else {
+            return Ok(());
+        };
+        if via == "pvsyst" || via == crate::aproximaciones::VIA_APROXIMACION {
+            return Ok(());
+        }
+        Err(Error::Invalid(format!(
+            "Valor '{via}' no válido para via; valores: pvsyst, {}",
+            crate::aproximaciones::VIA_APROXIMACION
+        )))
     }
 
     fn validar_tipos(&self, args: &Value) -> Result<()> {

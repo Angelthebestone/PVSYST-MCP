@@ -15,6 +15,8 @@ fn main() -> Result<()> {
         .with_ansi(false)
         .init();
 
+    pvsyst_mcp::declarar_dpi_por_monitor();
+    pvsyst_mcp::preparar_escritorio().context("PVSYST_MCP_ESCRITORIO")?;
     let paths = Paths::resolve();
     tracing::info!(
         version = env!("CARGO_PKG_VERSION"),

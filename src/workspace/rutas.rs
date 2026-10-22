@@ -70,6 +70,56 @@ pub(crate) fn resolver_ruta(workspace: &Path, p: &str, alcance: Alcance) -> Resu
         Alcance::Libre => Ok(resolve(workspace, p)),
     }
 }
+/// Specification for resolving a file with natural folder and DataRO fallbacks.
+#[derive(Debug, Clone)]
+pub(crate) struct PeticionResolucion<'a> {
+    pub(crate) nombre: &'a str,
+    pub(crate) subcarpeta_ws: Option<&'a str>,
+    pub(crate) rutas_dataro: Vec<PathBuf>,
+}
+
+/// Resolves a file requested by a tool, respecting workspace confinement.
+pub(crate) fn resolver_archivo_con_fallback(
+    workspace: &Path,
+    args: &Value,
+    peticion: &PeticionResolucion<'_>,
+) -> Result<PathBuf> {
+    let nombre = peticion.nombre.trim();
+    if nombre.is_empty() {
+        return Err(Error::Invalid(
+            "Nombre de archivo no puede ser vacío".into(),
+        ));
+    }
+    let tiene_separadores = nombre.contains('/') || nombre.contains('\\');
+    let es_absoluto = Path::new(nombre).is_absolute();
+    if tiene_separadores || es_absoluto {
+        let resuelta = resolver_ruta(workspace, nombre, Alcance::de_args(args))?;
+        if resuelta.exists() {
+            return Ok(resuelta);
+        }
+        return Err(Error::NotFound(format!("Archivo no encontrado: {nombre}")));
+    }
+    crate::workspace::validar_nombre(nombre)?;
+    if let Some(sub) = peticion.subcarpeta_ws {
+        let sub_dir = workspace.join(sub);
+        if let Ok(en_sub) = ruta_segura(&sub_dir, nombre) {
+            if en_sub.exists() {
+                return Ok(en_sub);
+            }
+        }
+    }
+    if let Ok(en_raiz) = ruta_segura(workspace, nombre) {
+        if en_raiz.exists() {
+            return Ok(en_raiz);
+        }
+    }
+    for ro in &peticion.rutas_dataro {
+        if ro.exists() {
+            return Ok(ro.clone());
+        }
+    }
+    Err(Error::NotFound(format!("Archivo no encontrado: {nombre}")))
+}
 
 /// Move `origen` into `<workspace>/UserRecycleBin`, keeping its file name.
 ///

@@ -16,33 +16,39 @@ three**:
 
 * edit **any field of any object in any PVsyst file** (`editar` `accion:campos`);
 * read/parse **any file** (`leer`, `listar` `que:objetos`);
-* run **any PVsystCLI command** (`pvsyst_cli`, expert mode);
-* drive **any window/control of the GUI** (`gui_observar` / `gui_actuar`, expert mode).
+* run **any PVsystCLI command** (`pvsyst_cli`);
+* drive **any window/control of the GUI** (`gui_observar` / `gui_actuar`).
 
 Everything else is a convenience layer on top. So coverage is bounded by the
 *data + CLI + GUI surface*, not by a fixed menu.
 
-## Tools (15; 12 by default)
+## Tools (15 by default)
 
 **Environment & licence:** `entorno` (`accion`: `diagnostico`, `licencia*`, `exportar_logs`, `logs_cli`, `preferencias*`).
 
 **End-to-end (start here):** `disenar_sistema` (coordinates + kWp → site, project, sizing, simulation, KPIs), `resultados` (`que:kpis`).
 
-**Generic primitives** — reach anything: `leer` (type detected from `archivo`), `listar` (`que`: `proyectos`, `componentes`, `modulos`, `archivos`, `objetos`), `editar` (`accion`: `campos`, `insertar_objeto`, `eliminar_objeto`), `escribir_archivo`, `pvsyst_cli` (expert).
+**Generic primitives** — reach anything: `leer` (type detected from `archivo`), `listar` (`que`: `proyectos`, `componentes`, `modulos`, `archivos`, `objetos`), `editar` (`accion`: `campos`, `insertar_objeto`, `eliminar_objeto`), `escribir_archivo`, `pvsyst_cli`.
 
-**Projects & variants:** `proyecto` (`accion`: `crear`, `eliminar`, `renombrar`, `crear_variante`, `dimensionar`, `doctor`, `anadir`, `limpiar_temporales`).
+**Projects & variants:** `proyecto` (`accion`: `crear`, `eliminar`, `renombrar`, `crear_variante`, `dimensionar`, `doctor`, `anadir`, `seguidor`, `limite_inyeccion`, `almacenamiento`, `perdidas`, `bombeo`, `economia`, `p50_p90`, `limpiar_temporales`).
 
 **Components (all kinds):** `componente` (`accion`: `crear`, `borrar`, `importar`, `exportar`, `crear_desde_ficha`).
 
 **Site & weather:** `sitio` (`accion`: `crear` with `origen` `coordenadas`|`csv`, `convertir_meteo`, `geometria_solar`, `horizonte_pvgis`, `meteo_pvgis`).
 
-**Simulation, batch & results:** `simular` (`accion`: `ejecutar`, `preparar`, `estado`, `preestimar`, `barrido`), `resultados` (`que`: `kpis`, `csv`, `perdidas`, `mensual`, `comparar`, `p50_p90`, `carbono`, `economia`, `entregable`).
+**Simulation, batch & results:** `simular` (`accion`: `ejecutar`, `preparar`, `estado`, `preestimar`, `barrido`), `resultados` (`que`: `kpis`, `csv`, `perdidas`, `mensual`, `comparar`, `medido_vs_simulado`, `p50_p90`, `carbono`, `economia`, `entregable`).
 
 **Workspace / admin:** `workspace` (`accion`: `crear`, `exportar`, `importar`, `exportar_proyecto`, `historial`, `restaurar`).
 
-**GUI automation (expert):** `gui_observar` (`que`: `ventanas`, `controles`, `leer`, `capturar`, `uia`, `arbol`), `gui_actuar` (`accion`: `click`, `clic_fisico`, `mensaje`, `cerrar`, `activar`, `teclas`, `lanzar`, `uia_invocar`, `esperar`, `paso`).
+**GUI automation:** `gui_observar` (`que`: `ventanas`, `controles`, `leer`, `capturar`, `uia`, `arbol`, `mensajes`, `funciones`, `formulario`), `gui_actuar` (`accion`: `click`, `clic_fisico`, `mensaje`, `cerrar`, `activar`, `teclas`, `escribir`, `seleccionar`, `pagina`, `esperar_cierre`, `lanzar`, `uia_invocar`, `esperar`, `paso`, `funcion`, `menu`, `campo`). `PVSYST_MCP_ESCRITORIO=aislado` runs PVsyst and these tools on a private hidden desktop.
 
-**Resources:** `pvsyst://recetas`, `pvsyst://cobertura`, `pvsyst://formato`, `pvsyst://cli`.
+**Resources:** `pvsyst://recetas`, `pvsyst://cobertura`, `pvsyst://formato`, `pvsyst://cli`, `pvsyst://gui`.
+
+**GUI map:** `gui_observar que:funciones` lists the catalogued GUI functions;
+`gui_actuar accion:funcion funcion:<clave>` opens one (opening its host window
+first when needed) and `accion:menu` posts any other menu command id.
+`pvsyst://gui` carries the same catalogue plus the windows, tabs and controls
+observed on PVsyst 8.1.7 (`docs/gui_mapa.json`).
 
 
 ## Area-by-area
@@ -63,28 +69,32 @@ Everything else is a convenience layer on top. So coverage is bounded by the
 | Batteries `.BTR`, Pumps `.PMP`, Regulators `.RLT`, Pump ctrl `.RLP`, Gensets `.GEN`, Sellers `.REV`, Clients `.CLI` | `ComposPV/*` | `componente`, `listar`, `leer` |
 | Price list | `.PRI` | `leer`, `escribir_archivo` |
 | Geographic site | `.SIT` | `sitio` (`crear`), `leer`, `editar` |
-| Weather data | `.MET`, `.MEF`, `.TFT`, `.DAT` | `sitio` (`convertir_meteo`, `meteo_pvgis`), `leer`, `escribir_archivo` |
-| Measured data | `.DAF`, `.DAM` | `leer`, `escribir_archivo` |
-| Horizon / shading scene | `.HOR`, `.SHD`, `.BLD`, `.SHO` | `sitio horizonte_pvgis`, `leer`, `editar`, `escribir_archivo` |
-| Models / templates | `.LOD`, `.SPL`, `.SFI`, `.RVT` | `leer`, `escribir_archivo` |
+| Weather data | `.MET`, `.MEF`, `.TFT`, `.DAT` | `sitio` (`convertir_meteo`, `meteo_pvgis`, `escribir_serie`), `leer` (`serie:true` decodes the hourly body of `.MET`), `escribir_archivo` |
+| Measured data | `.DAF`, `.DAM` | `leer` (`serie:true` for `.DAM`), `sitio escribir_serie`, `escribir_archivo` |
+| Horizon / shading scene | `.HOR`, `.SHD`, `.BLD`, `.SHO` | `.HOR`: `leer` and `sitio escribir_horizonte` (structured); `.SHD`/`.BLD`/`.SHO` are decoded read-only by `leer` (objects, positions, elementary shapes; `escribir_archivo` refuses them: mesh format not proven); `sitio horizonte_pvgis` |
+| Models / templates | `.LOD`, `.SPL`, `.SFI`, `.RVT` | `leer`, `escribir_archivo`; `.RVT` variable list: `editar accion:rvt` |
 | Batch/parametric runs | `.CSV` + `.RVT` | `simular` (`preparar`, `ejecutar` with `filas`) |
 | Param override | `Param_Modif.dat` | `simular` (`preparar` with `parametros`) |
 | Simulation | engine | `simular`, `pvsyst_cli run-simulation` |
-| Results CSV / report PDF | `.CSV`, `.PDF` | `resultados` (`csv`, `perdidas`, `mensual`, `entregable`) |
+| Results CSV / report PDF | `.CSV`, `.PDF` | `resultados` (`csv`, `perdidas`, `mensual`, `entregable`), `resultados p50_p90` (reads PVsyst's report) |
+| P50/P90 set-up | PVsyst window | `proyecto p50_p90` (PVsyst's energy-management window) |
 | Licensing / logs / version / help | CLI | `entorno` (`licencia*`, `exportar_logs`, `logs_cli`), `pvsyst_cli` |
-| GUI-only authoring: 3D shading editor, informative I/V & table tools, import wizards, dialogs | live Win32/VCL windows and UI Automation | `gui_observar`, `gui_actuar` (expert) |
+| GUI-only authoring: 3D shading editor, informative I/V & table tools, import wizards, dialogs | live Win32/VCL windows and UI Automation | `gui_observar`, `gui_actuar` |
 
 
 ## GUI automation (what was the boundary)
 
 PVsyst is a Delphi/VCL application, so its dialogs and editors are **real Win32
-windows**. The `gui_observar` and `gui_actuar` tools enumerate them (`EnumWindows`/`EnumChildWindows`), read their text, expose the UI Automation tree (`que:uia`, `que:arbol`), and invoke them with standard window messages (buttons via
-`BM_CLICK`, dialogs via `WM_CLOSE`, accelerators via `WM_KEY*`). So the features
-that have no file or CLI backing are reachable too:
+windows**. The `gui_observar` and `gui_actuar` tools enumerate them (`EnumWindows`/`EnumChildWindows`), read their text, expose the UI Automation tree (`que:uia`, `que:arbol`, `que:mensajes`), and drive them with standard window messages (buttons via
+`BM_CLICK`, dialogs via `WM_CLOSE`), real `keybd_event` accelerators, coordinate
+fields (`escribir`), combo boxes (`seleccionar`) and tab pages (`pagina`). So the
+features that have no file or CLI backing are reachable too:
 
 * **Verified**: invoking the *Herramientas* (Tools) button opened the live
   `TToolsForm` window; `gui_observar que:capturar` produced a screenshot of the home
   form; `gui_actuar accion:cerrar` closed the dialog and the home form re-enabled.
+  `gui_observar que:arbol` merged the real VCL controls with the UIA tree, and
+  `que:mensajes` read PVsyst's own log.
 * The pre-created VCL forms (`TPlotForm` for graphs, `TTablForm` /
   `TTablWriteForm` for tables and "save table values as file", wizards, etc.)
   are discoverable and drivable the same way.
@@ -96,9 +106,8 @@ the public Windows UI API is used.
 
 Mouse-precision *drawing* inside the 3D scene canvas (placing individual objects
 by dragging) is possible only via synthetic pointer input and is inherently
-fragile; the tools provide `gui_actuar accion:mensaje` and `gui_actuar accion:teclas` to send
-arbitrary messages/accelerators for those cases. The *data* such an editor writes
-(`.SHD`, `.BLD`, `.SHO`, `.HOR`) is also fully editable through the file layer.
+fragile; the tools provide `gui_actuar accion:mensaje`, `accion:teclas` and
+`accion:clic_fisico` for those cases. The scene editor's menus are reachable by position (`gui_actuar accion:menu menu item`, `gui_observar que:menus`); its canvas, the charts (`TPlotForm`) and the interactive map are drawn content: capture only. `.SHD/.BLD/.SHO` are read-only (`leer`); `.HOR` has a structured codec. See `docs/gui_mapa.json` (`controles_sin_hwnd`, `limites`) for the per-control decision and `Currency.dat`/`.MEF` are read-only/validated as described in `docs/pvsyst_format.md`.
 
 ## Verified end-to-end
 

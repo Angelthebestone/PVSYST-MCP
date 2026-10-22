@@ -128,3 +128,116 @@ fn should_resolve_relative_component_path_inside_the_workspace() {
     let res = leer_componente(&Paths::resolve(), &args).expect("ruta relativa al workspace");
     assert_eq!(res["is_text"], true);
 }
+
+#[test]
+fn should_edit_legacy_component_in_place_with_history() {
+    let temp = tempdir().expect("tempdir");
+    let mods_dir = temp.path().join("ComposPV").join("PVModules");
+    fs::create_dir_all(&mods_dir).expect("create dir");
+    let pan_path = mods_dir.join("Synth_Legacy_300W.PAN");
+    let fixture = include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/workspace/ComposPV/PVModules/Synth_Legacy_300W.PAN"
+    ));
+    fs::write(&pan_path, fixture).expect("write fixture");
+
+    let paths = Paths::resolve();
+    let args = json!({
+        "workspace": temp.path().to_string_lossy(),
+        "componente": "Synth_Legacy_300W.PAN",
+        "tipo": "PAN",
+        "cambios": { "pnom_w": 320.0 }
+    });
+
+    let res = editar_componente(&paths, &args).expect("editar_componente");
+    assert!(res["historial_id"].is_string());
+
+    let modified_bytes = fs::read(&pan_path).expect("read modified");
+    let parsed = pan::parse_pan(&modified_bytes).expect("parse modified");
+    assert_eq!(parsed["pnom"], 320.0);
+    assert_eq!(parsed["voc"], 40.0);
+}
+
+#[test]
+fn should_create_legacy_component_from_template_with_applied_changes() {
+    let temp = tempdir().expect("tempdir");
+    let mods_dir = temp.path().join("ComposPV").join("PVModules");
+    fs::create_dir_all(&mods_dir).expect("create dir");
+    let pan_path = mods_dir.join("Synth_Legacy_300W.PAN");
+    let fixture = include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/workspace/ComposPV/PVModules/Synth_Legacy_300W.PAN"
+    ));
+    fs::write(&pan_path, fixture).expect("write fixture");
+
+    let paths = Paths::resolve();
+    let args = json!({
+        "workspace": temp.path().to_string_lossy(),
+        "plantilla": "Synth_Legacy_300W.PAN",
+        "nombre_nuevo": "Cloned_Legacy_325W",
+        "tipo": "PAN",
+        "cambios": { "PNom": 325.0, "Voc": 42.0 }
+    });
+
+    let res = crear_componente(&paths, &args).expect("crear_componente");
+    assert!(res["created"]
+        .as_str()
+        .unwrap()
+        .ends_with("Cloned_Legacy_325W.PAN"));
+
+    let cloned_path = mods_dir.join("Cloned_Legacy_325W.PAN");
+    let cloned_bytes = fs::read(&cloned_path).expect("read cloned");
+    let parsed_cloned = pan::parse_pan(&cloned_bytes).expect("parse cloned");
+    assert_eq!(parsed_cloned["pnom"], 325.0);
+    assert_eq!(parsed_cloned["voc"], 42.0);
+
+    let orig_bytes = fs::read(&pan_path).expect("read orig");
+    let parsed_orig = pan::parse_pan(&orig_bytes).expect("parse orig");
+    assert_eq!(parsed_orig["pnom"], 300.0);
+}
+
+#[test]
+fn should_reject_editing_legacy_component_with_unknown_field() {
+    let temp = tempdir().expect("tempdir");
+    let mods_dir = temp.path().join("ComposPV").join("PVModules");
+    fs::create_dir_all(&mods_dir).expect("create dir");
+    let pan_path = mods_dir.join("Synth_Legacy_300W.PAN");
+    let fixture = include_bytes!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/workspace/ComposPV/PVModules/Synth_Legacy_300W.PAN"
+    ));
+    fs::write(&pan_path, fixture).expect("write fixture");
+
+    let paths = Paths::resolve();
+    let args = json!({
+        "workspace": temp.path().to_string_lossy(),
+        "componente": "Synth_Legacy_300W.PAN",
+        "tipo": "PAN",
+        "cambios": { "unknown_legacy_field": 123.4 }
+    });
+
+    let err = editar_componente(&paths, &args).unwrap_err();
+    assert!(
+        matches!(err, Error::Invalid(msg) if msg.contains("No comprobado") || msg.contains("desconocido"))
+    );
+}
+
+#[test]
+fn should_reject_editing_legacy_component_in_read_only_database() {
+    let temp = tempdir().expect("tempdir");
+    let ro_pan = crate::config::compos_ro()
+        .join("PVModules")
+        .join("Concentrix_CPV_Gen_II.PAN");
+    if !ro_pan.exists() {
+        return;
+    }
+    let paths = Paths::resolve();
+    let args = json!({
+        "workspace": temp.path().to_string_lossy(),
+        "componente": "Concentrix_CPV_Gen_II.PAN",
+        "tipo": "PAN",
+        "cambios": { "pnom_w": 90.0 }
+    });
+    let err = editar_componente(&paths, &args).unwrap_err();
+    assert!(matches!(err, Error::Invalid(msg) if msg.contains("solo lectura")));
+}

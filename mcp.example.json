@@ -6,8 +6,7 @@
       "command": "C:\\pvsyst-mcp\\pvsyst-mcp.exe",
       "env": {
         "PVSYST_WORKSPACE": "C:\\Users\\<you>\\PVsyst8.1_Data",
-        "PVSYST_CLI": "C:\\Program Files\\PVsyst8.1.7\\PVsystCLI.exe",
-        "PVSYST_MCP_EXPERTO": "0"
+        "PVSYST_CLI": "C:\\Program Files\\PVsyst8.1.7\\PVsystCLI.exe"
       }
     }
   }

@@ -51,6 +51,18 @@ pub(crate) fn opt_u32(args: &Value, key: &str) -> Result<Option<u32>> {
     }
 }
 
+/// Optional JSON integer that fits `i32`; absent or `null` means `None`.
+pub(crate) fn opt_i32(args: &Value, key: &str) -> Result<Option<i32>> {
+    match args.get(key) {
+        None | Some(Value::Null) => Ok(None),
+        Some(v) => v
+            .as_i64()
+            .and_then(|n| i32::try_from(n).ok())
+            .map(Some)
+            .ok_or_else(|| Error::Invalid(format!("'{key}' debe ser un entero"))),
+    }
+}
+
 /// Required string argument; the error names `keys[0]` and, if given, `hint`.
 pub(crate) fn req_str<'a>(args: &'a Value, keys: &[&str], hint: &str) -> Result<&'a str> {
     opt_str(args, keys).ok_or_else(|| missing(keys[0], hint))

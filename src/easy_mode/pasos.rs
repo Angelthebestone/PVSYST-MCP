@@ -66,14 +66,16 @@ pub(crate) struct PasoSimulacionSalida {
     pub(crate) sim_ok: bool,
     pub(crate) sitio_proyecto_ok: Option<bool>,
     pub(crate) sitio_proyecto_detalle: Option<Value>,
+    /// Warnings PVsyst logged during the run (`avisos_pvsyst` of `simular`).
+    pub(crate) avisos_pvsyst: Vec<String>,
 }
 
 /// Key performance indicators extracted from simulation outputs.
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct KpisSalida {
     pub(crate) csv: Value,
-    pub(crate) e_grid_kwh: Option<f64>,
-    pub(crate) poa_kwh_m2: Option<f64>,
+    /// PVsyst's "Produced Energy" (kWh/year) from the report summary.
+    pub(crate) energia_producida_kwh: Option<f64>,
     pub(crate) specific_yield_kwh_per_kwp: Option<f64>,
     pub(crate) pr: Option<f64>,
     pub(crate) kwp: Option<f64>,

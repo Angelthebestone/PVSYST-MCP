@@ -1,6 +1,6 @@
 //! Tool for sites and meteo: site synthesis, solar geometry, PVGIS horizon and TMY.
 
-use super::declaracion::{Acceso, Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
+use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::sites;
@@ -9,7 +9,6 @@ use serde_json::Value;
 pub(crate) const TOOL_SITIO: Herramienta = Herramienta {
     nombre: "sitio",
     descripcion: "Sitios y meteo: crear (coordenadas o CSV), convertir, geometria solar, horizonte y TMY de PVGIS. / EN: Sites and weather: create (coordinates or CSV), convert, solar geometry, PVGIS horizon and TMY.",
-    acceso: Acceso::Normal,
     anotaciones: Anotaciones {
         titulo: "Sitio / Site",
         es_solo_lectura: false,
@@ -46,7 +45,13 @@ pub(crate) const TOOL_SITIO: Herramienta = Herramienta {
         ("sit_file", TipoDato::String),
         ("timeout_s", TipoDato::Integer),
         ("permitir_fuera_del_workspace", TipoDato::Boolean),
+        ("via", TipoDato::String),
         ("workspace", TipoDato::String),
+        ("archivo", TipoDato::String),
+        ("titulo", TipoDato::String),
+        ("puntos", TipoDato::Array),
+        ("variables", TipoDato::Array),
+        ("valores", TipoDato::ArrayOrObject),
     ],
     requeridos: &[],
     discriminador: Some(Discriminador {
@@ -58,12 +63,16 @@ pub(crate) const TOOL_SITIO: Herramienta = Herramienta {
             "geometria_solar",
             "horizonte_pvgis",
             "meteo_pvgis",
+            "escribir_horizonte",
+            "escribir_serie",
         ],
     }),
     requeridos_por_accion: &[
         ("geometria_solar", &["latitud", "longitud"]),
         ("horizonte_pvgis", &["proyecto"]),
         ("meteo_pvgis", &["latitud", "longitud", "nombre_sitio"]),
+        ("escribir_horizonte", &["archivo", "puntos"]),
+        ("escribir_serie", &["archivo", "variables", "valores"]),
     ],
     ejecutar: Ejecutor::Simple(ejecutar_sitio),
 };
@@ -89,8 +98,10 @@ fn ejecutar_sitio(paths: &Paths, args: &Value) -> Result<Value> {
         }
         "convertir_meteo" => sites::convertir_meteo(paths, args),
         "geometria_solar" => sites::solar::geometria_solar(paths, args),
-        "horizonte_pvgis" => sites::pvgis::horizonte_pvgis(paths, args),
+        "horizonte_pvgis" => sites::pvgis::horizonte(paths, args),
         "meteo_pvgis" => sites::pvgis::meteo_pvgis(paths, args),
+        "escribir_horizonte" => crate::horizonte_archivo::escribir_horizonte(paths, args),
+        "escribir_serie" => crate::serie_horaria::escribir_serie(paths, args),
         _ => Err(Error::Invalid(format!(
             "Valor '{valor}' no soportado para sitio"
         ))),

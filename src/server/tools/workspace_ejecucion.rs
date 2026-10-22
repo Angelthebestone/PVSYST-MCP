@@ -44,10 +44,13 @@ pub(super) fn ejecutar_escribir_archivo(paths: &Paths, args: &Value) -> Result<V
 }
 
 pub(super) fn ejecutar_leer(paths: &Paths, args: &Value) -> Result<Value> {
-    if ["offset", "max_bytes", "base64"]
-        .iter()
-        .any(|k| args.get(*k).is_some())
-    {
+    if args.get("serie").and_then(Value::as_bool) == Some(true) {
+        return crate::serie_horaria::leer_serie(paths, args);
+    }
+    let pide_offset = args.get("offset").and_then(Value::as_u64).is_some();
+    let pide_max = args.get("max_bytes").and_then(Value::as_u64).is_some();
+    let pide_base64 = crate::args::flag(args, &["base64"]);
+    if pide_offset || pide_max || pide_base64 {
         return crate::workspace::leer_archivo(paths, args);
     }
     if args.get("objeto").is_some() || args.get("plano").is_some() {
@@ -62,15 +65,72 @@ pub(super) fn ejecutar_leer(paths: &Paths, args: &Value) -> Result<Value> {
         .and_then(|e| e.to_str())
         .unwrap_or("")
         .to_ascii_uppercase();
+
     if es_proyecto(paths, archivo, &ext) {
         let completo = args.get("detalle").and_then(Value::as_str) == Some("completo");
         let con_proyecto = con(args, "proyecto", json!(archivo));
         return projects::leer_proyecto(paths, &con(&con_proyecto, "completo", json!(completo)));
     }
+    if es_archivo_divisas(paths, args, archivo) {
+        return crate::divisas::leer_divisas(paths, args);
+    }
+    despachar_por_extension(paths, args, archivo)
+}
+
+fn es_archivo_divisas(paths: &Paths, args: &Value, archivo: &str) -> bool {
+    let nombre_archivo = Path::new(archivo)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or(archivo);
+    if nombre_archivo.eq_ignore_ascii_case("Currency.dat") {
+        return true;
+    }
+    let ext = Path::new(archivo)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("");
+    if ext.eq_ignore_ascii_case("DAT") {
+        return empieza_con_cabecera_divisas(paths, args, archivo);
+    }
+    false
+}
+
+fn empieza_con_cabecera_divisas(paths: &Paths, args: &Value, archivo: &str) -> bool {
+    use std::fs::File;
+    use std::io::Read;
+    let ws = workspace_of(paths, args);
+    let peticion = crate::workspace::PeticionResolucion {
+        nombre: archivo,
+        subcarpeta_ws: None,
+        rutas_dataro: Vec::new(),
+    };
+    let Ok(ruta) = crate::workspace::resolver_archivo_con_fallback(&ws, args, &peticion) else {
+        return false;
+    };
+    let Ok(mut file) = File::open(&ruta) else {
+        return false;
+    };
+    let mut buf = [0u8; 17];
+    if file.read_exact(&mut buf).is_err() {
+        return false;
+    }
+    &buf == b"CURRENCY_RATES_V2"
+}
+
+fn despachar_por_extension(paths: &Paths, args: &Value, archivo: &str) -> Result<Value> {
+    let ext = Path::new(archivo)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_ascii_uppercase();
     match ext.as_str() {
         "PAN" => pan::leer_modulo(paths, &con(args, "modulo", json!(archivo))),
         "SIT" => readers::leer_sitio(paths, &con(args, "sitio", json!(archivo))),
         "MET" => readers::leer_meteo(paths, &con(args, "meteo", json!(archivo))),
+        "DAM" => crate::serie_horaria::leer_serie(paths, args),
+        "HOR" => crate::horizonte_archivo::leer_horizonte(paths, args),
+        "MEF" => crate::meteo_mef::leer_mef(paths, args),
+        "SHD" | "BLD" | "SHO" => crate::escena_3d::leer_escena(paths, args),
         "OND" | "BTR" | "PMP" | "RLT" | "RLP" | "GEN" | "REV" | "CLI" => {
             let con_nombre = con(args, "componente", json!(archivo));
             components::leer_componente(paths, &con(&con_nombre, "tipo", json!(ext)))
@@ -96,6 +156,7 @@ pub(super) fn ejecutar_editar(paths: &Paths, args: &Value) -> Result<Value> {
         "campos" => objects::editar_objeto(paths, args),
         "insertar_objeto" => projects::anadir::insertar_objeto_archivo(paths, args),
         "eliminar_objeto" => projects::anadir::eliminar_objeto_archivo(paths, args),
+        "rvt" | "plantilla_rvt" => crate::plantilla_variables::gestionar_rvt(paths, args),
         _ => Err(Error::Invalid(format!(
             "Valor '{valor}' no soportado para editar"
         ))),

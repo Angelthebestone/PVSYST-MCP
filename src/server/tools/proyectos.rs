@@ -1,6 +1,6 @@
 //! Tool for project lifecycle: creation, sizing, variants, diagnostics and cleanup.
 
-use super::declaracion::{Acceso, Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
+use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::projects::{self, lifecycle};
@@ -8,8 +8,7 @@ use serde_json::Value;
 
 pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
     nombre: "proyecto",
-    descripcion: "Ciclo de vida de proyectos y variantes: crear, eliminar, renombrar, dimensionar, diagnosticar, anadir objetos, convertir a seguidor, limite de inyeccion, almacenamiento, perdidas, bombeo, economia. / EN: Project and variant lifecycle: create, delete, rename, size, diagnose, add objects, convert to tracker, injection limit, storage, losses, pumping, economics.",
-    acceso: Acceso::Normal,
+    descripcion: "Ciclo de vida de proyectos y variantes: crear, eliminar, renombrar, dimensionar (pre-dimensionado de PVsyst), diagnosticar, anadir objetos, convertir a seguidor, limite de inyeccion, almacenamiento, perdidas, bombeo, economia, P50-P90. / EN: Project and variant lifecycle: create, delete, rename, size (PVsyst pre-sizing), diagnose, add objects, convert to tracker, injection limit, storage, losses, pumping, economics, P50-P90.",
     anotaciones: Anotaciones {
         titulo: "Proyecto / Project",
         es_solo_lectura: false,
@@ -65,6 +64,7 @@ pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
         ("tarifa_venta_kwh", TipoDato::Number),
         ("workspace", TipoDato::String),
         ("permitir_fuera_del_workspace", TipoDato::Boolean),
+        ("via", TipoDato::String),
     ],
     requeridos: &[],
     discriminador: Some(Discriminador {
@@ -84,6 +84,7 @@ pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
             "perdidas",
             "bombeo",
             "economia",
+            "p50_p90",
             "limpiar_temporales",
         ],
     }),
@@ -92,7 +93,7 @@ pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
         ("eliminar", &["proyecto"]),
         ("renombrar", &["proyecto", "nombre_nuevo"]),
         ("crear_variante", &["proyecto", "variante_nueva"]),
-        ("dimensionar", &["proyecto", "kwp"]),
+        ("dimensionar", &["proyecto"]),
         ("doctor", &["proyecto"]),
         ("anadir", &["proyecto", "elemento"]),
         ("seguidor", &["proyecto"]),
@@ -101,6 +102,7 @@ pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
         ("perdidas", &["proyecto"]),
         ("bombeo", &["proyecto"]),
         ("economia", &["proyecto"]),
+        ("p50_p90", &["proyecto"]),
     ],
     ejecutar: Ejecutor::Simple(ejecutar_proyecto),
 };
@@ -121,9 +123,17 @@ fn ejecutar_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
         "perdidas" => crate::perdidas::aplicar_perdidas(paths, args),
         "bombeo" => crate::bombeo::configurar_bombeo(paths, args),
         "economia" => crate::evaluacion_economica::configurar_economia(paths, args),
+        "p50_p90" => configurar_p50(paths, args),
         "limpiar_temporales" => projects::temporales::limpiar_temporales(paths, args),
         _ => Err(Error::Invalid(format!(
             "Valor '{valor}' no soportado para proyecto"
         ))),
     }
+}
+
+fn configurar_p50(paths: &Paths, args: &Value) -> Result<Value> {
+    let proyecto = crate::args::req_str(args, &["proyecto"], "")?;
+    let proyecto = proyecto.strip_suffix(".PRJ").unwrap_or(proyecto);
+    let variante = crate::args::opt_str(args, &["variante"]).unwrap_or("VC0");
+    projects::gui::p50::configurar(paths, proyecto, variante)
 }

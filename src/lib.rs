@@ -22,24 +22,32 @@ compile_error!("pvsyst-mcp solo funciona en Windows: PVsyst 8.1.7 es una aplicac
 mod adapters;
 mod admin;
 mod almacenamiento;
+mod aproximaciones;
 mod args;
 mod bombeo;
 mod calendario;
 mod components;
 mod config;
+mod divisas;
 mod easy_mode;
 mod error;
+mod escena_3d;
 mod evaluacion_economica;
 mod format;
+mod gui_catalogo;
 mod history;
+mod horizonte_archivo;
 mod inyeccion;
 mod medicion;
+mod meteo_mef;
 mod objects;
 mod perdidas;
+mod plantilla_variables;
 mod prefs;
 mod progreso;
 mod projects;
 mod seguidores;
+mod serie_horaria;
 mod server;
 mod simulation;
 mod sites;
@@ -54,6 +62,27 @@ use std::sync::mpsc;
 
 pub use config::Paths;
 pub use server::Server;
+
+/// Makes the process Per-Monitor-DPI-aware (v2). Call once at start-up, before
+/// the server touches any PVsyst window: GUI coordinates (clicks, captures,
+/// layout positions measured at 96 DPI) are only right in physical pixels.
+pub fn declarar_dpi_por_monitor() {
+    adapters::gui::ffi::declarar_dpi_por_monitor();
+}
+
+/// Reads `PVSYST_MCP_ESCRITORIO` and, for `aislado`, creates a private Win32
+/// desktop where PVsyst runs and the GUI tools act without touching the user's
+/// focus, cursor or keyboard. Call once at start-up, before [`serve`].
+///
+/// # Errors
+///
+/// Fails when the variable has an unknown value (so a typo never drives the
+/// user's desktop) or when the desktop cannot be created.
+pub fn preparar_escritorio() -> io::Result<()> {
+    adapters::gui::escritorio::preparar()
+        .map(|_| ())
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e.to_string()))
+}
 
 /// Serves MCP over newline-delimited JSON: reads one request per line from
 /// `input` and writes one response line to `output` (notifications get none).
@@ -70,7 +99,12 @@ pub fn serve<R: BufRead, W: Write + Send>(server: &Server, input: R, output: W) 
     std::thread::scope(|scope| -> io::Result<()> {
         let (emisor, receptor) = mpsc::channel();
         let salida_compartida = &salida;
-        let trabajador = scope.spawn(move || server.atender_trabajos(receptor, salida_compartida));
+        let trabajador = scope.spawn(move || -> io::Result<()> {
+            adapters::gui::escritorio::adjuntar_hilo_actual()
+                .map_err(|e| io::Error::other(e.to_string()))?;
+            server.atender_trabajos(receptor, salida_compartida);
+            Ok(())
+        });
 
         for line in input.lines() {
             let line = line?;
@@ -104,7 +138,7 @@ pub fn serve<R: BufRead, W: Write + Send>(server: &Server, input: R, output: W) 
         drop(emisor);
         trabajador
             .join()
-            .map_err(|_| io::Error::other("hilo trabajador terminó con pánico"))?;
+            .map_err(|_| io::Error::other("hilo trabajador terminó con pánico"))??;
         Ok(())
     })
 }

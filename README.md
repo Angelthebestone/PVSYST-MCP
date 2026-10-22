@@ -62,13 +62,24 @@ cannot cross on its own, so this server closes it:
   it was not asked to change.
 * **Everything is snapshotted.** Any write is preceded by a snapshot, so an experiment
   can be undone.
-* **The GUI-only surface is still reachable** through UI Automation and Win32 in expert
-  mode, for the dialogs that have no file or CLI equivalent.
+* **The GUI-only surface is reachable** through UI Automation, Win32 messages and form-field
+  driving, for the dialogs that have no file or CLI equivalent.
 
-## What it exposes (15 tools; 12 by default)
+## What it exposes (15 tools)
 
 Each tool takes a discriminator (`accion` or `que`); omitted values use the default shown.
-The default surface has 12 tools. `pvsyst_cli`, `gui_observar` and `gui_actuar` appear only when `PVSYST_MCP_EXPERTO=1`.
+All 15 tools are available by default. The MCP's own calculations are the only opt-in surface.
+
+**Every figure comes from PVsyst.** By default the MCP only returns what PVsyst computes
+(`PVsystCLI`, the variant it simulates and its PDF report). The MCP's own calculations that
+duplicate a PVsyst function sit behind `PVSYST_MCP_APROXIMACIONES=1`: without it, the actions
+that only exist as MCP calculations are absent from `tools/list` and, if called, answer with the
+PVsyst route that replaces them; with it, their result carries `origen: "aproximacion_mcp"`.
+Those actions are `simular preestimar`/`barrido`, `sitio geometria_solar`,
+`resultados medido_vs_simulado` and the automatic sizing of `disenar_sistema`. Actions that keep
+PVsyst as their default route stay visible: `componente crear_desde_ficha`, `sitio
+horizonte_pvgis`, `resultados p50_p90` and `proyecto dimensionar` from `kwp` use PVsyst's windows
+and only run the MCP calculation when called with `via: "aproximacion"` and the flag is on.
 
 | Tool | Discriminator (default) | Purpose |
 |---|---|---|
@@ -78,19 +89,21 @@ The default surface has 12 tools. `pvsyst_cli`, `gui_observar` and `gui_actuar` 
 | `leer` | type detected from `archivo` | Reads a project, module (`.PAN`), site, meteo, component, PVObject file, or raw file bytes. |
 | `editar` | `accion`: `campos` (default), `insertar_objeto`, `eliminar_objeto` | Edits fields of any object (byte-preserving, snapshot first) or inserts/removes objects. |
 | `escribir_archivo` | — | Writes a workspace file (snapshot first; path-guarded). |
-| `proyecto` | `accion`: `crear`, `eliminar`, `renombrar`, `crear_variante`, `dimensionar`, `doctor`, `anadir`, `limpiar_temporales` | Project and variant lifecycle, consistency checks and repairs, demo-object insertion, temp cleanup. |
-| `componente` | `accion`: `crear`, `borrar`, `importar`, `exportar`, `crear_desde_ficha` | Component lifecycle; builds OND/PAN from datasheet values. |
-| `sitio` | `accion`: `crear` (`origen`: `coordenadas` (default) or `csv`), `convertir_meteo`, `geometria_solar`, `horizonte_pvgis`, `meteo_pvgis` | Sites, weather conversion, solar geometry, PVGIS horizon and TMY hourly weather (endpoints verified live). |
-| `simular` | `accion`: `ejecutar` (default), `preparar`, `estado`, `preestimar`, `barrido` | Runs simulations (CSV and PDF report default to `Results/<proyecto>_<variante>.csv` and `.pdf`; cache, trial ledger, background jobs), prepares batch files, local pre-estimate and sweep. |
-| `resultados` | `que`: `kpis` (default), `csv`, `perdidas`, `mensual`, `comparar`, `p50_p90`, `carbono`, `economia`, `entregable` | Results from the CSV and the PDF report (losses, monthly table), P50/P90, carbon, economics, Markdown deliverable. |
+| `proyecto` | `accion`: `crear`, `eliminar`, `renombrar`, `crear_variante`, `dimensionar`, `doctor`, `anadir`, `seguidor`, `limite_inyeccion`, `almacenamiento`, `perdidas`, `bombeo`, `economia`, `p50_p90`, `limpiar_temporales` | Project and variant lifecycle, consistency checks and repairs, tracker conversion, injection limit, storage, losses, pumping, PVsyst economics, P50/P90 set-up and temp cleanup. `dimensionar` uses PVsyst's pre-sizing window; pass `n_mod_serie`/`n_strings` to write them as given. |
+| `componente` | `accion`: `crear`, `borrar`, `importar`, `exportar`, `crear_desde_ficha`* | Component lifecycle; for real modules and inverters, import the manufacturer's `.PAN`/`.OND`. |
+| `sitio` | `accion`: `crear` (`origen`: `coordenadas` (default) or `csv`), `convertir_meteo`, `meteo_pvgis`, `geometria_solar`*, `horizonte_pvgis`* | Sites (`PVsystCLI create-site`), weather conversion (`convert-meteo`) and PVGIS hourly TMY converted by PVsyst. |
+| `simular` | `accion`: `ejecutar` (default), `preparar`, `estado`, `preestimar`*, `barrido`* | Runs simulations (CSV and PDF report default to `Results/<proyecto>_<variante>.csv` and `.pdf`; cache, trial ledger, background jobs), prepares batch files and returns `avisos_pvsyst`, the warnings PVsyst wrote to its log. Orientation sweeps use `filas` (batch mode `-bpf`). |
+| `resultados` | `que`: `kpis` (default), `csv`, `perdidas`, `mensual`, `comparar`, `carbono`, `economia`, `entregable`, `p50_p90`*, `medido_vs_simulado`* | KPIs, losses, monthly table, carbon balance and economic evaluation read from PVsyst's PDF report; hourly CSV; Markdown deliverable. |
 | `workspace` | `accion`: `crear`, `exportar`, `importar`, `exportar_proyecto`, `historial`, `restaurar` | Workspace admin and history (snapshots) restore. |
-| `pvsyst_cli` | — (expert) | Runs any PVsystCLI command with raw options. |
-| `gui_observar` | `que`: `ventanas` (default), `controles`, `leer`, `capturar`, `uia`, `arbol` (expert) | Observes PVsyst windows, controls, UI Automation tree; captures PNG. |
-| `gui_actuar` | `accion`: `click`, `clic_fisico`, `mensaje`, `cerrar`, `activar`, `teclas`, `lanzar`, `uia_invocar`, `esperar`, `paso` (expert) | Drives PVsyst windows and controls. |
+| `pvsyst_cli` | — | Runs any PVsystCLI command with raw options. |
+| `gui_observar` | `que`: `ventanas` (default), `controles`, `leer`, `capturar`, `uia`, `arbol`, `mensajes`, `funciones`, `formulario`, `menus` | Observes PVsyst windows, controls, UI Automation tree and its log messages; captures PNG; `funciones` lists the GUI catalogue; `formulario` pairs each field of a dialog with its label (Windows OCR). |
+| `gui_actuar` | `accion`: `click` (default), `clic_fisico`, `clic_texto`, `mensaje`, `cerrar`, `activar`, `teclas`, `escribir`, `seleccionar`, `pagina`, `esperar_cierre`, `lanzar`, `reiniciar`, `uia_invocar`, `esperar`, `paso`, `funcion`, `menu`, `campo` | Drives PVsyst windows and controls, including typing into measured 96-DPI fields, combo and list selection and tab pages; `funcion` opens a catalogued PVsyst function (`gui_observar que:funciones`), `menu` posts a menu command (by `id`, or by `menu`+`item` position read from the open popup), `campo` sets a field by its label, `clic_texto` clicks on-screen text (controls without a handle), `reiniciar` recovers from a PVsyst crash dialog. |
 
-**Resources** (`resources/list` / `resources/read`): `pvsyst://recetas` (task → tool playbook), `pvsyst://cobertura` (coverage map), `pvsyst://formato` (file formats), `pvsyst://cli` (CLI reference). Unknown URIs return JSON-RPC -32602 `Recurso desconocido`.
+**Resources** (`resources/list` / `resources/read`): `pvsyst://recetas` (task → tool playbook), `pvsyst://cobertura` (coverage map), `pvsyst://formato` (file formats), `pvsyst://cli` (CLI reference), `pvsyst://gui` (GUI function catalogue and window map). Unknown URIs return JSON-RPC -32602 `Recurso desconocido`.
 
-All tools read/write only files under the workspace; nothing is sent anywhere, except the PVGIS requests of `horizonte_pvgis` and `meteo_pvgis` and the optional PVGIS fetch of `p50_p90` (PVGIS `MRcalc`, `printhorizon` and `tmy` verified live). Meteonorm data is not used: even the horizon block that `proyecto anadir` copies from a demo is emptied first — see [responsible use](#responsible-use-licensing-and-trademark).
+\* The action has an MCP-calculation branch. Its default is PVsyst; `via: "aproximacion"` (and, for the actions that only exist as an approximation, the action itself) requires `PVSYST_MCP_APROXIMACIONES=1`. Without the flag those gate-only actions are hidden from `tools/list`.
+
+All tools read/write only files under the workspace; nothing is sent anywhere, except the PVGIS requests of `meteo_pvgis` and, with approximations enabled, `horizonte_pvgis` and the optional PVGIS fetch of `p50_p90` (PVGIS `MRcalc`, `printhorizon` and `tmy` verified live). Meteonorm data is not used: even the horizon block that `proyecto anadir` copies from a demo is emptied first — see [responsible use](#responsible-use-licensing-and-trademark).
 
 **Path scope.** Every caller-supplied path (read, list, edit, import/export, capture output, CSV/report destinations, history restore) is confined to the workspace: `..` and paths outside it are rejected. Pass `permitir_fuera_del_workspace: true` to opt out explicitly. History restore always validates the whole manifest first and never writes outside the workspace. Edits refuse files whose PVObject structure is unbalanced, and selectors with malformed segments or indices (`pvSubArray[abc]`) are errors instead of falling back to `[0]`.
 
@@ -119,7 +132,7 @@ covers every PVsyst **state, computation and dialog** — projects, variants, al
 component types, site/weather, shadings, models, batch runs, parameter overrides,
 licensing, logs, and the mouse-driven GUI tools (3D editor, informative plots,
 wizards), which are driven through UI Automation and Win32 (`gui_observar` /
-`gui_actuar`, expert mode). Full map: [`docs/cobertura.md`](docs/cobertura.md) and
+`gui_actuar`). Full map: [`docs/cobertura.md`](docs/cobertura.md) and
 the page-by-page inventory in [`docs/pvsyst_features.md`](docs/pvsyst_features.md);
 the `pvsyst://cobertura` resource returns the machine-readable version.
 
@@ -128,9 +141,9 @@ the `pvsyst://cobertura` resource returns the machine-readable version.
 
 1. `sitio {accion:"crear", origen:"coordenadas", latitud, longitud, nombre}` → `.SIT` (reuses an existing site when coordinates match).
 2. `proyecto {accion:"crear", plantilla, nombre_nuevo, modulo, inversor, n_mod_serie, n_strings}`.
-3. `proyecto {accion:"dimensionar", proyecto, kwp}` → computes and writes `NModSerie`/`NStringCh`/`PNomSizing`.
+3. `proyecto {accion:"dimensionar", proyecto, n_mod_serie, n_strings}` → writes `NModSerie`/`NStringCh`/`PNomSizing`.
 4. `editar {accion:"campos", proyecto, ediciones:[…]}` → tilt/azimuth, losses, etc.
-5. `simular {proyecto, site:"…SIT", synthetic_weather:true}` (trial-licence runs ask for confirmation when they use two or more executions).
+5. `simular {proyecto, site:"…SIT", synthetic_weather:true}` (trial-licence runs ask for confirmation when they use two or more executions). Check `avisos_pvsyst`: that is where PVsyst warns, e.g., about a Vmpp outside the inverter window.
 6. `resultados {que:"perdidas"}`, then `que:"mensual"`, `que:"carbono"`, `que:"entregable"`.
 
 
@@ -182,7 +195,7 @@ cargo test
 Download the `.mcpb` file from the
 [latest release](https://github.com/Angelthebestone/PVSYST-MCP/releases/latest) and
 open it (or drag it onto *Settings → Extensions*). Claude Desktop asks for the PVsyst
-workspace, `PVsystCLI.exe`, `PVsyst.exe` and expert mode; leave the paths empty to let
+workspace, `PVsystCLI.exe` and `PVsyst.exe`; leave the paths empty to let
 the server auto-detect them. The bundle is built from [`mcpb/manifest.json`](mcpb/manifest.json).
 The bundle does not update itself: install the new `.mcpb` from each release.
 
@@ -263,8 +276,8 @@ licence, not for a shared endpoint — see
 **Client-compatibility notes.** The server echoes back the `protocolVersion` the
 client requests when it supports it (`2024-11-05`, `2025-03-26`, `2025-06-18`;
 Command Code asks for `2025-03-26`) and otherwise answers with its latest supported
-version, as the MCP spec requires. It exposes four resources (`pvsyst://recetas`,
-`pvsyst://cobertura`, `pvsyst://formato`, `pvsyst://cli`) and seven prompts built
+version, as the MCP spec requires. It exposes five resources (`pvsyst://recetas`,
+`pvsyst://cobertura`, `pvsyst://formato`, `pvsyst://cli`, `pvsyst://gui`) and seven prompts built
 from those recipes. With `2025-06-18`, tool results also carry `structuredContent`;
 long simulations report progress and accept `notifications/cancelled`. Tool
 arguments are type-checked against each tool's schema before dispatch.
@@ -281,7 +294,8 @@ An empty value counts as unset, so the default or auto-detection applies.
 | `PVSYST_WORKSPACE` | User workspace folder | `%USERPROFILE%\PVsyst8.1_Data`, then `Documents\…` |
 | `PVSYST_CLI` | Path to `PVsystCLI.exe` | `C:\Program Files\PVsyst8.1.7\PVsystCLI.exe` |
 | `PVSYST_GUI` | Path to `PVsyst.exe` | `C:\Program Files\PVsyst8.1.7\PVsyst.exe` |
-| `PVSYST_MCP_EXPERTO` | `1` exposes `pvsyst_cli`, `gui_observar` and `gui_actuar` | unset (12 tools) |
+| `PVSYST_MCP_APROXIMACIONES` | `1` enables the MCP's own calculations (labelled `origen: "aproximacion_mcp"`) | unset (PVsyst results only) |
+| `PVSYST_MCP_ESCRITORIO` | `aislado` runs PVsyst and the GUI tools on a private hidden Win32 desktop (the agent never takes your focus, cursor or keyboard); `compartido` uses your desktop. Any other value is an error | `compartido` |
 | `PVSYST_MCP_AUTO_ACTUALIZAR` | npm launcher only: `0` disables the auto-update | enabled |
 | `PVSYST_MCP_ALMACEN` | npm launcher only: where updates are downloaded | `%LOCALAPPDATA%\pvsyst-mcp` |
 
@@ -303,8 +317,9 @@ leer                   { "archivo": "CX-M500_2450Wp_1_00_086.PAN" }
 → { "format": "legacy-real48", "vendor": "Soitec", "pnom": 2450.0,
     "voc": 695.7, "isc": 3.861, ... }
 
-disenar_sistema         { "latitud": 7.07, "longitud": -73.84, "kwp": 10 }
-→ { "kpis": { "e_grid_kwh": 15517, "specific_yield_kwh_per_kwp": 1567, "pr": 0.83 },
+disenar_sistema         { "latitud": 7.07, "longitud": -73.84, "kwp": 10,
+                          "n_mod_serie": 10, "n_strings": 3 }
+→ { "kpis": { "energia_producida_kwh": 15517, "specific_yield_kwh_per_kwp": 1567, "pr": 83.0 },
     "site": { "weather_source": "NASA SSE 6.0 grid cell 7/-74 ..." }, "pasos": [ ... ] }
 
 proyecto                { "accion": "crear", "plantilla": "_DEMO_Commercial",
@@ -341,7 +356,7 @@ decoder lives in `tools/pan_decode.py`.
 * **Full coordinates → capacity → simulation → results run** (all via MCP tools, recorded on the 15-tool surface before consolidation): the site from coordinates (lat 46.2044, lon 6.1432) was created; `proyecto crear` built a ~507 kWp variant; `simular` ran it at the new site with synthetic weather → **`Simulation done in 0min 2sec`** + PDF generated; `resultados que:csv` parsed the 330 KB CSV (8 760 hourly rows, `date;GlobInc;GlobEff;EArray;E_Grid;PR`).
 * `editar` (fields), `proyecto dimensionar` and `workspace restaurar` are covered by smoke tests; history snapshots are checked via `UserData/mcp_history/<id>/manifest.json`.
 * PVsyst-side validation errors are surfaced (`success:false`), e.g. an over-sized array rejected by PVsyst with "array Voc … greater than the inverter absolute maximum input voltage".
-* **GUI automation verified against the live app** (expert mode): `gui_observar que:ventanas|controles` enumerated PVsyst's real VCL windows/controls; `gui_actuar accion:click` on the *Herramientas* button opened `TToolsForm`; `gui_observar que:capturar` produced a screenshot; `gui_actuar accion:cerrar` closed it. Covered by the gated test `gui_invokes_button_and_opens_window`.
+* **GUI automation verified against the live app**: `gui_observar que:ventanas|controles` enumerated PVsyst's real VCL windows/controls; `gui_actuar accion:click` on the *Herramientas* button opened `TToolsForm`; `gui_observar que:capturar` produced a screenshot; `gui_actuar accion:cerrar` closed it. Covered by the gated test `gui_invokes_button_and_opens_window`.
 
 Every table, figure and report quoted above was produced with **PVsyst 8.1.7
 (PVsystCLI)**; see [citation](#how-to-cite-this-work).
@@ -405,8 +420,8 @@ tools/pan_decode.py      reference decoder
 
 Yes. `simular` prepares the variant, shells out to the documented
 `PVsystCLI run-simulation` command, parses the success markers and returns the KPIs —
-no window is opened. The GUI tools (`gui_observar`, `gui_actuar`) exist only for the
-dialogs that have no file or CLI equivalent, and they live behind expert mode.
+no window is opened. The GUI tools (`gui_observar`, `gui_actuar`) exist for the dialogs
+that have no file or CLI equivalent; they are available by default.
 
 ### Do I need a PVsyst licence?
 
@@ -439,15 +454,15 @@ snapshots are the safety net, not PVsyst support.
 
 ### Does it send my data anywhere?
 
-No. The only outbound requests are the PVGIS calls you trigger: `horizonte_pvgis`,
-`meteo_pvgis` and the optional PVGIS fetch of `resultados que:p50_p90`. Nothing is
-uploaded, and no telemetry is collected.
+No. The only outbound requests are the PVGIS calls you trigger: `meteo_pvgis` and, with
+`PVSYST_MCP_APROXIMACIONES=1`, `horizonte_pvgis` and the optional fetch of
+`resultados que:p50_p90`. Nothing is uploaded, and no telemetry is collected.
 
 ### Can it do batch runs and parameter sweeps?
 
-Yes: `simular accion:barrido` sweeps orientations and sends the best ones to one batch
-simulation, `simular accion:preparar` writes batch parameter files, `simular accion:preestimar`
-gives a local pre-estimate that costs no trial execution, and long runs can be started
+Yes: `simular accion:ejecutar` with `filas` runs a PVsyst batch (`-bpf`, one row per
+orientation or configuration, each counting as one execution), `simular accion:preparar` writes
+batch and parameter files, and long runs can be started
 as background jobs polled with `simular accion:estado`.
 
 ### Can it read the old binary `.PAN` modules?

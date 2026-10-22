@@ -1,15 +1,28 @@
 //! Window actions: clicks, messages, physical inputs and desktop interactivity.
 
-use super::ffi::{
-    self, Hwnd, BM_CLICK, GA_ROOT, SW_RESTORE, WM_CLOSE, WM_LBUTTONDOWN, WM_LBUTTONUP,
-};
-use super::ventanas::{class_of, rect_of, resolve, ventanas_de, window_json};
-use crate::args::req_str;
+use super::ffi::{self, Hwnd, BM_CLICK, GA_ROOT, SW_RESTORE, WM_CLOSE};
+use super::ventanas::{class_of, rect_of, resolve, text_of, ventanas_de, visible, window_json};
+use crate::args::{opt_i32, opt_u32, req_str};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
+use std::time::Duration;
 
 /// Window classes (Win32 and VCL) that implement `BM_CLICK`.
 const CLASES_BOTON: &[&str] = &["Button", "TButton", "TBitBtn", "TCheckBox", "TRadioButton"];
+/// Buttons that leave a VCL form without keeping changes.
+const BOTONES_CIERRE: [&str; 4] = ["Cerrar", "Cancelar", "Salir", "No"];
+/// Buttons that acknowledge a PVsyst message box. "Sí"/"No" are not here: a
+/// question may delete or save, so `cerrar` never answers it for the caller.
+const BOTONES_MENSAJE: [&str; 5] = ["OK", "Aceptar", "Continuar", "Cerrar", "Cancelar"];
+/// The only button of the madExcept crash dialog that keeps PVsyst running
+/// without sending a report or restarting it.
+const BOTONES_EXCEPCION: [&str; 1] = ["Continuar"];
+/// Class of PVsyst's message boxes.
+pub(crate) const CLASE_MENSAJE: &str = "TMessageForm";
+/// Class of the madExcept crash dialog.
+pub(crate) const CLASE_EXCEPCION: &str = "madExceptWndClass";
+/// Lets the form process the close before the next tool call.
+const PAUSA_CIERRE: Duration = Duration::from_millis(300);
 
 /// How a control is clicked through messages. Exactly one mechanism is used:
 /// a button handles both `BM_CLICK` and mouse messages, so sending both would
@@ -33,10 +46,12 @@ pub(crate) fn clic_por_mensajes(h: Hwnd) -> Result<()> {
         MecanismoClic::BotonEstandar => ffi::post_message(h, BM_CLICK, 0, 0),
         MecanismoClic::Raton => {
             let cr = ffi::rect_cliente(h);
-            let x = (cr.right / 2).max(1) as isize;
-            let y = (cr.bottom / 2).max(1) as isize;
-            let lp = (x & 0xFFFF) | ((y & 0xFFFF) << 16);
-            ffi::post_message(h, WM_LBUTTONDOWN, 1, lp) && ffi::post_message(h, WM_LBUTTONUP, 0, lp)
+            if cr.right <= 0 || cr.bottom <= 0 {
+                return Err(Error::Gui(format!(
+                    "El control 0x{h:X} no tiene área visible"
+                )));
+            }
+            ffi::clic_en_cliente(h, (cr.right / 2, cr.bottom / 2))
         }
     };
     if encolado {
@@ -49,41 +64,95 @@ pub(crate) fn clic_por_mensajes(h: Hwnd) -> Result<()> {
 }
 
 fn enviar_mensaje(h: Hwnd, args: &Value) -> Result<()> {
-    let msg = args
-        .get("mensaje")
-        .and_then(serde_json::Value::as_u64)
-        .ok_or_else(|| Error::Invalid("accion 'mensaje' requires numeric 'mensaje'".into()))?
-        as u32;
-    let wparam = args
-        .get("wparam")
-        .and_then(serde_json::Value::as_u64)
-        .unwrap_or(0) as usize;
-    let lparam = args
-        .get("lparam")
-        .and_then(serde_json::Value::as_i64)
-        .unwrap_or(0) as isize;
+    let msg = opt_u32(args, "mensaje")?
+        .ok_or_else(|| Error::Invalid("accion 'mensaje' requires numeric 'mensaje'".into()))?;
+    let wparam = opt_u32(args, "wparam")?.unwrap_or(0) as usize;
+    let lparam = args.get("lparam").map_or(Ok(0), |v| {
+        v.as_i64()
+            .and_then(|n| isize::try_from(n).ok())
+            .ok_or_else(|| Error::Invalid("'lparam' debe ser un entero".into()))
+    })?;
     ffi::send_message(h, msg, wparam, lparam);
+    Ok(())
+}
+
+fn botones_de_cierre(h: Hwnd) -> &'static [&'static str] {
+    match class_of(h).as_str() {
+        CLASE_MENSAJE => &BOTONES_MENSAJE,
+        CLASE_EXCEPCION => &BOTONES_EXCEPCION,
+        _ => &BOTONES_CIERRE,
+    }
+}
+
+/// Closes a VCL form the way a user does: its own close/cancel button first,
+/// `WM_CLOSE` only when the form has none. A message box with no harmless
+/// button (a Sí/No question) is left open and reported.
+fn cerrar_ventana(h: Hwnd) -> Result<()> {
+    let botones = botones_de_cierre(h);
+    let boton = ffi::enum_children(h)
+        .into_iter()
+        .filter(|c| visible(*c))
+        .find(|c| botones.contains(&text_of(*c).as_str()));
+    match boton {
+        Some(b) => clic_por_mensajes(b)?,
+        None if class_of(h) == CLASE_MENSAJE => {
+            return Err(Error::Gui(format!(
+                "El mensaje 0x{h:X} es una pregunta: léela con gui_observar que:formulario o controles y responde con click sobre el botón elegido"
+            )))
+        }
+        None => {
+            ffi::post_message(h, WM_CLOSE, 0, 0);
+        }
+    }
+    std::thread::sleep(PAUSA_CIERRE);
+    Ok(())
+}
+
+/// `dx`/`dy` of the request: a point of the control in px at 96 DPI from its
+/// top-left corner. Both or neither: half a point has no meaning.
+fn desplazamiento(args: &Value) -> Result<Option<(i32, i32)>> {
+    match (opt_i32(args, "dx")?, opt_i32(args, "dy")?) {
+        (Some(dx), Some(dy)) => Ok(Some((dx, dy))),
+        (None, None) => Ok(None),
+        _ => Err(Error::Invalid(
+            "'dx' y 'dy' van juntos (enteros, px a 96 DPI desde la esquina del control)".into(),
+        )),
+    }
+}
+
+fn clic_fisico_en_control(h: Hwnd, desplazamiento: Option<(i32, i32)>) -> Result<()> {
+    let r = rect_of(h);
+    if r.right <= r.left {
+        return Err(Error::Gui(format!("Control 0x{h:X} has no rectangle")));
+    }
+    let (x, y) = match desplazamiento {
+        Some((dx, dy)) => {
+            let dpi = ffi::dpi_de(h);
+            (
+                r.left + ffi::escalar_a_dpi(dx, dpi),
+                r.top + ffi::escalar_a_dpi(dy, dpi),
+            )
+        }
+        None => ((r.left + r.right) / 2, (r.top + r.bottom) / 2),
+    };
+    ffi::clic_fisico_en(x, y);
     Ok(())
 }
 
 fn ejecutar_accion(h: Hwnd, action: &str, args: &Value) -> Result<()> {
     match action {
-        "click" => clic_por_mensajes(h)?,
-        "cerrar" => {
-            ffi::post_message(h, WM_CLOSE, 0, 0);
-        }
+        "click" => match desplazamiento(args)? {
+            Some(punto) if ffi::clic_en_cliente(h, punto) => {}
+            Some(_) => return Err(Error::Gui(format!("PostMessage falló para 0x{h:X}"))),
+            None => clic_por_mensajes(h)?,
+        },
+        "cerrar" => cerrar_ventana(h)?,
         "activar" => {
             ffi::mostrar_ventana(h, SW_RESTORE);
             ffi::traer_al_frente(h);
         }
         "mensaje" => enviar_mensaje(h, args)?,
-        "clic_fisico" => {
-            let r = rect_of(h);
-            if r.right <= r.left {
-                return Err(Error::Gui(format!("Control 0x{h:X} has no rectangle")));
-            }
-            ffi::clic_fisico_en((r.left + r.right) / 2, (r.top + r.bottom) / 2);
-        }
+        "clic_fisico" => clic_fisico_en_control(h, desplazamiento(args)?)?,
         other => {
             return Err(Error::Invalid(format!(
                 "Unknown accion '{other}' (click|clic_fisico|cerrar|activar|mensaje)"
@@ -91,10 +160,6 @@ fn ejecutar_accion(h: Hwnd, action: &str, args: &Value) -> Result<()> {
         }
     }
     Ok(())
-}
-
-pub(crate) fn clic_fisico_en(x: i32, y: i32) {
-    ffi::clic_fisico_en(x, y);
 }
 
 pub(crate) fn escritorio_interactivo() -> bool {
@@ -126,11 +191,15 @@ pub(crate) fn invocar(_paths: &crate::config::Paths, args: &Value) -> Result<Val
     ffi::traer_al_frente(ffi::get_ancestor(h, GA_ROOT));
     ejecutar_accion(h, action, args)?;
 
+    let mut window = window_json(h);
+    if action == "cerrar" {
+        window["closed"] = json!(!visible(h));
+    }
     Ok(json!({
         "invoked": reference,
         "hwnd": format!("0x{:X}", h),
         "action": action,
-        "window": window_json(h),
+        "window": window,
     }))
 }
 

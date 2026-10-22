@@ -12,6 +12,7 @@ const SIN_RECORTE: &[&str] = &[
     "base64",
     "stdout_tail",
     "_imagen_png_base64",
+    "horas",
 ];
 
 const LIMITE_ARRAY_NORMAL: usize = 50;

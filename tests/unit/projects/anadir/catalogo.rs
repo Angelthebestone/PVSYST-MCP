@@ -58,3 +58,81 @@ fn should_not_contain_meteonorm_in_any_catalogue_element() {
         }
     }
 }
+
+#[test]
+#[ignore = "needs the PVsyst 8.1.7 demo data: run with --ignored"]
+fn should_insert_domo_and_produce_valid_structure() {
+    let fuente = demo("_DEMO_Residential.VC0");
+    let aplicado = aplicar_elemento(fuente, "domo").expect("aplicar domo");
+    crate::format::object::validar_estructura(&aplicado.bytes).expect("estructura valida");
+    let spans = crate::format::edit::spans_of(&aplicado.bytes);
+    assert!(spans.iter().any(|s| s.ty == "pvDomeOrient"));
+    assert!(crate::projects::doctor::sintaxis::buscar_duplicados(&aplicado.bytes).is_empty());
+}
+
+#[test]
+#[ignore = "needs the PVsyst 8.1.7 demo data: run with --ignored"]
+fn should_insert_zona_campo_and_produce_valid_structure() {
+    let fuente = demo("_DEMO_Residential.VC0");
+    let aplicado = aplicar_elemento(fuente, "zona_campo").expect("aplicar zona_campo");
+    crate::format::object::validar_estructura(&aplicado.bytes).expect("estructura valida");
+    let spans = crate::format::edit::spans_of(&aplicado.bytes);
+    assert!(spans.iter().any(|s| s.ty == "pvShdFieldZone"));
+}
+
+#[test]
+#[ignore = "needs the PVsyst 8.1.7 demo data: run with --ignored"]
+fn should_insert_bifacial_seguidor_and_produce_valid_structure() {
+    let fuente = demo("_DEMO_Tracking.VC0");
+    let aplicado =
+        aplicar_elemento(fuente, "bifacial_seguidor").expect("aplicar bifacial_seguidor");
+    crate::format::object::validar_estructura(&aplicado.bytes).expect("estructura valida");
+    let spans = crate::format::edit::spans_of(&aplicado.bytes);
+    assert!(spans.iter().any(|s| s.ty == "pvBiFacial"));
+    assert!(spans.iter().any(|s| s.ty == "pvBiFacialTrackers"));
+}
+
+#[test]
+#[ignore = "needs the PVsyst 8.1.7 demo data: run with --ignored"]
+fn should_insert_circuito_hidraulico_and_produce_valid_structure() {
+    let fuente = demo("_DEMO_Residential.VC0");
+    let aplicado =
+        aplicar_elemento(fuente, "circuito_hidraulico").expect("aplicar circuito_hidraulico");
+    crate::format::object::validar_estructura(&aplicado.bytes).expect("estructura valida");
+    let spans = crate::format::edit::spans_of(&aplicado.bytes);
+    assert!(spans.iter().any(|s| s.ty == "pvHydrCircuit"));
+    let texto = String::from_utf8_lossy(&aplicado.bytes);
+    assert!(texto.contains("SystemType=Pumping"));
+}
+
+#[test]
+#[ignore = "needs the PVsyst 8.1.7 demo data: run with --ignored"]
+fn should_not_flag_errors_in_doctor_when_domo_added_to_variant_copy() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let projects_dir = tmp.path().join("Projects");
+    std::fs::create_dir_all(&projects_dir).expect("create Projects dir");
+
+    let demo_prj = demo("_DEMO_Residential.PRJ");
+    let demo_vc0 = demo("_DEMO_Residential.VC0");
+    std::fs::write(projects_dir.join("TestDoctor.PRJ"), demo_prj).expect("write PRJ");
+    std::fs::write(projects_dir.join("TestDoctor.VC0"), demo_vc0).expect("write VC0");
+
+    let mut paths = Paths::resolve();
+    paths.workspace = tmp.path().to_path_buf();
+
+    let args_anadir = json!({
+        "proyecto": "TestDoctor",
+        "variante": "VC0",
+        "elemento": "domo"
+    });
+    let res_anadir = anadir(&paths, &args_anadir).expect("anadir domo");
+    assert_eq!(res_anadir["ok"], true);
+
+    let args_doctor = json!({
+        "proyecto": "TestDoctor",
+        "variante": "VC0"
+    });
+    let res_doc = crate::projects::doctor::doctor(&paths, &args_doctor).expect("doctor");
+    let errores = res_doc["errores"].as_array().expect("array errores");
+    assert!(errores.is_empty(), "Doctor encontro errores: {errores:?}");
+}

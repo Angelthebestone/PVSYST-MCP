@@ -106,6 +106,8 @@ pub(crate) struct DimensionadoParametros {
     pub(crate) n_strings: Option<u32>,
     pub(crate) n_baterias_serie: Option<u32>,
     pub(crate) n_baterias_paralelo: Option<u32>,
+    /// `via: "aproximacion"`: size with the MCP's own rules instead of PVsyst.
+    pub(crate) via_aproximacion: bool,
 }
 
 /// Simulation execution and report parameters.
@@ -212,6 +214,7 @@ impl DimensionadoParametros {
             n_strings: parsear_u32_opcional(args, &["n_strings"])?,
             n_baterias_serie,
             n_baterias_paralelo,
+            via_aproximacion: crate::aproximaciones::pide_aproximacion(args),
         })
     }
 }

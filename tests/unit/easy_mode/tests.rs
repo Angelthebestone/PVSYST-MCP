@@ -269,3 +269,44 @@ fn should_reject_zero_battery_counts() {
 
     assert!(error.to_string().contains("mayores que cero"));
 }
+
+#[test]
+fn disenar_sistema_rejects_the_mcp_sizing_without_flag() {
+    let mut paths = Paths::resolve();
+    paths.aproximaciones = false;
+    let args = json!({
+        "latitud": 7.07,
+        "longitud": -73.84,
+        "kwp": 5.0,
+        "simular": false,
+        "via": "aproximacion",
+    });
+    let err = super::disenar_sistema(&paths, &args).unwrap_err();
+    let msg = err.to_string();
+    assert!(msg.contains("PVSYST_MCP_APROXIMACIONES"), "msg={msg}");
+    assert!(
+        msg.contains("n_mod_serie") && msg.contains("n_strings"),
+        "msg={msg}"
+    );
+}
+
+#[test]
+fn leer_kpis_extracts_from_pdf_fixture() {
+    let paths = Paths::resolve();
+    let pdf_path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/results/MCP_E2E.pdf"
+    );
+    let kpis = super::simulacion::leer_kpis(&paths, &json!({ "report_pdf": pdf_path })).unwrap();
+    assert_eq!(kpis["energia_anual_kwh"], 14299.0);
+    assert_eq!(kpis["produccion_especifica_kwh_kwp"], 1589.0);
+    assert_eq!(kpis["pr_pct"], 83.68);
+}
+
+#[test]
+fn leer_kpis_returns_error_when_pdf_missing() {
+    let paths = Paths::resolve();
+    let err = super::simulacion::leer_kpis(&paths, &json!({ "report_pdf": "inexistente.pdf" }))
+        .unwrap_err();
+    assert!(err.to_string().contains("Informe PDF"));
+}

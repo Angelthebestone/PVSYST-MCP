@@ -133,17 +133,9 @@ fn should_accept_compatible_union_types() {
 }
 
 #[test]
-fn should_enforce_expert_tool_permission() {
-    let mut paths = Paths::resolve();
-    paths.experto = false;
-    let err = call(&paths, "pvsyst_cli", &json!({ "comando": "version" }))
-        .expect_err("expert tool must be blocked without expert flag");
-    assert!(err.to_string().contains("Herramienta experta"));
-
-    paths.experto = true;
-    // With expert flag, validation runs (will fail dry_run or missing command if invalid)
-    let schemas = list(&paths);
-    assert_eq!(schemas.len(), 15);
+fn should_expose_all_fifteen_pvsyst_tools_by_default() {
+    let paths = Paths::resolve();
+    assert_eq!(list(&paths).len(), 15);
 }
 
 #[test]
@@ -208,4 +200,218 @@ fn should_annotate_phase_three_schema_constraints() {
         disenar["inputSchema"]["properties"]["n_baterias_serie"]["minimum"],
         json!(1)
     );
+}
+
+#[test]
+fn should_reject_in_house_actions_without_aproximaciones_flag_mentioning_env_var() {
+    let mut paths = Paths::resolve();
+    paths.aproximaciones = false;
+
+    for (tool, args) in [
+        (
+            "simular",
+            json!({ "accion": "preestimar", "latitud": 40.0, "longitud": -3.0, "kwp": 5.0 }),
+        ),
+        (
+            "sitio",
+            json!({ "accion": "geometria_solar", "latitud": 40.0, "longitud": -3.0 }),
+        ),
+        (
+            "resultados",
+            json!({ "que": "medido_vs_simulado", "proyecto": "P" }),
+        ),
+    ] {
+        let err = call(&paths, tool, &args)
+            .expect_err("in-house action must be rejected without aproximaciones flag");
+        assert!(
+            err.to_string().contains("PVSYST_MCP_APROXIMACIONES"),
+            "error must mention PVSYST_MCP_APROXIMACIONES: {err}"
+        );
+    }
+}
+
+fn enum_de(schemas: &[Value], tool: &str, campo: &str) -> Vec<String> {
+    schemas
+        .iter()
+        .find(|s| s["name"] == tool)
+        .and_then(|s| s.pointer(&format!("/inputSchema/properties/{campo}/enum")))
+        .and_then(Value::as_array)
+        .unwrap_or_else(|| panic!("missing enum for {tool}.{campo}"))
+        .iter()
+        .filter_map(Value::as_str)
+        .map(String::from)
+        .collect()
+}
+
+#[test]
+fn should_hide_in_house_actions_without_the_flag() {
+    let mut paths = Paths::resolve();
+    paths.aproximaciones = false;
+    let schemas = list(&paths);
+
+    assert!(!enum_de(&schemas, "simular", "accion").contains(&"preestimar".to_string()));
+    assert!(!enum_de(&schemas, "simular", "accion").contains(&"barrido".to_string()));
+    assert!(!enum_de(&schemas, "resultados", "que").contains(&"medido_vs_simulado".to_string()));
+    assert!(!enum_de(&schemas, "sitio", "accion").contains(&"geometria_solar".to_string()));
+}
+
+#[test]
+fn should_keep_native_default_actions_and_hide_the_via_route_without_the_flag() {
+    let mut paths = Paths::resolve();
+    paths.aproximaciones = false;
+    let schemas = list(&paths);
+
+    // These actions keep PVsyst as their default route, so they stay visible.
+    assert!(enum_de(&schemas, "componente", "accion").contains(&"crear_desde_ficha".to_string()));
+    assert!(enum_de(&schemas, "resultados", "que").contains(&"p50_p90".to_string()));
+    assert!(enum_de(&schemas, "sitio", "accion").contains(&"horizonte_pvgis".to_string()));
+
+    for (tool, campo) in [("proyecto", "via"), ("resultados", "via")] {
+        let via = enum_de(&schemas, tool, campo);
+        assert!(!via.contains(&"aproximacion".to_string()), "{tool}.{campo}");
+        assert!(via.contains(&"pvsyst".to_string()), "{tool}.{campo}");
+    }
+}
+
+#[test]
+fn should_show_in_house_actions_and_the_via_route_with_the_flag() {
+    let mut paths = Paths::resolve();
+    paths.aproximaciones = true;
+    let schemas = list(&paths);
+
+    assert!(enum_de(&schemas, "simular", "accion").contains(&"preestimar".to_string()));
+    assert!(enum_de(&schemas, "simular", "accion").contains(&"barrido".to_string()));
+    assert!(enum_de(&schemas, "resultados", "que").contains(&"medido_vs_simulado".to_string()));
+    assert!(enum_de(&schemas, "sitio", "accion").contains(&"geometria_solar".to_string()));
+    assert!(enum_de(&schemas, "proyecto", "via").contains(&"aproximacion".to_string()));
+}
+
+#[test]
+fn should_reject_unknown_via_route() {
+    let paths = Paths::resolve();
+    let err = call(
+        &paths,
+        "proyecto",
+        &json!({ "accion": "crear", "plantilla": "P", "nombre_nuevo": "N", "via": "otra" }),
+    )
+    .expect_err("unknown via must be rejected");
+    assert!(err.to_string().contains("no válido para via"), "{err}");
+}
+
+#[test]
+fn should_expose_the_new_gui_field_actions() {
+    let paths = Paths::resolve();
+    let schemas = list(&paths);
+    let tool = |name: &str| {
+        schemas
+            .iter()
+            .find(|s| s["name"] == name)
+            .unwrap_or_else(|| panic!("missing tool {name}"))
+    };
+
+    let actuar = &tool("gui_actuar")["inputSchema"]["properties"];
+    assert_eq!(actuar["accion"]["default"], "click");
+    for accion in ["escribir", "seleccionar", "pagina", "esperar_cierre"] {
+        assert!(
+            actuar["accion"]["enum"]
+                .as_array()
+                .unwrap()
+                .contains(&json!(accion)),
+            "missing action {accion}"
+        );
+    }
+    for campo in ["texto", "campo", "indice", "pids"] {
+        assert!(actuar.get(campo).is_some(), "missing property {campo}");
+    }
+
+    let observar = &tool("gui_observar")["inputSchema"]["properties"];
+    assert!(observar["que"]["enum"]
+        .as_array()
+        .unwrap()
+        .contains(&json!("mensajes")));
+    assert!(observar.get("lineas").is_some());
+}
+
+#[test]
+fn should_dispatch_leer_for_currency_mef_and_3d_scenes() {
+    let paths = Paths::resolve();
+
+    // Currency.dat
+    let cur_res = call(&paths, "leer", &json!({ "archivo": "Currency.dat" }))
+        .expect("Lectura de Currency.dat a través de tool leer");
+    assert_eq!(cur_res["version_formato"], "CURRENCY_RATES_V2");
+    assert_eq!(cur_res["total_divisas"], 33);
+
+    // MEF
+    let mef_res = call(&paths, "leer", &json!({ "archivo": "PVsyst_ANE-NEDO.MEF" }))
+        .expect("Lectura de MEF a través de tool leer");
+    assert_eq!(mef_res["tipo_formato"], "pvMeteoFormat-moderno");
+    assert_eq!(mef_res["comentario"], "ANE-NEDO known format");
+
+    // 3D Scene / Building
+    let bld_res = call(
+        &paths,
+        "leer",
+        &json!({ "archivo": "DEMO_Geneve_Grid.BLD" }),
+    )
+    .expect("Lectura de BLD a través de tool leer");
+    assert_eq!(bld_res["tipo"], "bld");
+    assert_eq!(bld_res["clase_raiz"], "pvShdBuilding");
+    assert_eq!(bld_res["total_objetos"], 3);
+}
+
+#[test]
+fn should_not_demand_an_id_when_a_menu_command_is_named_by_position() {
+    let paths = Paths::resolve();
+    let args = json!({ "accion": "menu", "ventana": "0x1", "menu": 0, "item": 0 });
+
+    let error = call(&paths, "gui_actuar", &args)
+        .err()
+        .map(|e| e.to_string())
+        .unwrap_or_default();
+
+    assert!(!error.contains("Missing required argument"), "{error}");
+}
+
+#[test]
+fn should_demand_the_window_when_a_menu_command_names_none() {
+    let paths = Paths::resolve();
+
+    let error = call(&paths, "gui_actuar", &json!({ "accion": "menu", "id": 70 }))
+        .err()
+        .map(|e| e.to_string())
+        .unwrap_or_default();
+
+    assert!(
+        error.contains("Missing required argument 'ventana'"),
+        "{error}"
+    );
+}
+
+#[test]
+fn should_expose_click_by_text_restart_and_menu_listing_in_the_gui_tools() {
+    let paths = Paths::resolve();
+    let schemas = list(&paths);
+    let propiedades = |nombre: &str| {
+        schemas
+            .iter()
+            .find(|s| s["name"] == nombre)
+            .map(|s| s["inputSchema"]["properties"].clone())
+            .unwrap_or_default()
+    };
+    let admite = |lista: &Value, valor: &str| {
+        lista
+            .as_array()
+            .is_some_and(|valores| valores.contains(&json!(valor)))
+    };
+
+    let actuar = propiedades("gui_actuar");
+    let observar = propiedades("gui_observar");
+
+    assert!(admite(&actuar["accion"]["enum"], "clic_texto"));
+    assert!(admite(&actuar["accion"]["enum"], "reiniciar"));
+    assert!(admite(&observar["que"]["enum"], "menus"));
+    for campo in ["dx", "dy", "menu", "item"] {
+        assert!(actuar.get(campo).is_some(), "falta la propiedad {campo}");
+    }
 }

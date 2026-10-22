@@ -1,4 +1,4 @@
-use super::base64::{base64, decode_base64};
+use super::base64::decode_base64;
 use super::*;
 use crate::config::Paths;
 use serde_json::json;
@@ -11,7 +11,7 @@ fn dummy_paths(ws: &Path) -> Paths {
         workspace: ws.to_path_buf(),
         cli_exe: Default::default(),
         gui_exe: Default::default(),
-        experto: false,
+        aproximaciones: false,
         estado: Default::default(),
     }
 }
@@ -154,6 +154,7 @@ fn should_serve_window_as_base64_when_text_prefix_hides_binary_bytes() {
 }
 
 #[test]
+#[ignore = "requiere privilegios de SO para crear enlaces simbólicos"]
 fn should_terminate_recursion_on_symlink_or_junction_cycle() {
     let ws = tempdir().expect("ws");
     let dir_a = ws.path().join("dir_a");
@@ -166,9 +167,7 @@ fn should_terminate_recursion_on_symlink_or_junction_cycle() {
     #[cfg(unix)]
     let symlink_res = std::os::unix::fs::symlink(&dir_a, dir_b.join("ciclo"));
 
-    if symlink_res.is_err() {
-        return;
-    }
+    symlink_res.expect("Creación de symlink");
 
     let paths = dummy_paths(ws.path());
     let res = listar_archivos(
@@ -182,6 +181,51 @@ fn should_terminate_recursion_on_symlink_or_junction_cycle() {
     .expect("listar no debe ciclar");
 
     assert!(res["count"].as_u64().unwrap_or(0) >= 1);
+}
+
+#[test]
+fn should_not_panic_on_underflow_in_leer_ventana_texto() {
+    let ws = tempdir().expect("ws");
+    let mut datos = vec![b'a'; 1024];
+    datos.extend_from_slice(&[0x80; 4]);
+    datos.push(b'B');
+    fs::write(ws.path().join("underflow.txt"), &datos).expect("escribir archivo");
+
+    let paths = dummy_paths(ws.path());
+    let res = leer_archivo(
+        &paths,
+        &json!({
+            "workspace": ws.path(),
+            "archivo": "underflow.txt",
+            "offset": 1027,
+            "max_bytes": 10,
+        }),
+    );
+    assert!(
+        res.is_ok(),
+        "No debe entrar en pánico por underflow: {res:?}"
+    );
+}
+
+#[test]
+fn should_correctly_snap_four_byte_emoji_boundary() {
+    let ws = tempdir().expect("ws");
+    let mut datos = "prefix_".as_bytes().to_vec();
+    datos.extend_from_slice("😀suffix".as_bytes());
+    fs::write(ws.path().join("emoji.txt"), &datos).expect("escribir emoji");
+
+    let paths = dummy_paths(ws.path());
+    let res = leer_archivo(
+        &paths,
+        &json!({
+            "workspace": ws.path(),
+            "archivo": "emoji.txt",
+            "offset": 8,
+            "max_bytes": 10,
+        }),
+    )
+    .expect("lectura exitosa");
+    assert!(res.get("text").is_some());
 }
 
 #[test]
@@ -246,12 +290,4 @@ fn should_move_file_to_recycle_bin_and_disambiguate_name() {
     assert!(!origen.exists());
     assert!(movido2.exists());
     assert_ne!(movido, movido2);
-}
-
-#[test]
-fn should_encode_and_decode_base64_roundtrip() {
-    let datos = b"Hello, PVsyst MCP World!\x00\xFF\x12";
-    let b64 = base64(datos);
-    let dec = decode_base64(&b64).expect("decodificar base64");
-    assert_eq!(dec, datos);
 }

@@ -6,11 +6,18 @@ use super::pasos::PasoDimensionadoSalida;
 use super::serie_plantilla::{
     referencias_de_variante, resolver_serie_plantilla, Referencias, ResolucionSerie,
 };
+use crate::aproximaciones::{self, Aproximacion};
 use crate::components::pan::{self, DatosModulo};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::projects::lifecycle;
 use serde_json::{json, Map, Value};
+
+pub(crate) const APROXIMACION_DISENO_AUTOMATICO: Aproximacion = Aproximacion {
+    funcion: "disenar_sistema dimensionado automatico via aproximacion",
+    alternativa:
+        "disenar_sistema sin 'via': lo dimensiona el pre-dimensionado de PVsyst (ventana Sistema), o pasa n_mod_serie y n_strings",
+};
 
 const FACTOR_SEGURIDAD_VOC: f64 = 1.15;
 pub(crate) const WATTS_POR_KILOWATT: f64 = 1000.0;
@@ -119,6 +126,48 @@ fn leer_modulo(
     }
 }
 
+struct ResolucionDiseno {
+    ns_opt: Option<u32>,
+    nc_opt: Option<u32>,
+    criterio: &'static str,
+    avisos: Vec<String>,
+}
+
+fn determinar_disposicion(paths: &Paths, res: &ResolucionSerie<'_>) -> Result<ResolucionDiseno> {
+    if res.params.n_mod_serie.is_some() && res.params.n_strings.is_some() {
+        return Ok(ResolucionDiseno {
+            ns_opt: res.params.n_mod_serie,
+            nc_opt: res.params.n_strings,
+            criterio: "manual",
+            avisos: Vec::new(),
+        });
+    }
+    if !res.params.via_aproximacion {
+        return Ok(ResolucionDiseno {
+            ns_opt: None,
+            nc_opt: None,
+            criterio: "pvsyst",
+            avisos: Vec::new(),
+        });
+    }
+    aproximaciones::exigir(paths, &APROXIMACION_DISENO_AUTOMATICO)?;
+    let (ns, crit) = resolver_serie_plantilla(paths, res);
+    let avisos = if crit == "ajuste_local" {
+        vec![
+            "Sin ventana eléctrica del inversor: Ns ajustado localmente alrededor de la plantilla"
+                .to_string(),
+        ]
+    } else {
+        Vec::new()
+    };
+    Ok(ResolucionDiseno {
+        ns_opt: ns,
+        nc_opt: None,
+        criterio: crit,
+        avisos,
+    })
+}
+
 /// Step 4: size the array to the target kWp; returns the realised kWp.
 /// If module reading fails, the error is propagated with context.
 pub(crate) fn ejecutar_paso_dimensionado(
@@ -127,15 +176,12 @@ pub(crate) fn ejecutar_paso_dimensionado(
 ) -> Result<PasoDimensionadoSalida> {
     let refs = referencias_de_variante(paths, &params.proyecto.nombre, &params.variante);
     let modulo_info = leer_modulo(paths, params, &refs)?;
-
-    let (ns_opt, criterio) = resolver_serie_plantilla(
-        paths,
-        &ResolucionSerie {
-            params: &params.dimensionado,
-            refs: &refs,
-            modulo_info: modulo_info.as_ref(),
-        },
-    );
+    let resolucion = ResolucionSerie {
+        params: &params.dimensionado,
+        refs: &refs,
+        modulo_info: modulo_info.as_ref(),
+    };
+    let disp = determinar_disposicion(paths, &resolucion)?;
     let pnom = params
         .dimensionado
         .pnom_modulo
@@ -148,26 +194,31 @@ pub(crate) fn ejecutar_paso_dimensionado(
     if let Some(p) = pnom {
         da.insert("pnom_modulo".into(), json!(p));
     }
-    if let Some(ns) = ns_opt {
+    if let Some(ns) = disp.ns_opt {
         da.insert("n_mod_serie".into(), json!(ns));
+    }
+    if let Some(nc) = disp.nc_opt {
+        da.insert("n_strings".into(), json!(nc));
+    }
+    if params.dimensionado.via_aproximacion {
+        da.insert(
+            aproximaciones::ARGUMENTO_VIA.into(),
+            json!(aproximaciones::VIA_APROXIMACION),
+        );
+    } else if disp.nc_opt.is_none() && params.tipo_sistema == TipoDiseno::Aislado {
+        return Err(Error::Invalid(
+            "En sistemas aislados pasa n_mod_serie y n_strings: el pre-dimensionado de PVsyst automatizado es el de la ventana de sistemas conectados a red".into(),
+        ));
     }
 
     let sizing = lifecycle::dimensionar_variante(paths, &Value::Object(da))?;
     let realised_kwp = sizing.get("realised_kwp").and_then(Value::as_f64);
     let detalle = aplicar_baterias_al_resultado(paths, params, sizing)?;
-    let avisos = if criterio == "ajuste_local" {
-        vec![
-            "Sin ventana eléctrica del inversor: Ns ajustado localmente alrededor de la plantilla"
-                .to_string(),
-        ]
-    } else {
-        Vec::new()
-    };
 
     Ok(PasoDimensionadoSalida {
         kwp_realizado: realised_kwp,
-        criterio,
-        avisos,
+        criterio: disp.criterio,
+        avisos: disp.avisos,
         ok: true,
         detalle,
     })

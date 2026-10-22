@@ -3,15 +3,17 @@
 
 use crate::config::Paths;
 use crate::error::{Error, Result};
+
 use crate::progreso::SeguimientoTarea;
 use declaracion::Ejecutor;
 use serde_json::Value;
 use std::time::Instant;
 
+mod aproximadas;
 pub(crate) mod componentes;
 pub(crate) mod declaracion;
 pub(crate) mod entorno;
-pub(crate) mod experto;
+pub(crate) mod nativos;
 pub(crate) mod proyectos;
 pub(crate) mod recorte;
 pub(crate) mod resultados;
@@ -25,7 +27,12 @@ mod workspace_ejecucion;
 #[path = "../../../tests/unit/server/tools/tests.rs"]
 mod tests;
 
-pub(crate) use declaracion::{Acceso, Herramienta};
+pub(crate) use declaracion::Herramienta;
+
+/// Whether `tool`/`accion` is an MCP approximation (gated by `PVSYST_MCP_APROXIMACIONES`).
+pub(crate) fn es_aproximacion(tool: &str, accion: &str) -> bool {
+    aproximadas::de(tool, accion).is_some()
+}
 
 /// Consolidated registry of every tool exposed by the MCP server.
 static REGISTRO: &[Herramienta] = &[
@@ -41,17 +48,26 @@ static REGISTRO: &[Herramienta] = &[
     simulacion::TOOL_SIMULAR,
     resultados::TOOL_RESULTADOS,
     workspace::TOOL_WORKSPACE,
-    experto::TOOL_PVSYST_CLI,
-    experto::TOOL_GUI_OBSERVAR,
-    experto::TOOL_GUI_ACTUAR,
+    nativos::TOOL_PVSYST_CLI,
+    nativos::TOOL_GUI_OBSERVAR,
+    nativos::TOOL_GUI_ACTUAR,
 ];
 
-/// Returns the schema catalogue for `tools/list` according to access permissions.
+/// Returns the schema catalogue for `tools/list`; without approximations, the
+/// in-house actions and the `via: "aproximacion"` route are hidden.
 pub(crate) fn list(paths: &Paths) -> Vec<Value> {
     REGISTRO
         .iter()
-        .filter(|h| h.acceso == Acceso::Normal || paths.experto)
-        .map(|h| h.esquema())
+        .map(|h| {
+            let mut esquema = h.esquema();
+            if !paths.aproximaciones {
+                if let Some(disc) = &h.discriminador {
+                    aproximadas::ocultar(h.nombre, disc.campo, &mut esquema);
+                }
+                aproximadas::ocultar_via(&mut esquema);
+            }
+            esquema
+        })
         .collect()
 }
 
@@ -73,23 +89,19 @@ pub(crate) fn call_seguido(solicitud: &Solicitud<'_>) -> Result<Value> {
         return Err(Error::NotFound(format!("Unknown tool '{name}'")));
     };
 
-    if h.acceso == Acceso::Experto && !paths.experto {
-        return Err(Error::Invalid(
-            "Herramienta experta: define PVSYST_MCP_EXPERTO=1 en el servidor MCP".into(),
-        ));
-    }
-
     if !args.is_object() && !args.is_null() {
         return Err(Error::Invalid("Arguments must be a JSON object".into()));
     }
 
     let t0 = Instant::now();
     let accion = h.validar(args)?;
+    aproximadas::exigir(paths, name, &accion)?;
     let args_efectivos = h.preparar_args(args, &accion);
     let mut v = match h.ejecutar {
         Ejecutor::Simple(ejecutar) => ejecutar(paths, &args_efectivos)?,
         Ejecutor::Seguido(ejecutar) => ejecutar(paths, &args_efectivos, seguimiento)?,
     };
+    aproximadas::marcar(name, &accion, &mut v);
 
     if let Some(lim) = recorte::limites(args) {
         recorte::recortar(&mut v, lim);

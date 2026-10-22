@@ -104,8 +104,8 @@ impl Server {
             "resources/list" => reply(resources::list()),
             "resources/read" => Some(self.read_resource(params, id)),
             "resources/templates/list" => reply(json!({ "resourceTemplates": [] })),
-            "prompts/list" => reply(recetas::listar_prompts()),
-            "prompts/get" => match recetas::obtener_prompt(params) {
+            "prompts/list" => reply(recetas::listar_prompts(self.paths.aproximaciones)),
+            "prompts/get" => match recetas::obtener_prompt(params, self.paths.aproximaciones) {
                 Ok(value) => reply(value),
                 Err(e) => Some(err_response(id, -32602, &e.to_string())),
             },
@@ -115,7 +115,7 @@ impl Server {
 
     fn read_resource(&self, params: &Value, id: &Value) -> String {
         let uri = params.get("uri").and_then(Value::as_str).unwrap_or("");
-        match resources::read(uri) {
+        match resources::read(uri, self.paths.aproximaciones) {
             Ok(value) => ok_response(id, &value),
             Err(e) => {
                 tracing::warn!(uri, kind = e.kind(), error = %e, "resource read failed");
@@ -172,10 +172,13 @@ impl Server {
                 "name": "pvsyst-mcp",
                 "version": env!("CARGO_PKG_VERSION"),
             },
-            "instructions": "Operate PVsyst 8.1.7 through its data files only. \
-        Use the domain tools (entorno, leer, editar, listar, proyecto, componente, \
-        sitio, simular, resultados, workspace). Recipes, coverage, format and CLI \
-        reference are in the pvsyst:// resources. Expert tools need PVSYST_MCP_EXPERTO=1."
+            "instructions": "Operate PVsyst 8.1.7 through its data files, its CLI and its GUI. \
+        Every PVsyst-native tool is available by default: the domain tools (entorno, leer, \
+        editar, listar, proyecto, componente, sitio, simular, resultados, workspace), the raw \
+        PVsystCLI passthrough (pvsyst_cli) and the GUI automation tools (gui_observar, \
+        gui_actuar). Recipes, coverage, format and CLI reference are in the pvsyst:// \
+        resources. Every figure comes from PVsyst; the MCP's own approximations (labelled \
+        origen:aproximacion_mcp) need PVSYST_MCP_APROXIMACIONES=1."
         })
     }
 }

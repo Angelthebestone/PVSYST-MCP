@@ -22,7 +22,10 @@ fn preparar() -> (tempfile::TempDir, Client) {
         resultados.join("MCP_E2E.pdf"),
     )
     .expect("pdf");
-    let mut client = Client::start(Some(tmp.path().to_str().expect("workspace utf8")));
+    let mut client = Client::start_env(
+        Some(tmp.path().to_str().expect("workspace utf8")),
+        &[("PVSYST_MCP_APROXIMACIONES", "1")],
+    );
     client.initialize();
     (tmp, client)
 }
@@ -80,6 +83,7 @@ fn should_compare_the_fixture_with_a_measured_series_from_an_array() {
         }),
     );
     let valor = tool_text(&respuesta);
+    assert_eq!(valor["origen"], "aproximacion_mcp");
     let meses = valor["meses"].as_array().expect("meses");
     assert_eq!(meses.len(), 12);
     for mes in meses {

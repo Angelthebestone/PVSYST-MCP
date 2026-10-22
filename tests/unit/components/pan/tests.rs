@@ -1,8 +1,9 @@
 //! Tests for PAN parsing and legacy decoding.
 
-use super::legacy::*;
+use super::legacy::dominio::*;
 use super::*;
 use crate::error::Error;
+use crate::format::real48::{real48, BYTES_POR_SLOT};
 
 #[test]
 fn should_decode_real48_known_values() {

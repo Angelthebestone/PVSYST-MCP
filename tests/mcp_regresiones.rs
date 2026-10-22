@@ -98,7 +98,7 @@ fn should_copy_a_binary_component_without_field_changes() {
 fn should_not_double_the_kind_extension_when_creating_from_a_datasheet() {
     let ws = synthetic_workspace(); // trae un .PAN de texto como plantilla
     let ws_str = ws.path().to_string_lossy().to_string();
-    let mut c = Client::start(Some(&ws_str));
+    let mut c = Client::start_env(Some(&ws_str), &[("PVSYST_MCP_APROXIMACIONES", "1")]);
     c.initialize();
 
     let resp = c.call(
@@ -109,13 +109,13 @@ fn should_not_double_the_kind_extension_when_creating_from_a_datasheet() {
             "tipo": "PAN",
             "nombre_nuevo": "Ficha.PAN",
             "datos": { "Manufacturer": "MCP", "Model": "Ficha" },
+            "via": "aproximacion",
         }),
     );
     assert_eq!(resp["result"]["isError"], json!(false), "resp={resp}");
-    let archivo = tool_text(&resp)["archivo"]
-        .as_str()
-        .expect("archivo")
-        .to_string();
+    let data = tool_text(&resp);
+    assert_eq!(data["origen"], "aproximacion_mcp");
+    let archivo = data["archivo"].as_str().expect("archivo").to_string();
     assert!(archivo.ends_with("Ficha.PAN"), "archivo={archivo}");
     assert!(ws
         .path()
@@ -129,7 +129,7 @@ fn should_not_double_the_kind_extension_when_creating_from_a_datasheet() {
 fn should_bound_the_module_power_at_the_sizing_boundary() {
     let ws = synthetic_workspace(); // SYNTH_Plant.VC0 con NModSerie y PNomSizing
     let ws_str = ws.path().to_string_lossy().to_string();
-    let mut c = Client::start(None);
+    let mut c = Client::start_env(None, &[("PVSYST_MCP_APROXIMACIONES", "1")]);
     c.initialize();
 
     let fuera = c.call(
@@ -137,7 +137,7 @@ fn should_bound_the_module_power_at_the_sizing_boundary() {
         "proyecto",
         json!({
             "accion": "dimensionar", "proyecto": "SYNTH_Plant", "variante": "VC0",
-            "kwp": 10, "pnom_modulo": 4000, "workspace": ws_str,
+            "kwp": 10, "pnom_modulo": 4000, "workspace": ws_str, "via": "aproximacion",
         }),
     );
     let msg = error_text(&fuera);
@@ -149,7 +149,7 @@ fn should_bound_the_module_power_at_the_sizing_boundary() {
         "proyecto",
         json!({
             "accion": "dimensionar", "proyecto": "SYNTH_Plant", "variante": "VC0",
-            "kwp": 10, "pnom_modulo": 2450, "workspace": ws_str,
+            "kwp": 10, "pnom_modulo": 2450, "workspace": ws_str, "via": "aproximacion",
         }),
     );
     assert_eq!(valido["result"]["isError"], json!(false), "resp={valido}");
@@ -441,7 +441,7 @@ fn should_restore_replaced_files_when_import_publication_fails() {
 fn should_fill_the_horizon_of_a_project_in_a_foreign_workspace() {
     let ws = synthetic_workspace(); // SYNTH_Plant.VC0 sin pvHorizon
     let ws_str = ws.path().to_string_lossy().to_string();
-    let mut c = Client::start(None);
+    let mut c = Client::start_env(None, &[("PVSYST_MCP_APROXIMACIONES", "1")]);
     c.initialize();
 
     let resp = c.call(
@@ -453,6 +453,7 @@ fn should_fill_the_horizon_of_a_project_in_a_foreign_workspace() {
     );
     assert_eq!(resp["result"]["isError"], json!(false), "resp={resp}");
     let data = tool_text(&resp);
+    assert_eq!(data["origen"], "aproximacion_mcp");
     assert!(data["historial_id"].as_str().is_some_and(|s| !s.is_empty()));
     let var = data["variante"].as_str().expect("variante").to_string();
     assert!(var.starts_with(&ws_str), "variante={var}");

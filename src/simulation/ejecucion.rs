@@ -40,6 +40,10 @@ pub(crate) fn finalizar(plan: &Plan, out: &cli::CliOutput, contexto: &Value) -> 
         }
     }
     resultado["costo"] = ledger::registrar(&plan.workspace, &out.stdout, plan.ejecuciones);
+    let avisos = super::avisos_simulacion(plan.inicio);
+    if !avisos.is_empty() {
+        resultado["avisos_pvsyst"] = json!(avisos);
+    }
     resultado
 }
 

@@ -6,15 +6,6 @@ use crate::error::Result;
 use crate::progreso::SeguimientoTarea;
 use serde_json::{json, Map, Value};
 
-/// Access level required to execute or discover a tool.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Acceso {
-    /// Available to every MCP client session.
-    Normal,
-    /// Requires `PVSYST_MCP_EXPERTO=1` on the server.
-    Experto,
-}
-
 /// JSON Schema types supported in tool property declarations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum TipoDato {
@@ -116,7 +107,6 @@ pub(crate) struct Anotaciones {
 pub(crate) struct Herramienta {
     pub(crate) nombre: &'static str,
     pub(crate) descripcion: &'static str,
-    pub(crate) acceso: Acceso,
     pub(crate) anotaciones: Anotaciones,
     pub(crate) propiedades: &'static [(&'static str, TipoDato)],
     pub(crate) requeridos: &'static [&'static str],
@@ -191,6 +181,12 @@ fn anotar_restricciones(prop_val: &mut Value, clave: &str) {
         "tipo_sistema" => {
             prop_val["enum"] = json!(["red", "aislado"]);
         }
+        "via" => {
+            prop_val["enum"] = json!(["pvsyst", "aproximacion"]);
+            prop_val["description"] = json!(
+                "pvsyst (defecto): la ruta de PVsyst. aproximacion: cálculo propio del MCP, oculto salvo con PVSYST_MCP_APROXIMACIONES=1."
+            );
+        }
         "medido_kwh" => {
             prop_val["items"] = json!({ "type": "number" });
             prop_val["minItems"] = json!(12);
@@ -199,6 +195,39 @@ fn anotar_restricciones(prop_val: &mut Value, clave: &str) {
         "n_baterias_serie" | "n_baterias_paralelo" => {
             prop_val["minimum"] = json!(1);
             prop_val["description"] = json!("Solo aplica a tipo_sistema:aislado.");
+        }
+        _ => anotar_gui(prop_val, clave),
+    }
+}
+
+/// Schema details of the GUI-automation arguments.
+fn anotar_gui(prop_val: &mut Value, clave: &str) {
+    match clave {
+        "campo" => {
+            prop_val["description"] =
+                json!("Campo sin rótulo: clase VCL y centro en px a 96 DPI dentro del formulario.");
+            prop_val["properties"] = json!({
+                "clase": {
+                    "type": "string",
+                    "enum": ["TEdit", "TComboBox", "TRadioButton", "TCheckBox"],
+                    "default": "TEdit"
+                },
+                "x": { "type": "integer" },
+                "y": { "type": "integer" }
+            });
+            prop_val["required"] = json!(["x", "y"]);
+        }
+        "texto" => {
+            prop_val["description"] =
+                json!("Texto a escribir, o prefijo del ítem del combo a seleccionar.");
+        }
+        "pids" => {
+            prop_val["items"] = json!({ "type": "integer" });
+            prop_val["description"] = json!("Procesos objetivo; si se omite, se usa PVsyst.exe.");
+        }
+        "lineas" => {
+            prop_val["minimum"] = json!(1);
+            prop_val["maximum"] = json!(500);
         }
         _ => {}
     }

@@ -19,16 +19,16 @@ use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 
 pub const DEMO_WS: &str = r"C:\Program Files\PVsyst8.1.7\DataRO\PVsyst8.1_Data";
 
-/// In-process server with the requested tool surface.
-pub fn protocol_server(expert: bool) -> Server {
+/// In-process server with the same surface a client gets by default.
+pub fn protocol_server() -> Server {
     let mut paths = Paths::resolve();
-    paths.experto = expert;
+    paths.aproximaciones = false;
     Server::new(paths)
 }
 
 /// Sends one line to a fresh in-process server and parses the response.
 pub fn protocol_call(line: &str) -> Value {
-    let out = protocol_server(false).handle_line(line).expect("response");
+    let out = protocol_server().handle_line(line).expect("response");
     serde_json::from_str(&out).expect("valid json")
 }
 
@@ -44,10 +44,13 @@ impl Client {
     }
 
     /// Start the server with extra environment variables (e.g. `PVSYST_CLI`,
-    /// `PVSYST_MCP_EXPERTO`, `FAKE_PVSYST_FIXTURES`).
+    /// `PVSYST_MCP_APROXIMACIONES`, `FAKE_PVSYST_FIXTURES`).
     pub fn start_env(workspace: Option<&str>, env: &[(&str, &str)]) -> Client {
         let exe = env!("CARGO_BIN_EXE_pvsyst-mcp");
         let mut cmd = Command::new(exe);
+        // Pin the default surface: a developer shell that exports this must
+        // not change what the "default" tests see.
+        cmd.env_remove("PVSYST_MCP_APROXIMACIONES");
         if let Some(w) = workspace {
             cmd.env("PVSYST_WORKSPACE", w);
         }

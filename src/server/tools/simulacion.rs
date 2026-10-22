@@ -1,6 +1,6 @@
 //! Tool for simulation orchestration: batch setup, execution, status, and sweeps.
 
-use super::declaracion::{Acceso, Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
+use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
 use crate::args::missing;
 use crate::config::Paths;
 use crate::error::{Error, Result};
@@ -11,7 +11,6 @@ use serde_json::{Map, Value};
 pub(crate) const TOOL_SIMULAR: Herramienta = Herramienta {
     nombre: "simular",
     descripcion: "Simulacion: ejecutar (con filas/parametros opcionales), preparar entrada, estado, preestimar y barrido. / EN: Simulation: run (optional rows/parameters), prepare input, status, pre-estimate and sweep.",
-    acceso: Acceso::Normal,
     anotaciones: Anotaciones {
         titulo: "Simular / Simulate",
         es_solo_lectura: false,
@@ -27,6 +26,8 @@ pub(crate) const TOOL_SIMULAR: Herramienta = Herramienta {
         ("batch_params_file", TipoDato::String),
         ("batch_rvt_file", TipoDato::String),
         ("input_rvt_file", TipoDato::String),
+        ("archivo_rvt", TipoDato::String),
+        ("operacion", TipoDato::String),
         ("cmd_options_file", TipoDato::String),
         ("input_met_file", TipoDato::String),
         ("input_sfi_file", TipoDato::String),
@@ -94,6 +95,12 @@ fn ejecutar_simular(
             simulation::lanzar_simulacion_seguida(paths, &vivos, seguimiento)
         }
         "preparar" => {
+            if args.get("batch_rvt_file").is_some()
+                || args.get("archivo_rvt").is_some()
+                || args.get("operacion").is_some()
+            {
+                return crate::plantilla_variables::gestionar_rvt(paths, args);
+            }
             let (_, preparados) = preparar_entrada(paths, args)?;
             if preparados.is_empty() {
                 return Err(missing("filas", "o 'parametros'"));

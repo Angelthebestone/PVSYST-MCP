@@ -1,8 +1,6 @@
 //! Tools for environment diagnostics, licences, logs, preferences and E2E design.
 
-use super::declaracion::{
-    con, Acceso, Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato,
-};
+use super::declaracion::{con, Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
 use crate::adapters::gui;
 use crate::admin;
 use crate::config::Paths;
@@ -14,7 +12,6 @@ use serde_json::{json, Value};
 pub(crate) const TOOL_ENTORNO: Herramienta = Herramienta {
     nombre: "entorno",
     descripcion: "Entorno PVsyst: diagnostico, licencia, logs y preferencias. / EN: PVsyst environment: diagnostics, licence, logs and preferences.",
-    acceso: Acceso::Normal,
     anotaciones: Anotaciones {
         titulo: "Entorno / Environment",
         es_solo_lectura: false,
@@ -55,7 +52,6 @@ pub(crate) const TOOL_ENTORNO: Herramienta = Herramienta {
 pub(crate) const TOOL_DISENAR_SISTEMA: Herramienta = Herramienta {
     nombre: "disenar_sistema",
     descripcion: "E2E en una llamada: coordenadas + kWp (red o aislado) -> sitio -> proyecto -> dimensionado -> simulacion -> KPIs. / EN: End-to-end in one call: coordinates + kWp (grid or stand-alone) -> site -> project -> sizing -> simulation -> KPIs.",
-    acceso: Acceso::Normal,
     anotaciones: Anotaciones {
         titulo: "Diseñar sistema / Design system",
         es_solo_lectura: false,
@@ -90,6 +86,7 @@ pub(crate) const TOOL_DISENAR_SISTEMA: Herramienta = Herramienta {
         ("sobrescribir", TipoDato::Boolean),
         ("synthetic_weather", TipoDato::Boolean),
         ("confirmar", TipoDato::Boolean),
+        ("via", TipoDato::String),
         ("permitir_fuera_del_workspace", TipoDato::Boolean),
         ("workspace", TipoDato::String),
     ],
@@ -144,12 +141,14 @@ fn info_entorno(paths: &Paths) -> Value {
         "gui_exe": paths.gui_exe.to_string_lossy(),
         "gui_exists": paths.gui_exe.exists(),
         "gui_running": gui::gui_running(),
-        "experto": paths.experto,
+        "aproximaciones": paths.aproximaciones,
+        "escritorio": gui::escritorio::nombre_del_modo(),
         "env_overrides": {
             "PVSYST_WORKSPACE": std::env::var("PVSYST_WORKSPACE").ok(),
             "PVSYST_CLI": std::env::var("PVSYST_CLI").ok(),
             "PVSYST_GUI": std::env::var("PVSYST_GUI").ok(),
-            "PVSYST_MCP_EXPERTO": std::env::var("PVSYST_MCP_EXPERTO").ok()
+            "PVSYST_MCP_ESCRITORIO": std::env::var(gui::escritorio::VARIABLE).ok(),
+            "PVSYST_MCP_APROXIMACIONES": std::env::var(crate::aproximaciones::VARIABLE_ENTORNO).ok()
         }
     })
 }

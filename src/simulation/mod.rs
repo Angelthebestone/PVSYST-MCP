@@ -3,6 +3,7 @@
 //! Every simulation runs through `PVsystCLI.exe run-simulation`, without
 //! touching `PVsyst.exe` or reimplementing any solar physics.
 
+pub(crate) mod avisos_pvsyst;
 pub(crate) mod batch;
 pub(crate) mod cache;
 pub(crate) mod engineering;
@@ -15,6 +16,7 @@ mod estado;
 mod gui;
 mod preparacion;
 
+pub(crate) use avisos_pvsyst::avisos_simulacion;
 pub(crate) use estado::estado_simulacion;
 pub(crate) use gui::ModoGui;
 

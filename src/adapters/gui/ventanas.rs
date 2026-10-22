@@ -46,6 +46,21 @@ pub(crate) fn visible(h: Hwnd) -> bool {
     ffi::estado_ventana(h).visible
 }
 
+/// The first visible child of `h` whose caption is exactly `texto`.
+pub(crate) fn hijo_visible_con_texto(h: Hwnd, texto: &str) -> Option<Hwnd> {
+    enum_children(h)
+        .into_iter()
+        .find(|c| visible(*c) && text_of(*c) == texto)
+}
+
+/// Top-level windows of process `pid`, in Z-order (front-most first).
+pub(crate) fn enum_windows_de(pid: u32) -> Vec<Hwnd> {
+    enum_windows()
+        .into_iter()
+        .filter(|h| pid_of(*h) == pid)
+        .collect()
+}
+
 pub(crate) fn find_pids(exe_name: &str) -> Vec<u32> {
     let mut pids = Vec::new();
     // SAFETY: `pe` se inicializa a cero con `dw_size` correcto antes de `Process32*`, y el handle `snap` se cierra al terminar.

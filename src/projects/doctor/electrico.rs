@@ -75,81 +75,134 @@ impl DatosElectricos {
     }
 }
 
-pub(crate) fn comprobar_tensiones(d: &DatosElectricos, mu_voc: f64, inf: &mut Informe) {
-    let voc_frio = d.ns * d.voc * (1.0 + mu_voc * (d.tmin - 25.0));
+/// Module temperature coefficients for string-voltage checks.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct CoeficientesTemperatura {
+    pub(crate) mu_voc: f64,
+    pub(crate) mu_pnom: Option<f64>,
+}
+
+pub(crate) fn comprobar_tensiones(
+    d: &DatosElectricos,
+    coefs: &CoeficientesTemperatura,
+    inf: &mut Informe,
+) {
+    let tag = crate::aproximaciones::ORIGEN_APROXIMACION;
+    let voc_frio = d.ns * d.voc * (1.0 + coefs.mu_voc * (d.tmin - 25.0));
     if voc_frio > d.vabs {
         inf.errores.push(format!(
-            "Voc en frío {voc_frio:.0} V supera VAbsMax {:.0} V",
+            "[{tag}] Voc en frío {voc_frio:.0} V supera VAbsMax {:.0} V",
             d.vabs
         ));
     }
-    let vmpp_calor = d.ns * d.vmpp * (1.0 + mu_voc * (d.tmax - 25.0));
+    let (mu_vmpp, usando_voc) = match coefs.mu_pnom {
+        Some(gamma) => (gamma, false),
+        None => (coefs.mu_voc, true),
+    };
+    let vmpp_calor = d.ns * d.vmpp * (1.0 + mu_vmpp * (d.tmax - 25.0));
     if vmpp_calor < d.vmin {
+        let detalle = if usando_voc {
+            " (aproximación: Vmpp estimado con μVoc por falta de γ en .PAN)"
+        } else {
+            ""
+        };
         inf.errores.push(format!(
-            "Vmpp en calor {vmpp_calor:.0} V por debajo de VMppMin {:.0} V",
+            "[{tag}] Vmpp en calor {vmpp_calor:.0} V por debajo de VMppMin {:.0} V{detalle}",
             d.vmin
         ));
     }
-    let vmpp_frio = d.ns * d.vmpp * (1.0 + mu_voc * (d.tmin - 25.0));
+    let vmpp_frio = d.ns * d.vmpp * (1.0 + mu_vmpp * (d.tmin - 25.0));
     if vmpp_frio > d.vmax {
+        let detalle = if usando_voc {
+            " (aproximación: Vmpp estimado con μVoc por falta de γ en .PAN)"
+        } else {
+            ""
+        };
         inf.errores.push(format!(
-            "Vmpp en frío {vmpp_frio:.0} V supera VMPPMax {:.0} V",
+            "[{tag}] Vmpp en frío {vmpp_frio:.0} V supera VMPPMax {:.0} V{detalle}",
             d.vmax
         ));
     }
 }
-
-/// Cold/hot string voltage and DC/AC checks against the module and inverter data.
-pub(crate) fn revisar_electrico(ctx: &ContextoElectrico<'_>, inf: &mut Informe) {
-    let (Some(prj), Some(var)) = (
-        object::parse_first(ctx.prj_txt),
-        object::parse_first(ctx.var_txt),
-    ) else {
-        inf.avisos
-            .push("Proyecto o variante no legible: revisión eléctrica omitida".into());
-        return;
-    };
-    let (Some(pan), Some(ond)) = (var.find_deep("PVModule"), var.find_deep("GInverter")) else {
-        inf.avisos
-            .push("Sin PVModule/GInverter: revisión eléctrica omitida".into());
-        return;
-    };
-    let lectura = match leer_modulo(ctx.paths, &json!({"modulo": pan})) {
-        Ok(m) => m,
-        Err(e) => return inf.avisos.push(omitido("PAN", pan, &e.to_string())),
-    };
-    let Some(modulo) = DatosModulo::de_lectura(&lectura) else {
-        return inf
-            .avisos
-            .push(omitido("PAN", pan, "faltan Pnom, Voc o Vmpp"));
-    };
-    let inv = match cargar_inversor(ctx.ws, ond) {
-        Ok(inv) => inv,
-        Err(motivo) => return inf.avisos.push(omitido("OND", ond, &motivo.to_string())),
-    };
-    // The file gives μVoc in mV/°C; the checks need it relative to Voc (1/K).
-    let mu = modulo.mu_voc_mv_c().map_or_else(
+fn extraer_coeficientes(
+    modulo: &DatosModulo,
+    pan: &str,
+    inf: &mut Informe,
+) -> CoeficientesTemperatura {
+    let tag = crate::aproximaciones::ORIGEN_APROXIMACION;
+    let mu_voc = modulo.mu_voc_mv_c().map_or_else(
         || {
             inf.avisos.push(format!(
-                "μVoc de '{pan}' ausente: usando {MU_VOC_DEFECTO} 1/K"
+                "[{tag}] μVoc de '{pan}' ausente: usando {MU_VOC_DEFECTO} 1/K"
             ));
             MU_VOC_DEFECTO
         },
         |v| mu_voc_relativo(v, modulo.voc_v()),
     );
-    let Some(d) = DatosElectricos::reunir(&prj, &var, &inv, &modulo) else {
-        inf.avisos
-            .push("Datos eléctricos incompletos: revisión omitida".into());
-        return;
-    };
-    comprobar_tensiones(&d, mu, inf);
-    let ninv = num(&var, "NInverter").unwrap_or(1.0);
-    let nstr = num(&var, "NStringCh").unwrap_or(1.0);
+    let mu_pnom = modulo.mu_pnom_pct_c().map(|pct| pct / 100.0);
+    if mu_pnom.is_none() {
+        inf.avisos.push(format!(
+            "[{tag}] μPnom/gamma de '{pan}' ausente: Vmpp en temperatura estimado con μVoc"
+        ));
+    }
+    CoeficientesTemperatura { mu_voc, mu_pnom }
+}
+
+fn comprobar_relacion_dc_ac(d: &DatosElectricos, var: &object::PvNode, inf: &mut Informe) {
+    let tag = crate::aproximaciones::ORIGEN_APROXIMACION;
+    let ninv = num(var, "NInverter").unwrap_or(1.0);
+    let nstr = num(var, "NStringCh").unwrap_or(1.0);
     let dc_ac = d.pnom * d.ns * nstr * ninv / 1000.0 / (d.pconv * ninv);
     if !(0.8..=1.5).contains(&dc_ac) {
-        inf.avisos
-            .push(format!("Relación DC/AC {dc_ac:.2} fuera de 0.8–1.5"));
+        inf.avisos.push(format!(
+            "[{tag}] Relación DC/AC {dc_ac:.2} fuera de 0.8–1.5"
+        ));
     }
+}
+
+/// Cold/hot string voltage and DC/AC checks against the module and inverter data.
+///
+/// These are MCP approximations of PVsyst's own sizing checks, so they only run
+/// with `PVSYST_MCP_APROXIMACIONES`; otherwise PVsyst reports the window when it
+/// simulates (`avisos_pvsyst`).
+pub(crate) fn revisar_electrico(ctx: &ContextoElectrico<'_>, inf: &mut Informe) {
+    if !ctx.paths.aproximaciones {
+        inf.avisos.push(
+            "La ventana eléctrica es validada por PVsyst durante la simulación (ver avisos_pvsyst en la salida de simular)".into(),
+        );
+        return;
+    }
+    if let Err(motivo) = revisar_aproximado(ctx, inf) {
+        let tag = crate::aproximaciones::ORIGEN_APROXIMACION;
+        inf.avisos.push(format!("[{tag}] {motivo}"));
+    }
+}
+
+/// The approximated checks; `Err` explains why they could not run.
+fn revisar_aproximado(
+    ctx: &ContextoElectrico<'_>,
+    inf: &mut Informe,
+) -> std::result::Result<(), String> {
+    let (Some(prj), Some(var)) = (
+        object::parse_first(ctx.prj_txt),
+        object::parse_first(ctx.var_txt),
+    ) else {
+        return Err("Proyecto o variante no legible: revisión eléctrica omitida".into());
+    };
+    let (Some(pan), Some(ond)) = (var.find_deep("PVModule"), var.find_deep("GInverter")) else {
+        return Err("Sin PVModule/GInverter: revisión eléctrica omitida".into());
+    };
+    let lectura = leer_modulo(ctx.paths, &json!({"modulo": pan}))
+        .map_err(|e| omitido("PAN", pan, &e.to_string()))?;
+    let modulo = DatosModulo::de_lectura(&lectura)
+        .ok_or_else(|| omitido("PAN", pan, "faltan Pnom, Voc o Vmpp"))?;
+    let inv = cargar_inversor(ctx.ws, ond).map_err(|m| omitido("OND", ond, &m.to_string()))?;
+    let coefs = extraer_coeficientes(&modulo, pan, inf);
+    let d = DatosElectricos::reunir(&prj, &var, &inv, &modulo)
+        .ok_or("Datos eléctricos incompletos: revisión omitida")?;
+    comprobar_tensiones(&d, &coefs, inf);
+    comprobar_relacion_dc_ac(&d, &var, inf);
+    Ok(())
 }
 
 /// μVoc as the datasheet gives it (mV/°C) relative to Voc (1/K), the form

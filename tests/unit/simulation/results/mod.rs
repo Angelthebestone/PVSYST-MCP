@@ -47,3 +47,16 @@ fn should_reject_results_dir_outside_workspace_by_default() {
     let args = json!({ "workspace": ws.path(), "dir": fuera.path() });
     assert!(leer_resultados(&Paths::resolve(), &args).is_err());
 }
+
+#[test]
+fn should_integrate_power_columns_and_omit_ratios_and_angles() {
+    let csv = "date;E_Grid;GlobInc;PR;HSol\n;kW;W/m²;ratio;°\n\n\
+               01/01/90 11:00;2;500;0.8;30\n01/01/90 12:00;3;600;0.9;35\n";
+
+    let totals = &parse::summarize_csv(csv)["totals"];
+
+    assert_eq!(totals["E_Grid"], json!({ "sum": 5.0, "unit": "kWh" }));
+    assert_eq!(totals["GlobInc"], json!({ "sum": 1100.0, "unit": "Wh/m²" }));
+    assert!(totals.get("PR").is_none(), "{totals}");
+    assert!(totals.get("HSol").is_none(), "{totals}");
+}

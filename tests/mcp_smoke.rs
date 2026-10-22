@@ -17,7 +17,6 @@ use common::{synthetic_workspace, tool_text, Client, DEMO_WS};
 use serde_json::{json, Value};
 
 const DEMO_PAN: &str = r"C:\Program Files\PVsyst8.1.7\DataRO\PVsyst8.1_Data\ComposPV\PVModules\CX-M500_2450Wp_1_00_086.PAN";
-const EXPERT: (&str, &str) = ("PVSYST_MCP_EXPERTO", "1");
 
 fn tool_names(c: &mut Client, id: u64) -> Vec<String> {
     let list = c.request(id, "tools/list", json!({}));
@@ -68,7 +67,7 @@ fn handshake_and_tool_list() {
     assert_eq!(init["result"]["serverInfo"]["name"], "pvsyst-mcp");
 
     let names = tool_names(&mut c, 2);
-    assert_eq!(names.len(), 12, "default surface: {names:?}");
+    assert_eq!(names.len(), 15, "default surface: {names:?}");
     for expected in [
         "entorno",
         "disenar_sistema",
@@ -82,6 +81,9 @@ fn handshake_and_tool_list() {
         "simular",
         "resultados",
         "workspace",
+        "pvsyst_cli",
+        "gui_observar",
+        "gui_actuar",
     ] {
         assert!(
             names.contains(&expected.to_string()),
@@ -91,22 +93,12 @@ fn handshake_and_tool_list() {
 }
 
 #[test]
-fn expert_tools_are_hidden_by_default_and_exposed_with_flag() {
+fn gui_and_cli_tools_are_visible_by_default() {
     let mut c = Client::start(None);
     c.initialize();
     let names = tool_names(&mut c, 2);
-    for hidden in ["pvsyst_cli", "gui_observar", "gui_actuar"] {
-        assert!(!names.contains(&hidden.to_string()), "{hidden} visible");
-    }
-    let resp = c.call(3, "gui_observar", json!({ "que": "ventanas" }));
-    assert_eq!(resp["result"]["isError"], true, "resp={resp}");
-
-    let mut e = Client::start_env(None, &[EXPERT]);
-    e.initialize();
-    let names = tool_names(&mut e, 2);
-    assert_eq!(names.len(), 15, "expert surface: {names:?}");
-    for expert in ["pvsyst_cli", "gui_observar", "gui_actuar"] {
-        assert!(names.contains(&expert.to_string()), "missing {expert}");
+    for visible in ["pvsyst_cli", "gui_observar", "gui_actuar"] {
+        assert!(names.contains(&visible.to_string()), "{visible} hidden");
     }
 }
 
@@ -115,7 +107,7 @@ fn resources_list_and_read() {
     let mut c = Client::start(None);
     c.initialize();
     let list = c.request(2, "resources/list", json!({}));
-    assert_eq!(list["result"]["resources"].as_array().unwrap().len(), 4);
+    assert_eq!(list["result"]["resources"].as_array().unwrap().len(), 5);
 
     let cli = c.request(3, "resources/read", json!({ "uri": "pvsyst://cli" }));
     let text = cli["result"]["contents"][0]["text"].as_str().unwrap();
@@ -264,7 +256,7 @@ fn discriminators(c: &mut Client, id: u64) -> std::collections::HashMap<String, 
 
 #[test]
 fn cobertura_resource_lists_areas() {
-    let mut c = Client::start_env(None, &[EXPERT]);
+    let mut c = Client::start(None);
     c.initialize();
     let implemented = tool_names(&mut c, 20);
 
@@ -312,7 +304,7 @@ fn cobertura_resource_lists_areas() {
 fn gui_tools_report_when_pvsyst_not_running() {
     // Without the GUI running, gui_observar must return a clear, non-panicking
     // error (proves the tool is wired and the process probe works).
-    let mut c = Client::start_env(None, &[EXPERT]);
+    let mut c = Client::start(None);
     let resp = c.call(21, "gui_observar", json!({ "que": "ventanas" }));
     assert_eq!(resp["result"]["isError"], true);
     let msg = resp["result"]["content"][0]["text"].as_str().unwrap();
@@ -322,7 +314,7 @@ fn gui_tools_report_when_pvsyst_not_running() {
 #[test]
 #[ignore = "needs a running PVsyst GUI: run with --ignored"]
 fn gui_automation_drives_running_pvsyst() {
-    let mut c = Client::start_env(None, &[EXPERT]);
+    let mut c = Client::start(None);
 
     // Enumerate the desktop app's windows.
     let resp = c.call(
@@ -370,7 +362,7 @@ fn gui_automation_drives_running_pvsyst() {
 #[test]
 #[ignore = "needs a running PVsyst GUI: run with --ignored"]
 fn gui_invokes_button_and_opens_window() {
-    let mut c = Client::start_env(None, &[EXPERT]);
+    let mut c = Client::start(None);
     // Make the test idempotent: close any modal/dialog a previous run or the
     // launch left open (TDEMOForm is the trial/demo dialog shown at startup).
     for dlg in ["TDEMOForm", "TToolsForm"] {
@@ -579,7 +571,7 @@ fn entorno_licencia_activar_returns_template_only() {
 
 #[test]
 fn pvsyst_cli_dry_run_builds_command() {
-    let mut c = Client::start_env(None, &[EXPERT]);
+    let mut c = Client::start(None);
     let resp = c.call(
         8,
         "pvsyst_cli",
@@ -729,7 +721,10 @@ fn proyecto_dimensionar_computes_capacity() {
     let tmp = std::env::temp_dir().join(format!("pvsyst-mcp-size-{}", std::process::id()));
     stage_project(&tmp, "_DEMO_Residential");
 
-    let mut c = Client::start(Some(tmp.to_str().unwrap()));
+    let mut c = Client::start_env(
+        Some(tmp.to_str().unwrap()),
+        &[("PVSYST_MCP_APROXIMACIONES", "1")],
+    );
     let resp = c.call(
         11,
         "proyecto",

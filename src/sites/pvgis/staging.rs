@@ -2,7 +2,6 @@
 //! or interrupted run leaves nothing in `Meteo`, and the published MET/CSV
 //! pair is all-or-nothing.
 
-use crate::config::data_ro;
 use crate::error::{Error, Result};
 use crate::history;
 use std::fs;
@@ -104,19 +103,10 @@ impl StagingMeteo {
                 e,
             )
         })?;
-        let plantilla = data_ro()
-            .join("PVsyst8.1_Data")
-            .join("Meteo")
-            .join("PVsyst_ANE-NEDO.MEF");
-        if !plantilla.exists() {
-            return Err(Error::NotFound(format!(
-                "Plantilla MEF no encontrada en {}",
-                plantilla.display()
-            )));
-        }
-        fs::copy(&plantilla, &self.mef_path).map_err(|e| {
+        let mef_bytes = crate::meteo_mef::generar_mef_pvgis_nedo()?;
+        fs::write(&self.mef_path, mef_bytes).map_err(|e| {
             Error::io(
-                format!("No se pudo copiar MEF a {}", self.mef_path.display()),
+                format!("No se pudo escribir MEF a {}", self.mef_path.display()),
                 e,
             )
         })?;

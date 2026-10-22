@@ -1,6 +1,6 @@
 //! Tools for workspace operations, file reading/writing, editing and listing.
 
-use super::declaracion::{Acceso, Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
+use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
 use super::workspace_ejecucion::{
     ejecutar_editar, ejecutar_escribir_archivo, ejecutar_leer, ejecutar_listar, ejecutar_workspace,
 };
@@ -8,7 +8,6 @@ use super::workspace_ejecucion::{
 pub(crate) const TOOL_WORKSPACE: Herramienta = Herramienta {
     nombre: "workspace",
     descripcion: "Workspace: crear, exportar, importar, exportar proyecto, historial de cambios y restaurar. / EN: Workspace: create, export, import, export project, change history and restore.",
-    acceso: Acceso::Normal,
     anotaciones: Anotaciones {
         titulo: "Workspace",
         es_solo_lectura: false,
@@ -47,7 +46,6 @@ pub(crate) const TOOL_WORKSPACE: Herramienta = Herramienta {
 pub(crate) const TOOL_ESCRIBIR_ARCHIVO: Herramienta = Herramienta {
     nombre: "escribir_archivo",
     descripcion: "Escribe un archivo dentro del workspace (con historial). / EN: Writes a file inside the workspace (with history).",
-    acceso: Acceso::Normal,
     anotaciones: Anotaciones {
         titulo: "Escribir archivo / Write file",
         es_solo_lectura: false,
@@ -71,7 +69,6 @@ pub(crate) const TOOL_ESCRIBIR_ARCHIVO: Herramienta = Herramienta {
 pub(crate) const TOOL_LEER: Herramienta = Herramienta {
     nombre: "leer",
     descripcion: "Lee cualquier archivo PVsyst: proyecto, modulo, sitio, meteo, componente, objeto o bytes crudos (detectado por archivo). / EN: Reads any PVsyst file: project, module, site, weather, component, object or raw bytes (detected from the file).",
-    acceso: Acceso::Normal,
     anotaciones: Anotaciones {
         titulo: "Leer / Read",
         es_solo_lectura: true,
@@ -89,6 +86,8 @@ pub(crate) const TOOL_LEER: Herramienta = Herramienta {
         ("base64", TipoDato::Boolean),
         ("workspace", TipoDato::String),
         ("permitir_fuera_del_workspace", TipoDato::Boolean),
+        ("serie", TipoDato::Boolean),
+        ("limite", TipoDato::Integer),
     ],
     requeridos: &["archivo"],
     discriminador: None,
@@ -99,7 +98,6 @@ pub(crate) const TOOL_LEER: Herramienta = Herramienta {
 pub(crate) const TOOL_EDITAR: Herramienta = Herramienta {
     nombre: "editar",
     descripcion: "Edita campos, inserta o elimina objetos PVObject (byte-preserving, con historial). / EN: Edits fields, inserts or removes PVObject objects (byte-preserving, with history).",
-    acceso: Acceso::Normal,
     anotaciones: Anotaciones {
         titulo: "Editar / Edit",
         es_solo_lectura: false,
@@ -120,12 +118,15 @@ pub(crate) const TOOL_EDITAR: Herramienta = Herramienta {
         ("reemplazar", TipoDato::Boolean),
         ("workspace", TipoDato::String),
         ("permitir_fuera_del_workspace", TipoDato::Boolean),
+        ("operacion", TipoDato::String),
+        ("variables", TipoDato::Array),
+        ("batch_rvt_file", TipoDato::String),
     ],
     requeridos: &[],
     discriminador: Some(Discriminador {
         campo: "accion",
         defecto: Some("campos"),
-        valores: &["campos", "insertar_objeto", "eliminar_objeto"],
+        valores: &["campos", "insertar_objeto", "eliminar_objeto", "rvt", "plantilla_rvt"],
     }),
     requeridos_por_accion: &[
         ("insertar_objeto", &["archivo", "padre", "desde"]),
@@ -137,7 +138,6 @@ pub(crate) const TOOL_EDITAR: Herramienta = Herramienta {
 pub(crate) const TOOL_LISTAR: Herramienta = Herramienta {
     nombre: "listar",
     descripcion: "Lista proyectos, componentes, modulos, archivos u objetos. / EN: Lists projects, components, modules, files or objects.",
-    acceso: Acceso::Normal,
     anotaciones: Anotaciones {
         titulo: "Listar / List",
         es_solo_lectura: true,

@@ -3,8 +3,6 @@
 use super::ventanas::primer_plano;
 use super::{Hwnd, WinEventProc};
 
-pub(crate) const WM_KEYDOWN: u32 = 0x0100;
-pub(crate) const WM_KEYUP: u32 = 0x0101;
 pub(crate) const WM_TIMER: u32 = 0x0113;
 pub(crate) const EVENT_OBJECT_SHOW: u32 = 0x8002;
 pub(crate) const WINEVENT_OUTOFCONTEXT: u32 = 0x0000;
@@ -52,6 +50,10 @@ extern "system" {
 }
 
 pub(crate) fn clic_fisico_en(x: i32, y: i32) {
+    if super::aislado() {
+        super::clic_emulado_en(x, y);
+        return;
+    }
     // SAFETY: Funciones de entrada sin punteros: mueven el cursor y emiten eventos de ratón.
     unsafe {
         SetCursorPos(x, y);
@@ -61,7 +63,12 @@ pub(crate) fn clic_fisico_en(x: i32, y: i32) {
     }
 }
 
+/// Whether the MCP can drive windows: an interactive input desktop, or its own
+/// private desktop (where input is posted, so no user session is needed).
 pub(crate) fn escritorio_disponible() -> bool {
+    if super::aislado() {
+        return true;
+    }
     // SAFETY: El handle devuelto se cierra aquí mismo; las demás llamadas no usan punteros.
     unsafe {
         let escritorio = OpenInputDesktop(0, 0, DESKTOP_READOBJECTS);

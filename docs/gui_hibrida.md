@@ -1,6 +1,6 @@
 # PVsyst MCP: hybrid GUI and roadmap
 
-> Status: **implemented** in the 15-tool surface (12 by default; expert tools with `PVSYST_MCP_EXPERTO=1`), except where marked otherwise in the README. The Meteonorm data source is excluded by design (PVsyst conditions of use §1.3). `configurar_analitica` is not implemented: CLI analytics are disabled in `PVsystCLI.ini`. The PVGIS endpoints (`MRcalc`, `printhorizon`, `tmy`) were verified with live calls. PVsystCLI cannot simulate measured-data variants (`CMx`): those stay GUI-only.
+> Status: **implemented** in the 15-tool default surface, except where marked otherwise in the README. The Meteonorm data source is excluded by design (PVsyst conditions of use §1.3). `configurar_analitica` is not implemented: CLI analytics are disabled in `PVsystCLI.ini`. The PVGIS endpoints (`MRcalc`, `printhorizon`, `tmy`) were verified with live calls. PVsystCLI cannot simulate measured-data variants (`CMx`): those stay GUI-only.
 >
 > Guiding idea: two resources are scarce, **trial executions** (231 → 223 after
 > one test round) and **tokens**. Two are slow: PVsystCLI (~5–6 s per call) and
@@ -74,6 +74,14 @@ tools of section 3 instead of adding more.
   subtrees.
 - **No interactive desktop:** `PrintWindow` returns black and coordinate clicks
   fail. Detect this and degrade to UIA + Win32.
+- **Chained database windows:** after opening and closing several database
+  choosers in a row (`bases_de_datos.*.nuevo`), PVsyst 8.1.7 sometimes closes
+  `THomeForm` by itself. Seven catalogue entries (`controladores_independientes`,
+  `bombas`, `controladores_bombeo`, `generadores`, `fabricantes_minoristas`,
+  `sitios_geograficos` `.nuevo`, and `editar_info_usuario`) could not be
+  re-verified for that reason; recover with `accion:reiniciar` or `accion:lanzar`.
+- **Speed:** OCR of a window takes about 0.4 s in the release binary and
+  6-10 s in a debug build; use the release binary for exploration.
 
 ### Phases
 
@@ -154,7 +162,7 @@ general PVsyst knowledge and has not been checked against the 8.1 manual.
 | `simular` (batch rows and hidden parameters as arguments) | `lanzar_simulacion`, `crear_batch`, `modificar_parametros` |
 | `resultados` (`detalle`) | `leer_resultados_csv`, `leer_kpis` |
 | `workspace` (`accion`) | `crear_workspace`, `exportar_workspace`, `importar_workspace`, `exportar_proyecto` |
-| `pvsyst_cli` | expert mode only |
+| `pvsyst_cli` | raw CLI passthrough |
 | `gui_observar` | `gui_ventanas`, `gui_controles`, `gui_leer`, `gui_capturar` |
 | `gui_actuar` | `gui_invocar`, `gui_activar`, `gui_cerrar`, `gui_teclas`, `gui_lanzar` |
 
@@ -162,8 +170,9 @@ Related changes:
 
 - **Docs become MCP resources.** `recetas`, `cobertura` and the format docs cost
   nothing until read (today ~2k tokens of the catalogue).
-- **Expert mode.** The GUI tools and `pvsyst_cli` only appear when an env flag
-  is set, so the model normally sees **12 tools**.
+- **Default surface.** The GUI tools and `pvsyst_cli` are part of the **15 tools**
+  available by default; only the MCP's own calculations need
+  `PVSYST_MCP_APROXIMACIONES=1`.
 - **Licence activation out of the model's reach.** Today the licence key passes
   through the chat. Return the command for the user to run instead.
 

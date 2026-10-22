@@ -23,9 +23,11 @@ mod tests;
 pub(crate) use diagnostico::preflight;
 pub(crate) use simulacion::leer_kpis;
 
+use dimensionado::APROXIMACION_DISENO_AUTOMATICO;
 use parametros::DisenoParametros;
 
 use crate::adapters::ledger;
+use crate::aproximaciones;
 use crate::config::Paths;
 use crate::error::Result;
 use crate::sites;
@@ -47,6 +49,12 @@ pub(crate) fn disenar_sistema(paths: &Paths, args: &Value) -> Result<Value> {
             .unwrap_or_else(|| paths.workspace.clone()),
         ..paths.clone()
     };
+
+    let es_aproximacion = params.dimensionado.via_aproximacion
+        && !(params.dimensionado.n_mod_serie.is_some() && params.dimensionado.n_strings.is_some());
+    if es_aproximacion {
+        aproximaciones::exigir(paths, &APROXIMACION_DISENO_AUTOMATICO)?;
+    }
 
     let altitud = params.ubicacion.altitud;
     let reusable = sites::reuse::buscar_existente(
@@ -73,7 +81,11 @@ pub(crate) fn disenar_sistema(paths: &Paths, args: &Value) -> Result<Value> {
         OrigenSitioDiseno::Nuevo
     };
     let c = correr_pasos(paths, &params, origen)?;
-    Ok(serializar_resultado(&params, &c))
+    let mut res = serializar_resultado(&params, &c);
+    if es_aproximacion {
+        aproximaciones::marcar(&mut res, &APROXIMACION_DISENO_AUTOMATICO);
+    }
+    Ok(res)
 }
 
 fn serializar_resultado(params: &DisenoParametros, c: &Corrida) -> Value {
@@ -87,6 +99,9 @@ fn serializar_resultado(params: &DisenoParametros, c: &Corrida) -> Value {
         .map_or(Value::Null, |k| json!(k));
     if let Some(a) = aviso_desviacion(params.dimensionado.kwp, &kwp_realizado_val) {
         avisos.push(a);
+    }
+    if let Some(s) = &c.simulacion {
+        avisos.extend(s.avisos_pvsyst.iter().cloned());
     }
 
     let site_info = json!({

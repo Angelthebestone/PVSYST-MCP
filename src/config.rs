@@ -15,10 +15,11 @@ pub struct Paths {
     pub workspace: PathBuf,
     /// The headless CLI, e.g. `C:\Program Files\PVsyst8.1.7\PVsystCLI.exe`.
     pub cli_exe: PathBuf,
-    /// The GUI executable, used only to leave a project ready to open.
+    /// The GUI executable, used to drive PVsyst's desktop window.
     pub gui_exe: PathBuf,
-    /// Expert mode exposes raw CLI and GUI tools (env PVSYST_MCP_EXPERTO=1).
-    pub experto: bool,
+    /// Enables the MCP's own approximations of PVsyst calculations
+    /// (env PVSYST_MCP_APROXIMACIONES=1). Off: every result comes from PVsyst.
+    pub aproximaciones: bool,
     /// Background jobs and caches owned by this configuration (and its clones).
     pub(crate) estado: Arc<Estado>,
 }
@@ -28,7 +29,7 @@ impl Paths {
     /// PVsyst 8.1.7 install locations.
     ///
     /// Overrides: `PVSYST_WORKSPACE`, `PVSYST_CLI`, `PVSYST_GUI`, `PVSYST_DATARO`
-    /// and `PVSYST_MCP_EXPERTO` (`1` or `true`).
+    /// and `PVSYST_MCP_APROXIMACIONES` (`1` or `true`).
     ///
     /// ```
     /// let paths = pvsyst_mcp::Paths::resolve();
@@ -40,8 +41,7 @@ impl Paths {
             workspace: resolve_workspace(),
             cli_exe: resolve_cli(),
             gui_exe: resolve_gui(),
-            experto: std::env::var("PVSYST_MCP_EXPERTO")
-                .is_ok_and(|v| matches!(v.trim(), "1" | "true")),
+            aproximaciones: bandera_de_entorno(crate::aproximaciones::VARIABLE_ENTORNO),
             estado: Arc::default(),
         }
     }
@@ -63,6 +63,11 @@ impl Paths {
     pub(crate) fn results_dir(&self) -> PathBuf {
         self.workspace.join("Results")
     }
+}
+
+/// A boolean switch from the environment: only `1` or `true` turn it on.
+fn bandera_de_entorno(clave: &str) -> bool {
+    std::env::var(clave).is_ok_and(|v| matches!(v.trim(), "1" | "true"))
 }
 
 /// Where a caller-supplied path may point.

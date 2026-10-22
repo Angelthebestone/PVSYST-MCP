@@ -3,12 +3,20 @@
 //! Callers use the safe helpers re-exported here; the raw extern blocks live in
 //! `ventanas`, `gdi` and `entrada`.
 
+mod controles;
 mod entrada;
+mod escritorio;
 mod gdi;
+mod menus;
+mod puntos;
 mod ventanas;
 
+pub(crate) use controles::*;
 pub(crate) use entrada::*;
+pub(crate) use escritorio::*;
 pub(crate) use gdi::*;
+pub(crate) use menus::*;
+pub(crate) use puntos::*;
 pub(crate) use ventanas::*;
 
 pub(crate) type Hwnd = isize;

@@ -1,6 +1,6 @@
 //! Tool for simulation output and engineering analysis: KPIs, CSV, losses, economics.
 
-use super::declaracion::{Acceso, Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
+use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
 use crate::config::Paths;
 use crate::easy_mode;
 use crate::error::{Error, Result};
@@ -10,7 +10,6 @@ use serde_json::Value;
 pub(crate) const TOOL_RESULTADOS: Herramienta = Herramienta {
     nombre: "resultados",
     descripcion: "Resultados: KPIs, CSV, perdidas, mensual, comparacion, medido_vs_simulado, P50/P90, carbono, economia y entregable. / EN: Results: KPIs, CSV, losses, monthly, comparison, measured vs simulated, P50/P90, carbon, economics and deliverable.",
-    acceso: Acceso::Normal,
     anotaciones: Anotaciones {
         titulo: "Resultados / Results",
         es_solo_lectura: false,
@@ -30,20 +29,12 @@ pub(crate) const TOOL_RESULTADOS: Herramienta = Herramienta {
         ("sigma_meteo_pct", TipoDato::Number),
         ("sigma_modelo_pct", TipoDato::Number),
         ("internet", TipoDato::Boolean),
-        ("vida_anios", TipoDato::Number),
-        ("degradacion", TipoDato::Number),
-        ("lce_kgco2_por_kwp", TipoDato::Number),
-        ("capex_por_kwp", TipoDato::Number),
-        ("tarifa_por_kwh", TipoDato::Number),
-        ("opex_anual_por_kwp", TipoDato::Number),
-        ("tasa_descuento", TipoDato::Number),
-        ("anios", TipoDato::Integer),
-        ("moneda", TipoDato::String),
         ("medido_kwh", TipoDato::Array),
         ("medido_csv", TipoDato::String),
         ("umbral_pct", TipoDato::Number),
         ("workspace", TipoDato::String),
         ("permitir_fuera_del_workspace", TipoDato::Boolean),
+        ("via", TipoDato::String),
     ],
     requeridos: &[],
     discriminador: Some(Discriminador {
@@ -63,7 +54,6 @@ pub(crate) const TOOL_RESULTADOS: Herramienta = Herramienta {
         ],
     }),
     requeridos_por_accion: &[
-        ("economia", &["capex_por_kwp", "tarifa_por_kwh"]),
         ("medido_vs_simulado", &["proyecto"]),
     ],
     ejecutar: Ejecutor::Simple(ejecutar_resultados),
