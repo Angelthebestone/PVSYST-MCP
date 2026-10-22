@@ -154,3 +154,36 @@ fn should_expose_click_by_text_restart_and_menu_listing_in_the_gui_tools() {
         .unwrap();
     assert!(observar_que.iter().any(|v| v == "menus"));
 }
+
+#[test]
+fn should_match_manifest_tools_and_declarations() {
+    let manifest_bytes = include_bytes!("../../../../mcpb/manifest.json");
+    let manifest: Value = serde_json::from_slice(manifest_bytes).expect("valid manifest json");
+    let manifest_tools = manifest["tools"].as_array().expect("manifest tools array");
+
+    assert_eq!(
+        manifest_tools.len(),
+        REGISTRO.len(),
+        "manifest tool count must match declaration count"
+    );
+
+    for h in REGISTRO {
+        let m_tool = manifest_tools
+            .iter()
+            .find(|t| t["name"] == h.nombre)
+            .unwrap_or_else(|| panic!("Tool '{}' declared but missing in manifest", h.nombre));
+        assert_eq!(
+            m_tool["description"].as_str().unwrap(),
+            h.descripcion,
+            "Description mismatch in manifest for tool '{}'",
+            h.nombre
+        );
+    }
+
+    let expected_aliases = tabla_alias();
+    assert_eq!(
+        manifest.get("tool_aliases"),
+        Some(&expected_aliases),
+        "mcpb/manifest.json tool_aliases must match tabla_alias()."
+    );
+}

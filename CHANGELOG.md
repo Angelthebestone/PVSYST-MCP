@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Declarative synonyms and unreachable English aliases (§4b.15):** English argument and discriminator value aliases (such as `file`, `new_name`, `template`, `create`, `modules`) were previously rejected by boundary validation before handler execution. Implemented declarative `Sinonimos` in `Herramienta` with canonical normalization in `preparar_args` before validation, explicit conflict rejection on divergent values, listing of admitted values on unknown discriminators, and automatic schema annotation `(alias: ...)`. Removed scattered alias slices from internal `req_str`/`opt_str` calls.
+- **Manifest tool description synchronization (§4b.4):** Synchronized `mcpb/manifest.json` descriptions with canonical tool declarations in `src/server/tools/proyectos.rs` and added an integration unit test ensuring parity.
 
 ### Changed
 
