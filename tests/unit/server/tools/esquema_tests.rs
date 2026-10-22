@@ -179,11 +179,4 @@ fn should_match_manifest_tools_and_declarations() {
             h.nombre
         );
     }
-
-    let expected_aliases = tabla_alias();
-    assert_eq!(
-        manifest.get("tool_aliases"),
-        Some(&expected_aliases),
-        "mcpb/manifest.json tool_aliases must match tabla_alias()."
-    );
 }

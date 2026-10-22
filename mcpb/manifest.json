@@ -1,4 +1,314 @@
 {
+  "_meta": {
+    "pvsyst-mcp": {
+      "tool_aliases": {
+        "componente": {
+          "argumentos": {
+            "action": "accion",
+            "changes": "cambios",
+            "component": "componente",
+            "data": "datos",
+            "destination": "destino",
+            "file": "componente",
+            "new_name": "nombre_nuevo",
+            "source": "origen",
+            "target": "destino",
+            "template": "plantilla",
+            "type": "tipo"
+          },
+          "valores": {
+            "create": "crear",
+            "create_from_datasheet": "crear_desde_ficha",
+            "datasheet": "crear_desde_ficha",
+            "delete": "borrar",
+            "edit": "editar",
+            "export": "exportar",
+            "import": "importar",
+            "remove": "borrar"
+          }
+        },
+        "disenar_sistema": {
+          "argumentos": {
+            "altitude": "altitud",
+            "inverter": "inversor",
+            "latitude": "latitud",
+            "longitude": "longitud",
+            "module": "modulo",
+            "name": "nombre",
+            "overwrite": "sobrescribir",
+            "simulate": "simular",
+            "system_type": "tipo_sistema",
+            "template": "plantilla",
+            "variant": "variante"
+          }
+        },
+        "editar": {
+          "argumentos": {
+            "action": "accion",
+            "edits": "ediciones",
+            "fields": "campos",
+            "file": "archivo",
+            "from": "desde",
+            "object": "objeto",
+            "operation": "operacion",
+            "parent": "padre",
+            "project": "proyecto",
+            "replace": "reemplazar",
+            "type": "tipo",
+            "variant": "variante"
+          },
+          "valores": {
+            "delete_object": "eliminar_objeto",
+            "fields": "campos",
+            "insert_object": "insertar_objeto",
+            "remove_object": "eliminar_objeto"
+          }
+        },
+        "entorno": {
+          "argumentos": {
+            "action": "accion",
+            "destination_folder": "carpeta_destino",
+            "key": "clave",
+            "section": "seccion",
+            "target_folder": "carpeta_destino",
+            "value": "valor"
+          },
+          "valores": {
+            "diagnostic": "diagnostico",
+            "diagnostics": "diagnostico",
+            "export_logs": "exportar_logs",
+            "license": "licencia",
+            "license_activate": "licencia_activar",
+            "license_deactivate": "licencia_desactivar",
+            "license_sync": "licencia_sync",
+            "preferences": "preferencias",
+            "preferences_edit": "preferencias_editar"
+          }
+        },
+        "escribir_archivo": {
+          "argumentos": {
+            "content": "contenido",
+            "file": "archivo"
+          }
+        },
+        "gui_actuar": {
+          "argumentos": {
+            "action": "accion",
+            "class": "clase",
+            "field": "campo",
+            "function": "funcion",
+            "index": "indice",
+            "keys": "teclas",
+            "label": "etiqueta",
+            "message": "mensaje",
+            "name": "nombre",
+            "operation": "operacion",
+            "process": "proceso",
+            "project": "proyecto",
+            "role": "rol",
+            "text": "texto",
+            "title": "titulo",
+            "value": "valor",
+            "window": "ventana"
+          },
+          "valores": {
+            "close_dialog": "cerrar",
+            "fill": "rellenar",
+            "keys": "teclas",
+            "press": "click",
+            "select": "seleccionar",
+            "type": "escribir",
+            "wait": "esperar",
+            "write": "escribir"
+          }
+        },
+        "gui_observar": {
+          "argumentos": {
+            "entity": "entidad",
+            "function": "funcion",
+            "image": "imagen",
+            "lines": "lineas",
+            "path": "ruta",
+            "process": "proceso",
+            "what": "que",
+            "window": "ventana"
+          },
+          "valores": {
+            "capture": "capturar",
+            "controls": "controles",
+            "form": "formulario",
+            "functions": "funciones",
+            "messages": "mensajes",
+            "read": "leer",
+            "schema": "esquema",
+            "tree": "arbol",
+            "view": "vista",
+            "windows": "ventanas"
+          }
+        },
+        "leer": {
+          "argumentos": {
+            "file": "archivo",
+            "flat": "plano",
+            "limit": "limite",
+            "object": "objeto",
+            "series": "serie",
+            "type": "tipo"
+          }
+        },
+        "listar": {
+          "argumentos": {
+            "file": "archivo",
+            "folder": "carpeta",
+            "recursive": "recursivo",
+            "text": "texto",
+            "type": "tipo",
+            "what": "que"
+          },
+          "valores": {
+            "components": "componentes",
+            "files": "archivos",
+            "modules": "modulos",
+            "objects": "objetos",
+            "projects": "proyectos"
+          }
+        },
+        "proyecto": {
+          "argumentos": {
+            "action": "accion",
+            "battery": "bateria",
+            "comment": "comentario",
+            "currency": "moneda",
+            "element": "elemento",
+            "inverter": "inversor",
+            "module": "modulo",
+            "new_name": "nombre_nuevo",
+            "new_variant": "variante_nueva",
+            "overwrite": "sobrescribir",
+            "project": "proyecto",
+            "pump": "bomba",
+            "repair": "reparar",
+            "source_variant": "variante_origen",
+            "strategy": "estrategia",
+            "template": "plantilla",
+            "variant": "variante"
+          },
+          "valores": {
+            "add": "anadir",
+            "add_object": "anadir",
+            "clean_temps": "limpiar_temporales",
+            "clone_variant": "crear_variante",
+            "convert_tracker": "seguidor",
+            "create": "crear",
+            "create_variant": "crear_variante",
+            "delete": "eliminar",
+            "economics": "economia",
+            "economy": "economia",
+            "injection_limit": "limite_inyeccion",
+            "losses": "perdidas",
+            "pumping": "bombeo",
+            "remove": "eliminar",
+            "rename": "renombrar",
+            "size": "dimensionar",
+            "sizing": "dimensionar",
+            "storage": "almacenamiento",
+            "tracker": "seguidor"
+          }
+        },
+        "pvsyst_cli": {
+          "argumentos": {
+            "args": "opciones",
+            "command": "comando",
+            "options": "opciones"
+          }
+        },
+        "resultados": {
+          "argumentos": {
+            "file": "archivo",
+            "project": "proyecto",
+            "variant": "variante",
+            "variants": "variantes",
+            "what": "que"
+          },
+          "valores": {
+            "carbon": "carbono",
+            "compare": "comparar",
+            "deliverable": "entregable",
+            "economics": "economia",
+            "economy": "economia",
+            "losses": "perdidas",
+            "measured_vs_simulated": "medido_vs_simulado",
+            "monthly": "mensual"
+          }
+        },
+        "simular": {
+          "argumentos": {
+            "action": "accion",
+            "job": "trabajo",
+            "latitude": "latitud",
+            "longitude": "longitud",
+            "parameters": "parametros",
+            "project": "proyecto",
+            "rows": "filas",
+            "target": "destino",
+            "variant": "variante"
+          },
+          "valores": {
+            "execute": "ejecutar",
+            "preestimate": "preestimar",
+            "prepare": "preparar",
+            "run": "ejecutar",
+            "status": "estado",
+            "sweep": "barrido"
+          }
+        },
+        "sitio": {
+          "argumentos": {
+            "action": "accion",
+            "altitude": "altitud",
+            "date": "fecha",
+            "file": "archivo",
+            "latitude": "latitud",
+            "longitude": "longitud",
+            "points": "puntos",
+            "project": "proyecto",
+            "site_name": "nombre_sitio",
+            "source": "origen",
+            "title": "titulo",
+            "variant": "variante"
+          },
+          "valores": {
+            "convert_meteo": "convertir_meteo",
+            "create": "crear",
+            "pvgis_horizon": "horizonte_pvgis",
+            "pvgis_meteo": "meteo_pvgis",
+            "solar_geometry": "geometria_solar",
+            "write_horizon": "escribir_horizonte",
+            "write_series": "escribir_serie"
+          }
+        },
+        "workspace": {
+          "argumentos": {
+            "action": "accion",
+            "archive": "zip",
+            "destination": "destino",
+            "overwrite": "sobrescribir",
+            "path": "ruta",
+            "project": "proyecto",
+            "target": "destino"
+          },
+          "valores": {
+            "create": "crear",
+            "export": "exportar",
+            "export_project": "exportar_proyecto",
+            "history": "historial",
+            "import": "importar",
+            "restore": "restaurar"
+          }
+        }
+      }
+    }
+  },
   "author": {
     "email": "penaagamezangeldavid@gmail.com",
     "name": "Angel Peña",
@@ -47,312 +357,6 @@
     "type": "binary"
   },
   "support": "https://github.com/Angelthebestone/PVSYST-MCP/issues",
-  "tool_aliases": {
-    "componente": {
-      "argumentos": {
-        "action": "accion",
-        "changes": "cambios",
-        "component": "componente",
-        "data": "datos",
-        "destination": "destino",
-        "file": "componente",
-        "new_name": "nombre_nuevo",
-        "source": "origen",
-        "target": "destino",
-        "template": "plantilla",
-        "type": "tipo"
-      },
-      "valores": {
-        "create": "crear",
-        "create_from_datasheet": "crear_desde_ficha",
-        "datasheet": "crear_desde_ficha",
-        "delete": "borrar",
-        "edit": "editar",
-        "export": "exportar",
-        "import": "importar",
-        "remove": "borrar"
-      }
-    },
-    "disenar_sistema": {
-      "argumentos": {
-        "altitude": "altitud",
-        "inverter": "inversor",
-        "latitude": "latitud",
-        "longitude": "longitud",
-        "module": "modulo",
-        "name": "nombre",
-        "overwrite": "sobrescribir",
-        "simulate": "simular",
-        "system_type": "tipo_sistema",
-        "template": "plantilla",
-        "variant": "variante"
-      }
-    },
-    "editar": {
-      "argumentos": {
-        "action": "accion",
-        "edits": "ediciones",
-        "fields": "campos",
-        "file": "archivo",
-        "from": "desde",
-        "object": "objeto",
-        "operation": "operacion",
-        "parent": "padre",
-        "project": "proyecto",
-        "replace": "reemplazar",
-        "type": "tipo",
-        "variant": "variante"
-      },
-      "valores": {
-        "delete_object": "eliminar_objeto",
-        "fields": "campos",
-        "insert_object": "insertar_objeto",
-        "remove_object": "eliminar_objeto"
-      }
-    },
-    "entorno": {
-      "argumentos": {
-        "action": "accion",
-        "destination_folder": "carpeta_destino",
-        "key": "clave",
-        "section": "seccion",
-        "target_folder": "carpeta_destino",
-        "value": "valor"
-      },
-      "valores": {
-        "diagnostic": "diagnostico",
-        "diagnostics": "diagnostico",
-        "export_logs": "exportar_logs",
-        "license": "licencia",
-        "license_activate": "licencia_activar",
-        "license_deactivate": "licencia_desactivar",
-        "license_sync": "licencia_sync",
-        "preferences": "preferencias",
-        "preferences_edit": "preferencias_editar"
-      }
-    },
-    "escribir_archivo": {
-      "argumentos": {
-        "content": "contenido",
-        "file": "archivo"
-      }
-    },
-    "gui_actuar": {
-      "argumentos": {
-        "action": "accion",
-        "class": "clase",
-        "field": "campo",
-        "function": "funcion",
-        "index": "indice",
-        "keys": "teclas",
-        "label": "etiqueta",
-        "message": "mensaje",
-        "name": "nombre",
-        "operation": "operacion",
-        "process": "proceso",
-        "project": "proyecto",
-        "role": "rol",
-        "text": "texto",
-        "title": "titulo",
-        "value": "valor",
-        "window": "ventana"
-      },
-      "valores": {
-        "close_dialog": "cerrar",
-        "fill": "rellenar",
-        "keys": "teclas",
-        "press": "click",
-        "select": "seleccionar",
-        "type": "escribir",
-        "wait": "esperar",
-        "write": "escribir"
-      }
-    },
-    "gui_observar": {
-      "argumentos": {
-        "entity": "entidad",
-        "function": "funcion",
-        "image": "imagen",
-        "lines": "lineas",
-        "path": "ruta",
-        "process": "proceso",
-        "what": "que",
-        "window": "ventana"
-      },
-      "valores": {
-        "capture": "capturar",
-        "controls": "controles",
-        "form": "formulario",
-        "functions": "funciones",
-        "messages": "mensajes",
-        "read": "leer",
-        "schema": "esquema",
-        "tree": "arbol",
-        "view": "vista",
-        "windows": "ventanas"
-      }
-    },
-    "leer": {
-      "argumentos": {
-        "file": "archivo",
-        "flat": "plano",
-        "limit": "limite",
-        "object": "objeto",
-        "series": "serie",
-        "type": "tipo"
-      }
-    },
-    "listar": {
-      "argumentos": {
-        "file": "archivo",
-        "folder": "carpeta",
-        "recursive": "recursivo",
-        "text": "texto",
-        "type": "tipo",
-        "what": "que"
-      },
-      "valores": {
-        "components": "componentes",
-        "files": "archivos",
-        "modules": "modulos",
-        "objects": "objetos",
-        "projects": "proyectos"
-      }
-    },
-    "proyecto": {
-      "argumentos": {
-        "action": "accion",
-        "battery": "bateria",
-        "comment": "comentario",
-        "currency": "moneda",
-        "element": "elemento",
-        "inverter": "inversor",
-        "module": "modulo",
-        "new_name": "nombre_nuevo",
-        "new_variant": "variante_nueva",
-        "overwrite": "sobrescribir",
-        "project": "proyecto",
-        "pump": "bomba",
-        "repair": "reparar",
-        "source_variant": "variante_origen",
-        "strategy": "estrategia",
-        "template": "plantilla",
-        "variant": "variante"
-      },
-      "valores": {
-        "add": "anadir",
-        "add_object": "anadir",
-        "clean_temps": "limpiar_temporales",
-        "clone_variant": "crear_variante",
-        "convert_tracker": "seguidor",
-        "create": "crear",
-        "create_variant": "crear_variante",
-        "delete": "eliminar",
-        "economics": "economia",
-        "economy": "economia",
-        "injection_limit": "limite_inyeccion",
-        "losses": "perdidas",
-        "pumping": "bombeo",
-        "remove": "eliminar",
-        "rename": "renombrar",
-        "size": "dimensionar",
-        "sizing": "dimensionar",
-        "storage": "almacenamiento",
-        "tracker": "seguidor"
-      }
-    },
-    "pvsyst_cli": {
-      "argumentos": {
-        "args": "opciones",
-        "command": "comando",
-        "options": "opciones"
-      }
-    },
-    "resultados": {
-      "argumentos": {
-        "file": "archivo",
-        "project": "proyecto",
-        "variant": "variante",
-        "variants": "variantes",
-        "what": "que"
-      },
-      "valores": {
-        "carbon": "carbono",
-        "compare": "comparar",
-        "deliverable": "entregable",
-        "economics": "economia",
-        "economy": "economia",
-        "losses": "perdidas",
-        "measured_vs_simulated": "medido_vs_simulado",
-        "monthly": "mensual"
-      }
-    },
-    "simular": {
-      "argumentos": {
-        "action": "accion",
-        "job": "trabajo",
-        "latitude": "latitud",
-        "longitude": "longitud",
-        "parameters": "parametros",
-        "project": "proyecto",
-        "rows": "filas",
-        "target": "destino",
-        "variant": "variante"
-      },
-      "valores": {
-        "execute": "ejecutar",
-        "preestimate": "preestimar",
-        "prepare": "preparar",
-        "run": "ejecutar",
-        "status": "estado",
-        "sweep": "barrido"
-      }
-    },
-    "sitio": {
-      "argumentos": {
-        "action": "accion",
-        "altitude": "altitud",
-        "date": "fecha",
-        "file": "archivo",
-        "latitude": "latitud",
-        "longitude": "longitud",
-        "points": "puntos",
-        "project": "proyecto",
-        "site_name": "nombre_sitio",
-        "source": "origen",
-        "title": "titulo",
-        "variant": "variante"
-      },
-      "valores": {
-        "convert_meteo": "convertir_meteo",
-        "create": "crear",
-        "pvgis_horizon": "horizonte_pvgis",
-        "pvgis_meteo": "meteo_pvgis",
-        "solar_geometry": "geometria_solar",
-        "write_horizon": "escribir_horizonte",
-        "write_series": "escribir_serie"
-      }
-    },
-    "workspace": {
-      "argumentos": {
-        "action": "accion",
-        "archive": "zip",
-        "destination": "destino",
-        "overwrite": "sobrescribir",
-        "path": "ruta",
-        "project": "proyecto",
-        "target": "destino"
-      },
-      "valores": {
-        "create": "crear",
-        "export": "exportar",
-        "export_project": "exportar_proyecto",
-        "history": "historial",
-        "import": "importar",
-        "restore": "restaurar"
-      }
-    }
-  },
   "tools": [
     {
       "description": "Entorno PVsyst: diagnostico, licencia, logs y preferencias. / EN: PVsyst environment: diagnostics, licence, logs and preferences.",

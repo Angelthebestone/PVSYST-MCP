@@ -173,8 +173,8 @@ fn should_have_synchronized_alias_blocks_in_readmes_and_manifest() {
     let manifest: Value = serde_json::from_slice(manifest_bytes).expect("valid manifest json");
     let expected_aliases = tabla_alias();
     assert_eq!(
-        manifest.get("tool_aliases"),
+        manifest.pointer("/_meta/pvsyst-mcp/tool_aliases"),
         Some(&expected_aliases),
-        "mcpb/manifest.json tool_aliases does not match tabla_alias(). Regenerate manifest tool_aliases."
+        "mcpb/manifest.json _meta.pvsyst-mcp.tool_aliases does not match tabla_alias(). Regenerate it."
     );
 }
