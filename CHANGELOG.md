@@ -7,7 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Declarative synonyms and unreachable English aliases (§4b.15):** English argument and discriminator value aliases (such as `file`, `new_name`, `template`, `create`, `modules`) were previously rejected by boundary validation before handler execution. Implemented declarative `Sinonimos` in `Herramienta` with canonical normalization in `preparar_args` before validation, explicit conflict rejection on divergent values, listing of admitted values on unknown discriminators, and automatic schema annotation `(alias: ...)`. Removed scattered alias slices from internal `req_str`/`opt_str` calls.
+
 ### Changed
+
+- **Refactored `src/server/tools`:** Reduced excessive nesting, extracted helpers, streamlined `recorte.rs` and `simulacion.rs` parameter lists to satisfy strict clippy thresholds, and partitioned `tests/unit/server/tools/tests.rs` into four concept-focused modules (<300 lines each).
 
 - **Agent view of forms.** `gui_observar que:esquema` lists the forms PVsyst
   exposes by stable key (today `components.panels`, the PV module window's

@@ -75,8 +75,8 @@ fn resolver_datos_proyecto(
     workspace: &Path,
     args: &Value,
 ) -> Result<(std::path::PathBuf, String, String, std::path::PathBuf)> {
-    let proyecto = req_str(args, &["proyecto", "project"], "")?;
-    let variante = opt_str(args, &["variante", "variant"]).unwrap_or("VC0");
+    let proyecto = req_str(args, &["proyecto"], "")?;
+    let variante = opt_str(args, &["variante"]).unwrap_or("VC0");
     let variante_up = variante.to_ascii_uppercase();
     let prj_path = crate::projects::resolve_project_file(workspace, proyecto)?;
     let stem = prj_path
@@ -122,8 +122,8 @@ pub(crate) fn lanzar_simulacion_seguida(
         "project": stem,
         "variant": variante_up,
         "workspace": workspace.to_string_lossy(),
-        "output_csv": opt_str(args, &["output_csv", "csv"]),
-        "report_pdf": opt_str(args, &["report_pdf", "pdf"]),
+        "output_csv": opt_str(args, &["output_csv"]),
+        "report_pdf": opt_str(args, &["report_pdf"]),
     });
     if flag(args, &["segundo_plano"]) {
         return ejecucion::lanzar_en_segundo_plano(paths, args, &workspace, &cli_args, contexto);

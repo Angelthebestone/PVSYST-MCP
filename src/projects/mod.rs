@@ -166,7 +166,7 @@ pub(crate) fn listar_proyectos(paths: &Paths, args: &Value) -> Result<Value> {
 /// Read a .PRJ or .VCi file and return its parsed object tree plus key fields.
 pub(crate) fn leer_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
-    let name = req_str(args, &["proyecto", "project"], "")?;
+    let name = req_str(args, &["proyecto"], "")?;
     let alcance = Alcance::de_args(args);
     let path = resolve_project_file_con_alcance(&workspace, name, alcance)?;
     let text = fs::read_to_string(&path)

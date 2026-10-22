@@ -1,6 +1,6 @@
 //! Tool for project lifecycle: creation, sizing, variants, diagnostics and cleanup.
 
-use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
+use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, Sinonimos, TipoDato};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::projects::{self, lifecycle};
@@ -104,7 +104,51 @@ pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
         ("economia", &["proyecto"]),
         ("p50_p90", &["proyecto"]),
     ],
+    sinonimos: SINONIMOS_PROYECTO,
     ejecutar: Ejecutor::Simple(ejecutar_proyecto),
+};
+
+const SINONIMOS_PROYECTO: Sinonimos = Sinonimos {
+    argumentos: &[
+        ("action", "accion"),
+        ("project", "proyecto"),
+        ("template", "plantilla"),
+        ("new_name", "nombre_nuevo"),
+        ("variant", "variante"),
+        ("source_variant", "variante_origen"),
+        ("new_variant", "variante_nueva"),
+        ("module", "modulo"),
+        ("inverter", "inversor"),
+        ("comment", "comentario"),
+        ("overwrite", "sobrescribir"),
+        ("repair", "reparar"),
+        ("element", "elemento"),
+        ("strategy", "estrategia"),
+        ("battery", "bateria"),
+        ("pump", "bomba"),
+        ("currency", "moneda"),
+    ],
+    valores: &[
+        ("create", "crear"),
+        ("delete", "eliminar"),
+        ("remove", "eliminar"),
+        ("rename", "renombrar"),
+        ("create_variant", "crear_variante"),
+        ("clone_variant", "crear_variante"),
+        ("size", "dimensionar"),
+        ("sizing", "dimensionar"),
+        ("add", "anadir"),
+        ("add_object", "anadir"),
+        ("tracker", "seguidor"),
+        ("convert_tracker", "seguidor"),
+        ("injection_limit", "limite_inyeccion"),
+        ("storage", "almacenamiento"),
+        ("losses", "perdidas"),
+        ("pumping", "bombeo"),
+        ("economics", "economia"),
+        ("economy", "economia"),
+        ("clean_temps", "limpiar_temporales"),
+    ],
 };
 
 fn ejecutar_proyecto(paths: &Paths, args: &Value) -> Result<Value> {

@@ -14,7 +14,7 @@ use std::fs;
 /// Root nodes to return: the whole tree, or just the object named by `objeto`
 /// (same selector as editar_objeto; a .VCi is ~1.5 MB, so the full tree is ~15k tokens).
 fn raices_a_leer(args: &Value, bytes: &[u8], text: &str) -> Result<Vec<object::PvNode>> {
-    let Some(sel) = opt_str(args, &["objeto", "object"]) else {
+    let Some(sel) = opt_str(args, &["objeto"]) else {
         return Ok(object::parse(text));
     };
     let spans = edit::spans_of(bytes);

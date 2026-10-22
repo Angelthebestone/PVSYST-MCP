@@ -103,6 +103,18 @@ pub(crate) struct Anotaciones {
     pub(crate) usa_red: bool,
 }
 
+/// Declarative synonyms for tool arguments and multi-action discriminator values.
+pub(crate) struct Sinonimos {
+    pub(crate) argumentos: &'static [(&'static str, &'static str)],
+    pub(crate) valores: &'static [(&'static str, &'static str)],
+}
+
+#[allow(dead_code)]
+pub(crate) const SINONIMOS_VACIOS: Sinonimos = Sinonimos {
+    argumentos: &[],
+    valores: &[],
+};
+
 /// A consolidated MCP tool declaration coupling schema, validation, and handler.
 pub(crate) struct Herramienta {
     pub(crate) nombre: &'static str,
@@ -112,13 +124,13 @@ pub(crate) struct Herramienta {
     pub(crate) requeridos: &'static [&'static str],
     pub(crate) discriminador: Option<Discriminador>,
     pub(crate) requeridos_por_accion: &'static [(&'static str, &'static [&'static str])],
+    pub(crate) sinonimos: Sinonimos,
     pub(crate) ejecutar: Ejecutor,
 }
 
 impl Herramienta {
     /// Builds the MCP tool schema exposed to clients in `tools/list`.
     pub(crate) fn esquema(&self) -> Value {
-        // No `outputSchema`: one tool returns different shapes per action.
         let mut props = Map::new();
         let mut req: Vec<&str> = self.requeridos.to_vec();
 
@@ -126,11 +138,13 @@ impl Herramienta {
             let mut prop_val = tipo.esquema_json();
             anotar_workspace_si_aplica(&mut prop_val, clave);
             super::restricciones_esquema::anotar_restricciones(&mut prop_val, clave);
+            self.anotar_alias_propiedad(&mut prop_val, clave);
             props.insert(clave.to_string(), prop_val);
         }
 
         if let Some(disc) = &self.discriminador {
-            let prop = construir_prop_discriminador(disc, &mut req);
+            let mut prop = construir_prop_discriminador(disc, &mut req);
+            self.anotar_alias_discriminador(&mut prop, disc);
             props.insert(disc.campo.to_string(), prop);
         }
 
@@ -157,6 +171,71 @@ impl Herramienta {
             }
         })
     }
+
+    fn anotar_alias_propiedad(&self, prop_val: &mut Value, clave: &str) {
+        let aliases: Vec<&str> = self
+            .sinonimos
+            .argumentos
+            .iter()
+            .filter(|(_, can)| *can == clave)
+            .map(|(ali, _)| *ali)
+            .collect();
+        if aliases.is_empty() {
+            return;
+        }
+        let Some(obj) = prop_val.as_object_mut() else {
+            return;
+        };
+        let alias_str = format!("(alias: {})", aliases.join(", "));
+        let desc = match obj.get("description").and_then(Value::as_str) {
+            Some(prev) => format!("{prev} {alias_str}"),
+            None => format!("{clave} {alias_str}"),
+        };
+        obj.insert("description".to_string(), json!(desc));
+    }
+
+    fn anotar_alias_discriminador(&self, prop: &mut Value, disc: &Discriminador) {
+        let Some(obj) = prop.as_object_mut() else {
+            return;
+        };
+        let valores_desc: Vec<String> = disc
+            .valores
+            .iter()
+            .map(|val| formatear_valor_con_aliases(val, &self.sinonimos))
+            .collect();
+        let valores_texto = valores_desc.join(", ");
+
+        let arg_aliases: Vec<&str> = self
+            .sinonimos
+            .argumentos
+            .iter()
+            .filter(|(_, can)| *can == disc.campo)
+            .map(|(ali, _)| *ali)
+            .collect();
+
+        let desc = if arg_aliases.is_empty() {
+            format!("Valores: {valores_texto}")
+        } else {
+            format!(
+                "{} (alias: {}). Valores: {valores_texto}",
+                disc.campo,
+                arg_aliases.join(", ")
+            )
+        };
+        obj.insert("description".to_string(), json!(desc));
+    }
+}
+
+/// Produces a copy of `args` with the given key/value set.
+pub(crate) fn con(args: &Value, clave: &str, valor: Value) -> Value {
+    let mut copia = match args {
+        Value::Object(m) => Value::Object(m.clone()),
+        _ => Value::Object(Map::new()),
+    };
+    if let Some(m) = copia.as_object_mut() {
+        m.insert(clave.to_string(), valor);
+    }
+    copia
 }
 
 fn anotar_workspace_si_aplica(prop_val: &mut Value, clave: &str) {
@@ -184,14 +263,16 @@ fn construir_prop_discriminador(disc: &Discriminador, req: &mut Vec<&str>) -> Va
     prop
 }
 
-/// Produces a copy of `args` with the given key/value set.
-pub(crate) fn con(args: &Value, clave: &str, valor: Value) -> Value {
-    let mut copia = match args {
-        Value::Object(m) => Value::Object(m.clone()),
-        _ => Value::Object(Map::new()),
-    };
-    if let Some(m) = copia.as_object_mut() {
-        m.insert(clave.to_string(), valor);
+fn formatear_valor_con_aliases(val: &str, sinonimos: &Sinonimos) -> String {
+    let aliases: Vec<&str> = sinonimos
+        .valores
+        .iter()
+        .filter(|(_, can)| *can == val)
+        .map(|(ali, _)| *ali)
+        .collect();
+    if aliases.is_empty() {
+        val.to_string()
+    } else {
+        format!("{val} (alias: {})", aliases.join(", "))
     }
-    copia
 }

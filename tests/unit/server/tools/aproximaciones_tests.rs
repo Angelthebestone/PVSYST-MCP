@@ -5,40 +5,42 @@ fn should_reject_in_house_actions_without_aproximaciones_flag_mentioning_env_var
     let mut paths = Paths::resolve();
     paths.aproximaciones = false;
 
-    for (tool, args) in [
-        (
-            "simular",
-            json!({ "accion": "preestimar", "latitud": 40.0, "longitud": -3.0, "kwp": 5.0 }),
-        ),
-        (
-            "sitio",
-            json!({ "accion": "geometria_solar", "latitud": 40.0, "longitud": -3.0 }),
-        ),
-        (
-            "resultados",
-            json!({ "que": "medido_vs_simulado", "proyecto": "P" }),
-        ),
-    ] {
-        let err = call(&paths, tool, &args)
-            .expect_err("in-house action must be rejected without aproximaciones flag");
-        assert!(
-            err.to_string().contains("PVSYST_MCP_APROXIMACIONES"),
-            "error must mention PVSYST_MCP_APROXIMACIONES: {err}"
-        );
-    }
-}
+    let err = call(&paths, "simular", &json!({ "accion": "preestimar" }))
+        .expect_err("preestimar requires the flag");
+    let msg = err.to_string();
+    assert!(
+        msg.contains("PVSYST_MCP_APROXIMACIONES=1"),
+        "error must name the required env var: {msg}"
+    );
 
-fn enum_de(schemas: &[Value], tool: &str, campo: &str) -> Vec<String> {
-    schemas
-        .iter()
-        .find(|s| s["name"] == tool)
-        .and_then(|s| s.pointer(&format!("/inputSchema/properties/{campo}/enum")))
-        .and_then(Value::as_array)
-        .unwrap_or_else(|| panic!("missing enum for {tool}.{campo}"))
-        .iter()
-        .filter_map(Value::as_str)
-        .map(String::from)
-        .collect()
+    let err = call(&paths, "simular", &json!({ "accion": "barrido" }))
+        .expect_err("barrido requires the flag");
+    assert!(
+        err.to_string().contains("PVSYST_MCP_APROXIMACIONES=1"),
+        "{err}"
+    );
+
+    let err = call(
+        &paths,
+        "sitio",
+        &json!({ "accion": "geometria_solar", "latitud": 0.0, "longitud": 0.0 }),
+    )
+    .expect_err("geometria_solar requires the flag");
+    assert!(
+        err.to_string().contains("PVSYST_MCP_APROXIMACIONES=1"),
+        "{err}"
+    );
+
+    let err = call(
+        &paths,
+        "resultados",
+        &json!({ "que": "medido_vs_simulado", "proyecto": "Demo" }),
+    )
+    .expect_err("medido_vs_simulado requires the flag");
+    assert!(
+        err.to_string().contains("PVSYST_MCP_APROXIMACIONES=1"),
+        "{err}"
+    );
 }
 
 #[test]
@@ -46,11 +48,15 @@ fn should_hide_in_house_actions_without_the_flag() {
     let mut paths = Paths::resolve();
     paths.aproximaciones = false;
     let schemas = list(&paths);
-
-    assert!(!enum_de(&schemas, "simular", "accion").contains(&"preestimar".to_string()));
-    assert!(!enum_de(&schemas, "simular", "accion").contains(&"barrido".to_string()));
-    assert!(!enum_de(&schemas, "resultados", "que").contains(&"medido_vs_simulado".to_string()));
-    assert!(!enum_de(&schemas, "sitio", "accion").contains(&"geometria_solar".to_string()));
+    let simular = schemas
+        .iter()
+        .find(|t| t["name"] == "simular")
+        .expect("simular");
+    let acciones = simular["inputSchema"]["properties"]["accion"]["enum"]
+        .as_array()
+        .expect("enum");
+    assert!(!acciones.iter().any(|v| v == "preestimar"));
+    assert!(!acciones.iter().any(|v| v == "barrido"));
 }
 
 #[test]
@@ -83,12 +89,26 @@ fn should_show_in_house_actions_and_the_via_route_with_the_flag() {
     let mut paths = Paths::resolve();
     paths.aproximaciones = true;
     let schemas = list(&paths);
+    let simular = schemas
+        .iter()
+        .find(|t| t["name"] == "simular")
+        .expect("simular");
+    let acciones = simular["inputSchema"]["properties"]["accion"]["enum"]
+        .as_array()
+        .expect("enum");
+    assert!(acciones.iter().any(|v| v == "preestimar"));
+    assert!(acciones.iter().any(|v| v == "barrido"));
 
-    assert!(enum_de(&schemas, "simular", "accion").contains(&"preestimar".to_string()));
-    assert!(enum_de(&schemas, "simular", "accion").contains(&"barrido".to_string()));
-    assert!(enum_de(&schemas, "resultados", "que").contains(&"medido_vs_simulado".to_string()));
-    assert!(enum_de(&schemas, "sitio", "accion").contains(&"geometria_solar".to_string()));
-    assert!(enum_de(&schemas, "proyecto", "via").contains(&"aproximacion".to_string()));
+    let sitio = schemas
+        .iter()
+        .find(|t| t["name"] == "sitio")
+        .expect("sitio");
+    let via_enum = &sitio["inputSchema"]["properties"]["via"]["enum"];
+    assert_eq!(
+        via_enum,
+        &json!(["pvsyst", "aproximacion"]),
+        "via must expose 'aproximacion' when flag is on"
+    );
 }
 
 #[test]

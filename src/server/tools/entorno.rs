@@ -1,6 +1,8 @@
 //! Tools for environment diagnostics, licences, logs, preferences and E2E design.
 
-use super::declaracion::{con, Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
+use super::declaracion::{
+    con, Anotaciones, Discriminador, Ejecutor, Herramienta, Sinonimos, TipoDato,
+};
 use crate::adapters::gui;
 use crate::admin;
 use crate::config::Paths;
@@ -46,7 +48,30 @@ pub(crate) const TOOL_ENTORNO: Herramienta = Herramienta {
         ],
     }),
     requeridos_por_accion: &[("preferencias_editar", &["seccion", "clave", "valor"])],
+    sinonimos: SINONIMOS_ENTORNO,
     ejecutar: Ejecutor::Simple(ejecutar_entorno),
+};
+
+const SINONIMOS_ENTORNO: Sinonimos = Sinonimos {
+    argumentos: &[
+        ("action", "accion"),
+        ("section", "seccion"),
+        ("key", "clave"),
+        ("value", "valor"),
+        ("target_folder", "carpeta_destino"),
+        ("destination_folder", "carpeta_destino"),
+    ],
+    valores: &[
+        ("diagnostic", "diagnostico"),
+        ("diagnostics", "diagnostico"),
+        ("license", "licencia"),
+        ("license_sync", "licencia_sync"),
+        ("license_activate", "licencia_activar"),
+        ("license_deactivate", "licencia_desactivar"),
+        ("export_logs", "exportar_logs"),
+        ("preferences", "preferencias"),
+        ("preferences_edit", "preferencias_editar"),
+    ],
 };
 
 pub(crate) const TOOL_DISENAR_SISTEMA: Herramienta = Herramienta {
@@ -93,7 +118,25 @@ pub(crate) const TOOL_DISENAR_SISTEMA: Herramienta = Herramienta {
     requeridos: &["latitud", "longitud", "kwp"],
     discriminador: None,
     requeridos_por_accion: &[],
+    sinonimos: SINONIMOS_DISENAR_SISTEMA,
     ejecutar: Ejecutor::Simple(ejecutar_disenar_sistema),
+};
+
+const SINONIMOS_DISENAR_SISTEMA: Sinonimos = Sinonimos {
+    argumentos: &[
+        ("latitude", "latitud"),
+        ("longitude", "longitud"),
+        ("system_type", "tipo_sistema"),
+        ("variant", "variante"),
+        ("name", "nombre"),
+        ("template", "plantilla"),
+        ("module", "modulo"),
+        ("inverter", "inversor"),
+        ("altitude", "altitud"),
+        ("simulate", "simular"),
+        ("overwrite", "sobrescribir"),
+    ],
+    valores: &[],
 };
 
 fn ejecutar_entorno(paths: &Paths, args: &Value) -> Result<Value> {

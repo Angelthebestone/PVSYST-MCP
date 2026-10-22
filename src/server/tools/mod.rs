@@ -6,7 +6,7 @@ use crate::error::{Error, Result};
 
 use crate::progreso::SeguimientoTarea;
 use declaracion::Ejecutor;
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::time::Instant;
 
 mod aproximadas;
@@ -69,6 +69,13 @@ pub(crate) fn list(paths: &Paths) -> Vec<Value> {
         .collect()
 }
 
+fn filtrar_aproximaciones(h: &Herramienta, esquema: &mut Value) {
+    if let Some(disc) = &h.discriminador {
+        aproximadas::ocultar(h.nombre, disc.campo, esquema);
+    }
+    aproximadas::ocultar_via(esquema);
+}
+
 /// One tool invocation: registry lookup, validated arguments and progress channel.
 pub(crate) struct Solicitud<'a> {
     pub(crate) paths: &'a Paths,
@@ -92,9 +99,19 @@ pub(crate) fn call_seguido(solicitud: &Solicitud<'_>) -> Result<Value> {
     }
 
     let t0 = Instant::now();
-    let accion = h.validar(args)?;
-    aproximadas::exigir(paths, name, &accion)?;
-    let args_efectivos = h.preparar_args(args, &accion);
+    let args_efectivos = h.preparar_args(args)?;
+    let accion_candidata = h
+        .discriminador
+        .as_ref()
+        .and_then(|disc| {
+            args_efectivos
+                .get(disc.campo)
+                .and_then(Value::as_str)
+                .or(disc.defecto)
+        })
+        .unwrap_or_default();
+    aproximadas::exigir(paths, name, accion_candidata)?;
+    let accion = h.validar(&args_efectivos)?;
     let mut v = match h.ejecutar {
         Ejecutor::Simple(ejecutar) => ejecutar(paths, &args_efectivos)?,
         Ejecutor::Seguido(ejecutar) => ejecutar(paths, &args_efectivos, seguimiento)?,
@@ -116,9 +133,74 @@ pub(crate) fn call_seguido(solicitud: &Solicitud<'_>) -> Result<Value> {
     Ok(v)
 }
 
-fn filtrar_aproximaciones(h: &Herramienta, esquema: &mut Value) {
-    if let Some(disc) = &h.discriminador {
-        aproximadas::ocultar(h.nombre, disc.campo, esquema);
+/// Returns the declarative map of synonyms (argument and value aliases) for every tool.
+pub(crate) fn tabla_alias() -> Value {
+    let mut mapa = serde_json::Map::new();
+    for h in REGISTRO {
+        if h.sinonimos.argumentos.is_empty() && h.sinonimos.valores.is_empty() {
+            continue;
+        }
+        let mut tool_obj = serde_json::Map::new();
+        if !h.sinonimos.argumentos.is_empty() {
+            tool_obj.insert(
+                "argumentos".to_string(),
+                pares_a_objeto(h.sinonimos.argumentos),
+            );
+        }
+        if !h.sinonimos.valores.is_empty() {
+            tool_obj.insert("valores".to_string(), pares_a_objeto(h.sinonimos.valores));
+        }
+        mapa.insert(h.nombre.to_string(), Value::Object(tool_obj));
     }
-    aproximadas::ocultar_via(esquema);
+    Value::Object(mapa)
+}
+
+fn pares_a_objeto(pares: &[(&str, &str)]) -> Value {
+    let mut obj = serde_json::Map::new();
+    for &(alias, canonico) in pares {
+        obj.insert(alias.to_string(), json!(canonico));
+    }
+    Value::Object(obj)
+}
+
+#[cfg(test)]
+pub(crate) fn generar_bloque_alias_markdown() -> String {
+    let mut out = String::from("<!-- alias:inicio -->\n| Herramienta / Tool | Argumentos (alias → canónico) | Valores (alias → canónico) |\n|---|---|---|\n");
+    for h in REGISTRO {
+        if h.sinonimos.argumentos.is_empty() && h.sinonimos.valores.is_empty() {
+            continue;
+        }
+        let args_str = if h.sinonimos.argumentos.is_empty() {
+            "—".to_string()
+        } else {
+            let mut items: Vec<String> = h
+                .sinonimos
+                .argumentos
+                .iter()
+                .map(|(a, c)| format!("`{a}` → `{c}`"))
+                .collect();
+            items.sort();
+            items.join(", ")
+        };
+
+        let vals_str = if h.sinonimos.valores.is_empty() {
+            "—".to_string()
+        } else {
+            let mut items: Vec<String> = h
+                .sinonimos
+                .valores
+                .iter()
+                .map(|(a, c)| format!("`{a}` → `{c}`"))
+                .collect();
+            items.sort();
+            items.join(", ")
+        };
+
+        out.push_str(&format!(
+            "| `{}` | {} | {} |\n",
+            h.nombre, args_str, vals_str
+        ));
+    }
+    out.push_str("<!-- alias:fin -->");
+    out
 }

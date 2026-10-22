@@ -1,6 +1,6 @@
 //! Tools for workspace operations, file reading/writing, editing and listing.
 
-use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
+use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, Sinonimos, TipoDato};
 use super::workspace_ejecucion::{
     ejecutar_editar, ejecutar_escribir_archivo, ejecutar_leer, ejecutar_listar, ejecutar_workspace,
 };
@@ -40,7 +40,28 @@ pub(crate) const TOOL_WORKSPACE: Herramienta = Herramienta {
         ],
     }),
     requeridos_por_accion: &[("restaurar", &["id"])],
+    sinonimos: SINONIMOS_WORKSPACE,
     ejecutar: Ejecutor::Simple(ejecutar_workspace),
+};
+
+const SINONIMOS_WORKSPACE: Sinonimos = Sinonimos {
+    argumentos: &[
+        ("action", "accion"),
+        ("path", "ruta"),
+        ("overwrite", "sobrescribir"),
+        ("target", "destino"),
+        ("destination", "destino"),
+        ("archive", "zip"),
+        ("project", "proyecto"),
+    ],
+    valores: &[
+        ("create", "crear"),
+        ("export", "exportar"),
+        ("import", "importar"),
+        ("export_project", "exportar_proyecto"),
+        ("history", "historial"),
+        ("restore", "restaurar"),
+    ],
 };
 
 pub(crate) const TOOL_ESCRIBIR_ARCHIVO: Herramienta = Herramienta {
@@ -63,7 +84,13 @@ pub(crate) const TOOL_ESCRIBIR_ARCHIVO: Herramienta = Herramienta {
     requeridos: &["archivo", "contenido"],
     discriminador: None,
     requeridos_por_accion: &[],
+    sinonimos: SINONIMOS_ESCRIBIR_ARCHIVO,
     ejecutar: Ejecutor::Simple(ejecutar_escribir_archivo),
+};
+
+const SINONIMOS_ESCRIBIR_ARCHIVO: Sinonimos = Sinonimos {
+    argumentos: &[("file", "archivo"), ("content", "contenido")],
+    valores: &[],
 };
 
 pub(crate) const TOOL_LEER: Herramienta = Herramienta {
@@ -92,7 +119,20 @@ pub(crate) const TOOL_LEER: Herramienta = Herramienta {
     requeridos: &["archivo"],
     discriminador: None,
     requeridos_por_accion: &[],
+    sinonimos: SINONIMOS_LEER,
     ejecutar: Ejecutor::Simple(ejecutar_leer),
+};
+
+const SINONIMOS_LEER: Sinonimos = Sinonimos {
+    argumentos: &[
+        ("file", "archivo"),
+        ("object", "objeto"),
+        ("flat", "plano"),
+        ("type", "tipo"),
+        ("series", "serie"),
+        ("limit", "limite"),
+    ],
+    valores: &[],
 };
 
 pub(crate) const TOOL_EDITAR: Herramienta = Herramienta {
@@ -132,7 +172,31 @@ pub(crate) const TOOL_EDITAR: Herramienta = Herramienta {
         ("insertar_objeto", &["archivo", "padre", "desde"]),
         ("eliminar_objeto", &["archivo", "objeto"]),
     ],
+    sinonimos: SINONIMOS_EDITAR,
     ejecutar: Ejecutor::Simple(ejecutar_editar),
+};
+
+const SINONIMOS_EDITAR: Sinonimos = Sinonimos {
+    argumentos: &[
+        ("action", "accion"),
+        ("file", "archivo"),
+        ("type", "tipo"),
+        ("object", "objeto"),
+        ("fields", "campos"),
+        ("edits", "ediciones"),
+        ("project", "proyecto"),
+        ("variant", "variante"),
+        ("parent", "padre"),
+        ("from", "desde"),
+        ("replace", "reemplazar"),
+        ("operation", "operacion"),
+    ],
+    valores: &[
+        ("fields", "campos"),
+        ("insert_object", "insertar_objeto"),
+        ("delete_object", "eliminar_objeto"),
+        ("remove_object", "eliminar_objeto"),
+    ],
 };
 
 pub(crate) const TOOL_LISTAR: Herramienta = Herramienta {
@@ -165,5 +229,24 @@ pub(crate) const TOOL_LISTAR: Herramienta = Herramienta {
         valores: &["proyectos", "componentes", "modulos", "archivos", "objetos"],
     }),
     requeridos_por_accion: &[("componentes", &["tipo"]), ("objetos", &["archivo"])],
+    sinonimos: SINONIMOS_LISTAR,
     ejecutar: Ejecutor::Simple(ejecutar_listar),
+};
+
+const SINONIMOS_LISTAR: Sinonimos = Sinonimos {
+    argumentos: &[
+        ("what", "que"),
+        ("type", "tipo"),
+        ("text", "texto"),
+        ("folder", "carpeta"),
+        ("file", "archivo"),
+        ("recursive", "recursivo"),
+    ],
+    valores: &[
+        ("projects", "proyectos"),
+        ("components", "componentes"),
+        ("modules", "modulos"),
+        ("files", "archivos"),
+        ("objects", "objetos"),
+    ],
 };

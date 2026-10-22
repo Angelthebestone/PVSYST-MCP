@@ -105,7 +105,7 @@ fn leer_bytes_acotado(p: &Path, limite: u64) -> Result<Vec<u8>> {
 }
 
 fn resolver_archivo(paths: &Paths, args: &Value, modo: ModoResolucion) -> Result<PathBuf> {
-    let nombre = req_str(args, &["archivo", "file", "meteo"], "")?;
+    let nombre = req_str(args, &["archivo"], "")?;
     let ws = workspace_of(paths, args);
     let alcance = crate::workspace::Alcance::de_args(args);
 

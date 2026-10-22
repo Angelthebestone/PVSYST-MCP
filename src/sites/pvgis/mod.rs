@@ -54,9 +54,9 @@ const APROXIMACION_HORIZONTE: crate::aproximaciones::Aproximacion =
 /// PVGIS horizon of the project site: imported by PVsyst's horizon window by
 /// default, or by the MCP with `via: "aproximacion"`.
 pub(crate) fn horizonte(paths: &Paths, args: &Value) -> Result<Value> {
-    let proyecto = req_str(args, &["proyecto", "project"], "")?;
+    let proyecto = req_str(args, &["proyecto"], "")?;
     let proyecto = proyecto.strip_suffix(".PRJ").unwrap_or(proyecto);
-    let variante = opt_str(args, &["variante", "variant"]).unwrap_or("VC0");
+    let variante = opt_str(args, &["variante"]).unwrap_or("VC0");
     crate::aproximaciones::segun_via(
         paths,
         args,
@@ -71,8 +71,8 @@ pub(crate) fn horizonte(paths: &Paths, args: &Value) -> Result<Value> {
 /// Fill the variant's `pvHorizon` with the PVGIS horizon profile of the project site.
 fn horizonte_pvgis(paths: &Paths, args: &Value) -> Result<Value> {
     let ws = workspace_of(paths, args);
-    let proyecto = req_str(args, &["proyecto", "project"], "")?;
-    let variante = opt_str(args, &["variante", "variant"]).unwrap_or("VC0");
+    let proyecto = req_str(args, &["proyecto"], "")?;
+    let variante = opt_str(args, &["variante"]).unwrap_or("VC0");
     let prj = resolve_project_file(&ws, proyecto)?;
     let var = prj.with_extension(variante);
     if !var.exists() {
@@ -123,7 +123,7 @@ struct ContextoMeteo<'a> {
 /// Resolves the site file (or creates it) and extracts timezone.
 fn asegurar_sitio(ctx: &ContextoMeteo<'_>) -> Result<(PathBuf, i64)> {
     let alcance = Alcance::de_args(ctx.args);
-    let sit_arg = opt_str(ctx.args, &["sit_file", "sit"]);
+    let sit_arg = opt_str(ctx.args, &["sit_file"]);
     let (mut sit, origen) = match sit_arg {
         Some(s) => (
             resolver_ruta(ctx.ws, s, alcance)?,
@@ -154,11 +154,11 @@ fn asegurar_sitio(ctx: &ContextoMeteo<'_>) -> Result<(PathBuf, i64)> {
 /// Resolves final destination paths for MET and CSV files.
 fn destinos_meteo(ws: &Path, args: &Value, nombre: &str) -> Result<(PathBuf, PathBuf)> {
     let alcance = Alcance::de_args(args);
-    let final_met = match opt_str(args, &["output_met_file", "met_file", "met"]) {
+    let final_met = match opt_str(args, &["output_met_file"]) {
         Some(s) => resolver_ruta(ws, s, alcance)?,
         None => ws.join("Meteo").join(format!("{nombre}_PVGIS.MET")),
     };
-    let final_csv = match opt_str(args, &["output_csv_file", "csv_file"]) {
+    let final_csv = match opt_str(args, &["output_csv_file"]) {
         Some(s) => resolver_ruta(ws, s, alcance)?,
         None => ws.join("Meteo").join(format!("{nombre}_PVGIS.csv")),
     };
@@ -204,7 +204,7 @@ pub(crate) fn meteo_pvgis(paths: &Paths, args: &Value) -> Result<Value> {
     let ws = workspace_of(paths, args);
     let lat = numero(args, "latitud")?;
     let lon = numero(args, "longitud")?;
-    let nombre = req_str(args, &["nombre_sitio", "nombre"], "")?;
+    let nombre = req_str(args, &["nombre_sitio"], "")?;
     validar_nombre(nombre)?;
 
     let ctx = ContextoMeteo {

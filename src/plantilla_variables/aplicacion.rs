@@ -14,7 +14,8 @@ use std::path::{Path, PathBuf};
 
 /// Resolves an RVT file path within the workspace.
 fn resolver_ruta_rvt(ws: &Path, args: &Value) -> Result<PathBuf> {
-    let ruta_rel = opt_str(args, &["batch_rvt_file", "archivo", "ruta"])
+    let ruta_rel = opt_str(args, &["batch_rvt_file"])
+        .or_else(|| opt_str(args, &["archivo"]))
         .ok_or_else(|| Error::Invalid("Falta 'batch_rvt_file' o 'archivo'".into()))?;
     let path = PathBuf::from(ruta_rel);
     if path.is_absolute() {
@@ -59,7 +60,9 @@ fn leer_existentes(ruta: &Path) -> Result<Vec<String>> {
 /// Executes an RVT template operation (listar, anadir, eliminar, reordenar, catalogo).
 pub(crate) fn gestionar_rvt(paths: &Paths, args: &Value) -> Result<Value> {
     let ws = workspace_of(paths, args);
-    let op = opt_str(args, &["operacion", "accion_rvt"]).unwrap_or("listar");
+    let op = opt_str(args, &["operacion"])
+        .or_else(|| opt_str(args, &["accion_rvt"]))
+        .unwrap_or("listar");
 
     if op == "catalogo" || op == "validas" {
         return Ok(json!({

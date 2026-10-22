@@ -2,7 +2,7 @@
 //! presence, and declared JSON types. Kept apart from the declarations so each
 //! file stays small and the validation rules have one home.
 
-use super::declaracion::{con, nombre_tipo_recibido, Herramienta};
+use super::declaracion::{nombre_tipo_recibido, Herramienta};
 use crate::args::missing;
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
@@ -19,16 +19,21 @@ impl Herramienta {
         Ok(accion)
     }
 
-    /// Injects the resolved discriminator value if omitted by the caller.
-    pub(crate) fn preparar_args(&self, args: &Value, accion: &str) -> Value {
-        let Some(disc) = &self.discriminador else {
-            return args.clone();
+    /// Normalizes aliases to canonical names and injects default discriminator if omitted.
+    pub(crate) fn preparar_args(&self, args: &Value) -> Result<Value> {
+        let mut mapa = match args {
+            Value::Object(m) => m.clone(),
+            _ => serde_json::Map::new(),
         };
-        if args.get(disc.campo).is_none() {
-            con(args, disc.campo, json!(accion))
-        } else {
-            args.clone()
-        }
+
+        normalizar_alias_argumentos(self.sinonimos.argumentos, &mut mapa)?;
+        normalizar_discriminador(
+            self.discriminador.as_ref(),
+            self.sinonimos.valores,
+            &mut mapa,
+        );
+
+        Ok(Value::Object(mapa))
     }
 
     fn validar_discriminador(&self, args: &Value) -> Result<String> {
@@ -150,6 +155,56 @@ impl Herramienta {
             validar_tipo_propiedad(prop_nombre, *prop_tipo, args)?;
         }
         Ok(())
+    }
+}
+
+fn normalizar_alias_argumentos(
+    argumentos: &[(&str, &str)],
+    mapa: &mut serde_json::Map<String, Value>,
+) -> Result<()> {
+    for &(alias, canonico) in argumentos {
+        let Some(valor_alias) = mapa.remove(alias) else {
+            continue;
+        };
+        match mapa.get(canonico) {
+            Some(valor_canonico) if valor_canonico != &valor_alias => {
+                return Err(Error::Invalid(format!(
+                    "Conflicto de argumentos: se pasaron '{canonico}' y su alias '{alias}' con valores distintos"
+                )));
+            }
+            Some(_) => {}
+            None => {
+                mapa.insert(canonico.to_string(), valor_alias);
+            }
+        }
+    }
+    Ok(())
+}
+
+fn normalizar_discriminador(
+    disc_opt: Option<&super::declaracion::Discriminador>,
+    valores: &[(&str, &str)],
+    mapa: &mut serde_json::Map<String, Value>,
+) {
+    let Some(disc) = disc_opt else {
+        return;
+    };
+    if let Some(val) = mapa.get_mut(disc.campo) {
+        normalizar_valor_discriminador(val, valores);
+    } else if let Some(def) = disc.defecto {
+        mapa.insert(disc.campo.to_string(), json!(def));
+    }
+}
+
+fn normalizar_valor_discriminador(val: &mut Value, valores: &[(&str, &str)]) {
+    let Some(s) = val.as_str() else {
+        return;
+    };
+    for &(alias, canonico) in valores {
+        if s.eq_ignore_ascii_case(alias) {
+            *val = Value::String(canonico.to_string());
+            break;
+        }
     }
 }
 

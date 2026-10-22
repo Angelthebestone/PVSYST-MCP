@@ -48,7 +48,7 @@ pub(crate) fn editar_objeto(paths: &Paths, args: &Value) -> Result<Value> {
         fs::read(&path).map_err(|e| Error::io(format!("Cannot read {}", path.display()), e))?;
 
     if crate::components::pan::es_pan_legacy(&bytes) {
-        let selector = crate::args::opt_str(args, &["objeto", "object"]).unwrap_or("pvModule");
+        let selector = crate::args::opt_str(args, &["objeto"]).unwrap_or("pvModule");
         let (new_bytes, outcomes) =
             crate::components::pan::parchear_campos_legacy(&bytes, &changes)?;
         let historial_id =
@@ -67,11 +67,7 @@ pub(crate) fn editar_objeto(paths: &Paths, args: &Value) -> Result<Value> {
         }));
     }
 
-    let selector = req_str(
-        args,
-        &["objeto", "object"],
-        "e.g. \"pvSubArray\", \"role:SitePrj\"",
-    )?;
+    let selector = req_str(args, &["objeto"], "e.g. \"pvSubArray\", \"role:SitePrj\"")?;
 
     let (new_bytes, outcomes) = edit::edit_fields(&bytes, selector, &changes)?;
     let historial_id = history::snapshot(&workspace, std::slice::from_ref(&path), "editar_objeto")?;

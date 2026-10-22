@@ -52,12 +52,8 @@ fn prj_con_comentario(bytes: &[u8], args: &Value) -> Result<Vec<u8>> {
 
 pub(crate) fn crear_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
-    let plantilla = req_str(
-        args,
-        &["plantilla", "template"],
-        "existing project to base on",
-    )?;
-    let nombre = req_str(args, &["nombre_nuevo", "new_name"], "")?;
+    let plantilla = req_str(args, &["plantilla"], "existing project to base on")?;
+    let nombre = req_str(args, &["nombre_nuevo"], "")?;
     validar_nombre(nombre)?;
     let variante = args
         .get("variante")

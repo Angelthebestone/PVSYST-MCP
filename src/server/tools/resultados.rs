@@ -1,6 +1,6 @@
 //! Tool for simulation output and engineering analysis: KPIs, CSV, losses, economics.
 
-use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
+use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, Sinonimos, TipoDato};
 use crate::config::Paths;
 use crate::easy_mode;
 use crate::error::{Error, Result};
@@ -56,7 +56,28 @@ pub(crate) const TOOL_RESULTADOS: Herramienta = Herramienta {
     requeridos_por_accion: &[
         ("medido_vs_simulado", &["proyecto"]),
     ],
+    sinonimos: SINONIMOS_RESULTADOS,
     ejecutar: Ejecutor::Simple(ejecutar_resultados),
+};
+
+const SINONIMOS_RESULTADOS: Sinonimos = Sinonimos {
+    argumentos: &[
+        ("what", "que"),
+        ("project", "proyecto"),
+        ("variant", "variante"),
+        ("file", "archivo"),
+        ("variants", "variantes"),
+    ],
+    valores: &[
+        ("losses", "perdidas"),
+        ("monthly", "mensual"),
+        ("compare", "comparar"),
+        ("measured_vs_simulated", "medido_vs_simulado"),
+        ("carbon", "carbono"),
+        ("economics", "economia"),
+        ("economy", "economia"),
+        ("deliverable", "entregable"),
+    ],
 };
 
 fn ejecutar_resultados(paths: &Paths, args: &Value) -> Result<Value> {

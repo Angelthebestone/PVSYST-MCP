@@ -142,7 +142,7 @@ pub(crate) fn leer_meteo(paths: &Paths, args: &Value) -> Result<Value> {
     let dest = DestinoLectura {
         carpeta: "Meteo",
         extension: "MET",
-        claves: &["meteo", "archivo", "file"],
+        claves: &["meteo"],
     };
     let path = resolve_in(paths, args, &dest)?;
     let bytes = leer_bytes_acotado(&path, MAX_BYTES_LECTURA)?;
@@ -181,7 +181,7 @@ pub(crate) fn leer_sitio(paths: &Paths, args: &Value) -> Result<Value> {
     let dest = DestinoLectura {
         carpeta: "Sites",
         extension: "SIT",
-        claves: &["sitio", "archivo", "file"],
+        claves: &["sitio"],
     };
     let path = resolve_in(paths, args, &dest)?;
     let bytes = leer_bytes_acotado(&path, MAX_BYTES_LECTURA)?;

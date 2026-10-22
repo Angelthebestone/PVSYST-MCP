@@ -148,7 +148,7 @@ pub(super) fn variantes_con_resultados(workspace: &Path, proyecto: &str) -> Vec<
 
 pub(crate) fn comparar(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
-    let proyecto = req_str(args, &["proyecto", "project"], "proyecto")?;
+    let proyecto = req_str(args, &["proyecto"], "proyecto")?;
     let variantes: Vec<String> = match args.get("variantes").and_then(Value::as_array) {
         Some(lista) => lista
             .iter()

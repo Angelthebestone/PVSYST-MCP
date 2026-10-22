@@ -73,6 +73,7 @@ fn es_aproximacion(entrada: &str) -> bool {
 
 fn mapa_de_cobertura() -> Value {
     json!({
+        "sinonimos": super::tools::tabla_alias(),
         "principle": "PVsyst state lives in text files (PVObject), a documented CLI, and a Win32/VCL desktop app. The MCP exposes generic primitives over ALL THREE, so coverage is bounded by the artifact surface, not by a fixed set of buttons.",
         "coverage_layers": [
             "FILES  - read/write any field of any PVObject file (leer/editar)",

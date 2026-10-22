@@ -177,8 +177,8 @@ pub(crate) fn barrido(
     args: &Value,
     seguimiento: &SeguimientoTarea<'_>,
 ) -> Result<Value> {
-    let proyecto = req_str(args, &["proyecto", "project"], "nombre del proyecto")?;
-    let variante = opt_str(args, &["variante", "variant"]).unwrap_or("VC0");
+    let proyecto = req_str(args, &["proyecto"], "nombre del proyecto")?;
+    let variante = opt_str(args, &["variante"]).unwrap_or("VC0");
     let n = numero_de_orientaciones(args)?;
     let kwp = kwp_de(args)?;
     let sitio = sitio_de(args)?;

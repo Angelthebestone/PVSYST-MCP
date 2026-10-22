@@ -17,7 +17,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 /// Import a workspace from a zip into a destination folder.
 pub(crate) fn importar_workspace(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
-    let zip_str = req_str(args, &["zip", "origen"], "archive path")?;
+    let zip_str = req_str(args, &["zip"], "archive path")?;
     let zip = resolver_ruta(&workspace, zip_str, Alcance::de_args(args))?;
     if !zip.exists() {
         return Err(Error::NotFound(format!("Zip not found: {}", zip.display())));

@@ -1,6 +1,6 @@
 //! Tool for simulation orchestration: batch setup, execution, status, and sweeps.
 
-use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
+use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, Sinonimos, TipoDato};
 use crate::args::missing;
 use crate::config::Paths;
 use crate::error::{Error, Result};
@@ -77,7 +77,30 @@ pub(crate) const TOOL_SIMULAR: Herramienta = Herramienta {
         ("preestimar", &["latitud", "longitud", "kwp"]),
         ("barrido", &["latitud", "longitud", "kwp"]),
     ],
+    sinonimos: SINONIMOS_SIMULAR,
     ejecutar: Ejecutor::Seguido(ejecutar_simular),
+};
+
+const SINONIMOS_SIMULAR: Sinonimos = Sinonimos {
+    argumentos: &[
+        ("action", "accion"),
+        ("project", "proyecto"),
+        ("variant", "variante"),
+        ("job", "trabajo"),
+        ("rows", "filas"),
+        ("target", "destino"),
+        ("parameters", "parametros"),
+        ("latitude", "latitud"),
+        ("longitude", "longitud"),
+    ],
+    valores: &[
+        ("run", "ejecutar"),
+        ("execute", "ejecutar"),
+        ("prepare", "preparar"),
+        ("status", "estado"),
+        ("preestimate", "preestimar"),
+        ("sweep", "barrido"),
+    ],
 };
 
 fn ejecutar_simular(

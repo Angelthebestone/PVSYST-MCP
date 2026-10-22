@@ -71,7 +71,7 @@ pub(crate) fn modificar_parametros(paths: &Paths, args: &Value) -> Result<Value>
     let unidades = args.get("unidades").and_then(|v| v.as_object());
     let descripciones = args.get("descripciones").and_then(|v| v.as_object());
     let text = construir_dat(params, iniciales, unidades, descripciones);
-    let destino = match opt_str(args, &["destino", "target"]) {
+    let destino = match opt_str(args, &["destino"]) {
         Some(p) => crate::workspace::resolver_ruta(
             &workspace,
             p,
@@ -123,7 +123,7 @@ pub(crate) fn crear_batch(paths: &Paths, args: &Value) -> Result<Value> {
 
     let out = batch_csv(proyecto, variante, filas, &now_stamp())?;
 
-    let destino = match opt_str(args, &["destino", "target"]) {
+    let destino = match opt_str(args, &["destino"]) {
         Some(p) => crate::workspace::resolver_ruta(
             &workspace,
             p,

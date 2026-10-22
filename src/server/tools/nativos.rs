@@ -1,6 +1,6 @@
 //! PVsyst-native tools for raw CLI passthrough and Windows GUI automation.
 
-use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
+use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, Sinonimos, TipoDato};
 use crate::adapters::{cli, gui};
 use crate::config::Paths;
 use crate::error::Result;
@@ -26,7 +26,17 @@ pub(crate) const TOOL_PVSYST_CLI: Herramienta = Herramienta {
     requeridos: &["comando"],
     discriminador: None,
     requeridos_por_accion: &[],
+    sinonimos: SINONIMOS_PVSYST_CLI,
     ejecutar: Ejecutor::Simple(ejecutar_cli),
+};
+
+const SINONIMOS_PVSYST_CLI: Sinonimos = Sinonimos {
+    argumentos: &[
+        ("command", "comando"),
+        ("options", "opciones"),
+        ("args", "opciones"),
+    ],
+    valores: &[],
 };
 
 pub(crate) const TOOL_GUI_OBSERVAR: Herramienta = Herramienta {
@@ -79,7 +89,33 @@ pub(crate) const TOOL_GUI_OBSERVAR: Herramienta = Herramienta {
         ],
     }),
     requeridos_por_accion: &[],
+    sinonimos: SINONIMOS_GUI_OBSERVAR,
     ejecutar: Ejecutor::Simple(ejecutar_observar),
+};
+
+const SINONIMOS_GUI_OBSERVAR: Sinonimos = Sinonimos {
+    argumentos: &[
+        ("what", "que"),
+        ("window", "ventana"),
+        ("process", "proceso"),
+        ("lines", "lineas"),
+        ("path", "ruta"),
+        ("image", "imagen"),
+        ("function", "funcion"),
+        ("entity", "entidad"),
+    ],
+    valores: &[
+        ("windows", "ventanas"),
+        ("controls", "controles"),
+        ("read", "leer"),
+        ("capture", "capturar"),
+        ("tree", "arbol"),
+        ("form", "formulario"),
+        ("view", "vista"),
+        ("schema", "esquema"),
+        ("messages", "mensajes"),
+        ("functions", "funciones"),
+    ],
 };
 
 pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
@@ -164,7 +200,40 @@ pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
         ("rellenar", &["entidad", "valores"]),
         ("clic_texto", &["ventana", "texto"]),
     ],
+    sinonimos: SINONIMOS_GUI_ACTUAR,
     ejecutar: Ejecutor::Simple(ejecutar_actuar),
+};
+
+const SINONIMOS_GUI_ACTUAR: Sinonimos = Sinonimos {
+    argumentos: &[
+        ("action", "accion"),
+        ("window", "ventana"),
+        ("process", "proceso"),
+        ("message", "mensaje"),
+        ("keys", "teclas"),
+        ("text", "texto"),
+        ("field", "campo"),
+        ("index", "indice"),
+        ("class", "clase"),
+        ("title", "titulo"),
+        ("name", "nombre"),
+        ("role", "rol"),
+        ("operation", "operacion"),
+        ("value", "valor"),
+        ("project", "proyecto"),
+        ("function", "funcion"),
+        ("label", "etiqueta"),
+    ],
+    valores: &[
+        ("press", "click"),
+        ("type", "escribir"),
+        ("write", "escribir"),
+        ("select", "seleccionar"),
+        ("keys", "teclas"),
+        ("close_dialog", "cerrar"),
+        ("wait", "esperar"),
+        ("fill", "rellenar"),
+    ],
 };
 
 fn ejecutar_cli(paths: &Paths, args: &Value) -> Result<Value> {

@@ -36,7 +36,7 @@ fn buscar_resultado_csv(ws: &Path, args: &Value) -> Option<PathBuf> {
 
 fn resolver_ruta_pdf(paths: &Paths, args: &Value) -> Result<PathBuf> {
     let ws = workspace_of(paths, args);
-    if let Some(p) = opt_str(args, &["report_pdf", "pdf"]) {
+    if let Some(p) = opt_str(args, &["report_pdf"]) {
         let ruta = PathBuf::from(p);
         let abs = if ruta.is_absolute() {
             ruta
@@ -108,7 +108,7 @@ pub(crate) fn leer_kpis(paths: &Paths, args: &Value) -> Result<Value> {
         out.insert("weather_file".into(), json!(meteo));
     }
 
-    let kwp = opt_str(args, &["kwp", "potencia_kwp"])
+    let kwp = opt_str(args, &["kwp"])
         .and_then(|s| s.trim().parse::<f64>().ok())
         .or_else(|| args.get("kwp").and_then(Value::as_f64));
     if let Some(k) = kwp {
@@ -121,7 +121,7 @@ pub(crate) fn leer_kpis(paths: &Paths, args: &Value) -> Result<Value> {
 /// The result CSV named by `archivo`/`output_csv`/`csv`, else the latest one
 /// matching the project and variant.
 fn csv_de_resultado(ws: &Path, args: &Value) -> Option<PathBuf> {
-    let explicito = opt_str(args, &["archivo", "output_csv", "csv"]).map(|archivo| {
+    let explicito = opt_str(args, &["archivo"]).map(|archivo| {
         let p = PathBuf::from(archivo);
         if p.is_absolute() {
             p

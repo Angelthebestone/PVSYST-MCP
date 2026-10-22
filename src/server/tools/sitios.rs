@@ -1,6 +1,6 @@
 //! Tool for sites and meteo: site synthesis, solar geometry, PVGIS horizon and TMY.
 
-use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
+use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, Sinonimos, TipoDato};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::sites;
@@ -74,7 +74,34 @@ pub(crate) const TOOL_SITIO: Herramienta = Herramienta {
         ("escribir_horizonte", &["archivo", "puntos"]),
         ("escribir_serie", &["archivo", "variables", "valores"]),
     ],
+    sinonimos: SINONIMOS_SITIO,
     ejecutar: Ejecutor::Simple(ejecutar_sitio),
+};
+
+const SINONIMOS_SITIO: Sinonimos = Sinonimos {
+    argumentos: &[
+        ("action", "accion"),
+        ("source", "origen"),
+        ("site_name", "nombre_sitio"),
+        ("latitude", "latitud"),
+        ("longitude", "longitud"),
+        ("altitude", "altitud"),
+        ("project", "proyecto"),
+        ("variant", "variante"),
+        ("date", "fecha"),
+        ("file", "archivo"),
+        ("points", "puntos"),
+        ("title", "titulo"),
+    ],
+    valores: &[
+        ("create", "crear"),
+        ("convert_meteo", "convertir_meteo"),
+        ("solar_geometry", "geometria_solar"),
+        ("pvgis_horizon", "horizonte_pvgis"),
+        ("pvgis_meteo", "meteo_pvgis"),
+        ("write_horizon", "escribir_horizonte"),
+        ("write_series", "escribir_serie"),
+    ],
 };
 
 fn ejecutar_sitio(paths: &Paths, args: &Value) -> Result<Value> {
