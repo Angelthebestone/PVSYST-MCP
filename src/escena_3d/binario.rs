@@ -38,7 +38,8 @@ pub(crate) fn parsear_bloque_geometria(raw: &[u8]) -> Option<GeometriaElemental>
     if raw.len() < LONGITUD_BLOQUE_GEOMETRIA_ELEMENTAL {
         return None;
     }
-    let forma_codigo = u16::from_le_bytes([raw[OFFSET_FORMA_GEOM], raw[OFFSET_FORMA_GEOM + 1]]);
+    let forma_bytes = raw.get(OFFSET_FORMA_GEOM..OFFSET_FORMA_GEOM + 2)?;
+    let forma_codigo = u16::from_le_bytes([*forma_bytes.first()?, *forma_bytes.get(1)?]);
     let mut dims = Vec::with_capacity(MAX_DIMENSIONES_FORMA);
     let mut off = OFFSET_DIMS_GEOM;
     while off + BYTES_POR_SLOT < raw.len() {
@@ -57,7 +58,8 @@ pub(crate) fn leer_slot_real48(raw: &[u8], offset: usize) -> Option<f64> {
     if offset + BYTES_POR_SLOT > raw.len() {
         return None;
     }
+    let slice = raw.get(offset..offset + BYTES_POR_SLOT)?;
     let mut slot = [0u8; BYTES_POR_SLOT];
-    slot.copy_from_slice(&raw[offset..offset + BYTES_POR_SLOT]);
+    slot.copy_from_slice(slice);
     Some(real48(&slot))
 }
