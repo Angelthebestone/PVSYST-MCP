@@ -41,63 +41,38 @@ if ($PvsystIniciales.Count -gt 0) {
     Write-Host "AVISO: Esto invalida las pruebas de GUI/procesos huerfanos. No se cerrara para proteger la sesion del usuario." -ForegroundColor Yellow
 }
 
+# Start-Process redirige a archivo: los manejadores DataReceived con scriptblock abortan
+# Windows PowerShell 5.1 al ejecutarse fuera de su runspace.
 function Run-StepWithTimeout($name, $cmd, $argsList, $timeoutSeconds, $logFile) {
     Write-Host "`n=== [$name] ===" -ForegroundColor Cyan
     $initialPids = Get-PVsystPids
-    
-    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-    $pinfo.FileName = $cmd
-    $pinfo.Arguments = $argsList -join " "
-    $pinfo.WorkingDirectory = $Root
-    $pinfo.RedirectStandardOutput = $true
-    $pinfo.RedirectStandardError = $true
-    $pinfo.UseShellExecute = $false
-    $pinfo.CreateNoWindow = $true
-
-    $proc = New-Object System.Diagnostics.Process
-    $proc.StartInfo = $pinfo
-
-    $stdoutBuilder = New-Object System.Text.StringBuilder
-    $stderrBuilder = New-Object System.Text.StringBuilder
-
-    $outHandler = [System.Diagnostics.DataReceivedEventHandler]{
-        if ($EventArgs.Data) { $stdoutBuilder.AppendLine($EventArgs.Data) | Out-Null }
-    }
-    $errHandler = [System.Diagnostics.DataReceivedEventHandler]{
-        if ($EventArgs.Data) { $stderrBuilder.AppendLine($EventArgs.Data) | Out-Null }
-    }
-
-    $proc.add_OutputDataReceived($outHandler)
-    $proc.add_ErrorDataReceived($errHandler)
+    $errFile = "$logFile.stderr"
 
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
-    $proc.Start() | Out-Null
-    $proc.BeginOutputReadLine()
-    $proc.BeginErrorReadLine()
-
+    $proc = Start-Process -FilePath $cmd -ArgumentList $argsList -WorkingDirectory $Root `
+        -NoNewWindow -PassThru -RedirectStandardOutput $logFile -RedirectStandardError $errFile
+    # Sin abrir el handle ahora, ExitCode llega vacio cuando el proceso ya termino.
+    $null = $proc.Handle
     $completed = $proc.WaitForExit($timeoutSeconds * 1000)
     $sw.Stop()
 
-    if (-not $completed) {
-        Write-Host "TIMEOUT tras $timeoutSeconds s en $name!" -ForegroundColor Red
-        $proc.Kill()
+    if ($completed) {
         $proc.WaitForExit()
-        $exitCode = -1
-    } else {
         $exitCode = $proc.ExitCode
+    } else {
+        Write-Host "TIMEOUT tras $timeoutSeconds s en $name!" -ForegroundColor Red
+        # /T mata tambien el binario de tests hijo de cargo, que si no quedaria huerfano.
+        taskkill /T /F /PID $proc.Id | Out-Null
+        $exitCode = -1
     }
 
     Kill-NewPVsystPids $initialPids
 
-    $allOutput = "STDOUT:`n" + $stdoutBuilder.ToString() + "`nSTDERR:`n" + $stderrBuilder.ToString()
-    if ($logFile) {
-        [System.IO.File]::WriteAllText($logFile, $allOutput)
-    }
-
+    $segundos = [math]::Round($sw.Elapsed.TotalSeconds, 2)
     if ($exitCode -eq 0) {
-        Write-Host "OK ($([math]::Round($sw.Elapsed.TotalSeconds, 2)) s)" -ForegroundColor Green
+        Write-Host "OK ($segundos s)" -ForegroundColor Green
     } else {
-        Write-Host "FALLO (ExitCode: $exitCode, $([math]::Round($sw.Elapsed.TotalSeconds, 2)) s)" -ForegroundColor Red
+        Write-Host "FALLO (ExitCode: $exitCode, $segundos s; ver $errFile)" -ForegroundColor Red
     }
 
     return $exitCode
@@ -111,33 +86,15 @@ if ($res -ne 0) { $GlobalExit = $res }
 
 # 2. Cargo clippy --all-targets -D warnings
 $res = Run-StepWithTimeout "cargo clippy --all-targets -D warnings" "cargo" @("clippy", "--all-targets", "--", "-D", "warnings") 300 (Join-Path $ScratchDir "clippy.log")
-if ($res -ne 0) {
-    Write-Host "Nota: clippy reporta advertencias de otras zonas pendientes de refactorizar." -ForegroundColor Yellow
-}
+if ($res -ne 0) { $GlobalExit = $res }
 
 # 3. Cargo test --lib
 $res = Run-StepWithTimeout "cargo test --lib" "cargo" @("test", "--lib") 600 (Join-Path $ScratchDir "test_lib.log")
 if ($res -ne 0) { $GlobalExit = $res }
 
-# 4. Cada binario de integracion
-$integracionTests = @(
-    "aislado",
-    "almacenamiento",
-    "bombeo",
-    "cli_fake",
-    "economia",
-    "fixture_workspace",
-    "inyeccion",
-    "mcp_regresiones",
-    "mcp_smoke",
-    "medicion",
-    "perdidas",
-    "protocol",
-    "protocol_prompts",
-    "roundtrip",
-    "seguidores",
-    "serie_horaria"
-)
+# 4. Cada binario de integracion: uno por tests/*.rs, para que uno nuevo no quede fuera.
+$integracionTests = Get-ChildItem -Path (Join-Path $Root "tests") -Filter "*.rs" -File |
+    ForEach-Object { $_.BaseName } | Sort-Object
 
 foreach ($t in $integracionTests) {
     $log = Join-Path $ScratchDir "test_$t.log"
