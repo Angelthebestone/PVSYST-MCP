@@ -5,6 +5,7 @@
 mod aplicacion;
 mod dominio;
 mod entradas;
+mod espera;
 mod recurso;
 
 pub(crate) use aplicacion::{abrir, listar, menu};

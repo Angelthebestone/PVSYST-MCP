@@ -35,7 +35,7 @@ pub(crate) enum Efecto {
 }
 
 impl Efecto {
-    fn nombre(self) -> &'static str {
+    pub(crate) fn nombre(self) -> &'static str {
         match self {
             Self::Abre => "abre",
             Self::Modifica => "modifica",
@@ -72,17 +72,19 @@ pub(crate) struct Funcion {
     pub(crate) efecto: Efecto,
 }
 
+#[derive(Clone, Copy)]
+struct DescriptoresFuncion {
+    clave: &'static str,
+    etiqueta: &'static str,
+    ventana: &'static str,
+}
+
 impl Funcion {
-    const fn nueva(
-        clave: &'static str,
-        etiqueta: &'static str,
-        ventana: &'static str,
-        acceso: Acceso,
-    ) -> Self {
+    const fn nueva(descriptores: DescriptoresFuncion, acceso: Acceso) -> Self {
         Self {
-            clave,
-            etiqueta,
-            ventana,
+            clave: descriptores.clave,
+            etiqueta: descriptores.etiqueta,
+            ventana: descriptores.ventana,
             acceso,
             abre: None,
             requiere: None,
@@ -92,10 +94,14 @@ impl Funcion {
             efecto: Efecto::Abre,
         }
     }
-
     /// Item of the main form's menu bar, by command id.
     pub(crate) const fn menu(clave: &'static str, etiqueta: &'static str, id: u16) -> Self {
-        Self::nueva(clave, etiqueta, VENTANA_INICIO, Acceso::Menu { id })
+        let d = DescriptoresFuncion {
+            clave,
+            etiqueta,
+            ventana: VENTANA_INICIO,
+        };
+        Self::nueva(d, Acceso::Menu { id })
     }
 
     /// Item `item` of menu `menu` (both from 0, separators counted) of the main
@@ -105,8 +111,13 @@ impl Funcion {
         etiqueta: &'static str,
         (menu, item): (u8, u8),
     ) -> Self {
+        let d = DescriptoresFuncion {
+            clave,
+            etiqueta,
+            ventana: VENTANA_INICIO,
+        };
         let acceso = Acceso::MenuPosicion { menu, item };
-        Self::nueva(clave, etiqueta, VENTANA_INICIO, acceso)
+        Self::nueva(d, acceso)
     }
 
     /// Button of `ventana` whose caption is `titulo`.
@@ -115,9 +126,13 @@ impl Funcion {
         ventana: &'static str,
         titulo: &'static str,
     ) -> Self {
-        Self::nueva(clave, titulo, ventana, Acceso::Boton { titulo })
+        let d = DescriptoresFuncion {
+            clave,
+            etiqueta: titulo,
+            ventana,
+        };
+        Self::nueva(d, Acceso::Boton { titulo })
     }
-
     /// Records the class of the window the function was seen to open.
     pub(crate) const fn abre(mut self, clase: &'static str) -> Self {
         self.abre = Some(clase);
