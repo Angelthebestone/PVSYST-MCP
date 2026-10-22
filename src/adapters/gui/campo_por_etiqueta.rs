@@ -73,9 +73,11 @@ pub(crate) fn campo(paths: &crate::config::Paths, args: &Value) -> Result<Value>
     let ficha = ocr::formulario(paths, args)?;
     let campos = campos_de(&ficha)?;
     let elegido = campo_por_etiqueta(&campos, etiqueta)?;
-    let formulario = Formulario::de(hwnd_de_texto(
-        ficha["ventana"].as_str().unwrap_or_default(),
-    )?);
+    let ventana_str = ficha
+        .get("ventana")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    let formulario = Formulario::de(hwnd_de_texto(ventana_str)?);
     let antes = leer_valor(elegido);
     poner_valor(&formulario, elegido, valor)?;
     Ok(json!({

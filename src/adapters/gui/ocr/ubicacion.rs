@@ -69,7 +69,8 @@ fn coincidencias(palabras: &[PalabraOcr], aguja: &str) -> Vec<RectOcr> {
             let hasta = desde + aguja.len();
             let primera = inicios.partition_point(|i| *i <= desde).checked_sub(1)?;
             let ultima = inicios.partition_point(|i| *i < hasta).checked_sub(1)?;
-            palabras[primera..=ultima]
+            palabras
+                .get(primera..=ultima)?
                 .iter()
                 .map(|p| p.rect)
                 .reduce(|a, b| a.union(&b))

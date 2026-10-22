@@ -15,31 +15,62 @@ const DEFAULT_UIA_MAX_NODES: u32 = 150;
 const STEP_VERIFY_TIMEOUT_MS: u64 = 5000;
 
 pub(crate) fn aplanar<'a>(nodo: &'a Value, out: &mut Vec<&'a Value>) {
-    for hijo in nodo["hijos"].as_array().into_iter().flatten() {
+    for hijo in nodo
+        .get("hijos")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+    {
         out.push(hijo);
         aplanar(hijo, out);
     }
 }
 
 pub(crate) fn resumen_uia(n: &Value) -> Value {
-    let sin_hijos = match n["hijos"].as_array() {
+    let sin_hijos = match n.get("hijos").and_then(Value::as_array) {
         Some(h) => h.is_empty(),
         None => true,
     };
-    let rol = n["rol"].as_str().unwrap_or("");
-    let no_vacio = n["rect"].as_array().is_some_and(|r| {
-        r.len() == 4
-            && r[2].as_f64().unwrap_or(0.0) > r[0].as_f64().unwrap_or(0.0)
-            && r[3].as_f64().unwrap_or(0.0) > r[1].as_f64().unwrap_or(0.0)
-    });
+    let rol = n.get("rol").and_then(Value::as_str).unwrap_or("");
+    let no_vacio = n
+        .get("rect")
+        .and_then(Value::as_array)
+        .is_some_and(|r| match r.as_slice() {
+            [x0, y0, x1, y1] => {
+                x1.as_f64().unwrap_or(0.0) > x0.as_f64().unwrap_or(0.0)
+                    && y1.as_f64().unwrap_or(0.0) > y0.as_f64().unwrap_or(0.0)
+            }
+            _ => false,
+        });
     let solo_vision = sin_hijos && matches!(rol, "pane" | "custom" | "image") && no_vacio;
     json!({
-        "rol": n["rol"],
-        "nombre": n["nombre"],
-        "rect": n["rect"],
-        "patrones": n["patrones"],
+        "rol": n.get("rol"),
+        "nombre": n.get("nombre"),
+        "rect": n.get("rect"),
+        "patrones": n.get("patrones"),
         "solo_vision": solo_vision,
     })
+}
+
+fn asociar_nodo_uia(v: &mut Value, plano: &[&Value]) {
+    let Some(n) = plano
+        .iter()
+        .find(|n| n.get("hwnd").is_some() && n.get("hwnd") == v.get("hwnd"))
+    else {
+        return;
+    };
+    let Some(obj) = v.as_object_mut() else {
+        return;
+    };
+    obj.insert(
+        "uia".into(),
+        json!({
+            "nombre": n.get("nombre"),
+            "rol": n.get("rol"),
+            "patrones": n.get("patrones"),
+            "rect": n.get("rect"),
+        }),
+    );
 }
 
 pub(crate) fn fusionar(ventanas_win: Vec<Value>, arbol: &Value) -> Value {
@@ -48,17 +79,7 @@ pub(crate) fn fusionar(ventanas_win: Vec<Value>, arbol: &Value) -> Value {
     let ventanas: Vec<Value> = ventanas_win
         .into_iter()
         .map(|mut v| {
-            let par = plano
-                .iter()
-                .find(|n| n.get("hwnd").is_some() && n["hwnd"] == v["hwnd"]);
-            if let Some(n) = par {
-                v["uia"] = json!({
-                    "nombre": n["nombre"],
-                    "rol": n["rol"],
-                    "patrones": n["patrones"],
-                    "rect": n["rect"],
-                });
-            }
+            asociar_nodo_uia(&mut v, &plano);
             v
         })
         .collect();
@@ -88,7 +109,9 @@ pub(crate) fn controles_con_uia(paths: &crate::config::Paths, args: &Value) -> R
             .filter(|n| n.get("hwnd").is_none())
             .map(resumen_uia)
             .collect();
-        r["uia"] = json!(uia_sin);
+        if let Some(obj) = r.as_object_mut() {
+            obj.insert("uia".into(), json!(uia_sin));
+        }
     }
     Ok(r)
 }
@@ -166,13 +189,29 @@ pub(crate) struct CascadaContext<'a> {
     pub(crate) raiz: Option<Hwnd>,
 }
 
+fn intentar_uia(raiz: Hwnd, obj: &Objetivo) -> bool {
+    if obj.nombre.is_none() && obj.rol.is_none() {
+        return false;
+    }
+    let op = operacion_para(obj.rol);
+    uia::invocar(raiz, obj.nombre, obj.rol, op, None).is_ok()
+}
+
+fn intentar_fisico(raiz: Hwnd, obj: &Objetivo) -> bool {
+    if !escritorio_interactivo() {
+        return false;
+    }
+    let Ok((x, y)) = uia::centro(raiz, obj.nombre, obj.rol) else {
+        return false;
+    };
+    ffi::clic_fisico_en(x, y);
+    true
+}
+
 pub(crate) fn cascada(ctx: &CascadaContext, obj: &Objetivo) -> Result<&'static str> {
     if let Some(h) = ctx.raiz {
-        if obj.nombre.is_some() || obj.rol.is_some() {
-            let op = operacion_para(obj.rol);
-            if uia::invocar(h, obj.nombre, obj.rol, op, None).is_ok() {
-                return Ok("uia");
-            }
+        if intentar_uia(h, obj) {
+            return Ok("uia");
         }
     }
     if let Some(referencia) = obj.clase.or(obj.titulo) {
@@ -182,19 +221,17 @@ pub(crate) fn cascada(ctx: &CascadaContext, obj: &Objetivo) -> Result<&'static s
         }
     }
     if let Some(h) = ctx.raiz {
-        if escritorio_interactivo() {
-            if let Ok((x, y)) = uia::centro(h, obj.nombre, obj.rol) {
-                ffi::clic_fisico_en(x, y);
-                return Ok("fisico");
-            }
+        if intentar_fisico(h, obj) {
+            return Ok("fisico");
         }
     }
     if let Some(t) = ctx.args.get("teclas").and_then(Value::as_str) {
-        let mut a = json!({ "teclas": t });
+        let mut a = serde_json::Map::new();
+        a.insert("teclas".into(), json!(t));
         if let Some(v) = ctx.args.get("ventana") {
-            a["ventana"] = v.clone();
+            a.insert("ventana".into(), v.clone());
         }
-        teclas(ctx.paths, &a)?;
+        teclas(ctx.paths, &Value::Object(a))?;
         return Ok("teclas");
     }
     Err(Error::Gui(

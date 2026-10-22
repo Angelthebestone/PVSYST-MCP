@@ -4,6 +4,7 @@
 
 use super::conduccion::{esperar, formularios, Formulario, ESPERA_FORMULARIO};
 use super::registro_pvsyst::{self, Marca};
+use super::rotulos::{rotulos_sesion, Idioma, RotulosSesion};
 use super::ventanas::{class_of, find_pids};
 use super::{acciones, ffi};
 use crate::config::Paths;
@@ -20,8 +21,8 @@ const AUXILIARES: [&str; 4] = ["TApplication", "THintWindow", INICIO, AVISO_PRUE
 const ARRANQUE: Duration = Duration::from_secs(60);
 /// Rounds of closing when cleaning up after a failed step.
 const MAX_CIERRES: usize = 12;
-/// Buttons that leave a form without keeping its changes, in preference order.
-const SALIDAS: [&str; 4] = ["Cancelar", "Cerrar", "Salida", "No"];
+
+pub(crate) const ROTULOS: RotulosSesion = rotulos_sesion(Idioma::Es);
 
 /// PVsyst on its home screen, ready for one MCP step.
 pub(crate) struct Sesion {
@@ -58,7 +59,7 @@ impl Sesion {
         let pid = arrancar(paths)?;
         let inicio = esperar(pid, INICIO, ARRANQUE)?;
         if let Ok(aviso) = esperar(pid, AVISO_PRUEBA, Duration::ZERO) {
-            aviso.pulsar("Cerrar")?;
+            aviso.pulsar(ROTULOS.cerrar)?;
         }
         let abiertos = formularios_de_usuario(pid);
         if !abiertos.is_empty() {
@@ -82,19 +83,9 @@ impl Sesion {
     /// have only "OK"; confirmation and error dialogs use the other captions.
     /// Their text is in [`Sesion::mensajes`].
     pub(crate) fn aceptar_mensajes(&self) -> usize {
-        const BOTONES: [&str; 5] = ["OK", "Sí", "Aceptar", "Continuar", "Cerrar"];
         let mut n = 0;
         while let Ok(m) = esperar(self.pid, MENSAJE, Duration::from_millis(600)) {
-            let mut cerrado = false;
-            for boton in BOTONES {
-                if m.pulsar(boton).is_ok() {
-                    cerrado = true;
-                    break;
-                }
-            }
-            if !cerrado {
-                ffi::post_message(m.h, ffi::WM_CLOSE, 0, 0);
-            }
+            descartar_formulario_mensaje(&m, ROTULOS.botones_mensaje);
             n += 1;
         }
         n
@@ -110,19 +101,22 @@ impl Sesion {
 
     /// Closes every form back to the home screen without saving.
     pub(crate) fn volver_al_inicio(&self) {
-        for _ in 0..MAX_CIERRES {
-            let Some(h) = formularios(self.pid)
-                .into_iter()
-                .find(|h| !AUXILIARES.contains(&class_of(*h).as_str()))
-            else {
-                return;
-            };
-            let f = Formulario::de(h);
-            if !SALIDAS.iter().any(|b| f.pulsar(b).is_ok()) {
-                ffi::post_message(h, ffi::WM_CLOSE, 0, 0);
-            }
+        let mut rondas = 0;
+        while rondas < MAX_CIERRES && self.cerrar_un_formulario() {
+            rondas += 1;
             std::thread::sleep(Duration::from_millis(500));
         }
+    }
+
+    fn cerrar_un_formulario(&self) -> bool {
+        let Some(h) = formularios(self.pid)
+            .into_iter()
+            .find(|h| !AUXILIARES.contains(&class_of(*h).as_str()))
+        else {
+            return false;
+        };
+        cerrar_formulario_usuario(h, ROTULOS.salidas);
+        true
     }
 
     /// Runs `paso`; whatever happens, PVsyst ends on its home screen.
@@ -133,5 +127,19 @@ impl Sesion {
             m if m.is_empty() => e,
             m => Error::Gui(format!("{e}. PVsyst dijo: {}", m.join(" | "))),
         })
+    }
+}
+
+fn descartar_formulario_mensaje(m: &Formulario, botones: &[&str]) {
+    let cerrado = botones.iter().any(|b| m.pulsar(b).is_ok());
+    if !cerrado {
+        ffi::post_message(m.h, ffi::WM_CLOSE, 0, 0);
+    }
+}
+
+fn cerrar_formulario_usuario(h: ffi::Hwnd, salidas: &[&str]) {
+    let f = Formulario::de(h);
+    if !salidas.iter().any(|b| f.pulsar(b).is_ok()) {
+        ffi::post_message(h, ffi::WM_CLOSE, 0, 0);
     }
 }

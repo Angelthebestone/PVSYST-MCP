@@ -2,12 +2,16 @@
 //! a planned power, PVsyst chooses the modules in series, the strings and the
 //! inverter count, and warns about the electrical window.
 
+use super::rotulos::{rotulos_dimensionado, RotulosDimensionado};
 use super::{contar, objeto, ProyectoEnPvsyst};
 use crate::adapters::gui::conduccion::Campo;
+use crate::adapters::gui::rotulos::Idioma;
 use crate::adapters::gui::sesion_pvsyst::Sesion;
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
+
+const ROTULOS: RotulosDimensionado = rotulos_dimensionado(Idioma::Es);
 
 /// "Planned power" option and field of the pre-sizing help.
 const OPCION_POTENCIA: Campo = Campo::opcion(1044, 73);
@@ -33,15 +37,15 @@ pub(crate) fn dimensionar(
                 "La variante tiene {subconjuntos} subconjuntos: el pre-dimensionado de PVsyst trabaja uno a uno; pasa n_mod_serie y n_strings"
             )));
         }
-        p.ventana.pulsar("Sistema")?;
-        let sistema = s.esperar("TSystemegridForm")?;
+        p.ventana.pulsar(ROTULOS.sistema)?;
+        let sistema = s.esperar(ROTULOS.formulario_sistema)?;
         sistema.marcar(OPCION_POTENCIA)?;
         sistema.escribir(POTENCIA_PLANEADA, &format!("{kwp}"))?;
         let propuesta = json!({
             "n_mod_serie": sistema.leer(MODULOS_SERIE)?,
             "n_strings": sistema.leer(CADENAS)?,
         });
-        sistema.pulsar("OK")?;
+        sistema.pulsar(ROTULOS.ok)?;
         s.aceptar_mensajes();
         let raiz = p.guardar_variante()?;
         Ok(respuesta(&raiz, kwp, &propuesta, &s.mensajes()))

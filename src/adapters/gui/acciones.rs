@@ -1,6 +1,7 @@
 //! Window actions: clicks, messages, physical inputs and desktop interactivity.
 
 use super::ffi::{self, Hwnd, BM_CLICK, GA_ROOT, SW_RESTORE, WM_CLOSE};
+use super::rotulos::{rotulos_acciones, Idioma, RotulosAcciones};
 use super::ventanas::{class_of, rect_of, resolve, text_of, ventanas_de, visible, window_json};
 use crate::args::{opt_i32, opt_u32, req_str};
 use crate::error::{Error, Result};
@@ -9,14 +10,7 @@ use std::time::Duration;
 
 /// Window classes (Win32 and VCL) that implement `BM_CLICK`.
 const CLASES_BOTON: &[&str] = &["Button", "TButton", "TBitBtn", "TCheckBox", "TRadioButton"];
-/// Buttons that leave a VCL form without keeping changes.
-const BOTONES_CIERRE: [&str; 4] = ["Cerrar", "Cancelar", "Salir", "No"];
-/// Buttons that acknowledge a PVsyst message box. "Sí"/"No" are not here: a
-/// question may delete or save, so `cerrar` never answers it for the caller.
-const BOTONES_MENSAJE: [&str; 5] = ["OK", "Aceptar", "Continuar", "Cerrar", "Cancelar"];
-/// The only button of the madExcept crash dialog that keeps PVsyst running
-/// without sending a report or restarting it.
-const BOTONES_EXCEPCION: [&str; 1] = ["Continuar"];
+const ROTULOS: RotulosAcciones = rotulos_acciones(Idioma::Es);
 /// Class of PVsyst's message boxes.
 pub(crate) const CLASE_MENSAJE: &str = "TMessageForm";
 /// Class of the madExcept crash dialog.
@@ -78,9 +72,9 @@ fn enviar_mensaje(h: Hwnd, args: &Value) -> Result<()> {
 
 fn botones_de_cierre(h: Hwnd) -> &'static [&'static str] {
     match class_of(h).as_str() {
-        CLASE_MENSAJE => &BOTONES_MENSAJE,
-        CLASE_EXCEPCION => &BOTONES_EXCEPCION,
-        _ => &BOTONES_CIERRE,
+        CLASE_MENSAJE => ROTULOS.botones_mensaje,
+        CLASE_EXCEPCION => ROTULOS.botones_excepcion,
+        _ => ROTULOS.botones_cierre,
     }
 }
 
@@ -193,7 +187,9 @@ pub(crate) fn invocar(_paths: &crate::config::Paths, args: &Value) -> Result<Val
 
     let mut window = window_json(h);
     if action == "cerrar" {
-        window["closed"] = json!(!visible(h));
+        if let Some(map) = window.as_object_mut() {
+            map.insert("closed".into(), json!(!visible(h)));
+        }
     }
     Ok(json!({
         "invoked": reference,
