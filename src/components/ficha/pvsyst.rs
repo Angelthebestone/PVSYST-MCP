@@ -3,12 +3,44 @@
 //! RSerie, Gamma...) or builds the efficiency profile, and saves the file.
 
 use crate::adapters::gui::conduccion::{Campo, Formulario};
+use crate::adapters::gui::rotulos::Idioma;
 use crate::adapters::gui::sesion_pvsyst::Sesion;
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::object;
 use serde_json::{json, Map, Value};
 use std::path::{Path, PathBuf};
+
+/// Declarative captions and form classes for PVsyst component creation.
+struct RotulosFicha {
+    ok: &'static str,
+    formulario_guardar_componente: &'static str,
+    guardar_como: &'static str,
+    formulario_guardar_objeto: &'static str,
+    guardar: &'static str,
+    bases_de_datos: &'static str,
+    formulario_base_datos: &'static str,
+    formulario_eleccion_objeto: &'static str,
+    nuevo: &'static str,
+}
+
+const fn rotulos_ficha(idioma: Idioma) -> RotulosFicha {
+    match idioma {
+        Idioma::Es => RotulosFicha {
+            ok: "OK",
+            formulario_guardar_componente: "TSaveComponentForm",
+            guardar_como: "Guardar como",
+            formulario_guardar_objeto: "TSaveObjPVForm",
+            guardar: "Guardar",
+            bases_de_datos: "Bases de datos",
+            formulario_base_datos: "TDatabaseForm",
+            formulario_eleccion_objeto: "TChoixObjetPVForm",
+            nuevo: "Nuevo",
+        },
+    }
+}
+
+const ROTULOS: RotulosFicha = rotulos_ficha(Idioma::Es);
 
 /// One datasheet value: its key in the PVsyst file and where it is typed.
 struct Entrada {
@@ -195,15 +227,18 @@ fn opciones(f: &Formulario, datos: &Map<String, Value>) -> Result<()> {
 }
 
 fn guardar(s: &Sesion, f: &Formulario) -> Result<()> {
-    f.pulsar("OK")?;
-    let confirmar = s.esperar("TSaveComponentForm").map_err(|_| {
-        Error::Invalid(format!(
-            "PVsyst no acepta el componente: revisa la ficha (la ventana '{}' sigue abierta)",
-            f.titulo()
-        ))
-    })?;
-    confirmar.pulsar("Guardar como")?;
-    s.esperar("TSaveObjPVForm")?.pulsar("Guardar")?;
+    f.pulsar(ROTULOS.ok)?;
+    let confirmar = s
+        .esperar(ROTULOS.formulario_guardar_componente)
+        .map_err(|_| {
+            Error::Invalid(format!(
+                "PVsyst no acepta el componente: revisa la ficha (la ventana '{}' sigue abierta)",
+                f.titulo()
+            ))
+        })?;
+    confirmar.pulsar(ROTULOS.guardar_como)?;
+    s.esperar(ROTULOS.formulario_guardar_objeto)?
+        .pulsar(ROTULOS.guardar)?;
     s.aceptar_mensajes();
     Ok(())
 }
@@ -228,9 +263,11 @@ pub(crate) fn crear(
     }
     let sesion = Sesion::abrir(paths)?;
     sesion.ejecutar(|s| {
-        s.inicio.pulsar("Bases de datos")?;
-        s.esperar("TDatabaseForm")?.pulsar(t.boton_base)?;
-        s.esperar("TChoixObjetPVForm")?.pulsar("Nuevo")?;
+        s.inicio.pulsar(ROTULOS.bases_de_datos)?;
+        s.esperar(ROTULOS.formulario_base_datos)?
+            .pulsar(t.boton_base)?;
+        s.esperar(ROTULOS.formulario_eleccion_objeto)?
+            .pulsar(ROTULOS.nuevo)?;
         let f = s.esperar(t.formulario)?;
         rellenar(t, &f, datos, &archivo)?;
         guardar(s, &f)?;

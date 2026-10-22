@@ -95,6 +95,14 @@ pub(crate) fn esperar_cierre(h: Hwnd, espera: Duration) -> bool {
     true
 }
 
+/// Target point inside an action toolbar of a form.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct PuntoBarra {
+    pub(crate) n: usize,
+    pub(crate) ancho_min: i32,
+    pub(crate) x: i32,
+}
+
 impl Formulario {
     pub(crate) fn de(h: Hwnd) -> Self {
         Self {
@@ -272,19 +280,19 @@ impl Formulario {
 
     /// Clicks a point of a toolbar (`TActionToolBar`), the only way to reach
     /// its actions: the `n`-th toolbar wider than `ancho_min`, top to bottom.
-    pub(crate) fn clic_barra(&self, n: usize, ancho_min: i32, x: i32) -> Result<()> {
+    pub(crate) fn clic_barra(&self, punto: PuntoBarra) -> Result<()> {
         let mut barras: Vec<ffi::Rect> = self
             .hijos_visibles()
             .filter(|c| class_of(*c) == "TActionToolBar")
             .map(rect_of)
-            .filter(|r| r.right - r.left >= self.escalar(ancho_min))
+            .filter(|r| r.right - r.left >= self.escalar(punto.ancho_min))
             .collect();
         barras.sort_by_key(|r| r.top);
         let r = barras
-            .get(n)
+            .get(punto.n)
             .ok_or_else(|| Error::Gui(format!("'{}' no tiene esa barra", self.titulo())))?;
         ffi::traer_al_frente(self.h);
-        ffi::clic_fisico_en(r.left + self.escalar(x), (r.top + r.bottom) / 2);
+        ffi::clic_fisico_en(r.left + self.escalar(punto.x), (r.top + r.bottom) / 2);
         std::thread::sleep(PAUSA_ACCION);
         Ok(())
     }

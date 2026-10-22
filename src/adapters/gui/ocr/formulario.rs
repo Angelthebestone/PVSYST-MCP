@@ -110,11 +110,13 @@ fn procesar_campo(c: Hwnd, clase: &str, lineas: &[LineaOcr]) -> Value {
         "habilitado": estado.habilitada,
         "rect": rect_json(&r),
     });
-    if CLASES_TEXTO.contains(&clase) {
-        obj["valor"] = json!(raw_texto);
-    }
-    if es_opcion {
-        obj["marcado"] = json!(esta_marcado(c));
+    if let Some(map) = obj.as_object_mut() {
+        if CLASES_TEXTO.contains(&clase) {
+            map.insert("valor".into(), json!(raw_texto));
+        }
+        if es_opcion {
+            map.insert("marcado".into(), json!(esta_marcado(c)));
+        }
     }
     obj
 }
@@ -168,16 +170,37 @@ fn lineas_o_nada(params: &ParametrosCaptura, h: Hwnd) -> Result<Vec<LineaOcr>> {
     capturar_lineas_pantalla(params, h)
 }
 
+fn ventana_objetivo(args: &Value) -> Result<Hwnd> {
+    match args.get("ventana").and_then(Value::as_str) {
+        Some(_) => hwnd_de(args, "ventana"),
+        None => raiz_por_defecto(&ventanas_de(args)?)
+            .ok_or_else(|| Error::Gui("No hay una ventana visible para inspeccionar".into())),
+    }
+}
+
+fn clasificar_controles(
+    hijos: &[(Hwnd, String)],
+    lineas: &[LineaOcr],
+    etiquetas: &[LineaOcr],
+) -> (Vec<Value>, Vec<Value>) {
+    let mut campos = Vec::new();
+    let mut botones = Vec::new();
+    for (c, clase) in hijos {
+        if es_boton(clase) {
+            botones.push(procesar_boton(*c, clase, lineas));
+        } else if es_campo(clase) {
+            campos.push(procesar_campo(*c, clase, etiquetas));
+        }
+    }
+    (campos, botones)
+}
+
 /// Inspects an active GUI form: recognizes all labels via OCR, pairs them with
 /// their interactive controls, and extracts buttons and tab pages. `textos`
 /// lists every caption drawn outside a control (a message box's question).
 pub(crate) fn formulario(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     ffi::declarar_dpi_por_monitor();
-    let h = match args.get("ventana").and_then(Value::as_str) {
-        Some(_) => hwnd_de(args, "ventana")?,
-        None => raiz_por_defecto(&ventanas_de(args)?)
-            .ok_or_else(|| Error::Gui("No hay una ventana visible para inspeccionar".into()))?,
-    };
+    let h = ventana_objetivo(args)?;
     let rect_win = rect_of(h);
     let params = ParametrosCaptura {
         paths,
@@ -196,15 +219,7 @@ pub(crate) fn formulario(paths: &crate::config::Paths, args: &Value) -> Result<V
         .map(|(c, _)| rect_ocr_de(*c))
         .collect();
     let etiquetas = segmentar_lineas(&lineas, &rects);
-    let mut campos = Vec::new();
-    let mut botones = Vec::new();
-    for (c, clase) in &hijos {
-        if es_boton(clase) {
-            botones.push(procesar_boton(*c, clase, &lineas));
-        } else if es_campo(clase) {
-            campos.push(procesar_campo(*c, clase, &etiquetas));
-        }
-    }
+    let (campos, botones) = clasificar_controles(&hijos, &lineas, &etiquetas);
     let (pestanas, pestanas_error) = match extraer_pestanas(paths, h) {
         Ok(pestanas) => (pestanas, None),
         Err(e) => (Vec::new(), Some(e.to_string())),

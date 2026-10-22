@@ -8,6 +8,10 @@ use crate::error::{Error, Result};
 use serde_json::{json, Value};
 use std::time::{Duration, Instant};
 
+use super::rotulos::{rotulos_horizonte, RotulosHorizonte};
+use crate::adapters::gui::rotulos::Idioma;
+
+const ROTULOS: RotulosHorizonte = rotulos_horizonte(Idioma::Es);
 /// PVGIS answers in a few seconds; allow for slow networks.
 const ESPERA_DESCARGA: Duration = Duration::from_secs(90);
 
@@ -16,14 +20,14 @@ pub(crate) fn importar_pvgis(paths: &Paths, proyecto: &str, variante: &str) -> R
     let sesion = Sesion::abrir(paths)?;
     sesion.ejecutar(|s| {
         let p = ProyectoEnPvsyst::abrir(s, paths, proyecto, variante)?;
-        p.ventana.pulsar("Horizonte")?;
-        let horizonte = s.esperar("THorizonForm")?;
-        horizonte.pulsar("Leer / Importar")?;
-        let importar = s.esperar("TImportHorizonForm")?;
-        importar.elegir("PVGIS")?;
-        importar.pulsar("Importar desde web")?;
+        p.ventana.pulsar(ROTULOS.horizonte)?;
+        let horizonte = s.esperar(ROTULOS.formulario_horizonte)?;
+        horizonte.pulsar(ROTULOS.leer_importar)?;
+        let importar = s.esperar(ROTULOS.formulario_importar)?;
+        importar.elegir(ROTULOS.opcion_pvgis)?;
+        importar.pulsar(ROTULOS.importar_desde_web)?;
         let fin = Instant::now() + ESPERA_DESCARGA;
-        while !importar.habilitado("OK") {
+        while !importar.habilitado(ROTULOS.ok) {
             if Instant::now() >= fin {
                 return Err(Error::Gui(
                     "PVsyst no pudo descargar el horizonte de PVGIS".into(),
@@ -31,8 +35,8 @@ pub(crate) fn importar_pvgis(paths: &Paths, proyecto: &str, variante: &str) -> R
             }
             std::thread::sleep(Duration::from_millis(500));
         }
-        importar.pulsar("OK")?;
-        horizonte.pulsar("OK")?;
+        importar.pulsar(ROTULOS.ok)?;
+        horizonte.pulsar(ROTULOS.ok)?;
         s.aceptar_mensajes();
         let raiz = p.guardar_variante()?;
         let h = objeto(&raiz, "pvHorizon")

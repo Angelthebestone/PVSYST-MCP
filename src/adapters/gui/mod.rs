@@ -26,6 +26,7 @@ pub(crate) mod png;
 pub(crate) mod proceso;
 pub(crate) mod recuperacion;
 pub(crate) mod registro_pvsyst;
+pub(crate) mod rotulos;
 pub(crate) mod sesion_pvsyst;
 pub(crate) mod teclado;
 pub(crate) mod uia_vista;

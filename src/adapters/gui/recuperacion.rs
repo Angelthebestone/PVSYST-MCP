@@ -9,6 +9,7 @@ use super::ffi::Hwnd;
 use super::ocr::captura_ocr::lineas_vivas;
 use super::ocr::ubicacion::plegar;
 use super::proceso::lanzar;
+use super::rotulos::{rotulos_recuperacion, Idioma, RotulosRecuperacion};
 use super::ventanas::{
     class_of, enum_windows_de, find_pids, hijo_visible_con_texto, target_pids, visible,
 };
@@ -18,12 +19,7 @@ use std::time::{Duration, Instant};
 
 const INICIO: &str = "THomeForm";
 const EJECUTABLE: &str = "PVsyst.exe";
-/// Button of the madExcept dialog that closes PVsyst and starts it again.
-const BOTON_REINICIAR: &str = "Reiniciar PVsyst";
-/// "No" of the instability warning: it quits PVsyst.
-const BOTON_SALIR: &str = "No";
-/// Words of the instability warning, folded, in the interface languages.
-const AVISO_INESTABLE: [&str; 2] = ["inestable", "unstable"];
+const ROTULOS: RotulosRecuperacion = rotulos_recuperacion(Idioma::Es);
 const ESPERA_SALIDA: Duration = Duration::from_secs(20);
 const ESPERA_ARRANQUE: Duration = Duration::from_secs(60);
 const SONDEO: Duration = Duration::from_millis(250);
@@ -37,10 +33,10 @@ enum Fallo {
 }
 
 fn es_aviso_inestable(ventana: Hwnd) -> bool {
-    hijo_visible_con_texto(ventana, BOTON_SALIR).is_some()
+    hijo_visible_con_texto(ventana, ROTULOS.boton_salir).is_some()
         && lineas_vivas(ventana).is_ok_and(|lineas| {
             let texto = plegar(&lineas.iter().map(|l| l.texto.as_str()).collect::<String>());
-            AVISO_INESTABLE.iter().any(|p| texto.contains(p))
+            ROTULOS.aviso_inestable.iter().any(|p| texto.contains(p))
         })
 }
 
@@ -86,10 +82,8 @@ fn nueva_instancia(anterior: u32) -> Reaparicion {
         nuevo = nuevo
             .filter(|p| vivos.contains(p))
             .or_else(|| vivos.into_iter().find(|p| *p != anterior));
-        if let Some(pid) = nuevo {
-            if esperar(pid, INICIO, SONDEO * 4).is_ok() {
-                return Reaparicion::Lista(pid);
-            }
+        if let Some(pid) = nuevo.filter(|&p| esperar(p, INICIO, SONDEO * 4).is_ok()) {
+            return Reaparicion::Lista(pid);
         }
         std::thread::sleep(SONDEO);
     }
@@ -110,11 +104,11 @@ struct Salida {
 
 fn salir_del_fallo(fallo: &Fallo) -> Result<Salida> {
     match *fallo {
-        Fallo::Excepcion(h) => pulsar(h, BOTON_REINICIAR).map(|()| Salida {
+        Fallo::Excepcion(h) => pulsar(h, ROTULOS.boton_reiniciar).map(|()| Salida {
             via: "madExcept",
             pvsyst_se_reinicia: true,
         }),
-        Fallo::Inestable(h) => pulsar(h, BOTON_SALIR).map(|()| Salida {
+        Fallo::Inestable(h) => pulsar(h, ROTULOS.boton_salir).map(|()| Salida {
             via: "aviso_inestable",
             pvsyst_se_reinicia: false,
         }),
@@ -167,8 +161,9 @@ pub(crate) fn reiniciar(paths: &crate::config::Paths, args: &Value) -> Result<Va
 
 fn arrancar_de_nuevo(paths: &crate::config::Paths) -> Result<u32> {
     let lanzado = lanzar(paths, &json!({}))?;
-    lanzado["pid"]
-        .as_u64()
+    lanzado
+        .get("pid")
+        .and_then(Value::as_u64)
         .and_then(|p| u32::try_from(p).ok())
         .ok_or_else(|| Error::Gui("PVsyst no devolvió pid al lanzarse".into()))
 }

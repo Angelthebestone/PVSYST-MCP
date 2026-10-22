@@ -82,14 +82,10 @@ fn listar_idiomas_disponibles() -> String {
     let Ok(count) = disponibles.Size() else {
         return String::new();
     };
-    let mut tags = Vec::new();
-    for i in 0..count {
-        if let Ok(l) = disponibles.GetAt(i) {
-            if let Ok(tag) = l.LanguageTag() {
-                tags.push(tag.to_string());
-            }
-        }
-    }
+    let tags: Vec<String> = (0..count)
+        .filter_map(|i| disponibles.GetAt(i).ok())
+        .filter_map(|l| l.LanguageTag().ok().map(|t| t.to_string()))
+        .collect();
     tags.join(", ")
 }
 

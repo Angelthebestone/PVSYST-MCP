@@ -21,6 +21,10 @@ pub(crate) struct RectOcr {
 
 impl RectOcr {
     /// Creates a new rectangle.
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "constructor canónico de 4 coordenadas (left, top, right, bottom) para rectángulo 2D"
+    )]
     pub(crate) const fn new(left: i32, top: i32, right: i32, bottom: i32) -> Self {
         Self {
             left,

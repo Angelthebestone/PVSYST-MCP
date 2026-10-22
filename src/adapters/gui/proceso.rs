@@ -36,9 +36,11 @@ pub(crate) fn resolver_proyecto(
 fn esperar_formulario_principal(pid: u32, timeout_secs: u64) -> bool {
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(timeout_secs);
     let ready = || {
-        enum_windows()
-            .into_iter()
-            .any(|h| pid_of(h) == pid && visible(h) && window_brief(h)["class"] == "THomeForm")
+        enum_windows().into_iter().any(|h| {
+            pid_of(h) == pid
+                && visible(h)
+                && window_brief(h).get("class").and_then(Value::as_str) == Some("THomeForm")
+        })
     };
     while !ready() && std::time::Instant::now() < deadline {
         std::thread::sleep(std::time::Duration::from_millis(POLL_INTERVAL_MS));
