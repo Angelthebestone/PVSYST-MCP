@@ -74,7 +74,7 @@ impl Client {
         let default_cli = Path::new(&ws_str).join("nonexistent_pvsyst_cli.exe");
         cmd.env("PVSYST_GUI", default_gui);
         cmd.env("PVSYST_CLI", default_cli);
-
+        cmd.env("PVSYST_DATARO", r"C:\Program Files\PVsyst8.1.7\DataRO");
         for (k, v) in env {
             cmd.env(k, v);
         }
