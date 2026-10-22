@@ -10,9 +10,9 @@
     unreachable_pub
 )]
 
-mod common;
+mod cliente_mcp;
 
-use common::{synthetic_workspace, tool_text, Client};
+use cliente_mcp::{synthetic_workspace, tool_text, Client};
 use serde_json::json;
 use std::fs;
 

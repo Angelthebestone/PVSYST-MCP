@@ -28,6 +28,9 @@ pub const DEMO_WS: &str = r"C:\Program Files\PVsyst8.1.7\DataRO\PVsyst8.1_Data";
 pub fn protocol_server() -> Server {
     let mut paths = Paths::resolve();
     paths.aproximaciones = false;
+    let temp = std::env::temp_dir().join("mcp_test_protocol_ws");
+    let _ = std::fs::create_dir_all(&temp);
+    paths.workspace = temp;
     Server::new(paths)
 }
 
@@ -41,6 +44,7 @@ pub struct Client {
     stdin: ChildStdin,
     reader: BufReader<ChildStdout>,
     child: Child,
+    _temp_ws: Option<tempfile::TempDir>,
 }
 
 impl Client {
@@ -56,9 +60,14 @@ impl Client {
         // Pin the default surface: a developer shell that exports this must
         // not change what the "default" tests see.
         cmd.env_remove("PVSYST_MCP_APROXIMACIONES");
-        if let Some(w) = workspace {
-            cmd.env("PVSYST_WORKSPACE", w);
-        }
+        let (ws_str, temp_ws) = match workspace {
+            Some(w) => (w.to_string(), None),
+            None => {
+                let tmp = tempfile::tempdir().expect("temp dir for test client");
+                (tmp.path().to_string_lossy().to_string(), Some(tmp))
+            }
+        };
+        cmd.env("PVSYST_WORKSPACE", &ws_str);
         for (k, v) in env {
             cmd.env(k, v);
         }
@@ -74,6 +83,7 @@ impl Client {
             stdin,
             reader: BufReader::new(stdout),
             child,
+            _temp_ws: temp_ws,
         }
     }
 

@@ -5,9 +5,9 @@
 )]
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
-mod common;
+mod cliente_mcp;
 
-use common::{fixture, synthetic_workspace, tool_text, Client};
+use cliente_mcp::{fixture, synthetic_workspace, tool_text, Client};
 use serde_json::{json, Value};
 use std::fs;
 

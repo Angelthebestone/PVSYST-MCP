@@ -2,9 +2,9 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
-mod common;
+mod cliente_mcp;
 
-use common::{copiar_proyecto_demo, tool_text, Client};
+use cliente_mcp::{copiar_proyecto_demo, tool_text, Client};
 use serde_json::json;
 use std::fs;
 

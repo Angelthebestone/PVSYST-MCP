@@ -3,9 +3,9 @@
 // Test code: failing loudly on unexpected state is the point.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
-mod common;
+mod cliente_mcp;
 
-use common::protocol_call as call;
+use cliente_mcp::protocol_call as call;
 use pvsyst_mcp::{Paths, Server};
 use serde_json::Value;
 

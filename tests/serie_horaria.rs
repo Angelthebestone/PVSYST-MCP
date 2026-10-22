@@ -11,9 +11,9 @@
     unreachable_pub
 )]
 
-mod common;
+mod cliente_mcp;
 
-use common::tool_text;
+use cliente_mcp::tool_text;
 use pvsyst_mcp::Server;
 use serde_json::json;
 use std::fs;
