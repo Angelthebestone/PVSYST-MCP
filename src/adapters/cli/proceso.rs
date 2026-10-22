@@ -162,7 +162,7 @@ fn esperar_proceso(child: &mut Child, espera: &EsperaProceso<'_>) -> Result<(Opt
 pub(crate) fn ejecutar(paths: &Paths, args: &Value) -> Result<Value> {
     let comando = req_str(
         args,
-        &["comando", "command"],
+        &["comando"],
         "e.g. \"help\", \"version\", \"lic-info\"",
     )?;
 

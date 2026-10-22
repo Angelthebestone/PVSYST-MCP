@@ -23,9 +23,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `PVSYST_GUI`/`PVSYST_CLI` unset, so the server under test resolved the real
   executables in `C:\Program Files\PVsyst8.1.7`. They now point to missing paths;
   live `#[ignore]` tests opt in with `Client::start_instalacion_real`.
+- **English argument aliases work.** `leer {"file": …}`, `new_name`, `template`
+  and the other English names in the code were unreachable: `validacion.rs`
+  rejected the call ("Missing required argument 'archivo'") before the handler
+  saw the alias. Synonyms now live in one table per tool and are normalised to
+  the Spanish name before validation; alias and canonical name with different
+  values is an error.
+- **`mcpb/manifest.json` matched the code again.** The `proyecto` description had
+  drifted; a test now fails when manifest and tool declarations diverge.
 
 ### Changed
 
+- **Tool schemas announce the English aliases.** Every property and every
+  `accion`/`que` value lists its synonyms (`archivo (alias: file)`), generated
+  from the same table as `pvsyst://cobertura`, the manifest and the alias block of
+  README/README.es.
+- **Tests can no longer touch the installed PVsyst or the user's workspace**, and
+  `scripts/verificar.ps1` runs fmt, clippy and each test binary with a timeout,
+  reporting any `PVsyst.exe` left behind.
 - **Agent view of forms.** `gui_observar que:esquema` lists the forms PVsyst
   exposes by stable key (today `components.panels`, the PV module window's
   "Datos básicos" page: model, manufacturer, nominal power, technology,

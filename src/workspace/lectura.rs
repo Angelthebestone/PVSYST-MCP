@@ -147,7 +147,7 @@ fn leer_ventana_texto(file: &mut File, r: &RangoVentana) -> Result<(usize, usize
 /// Read a file within a bounded memory window without loading the whole file into RAM.
 pub(crate) fn leer_archivo(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
-    let p = req_str(args, &["archivo", "file"], "")?;
+    let p = req_str(args, &["archivo"], "")?;
     let path = resolver_ruta(&workspace, p, Alcance::de_args(args))?;
     let meta = fs::metadata(&path)
         .map_err(|e| Error::io(format!("Cannot read metadata {}", path.display()), e))?;

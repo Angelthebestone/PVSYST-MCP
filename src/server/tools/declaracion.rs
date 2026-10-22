@@ -103,6 +103,18 @@ pub(crate) struct Anotaciones {
     pub(crate) usa_red: bool,
 }
 
+/// Declarative synonyms for tool arguments and multi-action discriminator values.
+pub(crate) struct Sinonimos {
+    pub(crate) argumentos: &'static [(&'static str, &'static str)],
+    pub(crate) valores: &'static [(&'static str, &'static str)],
+}
+
+#[allow(dead_code)]
+pub(crate) const SINONIMOS_VACIOS: Sinonimos = Sinonimos {
+    argumentos: &[],
+    valores: &[],
+};
+
 /// A consolidated MCP tool declaration coupling schema, validation, and handler.
 pub(crate) struct Herramienta {
     pub(crate) nombre: &'static str,
@@ -112,34 +124,27 @@ pub(crate) struct Herramienta {
     pub(crate) requeridos: &'static [&'static str],
     pub(crate) discriminador: Option<Discriminador>,
     pub(crate) requeridos_por_accion: &'static [(&'static str, &'static [&'static str])],
+    pub(crate) sinonimos: Sinonimos,
     pub(crate) ejecutar: Ejecutor,
 }
 
 impl Herramienta {
     /// Builds the MCP tool schema exposed to clients in `tools/list`.
     pub(crate) fn esquema(&self) -> Value {
-        // No `outputSchema`: one tool returns different shapes per action.
         let mut props = Map::new();
         let mut req: Vec<&str> = self.requeridos.to_vec();
 
-        for (clave, tipo) in self.propiedades {
+        for &(clave, tipo) in self.propiedades {
             let mut prop_val = tipo.esquema_json();
-            if *clave == "workspace" {
-                prop_val["description"] = json!(
-                    "Ruta del workspace que reemplaza la raíz de confinamiento para esta llamada. Requiere cliente MCP de confianza."
-                );
-            }
-            anotar_restricciones(&mut prop_val, clave);
-            props.insert((*clave).to_string(), prop_val);
+            anotar_workspace_si_aplica(&mut prop_val, clave);
+            super::restricciones_esquema::anotar_restricciones(&mut prop_val, clave);
+            self.anotar_alias_propiedad(&mut prop_val, clave);
+            props.insert(clave.to_string(), prop_val);
         }
 
         if let Some(disc) = &self.discriminador {
-            let mut prop = json!({ "type": "string", "enum": disc.valores });
-            if let Some(defecto) = disc.defecto {
-                prop["default"] = json!(defecto);
-            } else {
-                req.push(disc.campo);
-            }
+            let mut prop = construir_prop_discriminador(disc, &mut req);
+            self.anotar_alias_discriminador(&mut prop, disc);
             props.insert(disc.campo.to_string(), prop);
         }
 
@@ -166,70 +171,58 @@ impl Herramienta {
             }
         })
     }
-}
 
-fn anotar_restricciones(prop_val: &mut Value, clave: &str) {
-    match clave {
-        "potencia_kw" => {
-            prop_val["description"] = json!(
-                "Potencia límite de inyección en kW. Para quitar el límite, usa editar con PLimGrid: null."
-            );
+    fn anotar_alias_propiedad(&self, prop_val: &mut Value, clave: &str) {
+        let aliases: Vec<&str> = self
+            .sinonimos
+            .argumentos
+            .iter()
+            .filter(|(_, can)| *can == clave)
+            .map(|(ali, _)| *ali)
+            .collect();
+        if aliases.is_empty() {
+            return;
         }
-        "estrategia" => {
-            prop_val["enum"] = json!(["autoconsumo", "recorte_picos"]);
-        }
-        "tipo_sistema" => {
-            prop_val["enum"] = json!(["red", "aislado"]);
-        }
-        "via" => {
-            prop_val["enum"] = json!(["pvsyst", "aproximacion"]);
-            prop_val["description"] = json!(
-                "pvsyst (defecto): la ruta de PVsyst. aproximacion: cálculo propio del MCP, oculto salvo con PVSYST_MCP_APROXIMACIONES=1."
-            );
-        }
-        "medido_kwh" => {
-            prop_val["items"] = json!({ "type": "number" });
-            prop_val["minItems"] = json!(12);
-            prop_val["maxItems"] = json!(12);
-        }
-        "n_baterias_serie" | "n_baterias_paralelo" => {
-            prop_val["minimum"] = json!(1);
-            prop_val["description"] = json!("Solo aplica a tipo_sistema:aislado.");
-        }
-        _ => anotar_gui(prop_val, clave),
+        let Some(obj) = prop_val.as_object_mut() else {
+            return;
+        };
+        let alias_str = format!("(alias: {})", aliases.join(", "));
+        let desc = match obj.get("description").and_then(Value::as_str) {
+            Some(prev) => format!("{prev} {alias_str}"),
+            None => format!("{clave} {alias_str}"),
+        };
+        obj.insert("description".to_string(), json!(desc));
     }
-}
 
-/// Schema details of the GUI-automation arguments.
-fn anotar_gui(prop_val: &mut Value, clave: &str) {
-    match clave {
-        "campo" => {
-            prop_val["description"] =
-                json!("Campo sin rótulo: clase VCL y centro en px a 96 DPI dentro del formulario.");
-            prop_val["properties"] = json!({
-                "clase": {
-                    "type": "string",
-                    "enum": ["TEdit", "TComboBox", "TRadioButton", "TCheckBox"],
-                    "default": "TEdit"
-                },
-                "x": { "type": "integer" },
-                "y": { "type": "integer" }
-            });
-            prop_val["required"] = json!(["x", "y"]);
-        }
-        "texto" => {
-            prop_val["description"] =
-                json!("Texto a escribir, o prefijo del ítem del combo a seleccionar.");
-        }
-        "pids" => {
-            prop_val["items"] = json!({ "type": "integer" });
-            prop_val["description"] = json!("Procesos objetivo; si se omite, se usa PVsyst.exe.");
-        }
-        "lineas" => {
-            prop_val["minimum"] = json!(1);
-            prop_val["maximum"] = json!(500);
-        }
-        _ => {}
+    fn anotar_alias_discriminador(&self, prop: &mut Value, disc: &Discriminador) {
+        let Some(obj) = prop.as_object_mut() else {
+            return;
+        };
+        let valores_desc: Vec<String> = disc
+            .valores
+            .iter()
+            .map(|val| formatear_valor_con_aliases(val, &self.sinonimos))
+            .collect();
+        let valores_texto = valores_desc.join(", ");
+
+        let arg_aliases: Vec<&str> = self
+            .sinonimos
+            .argumentos
+            .iter()
+            .filter(|(_, can)| *can == disc.campo)
+            .map(|(ali, _)| *ali)
+            .collect();
+
+        let desc = if arg_aliases.is_empty() {
+            format!("Valores: {valores_texto}")
+        } else {
+            format!(
+                "{} (alias: {}). Valores: {valores_texto}",
+                disc.campo,
+                arg_aliases.join(", ")
+            )
+        };
+        obj.insert("description".to_string(), json!(desc));
     }
 }
 
@@ -243,4 +236,43 @@ pub(crate) fn con(args: &Value, clave: &str, valor: Value) -> Value {
         m.insert(clave.to_string(), valor);
     }
     copia
+}
+
+fn anotar_workspace_si_aplica(prop_val: &mut Value, clave: &str) {
+    if clave != "workspace" {
+        return;
+    }
+    if let Some(obj) = prop_val.as_object_mut() {
+        obj.insert(
+            "description".to_string(),
+            json!("Ruta del workspace que reemplaza la raíz de confinamiento para esta llamada. Requiere cliente MCP de confianza."),
+        );
+    }
+}
+
+fn construir_prop_discriminador(disc: &Discriminador, req: &mut Vec<&str>) -> Value {
+    let mut prop = json!({ "type": "string", "enum": disc.valores });
+    match disc.defecto {
+        Some(defecto) => {
+            if let Some(obj) = prop.as_object_mut() {
+                obj.insert("default".to_string(), json!(defecto));
+            }
+        }
+        None => req.push(disc.campo),
+    }
+    prop
+}
+
+fn formatear_valor_con_aliases(val: &str, sinonimos: &Sinonimos) -> String {
+    let aliases: Vec<&str> = sinonimos
+        .valores
+        .iter()
+        .filter(|(_, can)| *can == val)
+        .map(|(ali, _)| *ali)
+        .collect();
+    if aliases.is_empty() {
+        val.to_string()
+    } else {
+        format!("{val} (alias: {})", aliases.join(", "))
+    }
 }

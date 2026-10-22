@@ -1,6 +1,6 @@
 //! Tool for component database management: creation, deletion, import and export.
 
-use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
+use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, Sinonimos, TipoDato};
 use crate::admin;
 use crate::components;
 use crate::config::Paths;
@@ -48,7 +48,34 @@ pub(crate) const TOOL_COMPONENTE: Herramienta = Herramienta {
         ("editar", &["componente"]),
         ("crear_desde_ficha", &["tipo", "nombre_nuevo", "datos"]),
     ],
+    sinonimos: SINONIMOS_COMPONENTE,
     ejecutar: Ejecutor::Simple(ejecutar_componente),
+};
+
+const SINONIMOS_COMPONENTE: Sinonimos = Sinonimos {
+    argumentos: &[
+        ("action", "accion"),
+        ("file", "componente"),
+        ("component", "componente"),
+        ("new_name", "nombre_nuevo"),
+        ("template", "plantilla"),
+        ("changes", "cambios"),
+        ("type", "tipo"),
+        ("source", "origen"),
+        ("target", "destino"),
+        ("destination", "destino"),
+        ("data", "datos"),
+    ],
+    valores: &[
+        ("create", "crear"),
+        ("edit", "editar"),
+        ("delete", "borrar"),
+        ("remove", "borrar"),
+        ("import", "importar"),
+        ("export", "exportar"),
+        ("datasheet", "crear_desde_ficha"),
+        ("create_from_datasheet", "crear_desde_ficha"),
+    ],
 };
 
 fn ejecutar_componente(paths: &Paths, args: &Value) -> Result<Value> {

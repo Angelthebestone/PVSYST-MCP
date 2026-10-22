@@ -12,7 +12,7 @@ use serde_json::{json, Value};
 
 /// Reads and decodes a `.SHD`, `.BLD`, or `.SHO` file, returning its structured 3D object tree.
 pub(crate) fn leer_escena(paths: &Paths, args: &Value) -> Result<Value> {
-    let nombre = req_str(args, &["archivo", "escena"], "p.ej. 'DEMO_Geneve_Grid.SHD'")?;
+    let nombre = req_str(args, &["archivo"], "p.ej. 'DEMO_Geneve_Grid.SHD'")?;
     let ws = workspace_of(paths, args);
     let peticion = PeticionResolucion {
         nombre,

@@ -13,7 +13,7 @@ use serde_json::{json, Value};
 
 /// Reads and decodes a `.MEF` weather specification file.
 pub(crate) fn leer_mef(paths: &Paths, args: &Value) -> Result<Value> {
-    let nombre = req_str(args, &["archivo", "mef"], "p.ej. 'PVsyst_ANE-NEDO.MEF'")?;
+    let nombre = req_str(args, &["archivo"], "p.ej. 'PVsyst_ANE-NEDO.MEF'")?;
     let ws = workspace_of(paths, args);
     let peticion = PeticionResolucion {
         nombre,

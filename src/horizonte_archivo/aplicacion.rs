@@ -11,7 +11,7 @@ use std::path::PathBuf;
 
 /// Reads and decodes a `.HOR` file, returning its structured horizon representation.
 pub(crate) fn leer_horizonte(paths: &Paths, args: &Value) -> Result<Value> {
-    let nombre = req_str(args, &["archivo", "horizonte"], "p.ej. 'DEMO_Geneve.HOR'")?;
+    let nombre = req_str(args, &["archivo"], "p.ej. 'DEMO_Geneve.HOR'")?;
     let ruta = resolver_archivo_horizonte(paths, args, nombre)?;
     let bytes =
         fs::read(&ruta).map_err(|e| Error::io(format!("No se pudo leer {}", ruta.display()), e))?;
@@ -27,7 +27,7 @@ pub(crate) fn leer_horizonte(paths: &Paths, args: &Value) -> Result<Value> {
 
 /// Encodes and writes a `.HOR` file into the workspace under `Shadings/`, with history tracking.
 pub(crate) fn escribir_horizonte(paths: &Paths, args: &Value) -> Result<Value> {
-    let archivo = req_str(args, &["archivo", "output_file"], "p.ej. 'MiSitio.HOR'")?;
+    let archivo = req_str(args, &["archivo"], "p.ej. 'MiSitio.HOR'")?;
     let titulo = args
         .get("titulo")
         .and_then(Value::as_str)

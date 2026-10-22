@@ -80,7 +80,7 @@ fn resolver_por_extension(workspace: &Path, req: &PeticionArchivo) -> Result<Pat
 /// Resolve a general PVsyst file: a component (with `tipo`), or a path relative
 /// to the workspace, or an absolute path (checked against `Alcance`).
 pub(crate) fn resolve_file(workspace: &Path, args: &Value) -> Result<PathBuf> {
-    let name = req_str(args, &["archivo", "file"], "")?;
+    let name = req_str(args, &["archivo"], "")?;
     let alcance = Alcance::de_args(args);
     if let Some(kind) = args.get("tipo").and_then(|v| v.as_str()) {
         if !kind.is_empty() {

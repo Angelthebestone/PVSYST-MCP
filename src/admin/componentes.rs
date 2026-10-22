@@ -13,7 +13,7 @@ use std::fs;
 /// Import a component file into the workspace component database.
 pub(crate) fn importar_componente(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
-    let origen_str = req_str(args, &["origen", "file"], "component file to import")?;
+    let origen_str = req_str(args, &["origen"], "component file to import")?;
     let origen = resolver_ruta(&workspace, origen_str, Alcance::de_args(args))?;
     if !origen.exists() {
         return Err(Error::NotFound(format!(
@@ -52,7 +52,7 @@ pub(crate) fn importar_componente(paths: &Paths, args: &Value) -> Result<Value> 
 /// Export a workspace component to an external file.
 pub(crate) fn exportar_componente(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
-    let componente = req_str(args, &["componente", "file"], "component name")?;
+    let componente = req_str(args, &["componente"], "component name")?;
     let kind = tipo_de(args, componente).unwrap_or_else(|| "PAN".to_string());
     let consulta = components::ConsultaComponente {
         kind: &kind,

@@ -141,11 +141,7 @@ pub(crate) fn resolve_module_file(
 }
 
 pub(crate) fn leer_modulo(paths: &Paths, args: &Value) -> Result<Value> {
-    let file = req_str(
-        args,
-        &["modulo", "module", "archivo", "file"],
-        "a .PAN file name or path",
-    )?;
+    let file = req_str(args, &["modulo"], "a .PAN file name or path")?;
 
     let alcance = Alcance::de_args(args);
     let ws = crate::args::workspace_of(paths, args);

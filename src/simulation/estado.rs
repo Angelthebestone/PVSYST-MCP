@@ -34,7 +34,7 @@ pub(crate) fn final_de(paths: &Paths, id: &str, out: &cli::CliOutput) -> Result<
 }
 
 pub(crate) fn estado_simulacion(paths: &Paths, args: &Value) -> Result<Value> {
-    let id = crate::args::req_str(args, &["trabajo", "job"], "sim-1")?;
+    let id = crate::args::req_str(args, &["trabajo"], "sim-1")?;
     let estado = cli::estado_trabajo(paths, id).ok_or_else(|| {
         let activos: Vec<String> = paths
             .estado

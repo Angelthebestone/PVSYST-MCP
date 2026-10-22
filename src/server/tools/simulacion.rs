@@ -1,6 +1,6 @@
 //! Tool for simulation orchestration: batch setup, execution, status, and sweeps.
 
-use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, TipoDato};
+use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, Sinonimos, TipoDato};
 use crate::args::missing;
 use crate::config::Paths;
 use crate::error::{Error, Result};
@@ -77,7 +77,30 @@ pub(crate) const TOOL_SIMULAR: Herramienta = Herramienta {
         ("preestimar", &["latitud", "longitud", "kwp"]),
         ("barrido", &["latitud", "longitud", "kwp"]),
     ],
+    sinonimos: SINONIMOS_SIMULAR,
     ejecutar: Ejecutor::Seguido(ejecutar_simular),
+};
+
+const SINONIMOS_SIMULAR: Sinonimos = Sinonimos {
+    argumentos: &[
+        ("action", "accion"),
+        ("project", "proyecto"),
+        ("variant", "variante"),
+        ("job", "trabajo"),
+        ("rows", "filas"),
+        ("target", "destino"),
+        ("parameters", "parametros"),
+        ("latitude", "latitud"),
+        ("longitude", "longitud"),
+    ],
+    valores: &[
+        ("run", "ejecutar"),
+        ("execute", "ejecutar"),
+        ("prepare", "preparar"),
+        ("status", "estado"),
+        ("preestimate", "preestimar"),
+        ("sweep", "barrido"),
+    ],
 };
 
 fn ejecutar_simular(
@@ -123,8 +146,10 @@ fn preparar_entrada(paths: &Paths, args: &Value) -> Result<(Value, Map<String, V
         let r = batch::crear_batch(paths, args)?;
         pasar(
             &r,
-            &mut vivos,
-            &mut preparados,
+            &mut DestinosPreparacion {
+                vivos: &mut vivos,
+                preparados: &mut preparados,
+            },
             &["batch_params_file", "batch_rvt_file"],
         );
     }
@@ -138,16 +163,18 @@ fn preparar_entrada(paths: &Paths, args: &Value) -> Result<(Value, Map<String, V
     Ok((Value::Object(vivos), preparados))
 }
 
-fn pasar(
-    origen: &Value,
-    destino: &mut Map<String, Value>,
-    preparados: &mut Map<String, Value>,
-    claves: &[&str],
-) {
+struct DestinosPreparacion<'a> {
+    vivos: &'a mut Map<String, Value>,
+    preparados: &'a mut Map<String, Value>,
+}
+
+fn pasar(origen: &Value, destinos: &mut DestinosPreparacion<'_>, claves: &[&str]) {
     for clave in claves {
         if let Some(valor) = origen.get(*clave) {
-            destino.insert((*clave).to_string(), valor.clone());
-            preparados.insert((*clave).to_string(), valor.clone());
+            destinos.vivos.insert((*clave).to_string(), valor.clone());
+            destinos
+                .preparados
+                .insert((*clave).to_string(), valor.clone());
         }
     }
 }

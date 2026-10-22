@@ -75,9 +75,9 @@ pub(crate) fn con_cabecera(c: &Caso, mut v: Value) -> Value {
 /// Resolve the result files and read the PDF figures for one project/variant.
 pub(crate) fn caso(paths: &Paths, args: &Value) -> Result<Caso> {
     let workspace = workspace_of(paths, args);
-    let proyecto = req_str(args, &["proyecto", "project"], "proyecto")?.to_string();
-    let variante_pedida = opt_str(args, &["variante", "variant"]);
-    let archivo = opt_str(args, &["archivo", "file"]);
+    let proyecto = req_str(args, &["proyecto"], "proyecto")?.to_string();
+    let variante_pedida = opt_str(args, &["variante"]);
+    let archivo = opt_str(args, &["archivo"]);
     let (csv, pdf) = resultado_de(&workspace, Some(&proyecto), variante_pedida, archivo)?;
     let pdf = pdf.ok_or_else(|| {
         Error::NotFound(format!(

@@ -110,7 +110,7 @@ pub(crate) fn listar_componentes(paths: &Paths, args: &Value) -> Result<Value> {
 
 pub(crate) fn leer_componente(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
-    let file = req_str(args, &["componente", "file"], "")?;
+    let file = req_str(args, &["componente"], "")?;
     let kind = tipo_de(args, file).unwrap_or_else(|| "PAN".to_string());
 
     let path = resolve_component(&workspace, &consulta(&kind, file, args))?;
@@ -182,7 +182,7 @@ fn aplicar_cambios(bytes: &mut Vec<u8>, args: &Value) -> Result<Vec<Value>> {
 /// Edit an existing component in place with history snapshot.
 pub(crate) fn editar_componente(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
-    let file = req_str(args, &["componente", "file", "archivo"], "")?;
+    let file = req_str(args, &["componente"], "")?;
     let kind = tipo_de(args, file).unwrap_or_else(|| "PAN".to_string());
     let path = resolve_component(&workspace, &consulta(&kind, file, args))?;
     if es_base_solo_lectura(&path) {
@@ -207,8 +207,8 @@ pub(crate) fn editar_componente(paths: &Paths, args: &Value) -> Result<Value> {
 /// Create a new component by copying `plantilla` and applying field changes.
 pub(crate) fn crear_componente(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
-    let plantilla = req_str(args, &["plantilla", "template"], "existing component")?;
-    let nuevo = req_str(args, &["nombre_nuevo", "new_name"], "")?;
+    let plantilla = req_str(args, &["plantilla"], "existing component")?;
+    let nuevo = req_str(args, &["nombre_nuevo"], "")?;
     validar_nombre(nuevo)?;
     let kind = tipo_de(args, plantilla).ok_or_else(|| missing("tipo", "p.ej. \"PAN\""))?;
     let folder = folder_for(&kind)
@@ -240,7 +240,7 @@ pub(crate) fn crear_componente(paths: &Paths, args: &Value) -> Result<Value> {
 
 pub(crate) fn borrar_componente(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
-    let file = req_str(args, &["componente", "file"], "")?;
+    let file = req_str(args, &["componente"], "")?;
     let kind = tipo_de(args, file).unwrap_or_else(|| "PAN".to_string());
     let src = resolve_component(&workspace, &consulta(&kind, file, args))?;
     if es_base_solo_lectura(&src) {

@@ -96,7 +96,7 @@ const APROXIMACION_FICHA: Aproximacion = Aproximacion {
 /// from the values in `datos`.
 pub(crate) fn crear_desde_ficha(paths: &Paths, args: &Value) -> Result<Value> {
     let tipo = req_str(args, &["tipo"], "tipo")?.to_uppercase();
-    let nombre = req_str(args, &["nombre_nuevo", "nombre"], "nombre_nuevo")?;
+    let nombre = req_str(args, &["nombre_nuevo"], "nombre_nuevo")?;
     validar_nombre(nombre)?;
     let datos = args
         .get("datos")

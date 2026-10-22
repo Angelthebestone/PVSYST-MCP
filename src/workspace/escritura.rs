@@ -12,7 +12,7 @@ use std::path::Path;
 
 pub(crate) fn escribir_archivo(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
-    let p = req_str(args, &["archivo", "file"], "")?;
+    let p = req_str(args, &["archivo"], "")?;
     let path = resolver_ruta(&workspace, p, Alcance::de_args(args))?;
     let bytes = extraer_bytes_acotados(args)?;
 
@@ -40,7 +40,7 @@ pub(crate) fn escribir_archivo(paths: &Paths, args: &Value) -> Result<Value> {
 }
 
 fn extraer_bytes_acotados(args: &Value) -> Result<Vec<u8>> {
-    let content = req_str(args, &["contenido", "content"], "")?;
+    let content = req_str(args, &["contenido"], "")?;
     let es_base64 = flag(args, &["base64"]);
     let limite_texto = if es_base64 {
         crate::workspace::MAX_BYTES_MAXIMO.saturating_mul(4) / 3 + 16
