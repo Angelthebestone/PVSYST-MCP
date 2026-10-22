@@ -93,7 +93,7 @@ impl Sesion {
                 }
             }
             if !cerrado {
-                ffi::post_message(m.h, ffi::WM_CLOSE, 0, 0);
+                ffi::post_message(m.h, ffi::Mensaje::simple(ffi::WM_CLOSE));
             }
             n += 1;
         }
@@ -119,7 +119,7 @@ impl Sesion {
             };
             let f = Formulario::de(h);
             if !SALIDAS.iter().any(|b| f.pulsar(b).is_ok()) {
-                ffi::post_message(h, ffi::WM_CLOSE, 0, 0);
+                ffi::post_message(h, ffi::Mensaje::simple(ffi::WM_CLOSE));
             }
             std::thread::sleep(Duration::from_millis(500));
         }

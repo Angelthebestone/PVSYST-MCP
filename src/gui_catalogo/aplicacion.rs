@@ -178,7 +178,10 @@ fn exigir_anfitrion_habilitado(anfitrion: Hwnd) -> Result<()> {
 
 fn enviar_comando(anfitrion: Hwnd, id: u16) -> Result<()> {
     exigir_anfitrion_habilitado(anfitrion)?;
-    if ffi::post_message(anfitrion, WM_COMMAND, usize::from(id), 0) {
+    if ffi::post_message(
+        anfitrion,
+        ffi::Mensaje::nuevo(WM_COMMAND, usize::from(id), 0),
+    ) {
         return Ok(());
     }
     Err(Error::Gui(format!(

@@ -24,7 +24,12 @@ pub(crate) enum Modo {
     Aislado,
 }
 
-/// Handle of the private desktop; created once, never closed while we run.
+/// Handle del escritorio privado Win32 (HDESK); creado una vez al inicio del proceso y reutilizado.
+///
+/// Decisión de diseño (§4b.5): Un contexto explícito no es viable aquí porque `HDESK` es un recurso
+/// a nivel de proceso del sistema operativo Win32. Múltiples hilos de trabajo asíncronos necesitan
+/// adjuntarse (`SetThreadDesktop`) antes de invocar APIs de ventanas y UIA sin acoplar firmas en todo
+/// el crate. `OnceLock` garantiza inicialización segura, concurrente e inmutable una sola vez.
 static ESCRITORIO: OnceLock<isize> = OnceLock::new();
 
 /// Parses the value of [`VARIABLE`]: absent, empty or `compartido` is the
@@ -45,6 +50,7 @@ pub(crate) fn modo_de(valor: Option<&str>) -> Result<Modo> {
 pub(crate) fn preparar() -> Result<Modo> {
     let modo = modo_de(std::env::var(VARIABLE).ok().as_deref())?;
     if modo == Modo::Compartido {
+        ffi::fijar_aislado(ffi::ModoAislamiento::Compartido);
         return Ok(modo);
     }
     let h = ffi::crear_escritorio(NOMBRE).map_err(|e| {
@@ -54,7 +60,7 @@ pub(crate) fn preparar() -> Result<Modo> {
     })?;
     // Un segundo `preparar` reutiliza el handle ya creado.
     let _ = ESCRITORIO.set(h);
-    ffi::fijar_aislado(true);
+    ffi::fijar_aislado(ffi::ModoAislamiento::Aislado);
     Ok(modo)
 }
 

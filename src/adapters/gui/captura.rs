@@ -16,9 +16,10 @@ const BYTES_PER_PIXEL_RGB: usize = 3;
 
 /// Converts top-down BGRX pixels to packed RGB.
 pub(crate) fn rgb_desde_bgrx(px: &[u8]) -> Vec<u8> {
-    px.chunks(BYTES_PER_PIXEL_32)
-        .filter(|p| p.len() == BYTES_PER_PIXEL_32)
-        .flat_map(|p| [p[2], p[1], p[0]])
+    px.as_chunks::<BYTES_PER_PIXEL_32>()
+        .0
+        .iter()
+        .flat_map(|&[b, g, r, _]| [r, g, b])
         .collect()
 }
 
@@ -174,7 +175,9 @@ pub(crate) fn capturar(paths: &crate::config::Paths, args: &Value) -> Result<Val
         "bytes": png.len(),
     });
     if flag(args, &["imagen"]) {
-        res["_imagen_png_base64"] = json!(base64(&png));
+        if let Some(obj) = res.as_object_mut() {
+            obj.insert("_imagen_png_base64".to_string(), json!(base64(&png)));
+        }
     }
     Ok(res)
 }

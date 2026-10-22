@@ -35,6 +35,10 @@ impl Criterio {
     }
 }
 
+// Decisión de diseño (§4b.5): `thread_local!` es necesario aquí porque el callback Win32 `al_mostrar`
+// tiene la signatura fija `WINEVENTPROC` impuesta por `SetWinEventHook`, la cual no admite puntero de
+// contexto de usuario. El estado de espera debe residir en variables accesibles desde la función extern "system",
+// y `thread_local!` aísla las esperas por hilo impidiendo condiciones de carrera entre hilos concurrentes.
 thread_local! {
     static OBJETIVO: RefCell<Option<Criterio>> = const { RefCell::new(None) };
     static HALLADO: Cell<Hwnd> = const { Cell::new(0) };

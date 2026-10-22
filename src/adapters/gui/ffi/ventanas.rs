@@ -10,6 +10,27 @@ pub(crate) const SW_RESTORE: i32 = 9;
 pub(crate) const GA_ROOT: u32 = 2;
 pub(crate) const TH32CS_SNAPPROCESS: u32 = 0x0000_0002;
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct Mensaje {
+    pub(crate) id: u32,
+    pub(crate) wparam: usize,
+    pub(crate) lparam: isize,
+}
+
+impl Mensaje {
+    pub(crate) const fn nuevo(id: u32, wparam: usize, lparam: isize) -> Self {
+        Self { id, wparam, lparam }
+    }
+
+    pub(crate) const fn simple(id: u32) -> Self {
+        Self {
+            id,
+            wparam: 0,
+            lparam: 0,
+        }
+    }
+}
+
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
 pub(crate) struct Rect {
@@ -87,6 +108,7 @@ pub(crate) fn enum_children(parent: Hwnd) -> Vec<Hwnd> {
 }
 
 /// Cheap window state flags used by the JSON snapshots.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct EstadoVentana {
     pub(crate) visible: bool,
     pub(crate) habilitada: bool,
@@ -105,29 +127,32 @@ pub(crate) fn estado_ventana(h: Hwnd) -> EstadoVentana {
 }
 
 pub(crate) fn es_ventana(h: Hwnd) -> bool {
-    // SAFETY: Consulta de solo lectura sobre un HWND; un handle inválido devuelve 0.
+    if h == 0 {
+        return false;
+    }
+    // SAFETY: Consulta de solo lectura sobre un HWND; un handle inválido devuelve 0 de forma segura.
     unsafe { IsWindow(h) != 0 }
 }
 
-pub(crate) fn post_message(h: Hwnd, msg: u32, w: usize, l: isize) -> bool {
-    // SAFETY: `PostMessageW` encola mensajes sin punteros del llamador.
-    unsafe { PostMessageW(h, msg, w, l) != 0 }
+pub(crate) fn post_message(h: Hwnd, msg: Mensaje) -> bool {
+    // SAFETY: `PostMessageW` encola enteros sobre el HWND recibido sin retener punteros.
+    unsafe { PostMessageW(h, msg.id, msg.wparam, msg.lparam) != 0 }
 }
 
-pub(crate) fn send_message(h: Hwnd, msg: u32, w: usize, l: isize) {
-    // SAFETY: `SendMessageW` recibe enteros y el HWND del llamador; no desreferencia punteros.
+pub(crate) fn send_message(h: Hwnd, msg: Mensaje) {
+    // SAFETY: `SendMessageW` recibe enteros y el HWND recibido; no desreferencia punteros.
     unsafe {
-        SendMessageW(h, msg, w, l);
+        SendMessageW(h, msg.id, msg.wparam, msg.lparam);
     }
 }
 
-pub(crate) fn send_message_res(h: Hwnd, msg: u32, w: usize, l: isize) -> isize {
-    // SAFETY: `SendMessageW` recibe enteros y el HWND del llamador; no desreferencia punteros.
-    unsafe { SendMessageW(h, msg, w, l) }
+pub(crate) fn send_message_res(h: Hwnd, msg: Mensaje) -> isize {
+    // SAFETY: `SendMessageW` recibe enteros y el HWND recibido; no desreferencia punteros.
+    unsafe { SendMessageW(h, msg.id, msg.wparam, msg.lparam) }
 }
 
 pub(crate) fn mostrar_ventana(h: Hwnd, cmd: i32) {
-    // SAFETY: `ShowWindow` solo actúa sobre el HWND recibido.
+    // SAFETY: `ShowWindow` solo actúa sobre el HWND recibido; cmd se pasa por valor.
     unsafe {
         ShowWindow(h, cmd);
     }
@@ -141,13 +166,13 @@ pub(crate) fn traer_al_frente(h: Hwnd) {
 }
 
 pub(crate) fn get_ancestor(h: Hwnd, flags: u32) -> Hwnd {
-    // SAFETY: Consulta de solo lectura sobre un HWND.
+    // SAFETY: Consulta de solo lectura sobre un HWND recibido.
     unsafe { GetAncestor(h, flags) }
 }
 
 pub(crate) fn rect_cliente(h: Hwnd) -> Rect {
     let mut r = Rect::default();
-    // SAFETY: `r` es una local viva; la API solo escribe en ella.
+    // SAFETY: `r` es una local viva con el layout exacto de RECT; la API solo escribe en ella.
     unsafe {
         GetClientRect(h, &mut r);
     }

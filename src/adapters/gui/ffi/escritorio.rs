@@ -4,7 +4,7 @@
 //! MCP "types" in that mode is posted to the window as messages.
 
 use super::puntos::{clic_en_pantalla, ventana_en};
-use super::ventanas::{post_message, primer_plano, GetWindowThreadProcessId};
+use super::ventanas::{post_message, primer_plano, GetWindowThreadProcessId, Mensaje};
 use super::Hwnd;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -23,7 +23,27 @@ const REPETICION_UNICA: isize = 1;
 /// Fields before `rcCaret` in `GUITHREADINFO`, used to size the struct.
 const FLAGS_CREACION_DEFECTO: u32 = 0;
 
+/// Indicador atómico de si el proceso opera en un escritorio Win32 privado o en el interactivo.
+///
+/// Decisión de diseño (§4b.5): Un contexto explícito no es viable aquí porque el modo de aislamiento
+/// es una propiedad inmutable del proceso fijada al inicio mediante `PVSYST_MCP_ESCRITORIO`.
+/// Propagar un parámetro `ContextoGui` requeriría modificar decenas de firmas en capas ajenas a FFI
+/// (`src/adapters/gui/**`, `src/gui_catalogo/**`, `src/vista_agente/**`), violando la separación modular.
+/// `AtomicBool` ofrece acceso O(1) seguro y sin contención entre hilos.
 static AISLADO: AtomicBool = AtomicBool::new(false);
+/// Modo de aislamiento del escritorio Win32.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ModoAislamiento {
+    Aislado,
+    Compartido,
+}
+
+/// Presencia del modificador Alt en teclas enviadas a un escritorio aislado.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ModificadorAlt {
+    ConAlt,
+    SinAlt,
+}
 
 #[repr(C)]
 #[derive(Default)]
@@ -108,8 +128,8 @@ pub(crate) fn aislado() -> bool {
 }
 
 /// Marks the process as working on a private desktop (or not).
-pub(crate) fn fijar_aislado(valor: bool) {
-    AISLADO.store(valor, Ordering::Relaxed);
+pub(crate) fn fijar_aislado(modo: ModoAislamiento) {
+    AISLADO.store(matches!(modo, ModoAislamiento::Aislado), Ordering::Relaxed);
 }
 
 fn utf16_nulo(texto: &str) -> Vec<u16> {
@@ -241,18 +261,24 @@ fn ventana_con_foco() -> Hwnd {
 /// a system key, which is what opens menus. Ctrl and Shift are not
 /// representable in posted messages (the target reads them from the keyboard
 /// state), so callers must refuse those combinations.
-pub(crate) fn tecla_emulada(vk: u8, con_alt: bool) {
+pub(crate) fn tecla_emulada(vk: u8, alt: ModificadorAlt) {
     let h = ventana_con_foco();
-    let (abajo, arriba, alt) = if con_alt || vk == VK_MENU {
+    let con_alt = matches!(alt, ModificadorAlt::ConAlt);
+    let (abajo, arriba, alt_flag) = if con_alt || vk == VK_MENU {
         (WM_SYSKEYDOWN, WM_SYSKEYUP, LPARAM_ALT)
     } else {
         (WM_KEYDOWN, WM_KEYUP, 0)
     };
-    post_message(h, abajo, usize::from(vk), REPETICION_UNICA | alt);
     post_message(
         h,
-        arriba,
-        usize::from(vk),
-        REPETICION_UNICA | alt | LPARAM_SOLTAR,
+        Mensaje::nuevo(abajo, usize::from(vk), REPETICION_UNICA | alt_flag),
+    );
+    post_message(
+        h,
+        Mensaje::nuevo(
+            arriba,
+            usize::from(vk),
+            REPETICION_UNICA | alt_flag | LPARAM_SOLTAR,
+        ),
     );
 }

@@ -43,7 +43,7 @@ pub(crate) fn mecanismo_para(clase: &str) -> MecanismoClic {
 
 pub(crate) fn clic_por_mensajes(h: Hwnd) -> Result<()> {
     let encolado = match mecanismo_para(&class_of(h)) {
-        MecanismoClic::BotonEstandar => ffi::post_message(h, BM_CLICK, 0, 0),
+        MecanismoClic::BotonEstandar => ffi::post_message(h, ffi::Mensaje::simple(BM_CLICK)),
         MecanismoClic::Raton => {
             let cr = ffi::rect_cliente(h);
             if cr.right <= 0 || cr.bottom <= 0 {
@@ -72,7 +72,7 @@ fn enviar_mensaje(h: Hwnd, args: &Value) -> Result<()> {
             .and_then(|n| isize::try_from(n).ok())
             .ok_or_else(|| Error::Invalid("'lparam' debe ser un entero".into()))
     })?;
-    ffi::send_message(h, msg, wparam, lparam);
+    ffi::send_message(h, ffi::Mensaje::nuevo(msg, wparam, lparam));
     Ok(())
 }
 
@@ -101,7 +101,7 @@ fn cerrar_ventana(h: Hwnd) -> Result<()> {
             )))
         }
         None => {
-            ffi::post_message(h, WM_CLOSE, 0, 0);
+            ffi::post_message(h, ffi::Mensaje::simple(WM_CLOSE));
         }
     }
     std::thread::sleep(PAUSA_CIERRE);

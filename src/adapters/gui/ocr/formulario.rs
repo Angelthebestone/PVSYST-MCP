@@ -35,7 +35,7 @@ const CLASES_OTRO_CAMPO: &[&str] = &["TListBox", "TTrackBar", "TUpDown", "TDateT
 const MARGEN_BOTON_PX: i32 = 4;
 
 pub(crate) fn esta_marcado(h: Hwnd) -> bool {
-    ffi::send_message_res(h, BM_GETCHECK, 0, 0) == BST_CHECKED
+    ffi::send_message_res(h, ffi::Mensaje::simple(BM_GETCHECK)) == BST_CHECKED
 }
 
 fn rect_json(r: &Rect) -> Value {

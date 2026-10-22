@@ -2,7 +2,7 @@
 //! window at a point of its client area. Controls without a window of their
 //! own (VCL speed buttons, grid cells, tree nodes) are reached this way.
 
-use super::ventanas::{post_message, WM_LBUTTONDOWN, WM_LBUTTONUP};
+use super::ventanas::{post_message, Mensaje, WM_LBUTTONDOWN, WM_LBUTTONUP};
 use super::Hwnd;
 
 const WM_MOUSEMOVE: u32 = 0x0200;
@@ -29,7 +29,7 @@ extern "system" {
 /// convert (a destroyed window).
 pub(crate) fn a_cliente(h: Hwnd, (x, y): (i32, i32)) -> Option<(i32, i32)> {
     let mut p = Punto { x, y };
-    // SAFETY: `p` es una local viva; la API solo escribe en ella.
+    // SAFETY: `p` es una estructura POINT local en la pila donde `ScreenToClient` escribe (x, y).
     let convertido = unsafe { ScreenToClient(h, &mut p) } != 0;
     convertido.then_some((p.x, p.y))
 }
@@ -66,12 +66,12 @@ fn empaquetar((x, y): (i32, i32)) -> isize {
 /// pressed. `false` when Windows refuses to queue a message.
 pub(crate) fn clic_en_cliente(h: Hwnd, punto: (i32, i32)) -> bool {
     let lparam = empaquetar(punto);
-    if !post_message(h, WM_MOUSEMOVE, 0, lparam)
-        || !post_message(h, WM_LBUTTONDOWN, MK_LBUTTON, lparam)
+    if !post_message(h, Mensaje::nuevo(WM_MOUSEMOVE, 0, lparam))
+        || !post_message(h, Mensaje::nuevo(WM_LBUTTONDOWN, MK_LBUTTON, lparam))
     {
         return false;
     }
-    post_message(h, WM_LBUTTONUP, 0, lparam)
+    post_message(h, Mensaje::nuevo(WM_LBUTTONUP, 0, lparam))
 }
 
 /// Why a click on a screen point was not delivered.
