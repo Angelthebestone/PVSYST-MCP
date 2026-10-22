@@ -230,6 +230,33 @@ pub(crate) fn crear_sitio_coordenadas(paths: &Paths, args: &Value) -> Result<Val
             .map_err(|e| Error::io(format!("No se pudo crear {}", parent.display()), e))?;
     }
 
+    let v = construir_peticion_crear(&name, (lat, lon), &clim, &csv_path, &out_sit, args);
+    let create_site = crear_sitio(paths, &v)?;
+    let mut out = resumen_clima(
+        json!({
+            "site": name,
+            "sit_file": out_sit,
+            "weather_csv": csv_path.to_string_lossy(),
+            "create_site": create_site,
+        }),
+        &clim,
+    );
+    if args.get("altitud").is_none() {
+        out["warning"] = json!(
+            "altitud not given: the site was created at 0 m (pass 'altitud' for highland sites)"
+        );
+    }
+    Ok(out)
+}
+
+fn construir_peticion_crear(
+    name: &str,
+    (lat, lon): (f64, f64),
+    clim: &nasa::Climatology,
+    csv_path: &std::path::Path,
+    out_sit: &str,
+    args: &Value,
+) -> Value {
     let mut v = json!({
         "nombre_sitio": name,
         "latitud": lat,
@@ -247,23 +274,7 @@ pub(crate) fn crear_sitio_coordenadas(paths: &Paths, args: &Value) -> Result<Val
     if let Some(ws_val) = args.get("workspace") {
         v["workspace"] = ws_val.clone();
     }
-
-    let create_site = crear_sitio(paths, &v)?;
-    let mut out = resumen_clima(
-        json!({
-            "site": name,
-            "sit_file": out_sit,
-            "weather_csv": csv_path.to_string_lossy(),
-            "create_site": create_site,
-        }),
-        &clim,
-    );
-    if args.get("altitud").is_none() {
-        out["warning"] = json!(
-            "altitud not given: the site was created at 0 m (pass 'altitud' for highland sites)"
-        );
-    }
-    Ok(out)
+    v
 }
 
 /// Adds the NASA climatology summary to a site response (fresh or reused).
