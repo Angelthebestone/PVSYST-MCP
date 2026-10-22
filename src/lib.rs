@@ -20,39 +20,156 @@ compile_error!("pvsyst-mcp solo funciona en Windows: PVsyst 8.1.7 es una aplicac
 // Dependencies point inward: `format` imports nothing from the crate.
 
 mod adapters;
+#[expect(
+    clippy::excessive_nesting,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod admin;
+#[expect(
+    clippy::indexing_slicing,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod almacenamiento;
+#[expect(
+    clippy::too_many_arguments,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod aproximaciones;
+#[expect(
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod args;
 mod bombeo;
 mod calendario;
+#[expect(
+    clippy::excessive_nesting,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod components;
 mod config;
+#[expect(
+    clippy::indexing_slicing,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod divisas;
+#[expect(
+    clippy::excessive_nesting,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod easy_mode;
 mod error;
 mod escena_3d;
+#[expect(
+    clippy::excessive_nesting,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod evaluacion_economica;
+#[expect(
+    clippy::excessive_nesting,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod format;
 mod gui_catalogo;
+#[expect(
+    clippy::excessive_nesting,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod history;
+#[expect(
+    clippy::excessive_nesting,
+    clippy::indexing_slicing,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod horizonte_archivo;
+#[expect(
+    clippy::excessive_nesting,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod inyeccion;
+#[expect(
+    clippy::excessive_nesting,
+    clippy::indexing_slicing,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod medicion;
+#[expect(
+    clippy::excessive_nesting,
+    clippy::indexing_slicing,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod meteo_mef;
+#[expect(
+    clippy::excessive_nesting,
+    clippy::indexing_slicing,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod objects;
+#[expect(
+    clippy::excessive_nesting,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod perdidas;
+#[expect(
+    clippy::too_many_arguments,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod plantilla_variables;
+#[expect(
+    clippy::excessive_nesting,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod prefs;
 mod progreso;
+#[expect(
+    clippy::excessive_nesting,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod projects;
 mod seguidores;
+#[expect(
+    clippy::excessive_nesting,
+    clippy::indexing_slicing,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod serie_horaria;
 mod server;
+#[expect(
+    clippy::excessive_nesting,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod simulation;
+#[expect(
+    clippy::excessive_nesting,
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod sites;
 mod state;
 mod vista_agente;
+#[expect(
+    clippy::excessive_nesting,
+    clippy::indexing_slicing,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod workspace;
 
 use serde_json::Value;
@@ -95,6 +212,10 @@ pub fn preparar_escritorio() -> io::Result<()> {
 /// # Errors
 ///
 /// Returns the first I/O error from reading `input` or writing `output`.
+#[expect(
+    clippy::excessive_nesting,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 pub fn serve<R: BufRead, W: Write + Send>(server: &Server, input: R, output: W) -> io::Result<()> {
     let salida = Salida::nueva(output);
     std::thread::scope(|scope| -> io::Result<()> {

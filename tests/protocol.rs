@@ -4,7 +4,10 @@
 //!
 //! In-process counterpart of `mcp_smoke.rs`: it pins the same wire contract but
 //! needs no subprocess, so it runs in milliseconds.
-
+#![expect(
+    clippy::indexing_slicing,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 // Test code: failing loudly on unexpected state is the point.
 #![allow(
     clippy::unwrap_used,

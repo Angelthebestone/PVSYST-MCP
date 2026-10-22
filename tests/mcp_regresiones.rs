@@ -1,7 +1,10 @@
 //! Regresiones de comportamiento sobre la superficie pública del MCP (stdio):
 //! entradas inválidas, resolución dentro del `workspace` pedido y límites de las
 //! salidas. Las que necesitan red o la CLI de PVsyst van marcadas `#[ignore]`.
-
+#![expect(
+    clippy::indexing_slicing,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 // Test code: failing loudly on unexpected state is the point.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 

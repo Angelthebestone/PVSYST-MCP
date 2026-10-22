@@ -1,5 +1,9 @@
 //! End-to-end tracker conversion over a private copy of the PVsyst demo project.
-
+#![expect(
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 mod common;

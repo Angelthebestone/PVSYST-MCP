@@ -5,10 +5,26 @@
 //! Tool calls run on one worker thread so the main loop can keep answering
 //! pings and cancellations while a long simulation is in flight.
 
+#[expect(
+    clippy::excessive_nesting,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod bucle;
+#[expect(
+    clippy::excessive_nesting,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 pub(crate) mod cancelacion;
+#[expect(
+    clippy::indexing_slicing,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod recetas;
 mod resources;
+#[expect(
+    clippy::indexing_slicing,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 mod respuesta;
 pub(crate) mod salida;
 mod tools;
@@ -92,6 +108,10 @@ impl Server {
         }
     }
 
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+    )]
     fn dispatch_request(&self, method: &str, params: &Value, id: &Value) -> Option<String> {
         let reply = |result: Value| Some(ok_response(id, &result));
         match method {

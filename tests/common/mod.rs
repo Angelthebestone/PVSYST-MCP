@@ -1,6 +1,11 @@
 //! Shared helpers for the stdio smoke tests: a minimal MCP client driving the
 //! compiled server exactly like a real client (newline-delimited JSON-RPC).
 //! Each test crate includes it with `mod common;` and uses a subset.
+#![expect(
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 // Test code: failing loudly on unexpected state is the point.
 #![allow(
     dead_code,

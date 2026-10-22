@@ -4,3 +4,6 @@ allow-unwrap-in-tests = true
 allow-expect-in-tests = true
 allow-panic-in-tests = true
 cognitive-complexity-threshold = 15
+too-many-arguments-threshold = 3
+excessive-nesting-threshold = 3
+allow-indexing-slicing-in-tests = true

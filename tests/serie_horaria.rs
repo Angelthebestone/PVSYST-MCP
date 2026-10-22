@@ -1,5 +1,9 @@
 //! Integration tests for hourly series reading and writing via MCP tools.
-
+#![expect(
+    clippy::indexing_slicing,
+    clippy::too_many_arguments,
+    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+)]
 #![allow(
     clippy::unwrap_used,
     clippy::expect_used,
