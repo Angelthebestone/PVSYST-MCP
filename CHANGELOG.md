@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Agent view of forms.** `gui_observar que:esquema` lists the forms PVsyst
+  exposes by stable key (today `components.panels`, the PV module window's
+  "Datos básicos" page: model, manufacturer, nominal power, technology,
+  reference conditions, Isc, Voc, Impp, Vmpp, muIsc, cells in series), each
+  with unit, range and the key PVsyst writes in the file. `que:vista` returns
+  the live values, enabled state, validity and, for lists, the options the list
+  offers, read from the controls (30 ms, no OCR, any DPI); `ocr:true` adds the
+  text PVsyst draws (validation messages, model summary). `gui_actuar
+  accion:rellenar entidad valores` checks every value first (keys, type, range,
+  list options) and types nothing if any is wrong; `simular:true` only reports.
+  It returns, per field, what was asked, what was there, what PVsyst holds
+  afterwards and whether they match, plus the fields PVsyst recomputed on its
+  own. `gui_observar que:formulario` accepts `ocr:false` and no longer drops
+  fields at the default `detalle`.
 - **`gui_observar que:capturar` no longer returns a black margin.** PVsyst is
   DPI-unaware: it draws its 96-DPI layout in the top-left of a bitmap as large
   as the physical window. The capture is now cut to the drawn area (800x640

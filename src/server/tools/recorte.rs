@@ -13,6 +13,14 @@ const SIN_RECORTE: &[&str] = &[
     "stdout_tail",
     "_imagen_png_base64",
     "horas",
+    // A form's fields and buttons are the answer, not a list to summarise.
+    "campos",
+    "botones",
+    "pestanas",
+    "textos",
+    "sin_mapear",
+    "resultados",
+    "recalculados",
 ];
 
 const LIMITE_ARRAY_NORMAL: usize = 50;

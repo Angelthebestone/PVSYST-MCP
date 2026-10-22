@@ -52,6 +52,7 @@ mod server;
 mod simulation;
 mod sites;
 mod state;
+mod vista_agente;
 mod workspace;
 
 use serde_json::Value;

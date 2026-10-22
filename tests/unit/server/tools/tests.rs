@@ -410,8 +410,11 @@ fn should_expose_click_by_text_restart_and_menu_listing_in_the_gui_tools() {
 
     assert!(admite(&actuar["accion"]["enum"], "clic_texto"));
     assert!(admite(&actuar["accion"]["enum"], "reiniciar"));
+    assert!(admite(&actuar["accion"]["enum"], "rellenar"));
+    assert!(admite(&observar["que"]["enum"], "vista"));
+    assert!(admite(&observar["que"]["enum"], "esquema"));
     assert!(admite(&observar["que"]["enum"], "menus"));
-    for campo in ["dx", "dy", "menu", "item"] {
+    for campo in ["dx", "dy", "menu", "item", "entidad", "valores", "simular"] {
         assert!(actuar.get(campo).is_some(), "falta la propiedad {campo}");
     }
 }

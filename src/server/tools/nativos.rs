@@ -31,7 +31,7 @@ pub(crate) const TOOL_PVSYST_CLI: Herramienta = Herramienta {
 
 pub(crate) const TOOL_GUI_OBSERVAR: Herramienta = Herramienta {
     nombre: "gui_observar",
-    descripcion: "Observa la GUI de PVsyst: ventanas, controles, texto, captura PNG, formularios por OCR, menus y arbol UIA. / EN: Observes the PVsyst GUI: windows, controls, text, PNG capture, OCR forms, menus and UIA tree.",
+    descripcion: "Observa la GUI de PVsyst: ventanas, controles, texto, captura PNG, formularios por OCR, vista de agente (campos con clave estable, sin OCR), menus y arbol UIA. / EN: Observes the PVsyst GUI: windows, controls, text, PNG capture, OCR forms, agent view (fields by stable key, no OCR), menus and UIA tree.",
     anotaciones: Anotaciones {
         titulo: "Observar GUI / Observe GUI",
         es_solo_lectura: true,
@@ -56,6 +56,8 @@ pub(crate) const TOOL_GUI_OBSERVAR: Herramienta = Herramienta {
         ("recorte", TipoDato::Boolean),
         ("permitir_fuera_del_workspace", TipoDato::Boolean),
         ("funcion", TipoDato::String),
+        ("entidad", TipoDato::String),
+        ("ocr", TipoDato::Boolean),
     ],
     requeridos: &[],
     discriminador: Some(Discriminador {
@@ -69,6 +71,8 @@ pub(crate) const TOOL_GUI_OBSERVAR: Herramienta = Herramienta {
             "uia",
             "arbol",
             "formulario",
+            "vista",
+            "esquema",
             "mensajes",
             "funciones",
             "menus",
@@ -80,7 +84,7 @@ pub(crate) const TOOL_GUI_OBSERVAR: Herramienta = Herramienta {
 
 pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
     nombre: "gui_actuar",
-    descripcion: "Actua sobre la GUI de PVsyst: clic (tambien por texto visible), escribir, seleccionar, pestana, teclas, menus por posicion, cerrar, lanzar, reiniciar y esperas. / EN: Acts on the PVsyst GUI: click (also by on-screen text), type, select, tab page, keys, menus by position, close, launch, restart and waits.",
+    descripcion: "Actua sobre la GUI de PVsyst: clic (tambien por texto visible), escribir, seleccionar, pestana, teclas, menus por posicion, cerrar, lanzar, reiniciar, esperas y rellenar un formulario por claves. / EN: Acts on the PVsyst GUI: click (also by on-screen text), type, select, tab page, keys, menus by position, close, launch, restart, waits and fill a form by keys.",
     anotaciones: Anotaciones {
         titulo: "Actuar en GUI / Act on GUI",
         es_solo_lectura: false,
@@ -118,6 +122,9 @@ pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
         ("item", TipoDato::Integer),
         ("dx", TipoDato::Integer),
         ("dy", TipoDato::Integer),
+        ("entidad", TipoDato::String),
+        ("valores", TipoDato::Object),
+        ("simular", TipoDato::Boolean),
     ],
     requeridos: &[],
     discriminador: Some(Discriminador {
@@ -141,6 +148,7 @@ pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
             "funcion",
             "menu",
             "campo",
+            "rellenar",
             "clic_texto",
             "reiniciar",
         ],
@@ -153,6 +161,7 @@ pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
         ("funcion", &["funcion"]),
         ("menu", &["ventana"]),
         ("campo", &["etiqueta", "valor"]),
+        ("rellenar", &["entidad", "valores"]),
         ("clic_texto", &["ventana", "texto"]),
     ],
     ejecutar: Ejecutor::Simple(ejecutar_actuar),

@@ -46,8 +46,8 @@
     { "name": "resultados", "description": "Resultados: KPIs, CSV, perdidas, mensual, comparacion, medido_vs_simulado, P50/P90, carbono, economia y entregable. / EN: Results: KPIs, CSV, losses, monthly, comparison, measured vs simulated, P50/P90, carbon, economics and deliverable." },
     { "name": "workspace", "description": "Workspace: crear, exportar, importar, exportar proyecto, historial de cambios y restaurar. / EN: Workspace: create, export, import, export project, change history and restore." },
     { "name": "pvsyst_cli", "description": "Passthrough a cualquier comando de PVsystCLI. / EN: Passthrough to any PVsystCLI command." },
-    { "name": "gui_observar", "description": "Observa la GUI de PVsyst: ventanas, controles, texto, captura PNG, formularios por OCR, menus y arbol UIA. / EN: Observes the PVsyst GUI: windows, controls, text, PNG capture, OCR forms, menus and UIA tree." },
-    { "name": "gui_actuar", "description": "Actua sobre la GUI de PVsyst: clic (tambien por texto visible), escribir, seleccionar, pestana, teclas, menus por posicion, cerrar, lanzar, reiniciar y esperas. / EN: Acts on the PVsyst GUI: click (also by on-screen text), type, select, tab page, keys, menus by position, close, launch, restart and waits." }
+    { "name": "gui_observar", "description": "Observa la GUI de PVsyst: ventanas, controles, texto, captura PNG, formularios por OCR, vista de agente (campos con clave estable, sin OCR), menus y arbol UIA. / EN: Observes the PVsyst GUI: windows, controls, text, PNG capture, OCR forms, agent view (fields by stable key, no OCR), menus and UIA tree." },
+    { "name": "gui_actuar", "description": "Actua sobre la GUI de PVsyst: clic (tambien por texto visible), escribir, seleccionar, pestana, teclas, menus por posicion, cerrar, lanzar, reiniciar, esperas y rellenar un formulario por claves. / EN: Acts on the PVsyst GUI: click (also by on-screen text), type, select, tab page, keys, menus by position, close, launch, restart, waits and fill a form by keys." }
   ],
   "tools_generated": true,
   "keywords": ["pvsyst", "photovoltaic", "solar", "simulation", "automation"],

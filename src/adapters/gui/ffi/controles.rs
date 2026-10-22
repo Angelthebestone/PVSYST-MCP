@@ -7,6 +7,9 @@ use super::Hwnd;
 const WM_GETTEXT: u32 = 0x000D;
 const WM_CHAR: u32 = 0x0102;
 const EM_SETSEL: u32 = 0x00B1;
+const CB_GETCOUNT: u32 = 0x0146;
+const CB_GETLBTEXT: u32 = 0x0148;
+const CB_GETLBTEXTLEN: u32 = 0x0149;
 const CB_FINDSTRING: u32 = 0x014C;
 const CB_SETCURSEL: u32 = 0x014E;
 const LB_FINDSTRING: u32 = 0x018F;
@@ -137,6 +140,34 @@ pub(crate) fn texto_control(h: Hwnd) -> String {
     let n = unsafe { SendMessageW(h, WM_GETTEXT, buf.len(), buf.as_mut_ptr() as isize) };
     let n = usize::try_from(n).unwrap_or(0).min(buf.len());
     String::from_utf16_lossy(&buf[..n])
+}
+
+/// Text of item `indice` of a combo box.
+fn texto_de_item(h: Hwnd, indice: usize) -> Option<String> {
+    // SAFETY: Mensajes síncronos que Windows serializa entre procesos; `buf`
+    // tiene el largo que el propio control declaró más el terminador.
+    unsafe {
+        let largo = usize::try_from(SendMessageW(h, CB_GETLBTEXTLEN, indice, 0)).ok()?;
+        let mut buf = vec![0u16; largo + 1];
+        let n = usize::try_from(SendMessageW(
+            h,
+            CB_GETLBTEXT,
+            indice,
+            buf.as_mut_ptr() as isize,
+        ))
+        .ok()?
+        .min(largo);
+        Some(String::from_utf16_lossy(&buf[..n]))
+    }
+}
+
+/// Items of a combo box in order: what a user could pick. O(items).
+pub(crate) fn opciones_de_combo(h: Hwnd) -> Vec<String> {
+    // SAFETY: Mensaje con enteros sobre el HWND recibido.
+    let total = unsafe { SendMessageW(h, CB_GETCOUNT, 0, 0) };
+    (0..usize::try_from(total).unwrap_or(0))
+        .filter_map(|i| texto_de_item(h, i))
+        .collect()
 }
 
 /// Replaces the content of a focused edit control as if typed, so the owning

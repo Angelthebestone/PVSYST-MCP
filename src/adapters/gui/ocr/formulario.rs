@@ -159,6 +159,15 @@ fn extraer_pestanas(paths: &crate::config::Paths, h: Hwnd) -> Result<Vec<Value>>
         .collect())
 }
 
+/// OCR lines of the form; none with `ocr:false`, which skips the capture so
+/// values and buttons come from the controls alone.
+fn lineas_o_nada(params: &ParametrosCaptura, h: Hwnd) -> Result<Vec<LineaOcr>> {
+    if params.args.get("ocr").and_then(Value::as_bool) == Some(false) {
+        return Ok(Vec::new());
+    }
+    capturar_lineas_pantalla(params, h)
+}
+
 /// Inspects an active GUI form: recognizes all labels via OCR, pairs them with
 /// their interactive controls, and extracts buttons and tab pages. `textos`
 /// lists every caption drawn outside a control (a message box's question).
@@ -175,7 +184,7 @@ pub(crate) fn formulario(paths: &crate::config::Paths, args: &Value) -> Result<V
         args,
         rect_win: &rect_win,
     };
-    let lineas = capturar_lineas_pantalla(&params, h)?;
+    let lineas = lineas_o_nada(&params, h)?;
     let hijos: Vec<(Hwnd, String)> = ffi::enum_children(h)
         .into_iter()
         .filter(|c| visible(*c))

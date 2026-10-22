@@ -40,7 +40,7 @@ use crate::error::{Error, Result};
 use serde_json::Value;
 
 /// `observar` dispatcher. `que`: ventanas (default) | controles | leer |
-/// capturar | uia | arbol | formulario | mensajes | funciones | menus.
+/// capturar | uia | arbol | formulario | vista | esquema | mensajes | funciones | menus.
 pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     match args
         .get("que")
@@ -56,6 +56,8 @@ pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Val
         "formulario" => ocr::formulario(paths, args),
         "funciones" => Ok(crate::gui_catalogo::listar(args)),
         "menus" => menu_por_posicion::listar(ventanas::hwnd_de(args, "ventana")?),
+        "vista" => crate::vista_agente::vista(paths, args),
+        "esquema" => Ok(crate::vista_agente::listar_esquemas()),
         "mensajes" => {
             let limite = args
                 .get("lineas")
@@ -65,14 +67,14 @@ pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Val
             Ok(registro_pvsyst::ultimos_mensajes(limite))
         }
         other => Err(Error::Invalid(format!(
-            "Unknown que '{other}' (ventanas|controles|leer|capturar|uia|arbol|formulario|mensajes|funciones|menus)"
+            "Unknown que '{other}' (ventanas|controles|leer|capturar|uia|arbol|formulario|vista|esquema|mensajes|funciones|menus)"
         ))),
     }
 }
 
 /// `actuar` dispatcher. `accion`: click | clic_fisico | clic_texto | mensaje |
 /// cerrar | activar | teclas | escribir | seleccionar | pagina | esperar_cierre |
-/// lanzar | reiniciar | uia_invocar | esperar | paso | funcion | menu | campo.
+/// lanzar | reiniciar | uia_invocar | esperar | paso | funcion | menu | campo | rellenar.
 pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     crate::adapters::uia::invalidar_cache(&paths.estado);
     match args.get("accion").and_then(Value::as_str).unwrap_or("click") {
@@ -88,6 +90,7 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         "funcion" => crate::gui_catalogo::abrir(args),
         "menu" => crate::gui_catalogo::menu(args),
         "campo" => campo_por_etiqueta::campo(paths, args),
+        "rellenar" => crate::vista_agente::rellenar(args),
         "escribir" => campos::escribir(paths, args),
         "seleccionar" => campos::seleccionar(paths, args),
         "pagina" => campos::pagina(paths, args),
@@ -98,7 +101,7 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         "esperar" => esperas::esperar(args),
         "paso" => uia_vista::paso(paths, args),
         other => Err(Error::Invalid(format!(
-            "Unknown accion '{other}' (click|clic_fisico|mensaje|cerrar|activar|teclas|escribir|seleccionar|pagina|esperar_cierre|lanzar|uia_invocar|esperar|paso|funcion|menu|campo|clic_texto|reiniciar)"
+            "Unknown accion '{other}' (click|clic_fisico|mensaje|cerrar|activar|teclas|escribir|seleccionar|pagina|esperar_cierre|lanzar|uia_invocar|esperar|paso|funcion|menu|campo|rellenar|clic_texto|reiniciar)"
         ))),
     }
 }
