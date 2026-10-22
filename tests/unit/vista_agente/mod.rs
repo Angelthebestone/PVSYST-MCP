@@ -107,22 +107,29 @@ fn should_not_locate_a_control_beyond_the_tolerance() {
     assert!(localizar(campo, &lejos).is_none());
 }
 
+fn verificar_pares_de_campos(
+    entidad_clave: &str,
+    campos: &[crate::vista_agente::dominio::CampoEsquema],
+) {
+    for (i, a) in campos.iter().enumerate() {
+        for b in &campos[i + 1..] {
+            assert_ne!(a.clave, b.clave, "duplicate key in {entidad_clave}");
+            let cerca = (a.ancla.x - b.ancla.x).abs() <= TOLERANCIA_ANCLA_PX
+                && (a.ancla.y - b.ancla.y).abs() <= TOLERANCIA_ANCLA_PX;
+            assert!(
+                !(cerca && a.clase == b.clase),
+                "{} and {} share an anchor",
+                a.clave,
+                b.clave
+            );
+        }
+    }
+}
+
 #[test]
 fn should_keep_schema_keys_and_anchors_unambiguous() {
     for e in todas() {
-        for (i, a) in e.campos.iter().enumerate() {
-            for b in &e.campos[i + 1..] {
-                assert_ne!(a.clave, b.clave, "duplicate key in {}", e.clave);
-                let cerca = (a.ancla.x - b.ancla.x).abs() <= TOLERANCIA_ANCLA_PX
-                    && (a.ancla.y - b.ancla.y).abs() <= TOLERANCIA_ANCLA_PX;
-                assert!(
-                    !(cerca && a.clase == b.clase),
-                    "{} and {} share an anchor",
-                    a.clave,
-                    b.clave
-                );
-            }
-        }
+        verificar_pares_de_campos(e.clave, e.campos);
     }
 }
 

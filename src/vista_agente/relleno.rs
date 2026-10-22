@@ -12,6 +12,18 @@ use crate::args::{flag, missing, req_str};
 use crate::error::{Error, Result};
 use serde_json::{json, Map, Value};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ModoEjecucion {
+    Aplicar,
+    Simular,
+}
+
+struct EscrituraDestino<'a> {
+    formulario: &'a Formulario,
+    campo: &'a CampoEsquema,
+    control: Hwnd,
+}
+
 /// A change tied to the live control that receives it.
 struct Paso<'a> {
     cambio: &'a Cambio,
@@ -62,32 +74,36 @@ fn verificar_listas(pasos: &[Paso]) -> Result<()> {
     Ok(())
 }
 
-fn escribir(
-    formulario: &Formulario,
-    campo: &CampoEsquema,
-    control: Hwnd,
-    texto: &str,
-) -> Result<()> {
-    if campo.tipo == TipoValor::Lista {
-        if ffi::elegir_en_combo(control, texto) {
+fn escribir(destino: &EscrituraDestino<'_>, texto: &str) -> Result<()> {
+    if destino.campo.tipo == TipoValor::Lista {
+        if ffi::elegir_en_combo(destino.control, texto) {
             return Ok(());
         }
         return Err(Error::Invalid(format!(
             "La lista '{}' no ofrece '{texto}'",
-            campo.clave
+            destino.campo.clave
         )));
     }
-    formulario.escribir_en(control, texto);
+    destino.formulario.escribir_en(destino.control, texto);
     Ok(())
 }
 
-fn resultado_del_paso(formulario: &Formulario, paso: &Paso, aplicar: bool) -> Result<Value> {
+fn resultado_del_paso(
+    formulario: &Formulario,
+    paso: &Paso<'_>,
+    modo: ModoEjecucion,
+) -> Result<Value> {
     let campo = paso.cambio.campo;
     let antes = ffi::texto_control(paso.control.hwnd);
-    if !aplicar {
+    if modo == ModoEjecucion::Simular {
         return Ok(paso_json(campo, (&paso.cambio.texto, &antes), None));
     }
-    escribir(formulario, campo, paso.control.hwnd, &paso.cambio.texto)?;
+    let destino = EscrituraDestino {
+        formulario,
+        campo,
+        control: paso.control.hwnd,
+    };
+    escribir(&destino, &paso.cambio.texto)?;
     let despues = ffi::texto_control(paso.control.hwnd);
     Ok(paso_json(
         campo,
@@ -153,16 +169,20 @@ pub(crate) fn rellenar(args: &Value) -> Result<Value> {
     let vivos = campos_vivos(h);
     let pasos = emparejar(&cambios, &vivos)?;
     verificar_listas(&pasos)?;
-    let aplicar = !flag(args, &["simular"]);
+    let modo = if flag(args, &["simular"]) {
+        ModoEjecucion::Simular
+    } else {
+        ModoEjecucion::Aplicar
+    };
     let formulario = Formulario::de(h);
     let resultados = pasos
         .iter()
-        .map(|p| resultado_del_paso(&formulario, p, aplicar))
+        .map(|p| resultado_del_paso(&formulario, p, modo))
         .collect::<Result<Vec<_>>>()?;
     Ok(json!({
         "entidad": ent.clave,
         "ventana": format!("0x{h:X}"),
-        "simulado": !aplicar,
+        "simulado": modo == ModoEjecucion::Simular,
         "resultados": resultados,
         "recalculados": recalculados(ent, &vivos, &pasos),
     }))
