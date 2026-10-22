@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Evitar pánico por dimensiones nulas en recorte de captura RGB.** `recortar_rgb` entraba en pánico con `clamp: min > max` cuando `ancho` o `alto` eran 0, y podía desbordar al indexar si el búfer de píxeles estaba truncado. Ahora valida dimensiones no positivas retornando una imagen vacía y asegura los rangos con `.get()`.
+
 ### Changed
 
 - **Agent view of forms.** `gui_observar que:esquema` lists the forms PVsyst
