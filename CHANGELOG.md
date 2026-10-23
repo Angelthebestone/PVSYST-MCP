@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Approximated actions and synonyms are hidden from descriptions and coverage.**
+  When approximations are disabled, `tools/list` previously retained approximated
+  actions (`preestimar`, `barrido`, etc.) and their aliases in the discriminator
+  property description, and `pvsyst://cobertura` retained approximated value
+  synonyms. Discriminator descriptions are now refreshed against the filtered enum,
+  and `quitar_aproximaciones` strips approximated action synonyms from the coverage map.
 - **Argument alias no longer collides with declared property `source` in `sitio`.**
   The normaliser incorrectly mapped `source` to the `origen` selector instead of
   preserving the CLI `-s` property, causing calls using `source` to be rejected as

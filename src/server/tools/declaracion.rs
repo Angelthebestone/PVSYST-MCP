@@ -194,15 +194,25 @@ impl Herramienta {
         obj.insert("description".to_string(), json!(desc));
     }
 
-    fn anotar_alias_discriminador(&self, prop: &mut Value, disc: &Discriminador) {
+    pub(crate) fn anotar_alias_discriminador(&self, prop: &mut Value, disc: &Discriminador) {
         let Some(obj) = prop.as_object_mut() else {
             return;
         };
-        let valores_desc: Vec<String> = disc
-            .valores
-            .iter()
-            .map(|val| formatear_valor_con_aliases(val, &self.sinonimos))
-            .collect();
+        let valores_desc: Vec<String> = obj
+            .get("enum")
+            .and_then(Value::as_array)
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(Value::as_str)
+                    .map(|val| formatear_valor_con_aliases(val, &self.sinonimos))
+                    .collect()
+            })
+            .unwrap_or_else(|| {
+                disc.valores
+                    .iter()
+                    .map(|val| formatear_valor_con_aliases(val, &self.sinonimos))
+                    .collect()
+            });
         let valores_texto = valores_desc.join(", ");
 
         let arg_aliases: Vec<&str> = self

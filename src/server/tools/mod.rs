@@ -72,6 +72,10 @@ pub(crate) fn list(paths: &Paths) -> Vec<Value> {
 fn filtrar_aproximaciones(h: &Herramienta, esquema: &mut Value) {
     if let Some(disc) = &h.discriminador {
         aproximadas::ocultar(h.nombre, disc.campo, esquema);
+        if let Some(prop) = esquema.pointer_mut(&format!("/inputSchema/properties/{}", disc.campo))
+        {
+            h.anotar_alias_discriminador(prop, disc);
+        }
     }
     aproximadas::ocultar_via(esquema);
 }

@@ -57,6 +57,47 @@ fn should_hide_in_house_actions_without_the_flag() {
         .expect("enum");
     assert!(!acciones.iter().any(|v| v == "preestimar"));
     assert!(!acciones.iter().any(|v| v == "barrido"));
+    let desc = simular["inputSchema"]["properties"]["accion"]["description"]
+        .as_str()
+        .expect("description");
+    assert!(
+        !desc.contains("preestimar"),
+        "description must not mention preestimar: {desc}"
+    );
+    assert!(
+        !desc.contains("preestimate"),
+        "description must not mention preestimate: {desc}"
+    );
+    assert!(
+        !desc.contains("barrido"),
+        "description must not mention barrido: {desc}"
+    );
+    assert!(
+        !desc.contains("sweep"),
+        "description must not mention sweep: {desc}"
+    );
+}
+
+#[test]
+fn should_filter_approximated_synonyms_from_coverage_resource_when_flag_is_off() {
+    let cob_con = crate::server::resources::read("pvsyst://cobertura", true).unwrap();
+    let text_con = cob_con["contents"][0]["text"].as_str().unwrap();
+    let data_con: serde_json::Value = serde_json::from_str(text_con).unwrap();
+    let sim_vals_con = &data_con["sinonimos"]["simular"]["valores"];
+    assert!(sim_vals_con.get("preestimate").is_some());
+
+    let cob_sin = crate::server::resources::read("pvsyst://cobertura", false).unwrap();
+    let text_sin = cob_sin["contents"][0]["text"].as_str().unwrap();
+    let data_sin: serde_json::Value = serde_json::from_str(text_sin).unwrap();
+    let sim_vals_sin = &data_sin["sinonimos"]["simular"]["valores"];
+    assert!(
+        sim_vals_sin.get("preestimate").is_none(),
+        "preestimate must be filtered from cobertura: {sim_vals_sin:?}"
+    );
+    assert!(
+        sim_vals_sin.get("sweep").is_none(),
+        "sweep must be filtered from cobertura: {sim_vals_sin:?}"
+    );
 }
 
 #[test]
