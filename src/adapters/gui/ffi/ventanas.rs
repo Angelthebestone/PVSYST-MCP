@@ -188,11 +188,14 @@ pub(crate) fn send_message_timeout(h: Hwnd, msg: Mensaje, timeout_ms: u32) -> Op
         return None;
     }
     let mut respuesta = 0isize;
-    // SAFETY: `SendMessageTimeoutW` previene bloqueos infinitos usando SMTO_ABORTIFHUNG;
-    // `h` está validado como ventana activa. Si `msg.lparam` contiene un puntero (ej. búfer
-    // para WM_GETTEXT o CB_GETLBTEXT), el llamador garantiza que el búfer está vivo durante
-    // la llamada síncrona y tiene la longitud indicada en `msg.wparam`.
-    // `respuesta` es una variable local viva de 64 bits donde la API escribe el resultado.
+    // SAFETY: Windows serializa los mensajes entre procesos usando un búfer interno del sistema;
+    // para mensajes como WM_GETTEXT, CB_GETLBTEXT o CB_FINDSTRING que transportan cadenas o búferes,
+    // el kernel valida los límites y copia los datos a la memoria de nuestro proceso antes de retornar.
+    // La comprobación `es_ventana` previa es una heurística sujeta a condición de carrera (TOCTOU): si la
+    // ventana se destruye inmediatamente después, `SendMessageTimeoutW` falla de forma segura devolviendo 0,
+    // sin provocar comportamiento indefinido.
+    // `SMTO_ABORTIFHUNG` garantiza que la llamada no quede bloqueada indefinidamente si el hilo receptor cuelga.
+    // `respuesta` es una variable local en la pila de 64 bits donde la API escribe el resultado.
     let ok = unsafe {
         SendMessageTimeoutW(
             h,
@@ -205,14 +208,6 @@ pub(crate) fn send_message_timeout(h: Hwnd, msg: Mensaje, timeout_ms: u32) -> Op
         )
     };
     (ok != 0).then_some(respuesta)
-}
-
-pub(crate) fn send_message_res(h: Hwnd, msg: Mensaje) -> isize {
-    send_message_timeout(h, msg, TIMEOUT_MENSAJE_MS).unwrap_or(0)
-}
-
-pub(crate) fn send_message(h: Hwnd, msg: Mensaje) {
-    let _ = send_message_res(h, msg);
 }
 
 pub(crate) fn mostrar_ventana(h: Hwnd, cmd: i32) {

@@ -2,7 +2,7 @@
 //! `#32768` window whose `HMENU` Windows hands out, which exposes the command
 //! id of every item without reading a single pixel.
 
-use super::ventanas::{es_ventana, send_message_res, Mensaje};
+use super::ventanas::{es_ventana, send_message_timeout, Mensaje, TIMEOUT_MENSAJE_MS};
 use super::Hwnd;
 
 /// `MN_GETHMENU`: asks a popup for its menu handle.
@@ -44,7 +44,7 @@ pub(crate) fn items_de_popup(popup: Hwnd) -> Option<Vec<ItemMenu>> {
     if !es_ventana(popup) {
         return None;
     }
-    let menu = send_message_res(popup, Mensaje::simple(MN_GETHMENU));
+    let menu = send_message_timeout(popup, Mensaje::simple(MN_GETHMENU), TIMEOUT_MENSAJE_MS)?;
     if menu == 0 {
         return None;
     }

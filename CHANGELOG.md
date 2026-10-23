@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **GUI message timeouts are no longer ignored silently.** Synchronous window messages
+  via `SendMessageTimeoutW` now return errors on timeout instead of pretending success
+  or returning a default 0. `esta_marcado` returns `Option<bool>` to distinguish unchecked
+  from timed-out/destroyed controls, actions propagate timeouts as explicit errors, and
+  safety comments document cross-process Windows buffer marshalling and TOCTOU characteristics.
 - **GUI capture with zero dimensions returns an explicit error instead of panicking in PNG encoding.**
   When `recortar_rgb` yielded empty/0-sized dimensions, `capturar` passed 0 to `png_rgb`, triggering
   a panic in `rgb.chunks(0)`. `capturar` now checks for empty capture areas and `png_rgb` returns a

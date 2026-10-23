@@ -1,10 +1,9 @@
 //! Control-level Win32 calls: text in and out of edit controls, combo boxes,
 //! tab pages and keyboard navigation.
 
-use super::ventanas::{
-    es_ventana, send_message, send_message_res, send_message_timeout, Mensaje, TIMEOUT_MENSAJE_MS,
-};
+use super::ventanas::{es_ventana, send_message_timeout, Mensaje, TIMEOUT_MENSAJE_MS};
 use super::Hwnd;
+use crate::error::{Error, Result};
 
 const WM_GETTEXT: u32 = 0x000D;
 const WM_CHAR: u32 = 0x0102;
@@ -79,7 +78,8 @@ fn texto_de_item(h: Hwnd, indice: usize) -> Option<String> {
 
 /// Items of a combo box in order: what a user could pick. Complexity: O(items).
 pub(crate) fn opciones_de_combo(h: Hwnd) -> Vec<String> {
-    let total_res = send_message_res(h, Mensaje::simple(CB_GETCOUNT));
+    let total_res =
+        send_message_timeout(h, Mensaje::simple(CB_GETCOUNT), TIMEOUT_MENSAJE_MS).unwrap_or(0);
     if total_res <= 0 {
         return Vec::new();
     }
@@ -90,16 +90,29 @@ pub(crate) fn opciones_de_combo(h: Hwnd) -> Vec<String> {
 
 /// Replaces the content of a focused edit control as if typed, so the owning
 /// form sees every change (VCL recalculates on each keystroke).
-pub(crate) fn teclear_en(h: Hwnd, texto: &str) {
-    send_message(h, Mensaje::nuevo(EM_SETSEL, 0, -1));
+pub(crate) fn teclear_en(h: Hwnd, texto: &str) -> Result<()> {
+    send_message_timeout(h, Mensaje::nuevo(EM_SETSEL, 0, -1), TIMEOUT_MENSAJE_MS)
+        .ok_or_else(|| Error::Gui("PVsyst no respondió en 3 s al seleccionar texto".into()))?;
     for unidad in texto.encode_utf16() {
-        send_message(h, Mensaje::nuevo(WM_CHAR, usize::from(unidad), 0));
+        send_message_timeout(
+            h,
+            Mensaje::nuevo(WM_CHAR, usize::from(unidad), 0),
+            TIMEOUT_MENSAJE_MS,
+        )
+        .ok_or_else(|| Error::Gui("PVsyst no respondió en 3 s al enviar carácter".into()))?;
     }
+    Ok(())
 }
 
 /// Shows tab page `indice` of a page control.
-pub(crate) fn mostrar_pagina(h: Hwnd, indice: usize) {
-    send_message(h, Mensaje::nuevo(TCM_SETCURFOCUS, indice, 0));
+pub(crate) fn mostrar_pagina(h: Hwnd, indice: usize) -> Result<()> {
+    send_message_timeout(
+        h,
+        Mensaje::nuevo(TCM_SETCURFOCUS, indice, 0),
+        TIMEOUT_MENSAJE_MS,
+    )
+    .ok_or_else(|| Error::Gui("PVsyst no respondió en 3 s al cambiar de pestaña".into()))?;
+    Ok(())
 }
 
 /// Window messages of a list control: find an item, select it.
@@ -128,24 +141,33 @@ fn es_multiseleccion(h: Hwnd) -> bool {
 
 /// Makes item `indice` the selection. In a multi-select list `LB_SETCURSEL` is
 /// ignored, so the previous selection is cleared and the item set explicitly.
-fn marcar_indice(h: Hwnd, mensajes: &MensajesLista, indice: usize) {
+fn marcar_indice(h: Hwnd, mensajes: &MensajesLista, indice: usize) -> Result<()> {
     if !es_ventana(h) {
-        return;
+        return Err(Error::Gui("La ventana ya no existe".into()));
     }
     if mensajes.elegir == LB_SETCURSEL && es_multiseleccion(h) {
-        send_message(h, Mensaje::nuevo(LB_SETSEL, 0, -1));
-        send_message(
+        send_message_timeout(h, Mensaje::nuevo(LB_SETSEL, 0, -1), TIMEOUT_MENSAJE_MS)
+            .ok_or_else(|| Error::Gui("PVsyst no respondió en 3 s".into()))?;
+        send_message_timeout(
             h,
             Mensaje::nuevo(LB_SETSEL, 1, isize::try_from(indice).unwrap_or(0)),
-        );
-        return;
+            TIMEOUT_MENSAJE_MS,
+        )
+        .ok_or_else(|| Error::Gui("PVsyst no respondió en 3 s".into()))?;
+        return Ok(());
     }
-    send_message(h, Mensaje::nuevo(mensajes.elegir, indice, 0));
+    send_message_timeout(
+        h,
+        Mensaje::nuevo(mensajes.elegir, indice, 0),
+        TIMEOUT_MENSAJE_MS,
+    )
+    .ok_or_else(|| Error::Gui("PVsyst no respondió en 3 s".into()))?;
+    Ok(())
 }
 
-fn elegir_item(h: Hwnd, mensajes: &MensajesLista, prefijo: &str) -> bool {
+fn elegir_item(h: Hwnd, mensajes: &MensajesLista, prefijo: &str) -> Result<bool> {
     if !es_ventana(h) {
-        return false;
+        return Ok(false);
     }
     let texto: Vec<u16> = prefijo.encode_utf16().chain(std::iter::once(0)).collect();
     let indice_res = send_message_timeout(
@@ -153,39 +175,41 @@ fn elegir_item(h: Hwnd, mensajes: &MensajesLista, prefijo: &str) -> bool {
         Mensaje::nuevo(mensajes.buscar, DESDE_EL_PRINCIPIO, texto.as_ptr() as isize),
         TIMEOUT_MENSAJE_MS,
     )
-    .unwrap_or(CB_ERR);
+    .ok_or_else(|| Error::Gui("PVsyst no respondió en 3 s al buscar elemento".into()))?;
     if indice_res == CB_ERR {
-        return false;
+        return Ok(false);
     }
-    marcar_indice(h, mensajes, usize::try_from(indice_res).unwrap_or(0));
-    // SAFETY: Llamadas auxiliares sobre ventanas validadas; enteros por valor.
+    marcar_indice(h, mensajes, usize::try_from(indice_res).unwrap_or(0))?;
+    // SAFETY: Consultas sobre ventana padre e id del control hijo.
     let (padre, id) = unsafe {
         let padre = GetParent(h);
         let id = usize::try_from(GetDlgCtrlID(h)).unwrap_or(0) & 0xFFFF;
         (padre, id)
     };
     if es_ventana(padre) {
-        send_message(
+        send_message_timeout(
             padre,
             Mensaje::nuevo(WM_COMMAND, (CBN_SELCHANGE << 16) | id, h),
-        );
+            TIMEOUT_MENSAJE_MS,
+        )
+        .ok_or_else(|| Error::Gui("PVsyst no respondió en 3 s al notificar cambio".into()))?;
     }
-    true
+    Ok(true)
 }
 
 /// Selects the first combo-box item starting with `prefijo` and notifies the
 /// owning form as a user choice would. `false` when no item matches.
-pub(crate) fn elegir_en_combo(h: Hwnd, prefijo: &str) -> bool {
+pub(crate) fn elegir_en_combo(h: Hwnd, prefijo: &str) -> Result<bool> {
     elegir_item(h, &COMBO, prefijo)
 }
 
 /// Same for a list box (`TListBox`): the first item starting with `prefijo`.
-pub(crate) fn elegir_en_lista(h: Hwnd, prefijo: &str) -> bool {
+pub(crate) fn elegir_en_lista(h: Hwnd, prefijo: &str) -> Result<bool> {
     elegir_item(h, &LISTA, prefijo)
 }
 
 /// Picks an item by prefix in a combo box or a list box, by control class.
-pub(crate) fn elegir_item_por_clase(h: Hwnd, clase: &str, prefijo: &str) -> bool {
+pub(crate) fn elegir_item_por_clase(h: Hwnd, clase: &str, prefijo: &str) -> Result<bool> {
     if clase == "TListBox" {
         elegir_en_lista(h, prefijo)
     } else {

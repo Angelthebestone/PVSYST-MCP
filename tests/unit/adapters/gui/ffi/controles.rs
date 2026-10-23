@@ -14,14 +14,14 @@ fn should_return_empty_options_when_combo_handle_is_invalid() {
 
 #[test]
 fn should_return_false_when_selecting_item_on_invalid_handle() {
-    assert!(!elegir_en_combo(0, "item"));
-    assert!(!elegir_en_lista(0, "item"));
-    assert!(!elegir_item_por_clase(0, "TListBox", "item"));
-    assert!(!elegir_item_por_clase(0, "TComboBox", "item"));
+    assert!(!elegir_en_combo(0, "item").unwrap());
+    assert!(!elegir_en_lista(0, "item").unwrap());
+    assert!(!elegir_item_por_clase(0, "TListBox", "item").unwrap());
+    assert!(!elegir_item_por_clase(0, "TComboBox", "item").unwrap());
 }
 
 #[test]
-fn should_not_panic_when_typing_or_changing_page_on_invalid_handle() {
-    teclear_en(0, "test");
-    mostrar_pagina(0, 2);
+fn should_fail_when_typing_or_changing_page_on_invalid_handle() {
+    assert!(teclear_en(0, "test").is_err());
+    assert!(mostrar_pagina(0, 2).is_err());
 }

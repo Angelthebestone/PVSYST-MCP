@@ -76,7 +76,7 @@ fn verificar_listas(pasos: &[Paso]) -> Result<()> {
 
 fn escribir(destino: &EscrituraDestino<'_>, texto: &str) -> Result<()> {
     if destino.campo.tipo == TipoValor::Lista {
-        if ffi::elegir_en_combo(destino.control, texto) {
+        if ffi::elegir_en_combo(destino.control, texto)? {
             return Ok(());
         }
         return Err(Error::Invalid(format!(
@@ -84,7 +84,7 @@ fn escribir(destino: &EscrituraDestino<'_>, texto: &str) -> Result<()> {
             destino.campo.clave
         )));
     }
-    destino.formulario.escribir_en(destino.control, texto);
+    destino.formulario.escribir_en(destino.control, texto)?;
     Ok(())
 }
 

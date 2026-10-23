@@ -34,8 +34,13 @@ const CLASES_OTRO_CAMPO: &[&str] = &["TListBox", "TTrackBar", "TUpDown", "TDateT
 /// How far outside a button its OCR text may still lie and count as its caption.
 const MARGEN_BOTON_PX: i32 = 4;
 
-pub(crate) fn esta_marcado(h: Hwnd) -> bool {
-    ffi::send_message_res(h, ffi::Mensaje::simple(BM_GETCHECK)) == BST_CHECKED
+pub(crate) fn esta_marcado(h: Hwnd) -> Option<bool> {
+    ffi::send_message_timeout(
+        h,
+        ffi::Mensaje::simple(BM_GETCHECK),
+        ffi::TIMEOUT_MENSAJE_MS,
+    )
+    .map(|res| res == BST_CHECKED)
 }
 
 fn rect_json(r: &Rect) -> Value {

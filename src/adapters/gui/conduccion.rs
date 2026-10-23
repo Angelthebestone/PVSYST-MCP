@@ -213,7 +213,7 @@ impl Formulario {
     pub(crate) fn escribir_unico(&self, clase: &str, texto: &str) -> Result<()> {
         let c = self.unico(clase)?;
         self.clic_en_control(c);
-        ffi::teclear_en(c, texto);
+        ffi::teclear_en(c, texto)?;
         std::thread::sleep(PAUSA_ACCION);
         Ok(())
     }
@@ -231,16 +231,17 @@ impl Formulario {
     /// Types `texto` into the field and commits it with Tab.
     pub(crate) fn escribir(&self, campo: Campo, texto: &str) -> Result<()> {
         let c = self.control(campo)?;
-        self.escribir_en(c, texto);
+        self.escribir_en(c, texto)?;
         Ok(())
     }
 
     /// Types `texto` into control `c` of this form and commits it with Tab.
-    pub(crate) fn escribir_en(&self, c: Hwnd, texto: &str) {
+    pub(crate) fn escribir_en(&self, c: Hwnd, texto: &str) -> Result<()> {
         self.clic_en_control(c);
-        ffi::teclear_en(c, texto);
+        ffi::teclear_en(c, texto)?;
         ffi::pulsar_tabulador();
         std::thread::sleep(PAUSA_ACCION);
+        Ok(())
     }
 
     pub(crate) fn leer(&self, campo: Campo) -> Result<String> {
@@ -257,7 +258,7 @@ impl Formulario {
     /// Picks the first item of the combo at `campo` that starts with `prefijo`.
     pub(crate) fn seleccionar(&self, campo: Campo, prefijo: &str) -> Result<()> {
         let c = self.control(campo)?;
-        if !ffi::elegir_en_combo(c, prefijo) {
+        if !ffi::elegir_en_combo(c, prefijo)? {
             return Err(Error::Invalid(format!(
                 "PVsyst no ofrece '{prefijo}' en esa lista de '{}'",
                 self.titulo()
@@ -273,7 +274,7 @@ impl Formulario {
             .hijos_visibles()
             .find(|c| class_of(*c) == "TPageControl")
             .ok_or_else(|| Error::Gui(format!("'{}' no tiene pestañas", self.titulo())))?;
-        ffi::mostrar_pagina(pc, indice);
+        ffi::mostrar_pagina(pc, indice)?;
         std::thread::sleep(PAUSA_ACCION);
         Ok(())
     }

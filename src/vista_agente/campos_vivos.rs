@@ -28,7 +28,9 @@ fn es_campo(clase: &str) -> bool {
 
 fn valor_de(c: Hwnd, clase: &str) -> String {
     if CLASES_OPCION.contains(&clase) {
-        return esta_marcado(c).to_string();
+        return esta_marcado(c)
+            .map(|m| m.to_string())
+            .unwrap_or_else(|| "desconocido".to_string());
     }
     ffi::texto_control(c)
 }

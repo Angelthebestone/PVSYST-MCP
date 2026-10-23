@@ -66,7 +66,12 @@ fn enviar_mensaje(h: Hwnd, args: &Value) -> Result<()> {
             .and_then(|n| isize::try_from(n).ok())
             .ok_or_else(|| Error::Invalid("'lparam' debe ser un entero".into()))
     })?;
-    ffi::send_message(h, ffi::Mensaje::nuevo(msg, wparam, lparam));
+    ffi::send_message_timeout(
+        h,
+        ffi::Mensaje::nuevo(msg, wparam, lparam),
+        ffi::TIMEOUT_MENSAJE_MS,
+    )
+    .ok_or_else(|| Error::Gui("PVsyst no respondió en 3 s al enviar mensaje".into()))?;
     Ok(())
 }
 

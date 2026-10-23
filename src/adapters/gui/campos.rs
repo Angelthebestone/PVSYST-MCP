@@ -69,7 +69,7 @@ pub(crate) fn escribir(_paths: &crate::config::Paths, args: &Value) -> Result<Va
         }));
     }
     let h = hwnd_de(args, "ventana")?;
-    ffi::teclear_en(h, texto);
+    ffi::teclear_en(h, texto)?;
     Ok(json!({
         "accion": "escribir",
         "hwnd": format!("0x{h:X}"),
@@ -86,7 +86,7 @@ pub(crate) fn seleccionar(_paths: &crate::config::Paths, args: &Value) -> Result
         true
     } else {
         let h = hwnd_de(args, "ventana")?;
-        ffi::elegir_item_por_clase(h, &class_of(h), texto)
+        ffi::elegir_item_por_clase(h, &class_of(h), texto)?
     };
     if !elegido {
         return Err(Error::Invalid(format!(
