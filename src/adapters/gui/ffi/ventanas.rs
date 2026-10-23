@@ -10,7 +10,7 @@ pub(crate) const SW_RESTORE: i32 = 9;
 pub(crate) const GA_ROOT: u32 = 2;
 pub(crate) const TH32CS_SNAPPROCESS: u32 = 0x0000_0002;
 const SMTO_ABORTIFHUNG: u32 = 0x0002;
-const TIMEOUT_MENSAJE_MS: u32 = 3000;
+pub(crate) const TIMEOUT_MENSAJE_MS: u32 = 3000;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct Mensaje {
@@ -164,6 +164,9 @@ pub(crate) fn send_message_timeout(h: Hwnd, msg: Mensaje, timeout_ms: u32) -> Op
     }
     let mut respuesta = 0isize;
     // SAFETY: `SendMessageTimeoutW` previene bloqueos infinitos usando SMTO_ABORTIFHUNG;
+    // `h` está validado como ventana activa. Si `msg.lparam` contiene un puntero (ej. búfer
+    // para WM_GETTEXT o CB_GETLBTEXT), el llamador garantiza que el búfer está vivo durante
+    // la llamada síncrona y tiene la longitud indicada en `msg.wparam`.
     // `respuesta` es una variable local viva de 64 bits donde la API escribe el resultado.
     let ok = unsafe {
         SendMessageTimeoutW(
@@ -179,12 +182,12 @@ pub(crate) fn send_message_timeout(h: Hwnd, msg: Mensaje, timeout_ms: u32) -> Op
     (ok != 0).then_some(respuesta)
 }
 
-pub(crate) fn send_message(h: Hwnd, msg: Mensaje) {
-    let _ = send_message_timeout(h, msg, TIMEOUT_MENSAJE_MS);
-}
-
 pub(crate) fn send_message_res(h: Hwnd, msg: Mensaje) -> isize {
     send_message_timeout(h, msg, TIMEOUT_MENSAJE_MS).unwrap_or(0)
+}
+
+pub(crate) fn send_message(h: Hwnd, msg: Mensaje) {
+    let _ = send_message_res(h, msg);
 }
 
 pub(crate) fn mostrar_ventana(h: Hwnd, cmd: i32) {
