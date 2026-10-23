@@ -30,12 +30,15 @@
         "disenar_sistema": {
           "argumentos": {
             "altitude": "altitud",
+            "azimuth": "azimut",
+            "inclinacion": "tilt",
             "inverter": "inversor",
             "latitude": "latitud",
             "longitude": "longitud",
             "module": "modulo",
             "name": "nombre",
             "overwrite": "sobrescribir",
+            "potencia_kwp": "kwp",
             "simulate": "simular",
             "system_type": "tipo_sistema",
             "template": "plantilla",
@@ -276,15 +279,26 @@
           "argumentos": {
             "action": "accion",
             "altitude": "altitud",
+            "archivo_meteo": "weather_data_file",
+            "cof": "cmd_options_file",
+            "csv": "input_csv_file",
             "date": "fecha",
             "file": "archivo",
+            "fuente": "source",
             "latitude": "latitud",
             "longitude": "longitud",
+            "mef": "input_mef_file",
+            "met": "output_met_file",
+            "pais": "country_code",
             "points": "puntos",
             "project": "proyecto",
+            "sit": "input_sit_file",
+            "sit_salida": "output_sit_file",
             "site_name": "nombre_sitio",
+            "timeshift": "input_mef_timeshift",
             "title": "titulo",
-            "variant": "variante"
+            "variant": "variante",
+            "zona_horaria": "timezone"
           },
           "valores": {
             "convert_meteo": "convertir_meteo",

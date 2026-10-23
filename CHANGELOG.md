@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Loose argument aliases in `sitio` and `disenar_sistema` are unified in synonym tables.**
+  Spanish aliases (`fuente`, `zona_horaria`, `pais`, `archivo_meteo`, `sit_salida`, `cof`,
+  `csv`, `mef`, `sit`, `met`, `timeshift`) and design aliases (`inclinacion`, `azimuth`,
+  `potencia_kwp`) are now declared in `SINONIMOS_SITIO` and `SINONIMOS_DISENAR_SISTEMA`. Handlers
+  in `sites` and `easy_mode` now consume single canonical property keys without ad-hoc alias arrays.
 - **Simulation short argument flags are normalised to canonical names.**
   Aliases such as `csv`, `pdf`, `bpf`, `sitio`, `cof` are now declared in `SINONIMOS_SIMULAR`
   and normalised by `preparar_args` prior to CLI argument construction. Removed duplicated

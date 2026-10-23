@@ -135,6 +135,9 @@ const SINONIMOS_DISENAR_SISTEMA: Sinonimos = Sinonimos {
         ("altitude", "altitud"),
         ("simulate", "simular"),
         ("overwrite", "sobrescribir"),
+        ("inclinacion", "tilt"),
+        ("azimuth", "azimut"),
+        ("potencia_kwp", "kwp"),
     ],
     valores: &[],
 };

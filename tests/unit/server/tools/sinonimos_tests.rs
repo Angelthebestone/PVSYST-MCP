@@ -76,7 +76,8 @@ fn should_reject_unknown_discriminator_value_and_list_admitted() {
 
 #[test]
 fn should_announce_every_declared_alias_in_schema() {
-    let paths = Paths::resolve();
+    let mut paths = Paths::resolve();
+    paths.aproximaciones = true;
     let schemas = list(&paths);
 
     for h in REGISTRO {
@@ -186,6 +187,45 @@ fn should_normalize_simulation_short_flags_and_reject_conflicting_values() {
 
     let conflict = json!({ "output_csv": "a.csv", "csv": "b.csv" });
     assert!(tool_sim.preparar_args(&conflict).is_err());
+}
+
+#[test]
+fn should_accept_loose_aliases_in_sitio_and_disenar_sistema() {
+    let tool_sitio = REGISTRO.iter().find(|h| h.nombre == "sitio").unwrap();
+    let args_sitio = json!({
+        "accion": "crear",
+        "fuente": "NASA SSE",
+        "zona_horaria": 1.0,
+        "sit_salida": "demo.SIT",
+        "cof": "opts.txt"
+    });
+    let norm_sitio = tool_sitio
+        .preparar_args(&args_sitio)
+        .expect("preparar_args sitio");
+    assert_eq!(norm_sitio.get("source"), Some(&json!("NASA SSE")));
+    assert_eq!(norm_sitio.get("timezone"), Some(&json!(1.0)));
+    assert_eq!(norm_sitio.get("output_sit_file"), Some(&json!("demo.SIT")));
+    assert_eq!(norm_sitio.get("cmd_options_file"), Some(&json!("opts.txt")));
+
+    let tool_dis = REGISTRO
+        .iter()
+        .find(|h| h.nombre == "disenar_sistema")
+        .unwrap();
+    let args_dis = json!({
+        "latitude": 10.0,
+        "longitude": 20.0,
+        "potencia_kwp": 5.0,
+        "inclinacion": 25.0,
+        "azimuth": 0.0
+    });
+    let norm_dis = tool_dis
+        .preparar_args(&args_dis)
+        .expect("preparar_args disenar");
+    assert_eq!(norm_dis.get("latitud"), Some(&json!(10.0)));
+    assert_eq!(norm_dis.get("longitud"), Some(&json!(20.0)));
+    assert_eq!(norm_dis.get("kwp"), Some(&json!(5.0)));
+    assert_eq!(norm_dis.get("tilt"), Some(&json!(25.0)));
+    assert_eq!(norm_dis.get("azimut"), Some(&json!(0.0)));
 }
 
 #[test]
