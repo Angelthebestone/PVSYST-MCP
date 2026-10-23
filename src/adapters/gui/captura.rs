@@ -162,7 +162,12 @@ pub(crate) fn capturar(paths: &crate::config::Paths, args: &Value) -> Result<Val
     } else {
         (rgb_dibujado, lienzo.ancho, lienzo.alto)
     };
-    let png = png_rgb(ancho as u32, alto_img as u32, &rgb_final);
+    if ancho == 0 || alto_img == 0 || rgb_final.is_empty() {
+        return Err(Error::Gui(
+            "El área de la captura está vacía (0x0 píxeles)".into(),
+        ));
+    }
+    let png = png_rgb(ancho as u32, alto_img as u32, &rgb_final)?;
     let out = ruta_salida(paths, args, h)?;
     escribir_png(&out, &png)?;
     let mut res = json!({

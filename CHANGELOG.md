@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **GUI capture with zero dimensions returns an explicit error instead of panicking in PNG encoding.**
+  When `recortar_rgb` yielded empty/0-sized dimensions, `capturar` passed 0 to `png_rgb`, triggering
+  a panic in `rgb.chunks(0)`. `capturar` now checks for empty capture areas and `png_rgb` returns a
+  typed `Result<Vec<u8>>` requiring non-zero dimensions.
 - **GUI capture crop no longer panics on a zero-sized window.** `recortar_rgb`
   called `clamp(0, ancho - 1)` with `ancho == 0` (`min > max` panics).
 - **GUI messages can no longer hang the server.** `SendMessageW` waited without

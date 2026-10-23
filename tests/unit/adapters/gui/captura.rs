@@ -54,6 +54,22 @@ fn should_handle_zero_dimensions_without_panic() {
 }
 
 #[test]
+fn should_fail_gracefully_when_crop_result_is_zero_dimension_for_png() {
+    let dims = DimensionesRecorte {
+        ancho: 0,
+        alto: 0,
+        x: 0,
+        y: 0,
+        ancho_corte: 0,
+        alto_corte: 0,
+    };
+    let (out, cw, ch) = recortar_rgb(&[], &dims);
+    assert_eq!((cw, ch), (0, 0));
+    let png_res = png_rgb(cw as u32, ch as u32, &out);
+    assert!(png_res.is_err());
+}
+
+#[test]
 fn should_reject_capture_output_path_outside_workspace_by_default() {
     let ws = std::env::temp_dir().join("test_pvsyst_ws_confined");
     let paths = crate::config::Paths {

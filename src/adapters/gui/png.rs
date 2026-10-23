@@ -1,5 +1,7 @@
 //! PNG encoding and chunk assembly for GUI captures.
 
+use crate::error::{Error, Result};
+
 const PNG_FIRMA: [u8; 8] = [0x89, b'P', b'N', b'G', b'\r', b'\n', 0x1A, b'\n'];
 const BIT_DEPTH_8: u8 = 8;
 const COLOR_TYPE_RGB: u8 = 2;
@@ -11,10 +13,23 @@ const CRC_POLY: u32 = 0xEDB8_8320;
 const ZLIB_LEVEL_DEFAULT: u8 = 6;
 
 /// Encodes packed 8-bit RGB pixels as a PNG (filter 0 on every row).
-pub(crate) fn png_rgb(ancho: u32, alto: u32, rgb: &[u8]) -> Vec<u8> {
+pub(crate) fn png_rgb(ancho: u32, alto: u32, rgb: &[u8]) -> Result<Vec<u8>> {
+    if ancho == 0 || alto == 0 {
+        return Err(Error::Gui(
+            "Dimensiones de imagen inválidas para PNG: ancho y alto deben ser mayores que cero"
+                .into(),
+        ));
+    }
     let stride = ancho as usize * 3;
+    let esperado = stride.saturating_mul(alto as usize);
+    if rgb.len() < esperado {
+        return Err(Error::Gui(format!(
+            "Búfer RGB insuficiente: esperado {esperado} bytes, recibido {}",
+            rgb.len()
+        )));
+    }
     let mut raw = Vec::with_capacity((stride + 1) * alto as usize);
-    for fila in rgb.chunks(stride) {
+    for fila in rgb.chunks(stride).take(alto as usize) {
         raw.push(FILTER_NONE);
         raw.extend_from_slice(fila);
     }
@@ -33,7 +48,7 @@ pub(crate) fn png_rgb(ancho: u32, alto: u32, rgb: &[u8]) -> Vec<u8> {
     push_chunk(&mut out, b"IHDR", &ihdr);
     push_chunk(&mut out, b"IDAT", &idat);
     push_chunk(&mut out, b"IEND", &[]);
-    out
+    Ok(out)
 }
 
 /// Appends one PNG chunk: length, type, data and the CRC over type and data.
