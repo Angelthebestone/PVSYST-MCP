@@ -1,6 +1,6 @@
 //! Shared helpers for the stdio smoke tests: a minimal MCP client driving the
 //! compiled server exactly like a real client (newline-delimited JSON-RPC).
-//! Each test crate includes it with `mod common;` and uses a subset.
+//! Each test crate includes it with `mod cliente_mcp;` and uses a subset.
 #![expect(
     clippy::indexing_slicing,
     clippy::too_many_arguments,
@@ -24,12 +24,16 @@ use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 
 pub const DEMO_WS: &str = r"C:\Program Files\PVsyst8.1.7\DataRO\PVsyst8.1_Data";
 
-/// In-process server with the same surface a client gets by default.
+/// In-process server with the same surface a client gets by default. Like
+/// [`Client::start_env`], it never resolves the installed PVsyst: the workspace
+/// is per process (test binaries run in parallel) and the executables do not exist.
 pub fn protocol_server() -> Server {
     let mut paths = Paths::resolve();
     paths.aproximaciones = false;
-    let temp = std::env::temp_dir().join("mcp_test_protocol_ws");
+    let temp = std::env::temp_dir().join(format!("mcp_test_protocol_ws_{}", std::process::id()));
     let _ = std::fs::create_dir_all(&temp);
+    paths.cli_exe = temp.join("nonexistent_pvsyst_cli.exe");
+    paths.gui_exe = temp.join("nonexistent_pvsyst_gui.exe");
     paths.workspace = temp;
     Server::new(paths)
 }
