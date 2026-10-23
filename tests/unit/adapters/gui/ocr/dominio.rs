@@ -150,53 +150,25 @@ fn should_prefer_the_left_caption_when_a_heading_sits_directly_above_the_field()
 }
 
 #[test]
-fn should_return_none_when_label_is_to_the_right() {
-    let control = rect(100, 100, 200, 125);
-    let label = LineaOcr {
-        texto: "Unidad kWp".into(),
-        rect: rect(210, 103, 280, 120),
-        palabras: Vec::new(),
-    };
-    let resultado = asociar_etiqueta(&control, &[label]);
-    assert_eq!(resultado.etiqueta, None);
-    assert!(!resultado.ambiguo);
-}
-
-#[test]
-fn should_return_none_when_label_is_below() {
-    let control = rect(100, 100, 200, 125);
-    let label = LineaOcr {
-        texto: "Ayuda inferior".into(),
-        rect: rect(100, 140, 200, 155),
-        palabras: Vec::new(),
-    };
-    let resultado = asociar_etiqueta(&control, &[label]);
-    assert_eq!(resultado.etiqueta, None);
-    assert!(!resultado.ambiguo);
-}
-
-#[test]
-fn should_return_none_when_no_labels_are_within_range() {
-    let control = rect(600, 600, 700, 625);
-    let label = LineaOcr {
-        texto: "Muy lejos:".into(),
-        rect: rect(50, 50, 120, 65),
-        palabras: Vec::new(),
-    };
-    let resultado = asociar_etiqueta(&control, &[label]);
-    assert_eq!(resultado.etiqueta, None);
-    assert!(!resultado.ambiguo);
-}
-
-#[test]
-fn should_return_none_when_row_misalignment_exceeds_bounds() {
-    let control = rect(200, 100, 300, 125);
-    let label = LineaOcr {
-        texto: "Otra fila:".into(),
-        rect: rect(50, 160, 150, 175), // 35 px vertical gap
-        palabras: Vec::new(),
-    };
-    let resultado = asociar_etiqueta(&control, &[label]);
-    assert_eq!(resultado.etiqueta, None);
-    assert!(!resultado.ambiguo);
+fn should_return_none_when_label_is_out_of_bounds() {
+    let casos = [
+        // a la derecha
+        (rect(100, 100, 200, 125), rect(210, 103, 280, 120)),
+        // debajo
+        (rect(100, 100, 200, 125), rect(100, 140, 200, 155)),
+        // muy lejos
+        (rect(600, 600, 700, 625), rect(50, 50, 120, 65)),
+        // fila desalineada
+        (rect(200, 100, 300, 125), rect(50, 160, 150, 175)),
+    ];
+    for (control, label_rect) in casos {
+        let label = LineaOcr {
+            texto: "Etiqueta".into(),
+            rect: label_rect,
+            palabras: Vec::new(),
+        };
+        let resultado = asociar_etiqueta(&control, &[label]);
+        assert_eq!(resultado.etiqueta, None);
+        assert!(!resultado.ambiguo);
+    }
 }
