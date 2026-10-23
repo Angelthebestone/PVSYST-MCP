@@ -1,7 +1,7 @@
 //! Text recognition of a window: a live capture, or a PNG saved earlier.
 
 use super::ampliacion::{ampliar, factor_para, ImagenBgra, Region, LADO_MAXIMO_OCR};
-use super::dominio::{LineaOcr, PalabraOcr, RectOcr};
+use super::dominio::{LineaOcr, PalabraOcr};
 use super::motor::{reconocer_texto, EntradaOcr};
 use crate::adapters::gui::ffi::{self, Hwnd, Rect};
 use crate::adapters::gui::gdi;
@@ -10,13 +10,11 @@ use crate::error::{Error, Result};
 use serde_json::Value;
 
 fn trasladar_linea(l: LineaOcr, offset_x: i32, offset_y: i32) -> LineaOcr {
-    let mover = |r: RectOcr| {
-        RectOcr::new(
-            r.left + offset_x,
-            r.top + offset_y,
-            r.right + offset_x,
-            r.bottom + offset_y,
-        )
+    let mover = |r: Rect| Rect {
+        left: r.left + offset_x,
+        top: r.top + offset_y,
+        right: r.right + offset_x,
+        bottom: r.bottom + offset_y,
     };
     LineaOcr {
         texto: l.texto,

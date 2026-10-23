@@ -34,12 +34,37 @@ impl Mensaje {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Rect {
     pub(crate) left: i32,
     pub(crate) top: i32,
     pub(crate) right: i32,
     pub(crate) bottom: i32,
+}
+
+impl Rect {
+    pub(crate) const fn centro_y(&self) -> i32 {
+        (self.top + self.bottom) / 2
+    }
+
+    pub(crate) fn union(&self, otro: &Self) -> Self {
+        Self {
+            left: self.left.min(otro.left),
+            top: self.top.min(otro.top),
+            right: self.right.max(otro.right),
+            bottom: self.bottom.max(otro.bottom),
+        }
+    }
+
+    pub(crate) fn escalado(&self, k: f64) -> Self {
+        let f = |v: i32| (f64::from(v) * k).round() as i32;
+        Self {
+            left: f(self.left),
+            top: f(self.top),
+            right: f(self.right),
+            bottom: f(self.bottom),
+        }
+    }
 }
 
 #[repr(C)]

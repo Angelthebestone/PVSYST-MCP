@@ -3,7 +3,12 @@ use super::*;
 fn palabra(texto: &str, [left, right]: [i32; 2], top: i32) -> PalabraOcr {
     PalabraOcr {
         texto: texto.to_string(),
-        rect: RectOcr::new(left, top, right, top + 12),
+        rect: Rect {
+            left,
+            top,
+            right,
+            bottom: top + 12,
+        },
     }
 }
 
@@ -14,13 +19,18 @@ fn linea(palabras: Vec<PalabraOcr>) -> LineaOcr {
             .map(|p| p.texto.as_str())
             .collect::<Vec<_>>()
             .join(" "),
-        rect: RectOcr::new(0, 0, 0, 0),
+        rect: Rect::default(),
         palabras,
     }
 }
 
-fn caja(top: i32) -> RectOcr {
-    RectOcr::new(10, top, 50, top + 12)
+fn caja(top: i32) -> Rect {
+    Rect {
+        left: 10,
+        top,
+        right: 50,
+        bottom: top + 12,
+    }
 }
 
 #[test]
@@ -40,7 +50,15 @@ fn should_return_the_box_of_the_words_when_the_text_spans_two_of_them() {
 
     let cajas = ubicar_texto(&[l], "ejecutar simulacion");
 
-    assert_eq!(cajas, [RectOcr::new(10, 100, 130, 112)]);
+    assert_eq!(
+        cajas,
+        [Rect {
+            left: 10,
+            top: 100,
+            right: 130,
+            bottom: 112
+        }]
+    );
 }
 
 #[test]
@@ -53,7 +71,15 @@ fn should_return_the_box_of_three_words_when_the_text_spans_three_of_them() {
 
     let cajas = ubicar_texto(&[l], "gestion de orientaciones");
 
-    assert_eq!(cajas, [RectOcr::new(0, 0, 140, 12)]);
+    assert_eq!(
+        cajas,
+        [Rect {
+            left: 0,
+            top: 0,
+            right: 140,
+            bottom: 12
+        }]
+    );
 }
 
 #[test]
@@ -107,7 +133,15 @@ fn should_skip_a_word_that_is_only_punctuation_when_it_sits_inside_the_match() {
 
     let cajas = ubicar_texto(&[l], "perdidas envejecimiento");
 
-    assert_eq!(cajas, [RectOcr::new(0, 0, 150, 12)]);
+    assert_eq!(
+        cajas,
+        [Rect {
+            left: 0,
+            top: 0,
+            right: 150,
+            bottom: 12
+        }]
+    );
 }
 
 #[test]

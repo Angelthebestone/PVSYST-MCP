@@ -1,7 +1,8 @@
 //! Finds where a piece of text is drawn, so a click can land on a control that
 //! has no window handle (a speed button, a grid row, a tree node). Pure.
 
-use super::dominio::{LineaOcr, PalabraOcr, RectOcr};
+use super::dominio::{LineaOcr, PalabraOcr};
+use crate::adapters::gui::ffi::Rect;
 use crate::error::{Error, Result};
 
 /// Candidates listed in the error when the text is drawn more than once.
@@ -34,12 +35,12 @@ fn sin_acento(c: char) -> char {
 /// words that spell it. Matching ignores case, accents, spaces and punctuation
 /// and may start or end inside a word. Reading order (top to bottom, then left
 /// to right). O(letters + matches·log words) per line.
-pub(crate) fn ubicar_texto(lineas: &[LineaOcr], aguja: &str) -> Vec<RectOcr> {
+pub(crate) fn ubicar_texto(lineas: &[LineaOcr], aguja: &str) -> Vec<Rect> {
     let aguja = plegar(aguja);
     if aguja.is_empty() {
         return Vec::new();
     }
-    let mut cajas: Vec<RectOcr> = lineas
+    let mut cajas: Vec<Rect> = lineas
         .iter()
         .flat_map(|l| coincidencias(&l.palabras, &aguja))
         .collect();
@@ -61,7 +62,7 @@ fn texto_plegado(palabras: &[PalabraOcr]) -> (String, Vec<usize>) {
     (plegadas.concat(), inicios)
 }
 
-fn coincidencias(palabras: &[PalabraOcr], aguja: &str) -> Vec<RectOcr> {
+fn coincidencias(palabras: &[PalabraOcr], aguja: &str) -> Vec<Rect> {
     let (texto, inicios) = texto_plegado(palabras);
     texto
         .match_indices(aguja)
@@ -78,11 +79,11 @@ fn coincidencias(palabras: &[PalabraOcr], aguja: &str) -> Vec<RectOcr> {
         .collect()
 }
 
-fn centro(r: &RectOcr) -> (i32, i32) {
+fn centro(r: &Rect) -> (i32, i32) {
     ((r.left + r.right) / 2, (r.top + r.bottom) / 2)
 }
 
-fn descripcion(cajas: &[RectOcr]) -> String {
+fn descripcion(cajas: &[Rect]) -> String {
     cajas
         .iter()
         .take(CANDIDATAS_EN_ERROR)
@@ -95,10 +96,10 @@ fn descripcion(cajas: &[RectOcr]) -> String {
 /// The box to click: `indice` when given, the only one otherwise. Several
 /// matches without `indice` are refused instead of guessed.
 pub(crate) fn elegir_caja<'a>(
-    cajas: &'a [RectOcr],
+    cajas: &'a [Rect],
     indice: Option<usize>,
     texto: &str,
-) -> Result<&'a RectOcr> {
+) -> Result<&'a Rect> {
     match (indice, cajas) {
         (_, []) => Err(Error::NotFound(format!(
             "'{texto}' no está dibujado en la ventana (el OCR puede haberlo leído mal: gui_observar que:capturar)"
