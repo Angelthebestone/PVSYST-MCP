@@ -13,15 +13,11 @@ pub(crate) struct RotulosAcciones {
     pub(crate) botones_excepcion: &'static [&'static str],
 }
 
-pub(crate) const fn rotulos_acciones(idioma: Idioma) -> RotulosAcciones {
-    match idioma {
-        Idioma::Es => RotulosAcciones {
-            botones_cierre: &["Cerrar", "Cancelar", "Salir", "No"],
-            botones_mensaje: &["OK", "Aceptar", "Continuar", "Cerrar", "Cancelar"],
-            botones_excepcion: &["Continuar"],
-        },
-    }
-}
+pub(crate) const ROTULOS_ACCIONES: RotulosAcciones = RotulosAcciones {
+    botones_cierre: &["Cerrar", "Cancelar", "Salir", "No"],
+    botones_mensaje: &["OK", "Aceptar", "Continuar", "Cerrar", "Cancelar"],
+    botones_excepcion: &["Continuar"],
+};
 
 /// Button captions and prompt fragments for crash recovery dialogs.
 pub(crate) struct RotulosRecuperacion {
@@ -30,15 +26,11 @@ pub(crate) struct RotulosRecuperacion {
     pub(crate) aviso_inestable: &'static [&'static str],
 }
 
-pub(crate) const fn rotulos_recuperacion(idioma: Idioma) -> RotulosRecuperacion {
-    match idioma {
-        Idioma::Es => RotulosRecuperacion {
-            boton_reiniciar: "Reiniciar PVsyst",
-            boton_salir: "No",
-            aviso_inestable: &["inestable", "unstable"],
-        },
-    }
-}
+pub(crate) const ROTULOS_RECUPERACION: RotulosRecuperacion = RotulosRecuperacion {
+    boton_reiniciar: "Reiniciar PVsyst",
+    boton_salir: "No",
+    aviso_inestable: &["inestable", "unstable"],
+};
 
 /// Button captions and dismiss choices for PVsyst session forms.
 pub(crate) struct RotulosSesion {
@@ -47,12 +39,8 @@ pub(crate) struct RotulosSesion {
     pub(crate) botones_mensaje: &'static [&'static str],
 }
 
-pub(crate) const fn rotulos_sesion(idioma: Idioma) -> RotulosSesion {
-    match idioma {
-        Idioma::Es => RotulosSesion {
-            cerrar: "Cerrar",
-            salidas: &["Cancelar", "Cerrar", "Salida", "No"],
-            botones_mensaje: &["OK", "Sí", "Aceptar", "Continuar", "Cerrar"],
-        },
-    }
-}
+pub(crate) const ROTULOS_SESION: RotulosSesion = RotulosSesion {
+    cerrar: "Cerrar",
+    salidas: &["Cancelar", "Cerrar", "Salida", "No"],
+    botones_mensaje: &["OK", "Sí", "Aceptar", "Continuar", "Cerrar"],
+};

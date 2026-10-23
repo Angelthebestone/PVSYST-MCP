@@ -4,7 +4,7 @@
 
 use super::conduccion::{esperar, formularios, Formulario, ESPERA_FORMULARIO};
 use super::registro_pvsyst::{self, Marca};
-use super::rotulos::{rotulos_sesion, Idioma, RotulosSesion};
+use super::rotulos::{RotulosSesion, ROTULOS_SESION};
 use super::ventanas::{class_of, find_pids};
 use super::{acciones, ffi};
 use crate::config::Paths;
@@ -22,7 +22,7 @@ const ARRANQUE: Duration = Duration::from_secs(60);
 /// Rounds of closing when cleaning up after a failed step.
 const MAX_CIERRES: usize = 12;
 
-pub(crate) const ROTULOS: RotulosSesion = rotulos_sesion(Idioma::Es);
+pub(crate) const ROTULOS: RotulosSesion = ROTULOS_SESION;
 
 /// PVsyst on its home screen, ready for one MCP step.
 pub(crate) struct Sesion {

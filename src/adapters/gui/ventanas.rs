@@ -56,9 +56,18 @@ pub(crate) fn visible(h: Hwnd) -> bool {
 
 /// The first visible child of `h` whose caption is exactly `texto`.
 pub(crate) fn hijo_visible_con_texto(h: Hwnd, texto: &str) -> Option<Hwnd> {
-    enum_children(h)
-        .into_iter()
-        .find(|c| visible(*c) && text_of(*c) == texto)
+    hijos_visibles(h).find(|c| text_of(*c) == texto)
+}
+
+pub(crate) fn hijos_visibles(parent: Hwnd) -> impl Iterator<Item = Hwnd> {
+    enum_children(parent).into_iter().filter(|c| visible(*c))
+}
+
+pub(crate) fn hijos_visibles_con_clase(parent: Hwnd) -> impl Iterator<Item = (Hwnd, String)> {
+    hijos_visibles(parent).map(|c| {
+        let clase = class_of(c);
+        (c, clase)
+    })
 }
 
 /// Top-level windows of process `pid`, in Z-order (front-most first).
@@ -101,20 +110,30 @@ pub(crate) fn find_pids(exe_name: &str) -> Vec<u32> {
     pids
 }
 
+pub(crate) fn json_identidad_ventana(h: Hwnd) -> serde_json::Map<String, Value> {
+    let mut m = serde_json::Map::new();
+    m.insert("hwnd".into(), json!(format!("0x{:X}", h)));
+    m.insert("class".into(), json!(class_of(h)));
+    m.insert("title".into(), json!(text_of(h)));
+    m
+}
+
 pub(crate) fn window_json(h: Hwnd) -> Value {
     let r = rect_of(h);
     let estado = ffi::estado_ventana(h);
-    json!({
-        "hwnd": format!("0x{:X}", h),
-        "class": class_of(h),
-        "title": text_of(h),
-        "pid": pid_of(h),
-        "visible": estado.visible,
-        "enabled": estado.habilitada,
-        "minimized": estado.minimizada,
-        "rect": { "left": r.left, "top": r.top, "right": r.right, "bottom": r.bottom,
-                  "width": r.right - r.left, "height": r.bottom - r.top },
-    })
+    let mut obj = json_identidad_ventana(h);
+    obj.insert("pid".into(), json!(pid_of(h)));
+    obj.insert("visible".into(), json!(estado.visible));
+    obj.insert("enabled".into(), json!(estado.habilitada));
+    obj.insert("minimized".into(), json!(estado.minimizada));
+    obj.insert(
+        "rect".into(),
+        json!({
+            "left": r.left, "top": r.top, "right": r.right, "bottom": r.bottom,
+            "width": r.right - r.left, "height": r.bottom - r.top
+        }),
+    );
+    Value::Object(obj)
 }
 
 pub(crate) fn compact_default(args: &Value) -> bool {
@@ -126,12 +145,9 @@ pub(crate) fn compact_default(args: &Value) -> bool {
 }
 
 pub(crate) fn window_brief(h: Hwnd) -> Value {
-    json!({
-        "hwnd": format!("0x{:X}", h),
-        "class": class_of(h),
-        "title": text_of(h),
-        "visible": visible(h),
-    })
+    let mut obj = json_identidad_ventana(h);
+    obj.insert("visible".into(), json!(visible(h)));
+    Value::Object(obj)
 }
 
 pub(crate) fn target_pids(args: &Value) -> Result<Vec<u32>> {

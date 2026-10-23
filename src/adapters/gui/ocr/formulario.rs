@@ -6,7 +6,9 @@ use super::dominio::{asociar_etiqueta, normalizar_etiqueta, LineaOcr};
 use super::segmentacion::segmentar_lineas;
 use crate::adapters::gui::ffi::{self, Hwnd, Rect};
 use crate::adapters::gui::uia_vista::{aplanar, raiz_por_defecto};
-use crate::adapters::gui::ventanas::{class_of, hwnd_de, rect_of, text_of, ventanas_de, visible};
+use crate::adapters::gui::ventanas::{
+    class_of, hijos_visibles_con_clase, hwnd_de, rect_of, text_of, ventanas_de,
+};
 use crate::adapters::uia;
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
@@ -218,11 +220,7 @@ pub(crate) fn formulario(paths: &crate::config::Paths, args: &Value) -> Result<V
         rect_win: &rect_win,
     };
     let lineas = lineas_o_nada(&params, h)?;
-    let hijos: Vec<(Hwnd, String)> = ffi::enum_children(h)
-        .into_iter()
-        .filter(|c| visible(*c))
-        .map(|c| (c, class_of(c)))
-        .collect();
+    let hijos: Vec<(Hwnd, String)> = hijos_visibles_con_clase(h).collect();
     let rects: Vec<Rect> = hijos
         .iter()
         .filter(|(_, clase)| es_boton(clase) || es_campo(clase))

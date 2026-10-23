@@ -9,7 +9,7 @@ use super::ffi::Hwnd;
 use super::ocr::captura_ocr::lineas_vivas;
 use super::ocr::ubicacion::plegar;
 use super::proceso::lanzar;
-use super::rotulos::{rotulos_recuperacion, Idioma, RotulosRecuperacion};
+use super::rotulos::{RotulosRecuperacion, ROTULOS_RECUPERACION};
 use super::ventanas::{class_of, find_pids, hijo_visible_con_texto, target_pids};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
@@ -17,7 +17,7 @@ use std::time::Duration;
 
 const INICIO: &str = "THomeForm";
 const EJECUTABLE: &str = "PVsyst.exe";
-const ROTULOS: RotulosRecuperacion = rotulos_recuperacion(Idioma::Es);
+const ROTULOS: RotulosRecuperacion = ROTULOS_RECUPERACION;
 const ESPERA_SALIDA: Duration = Duration::from_secs(20);
 const ESPERA_ARRANQUE: Duration = Duration::from_secs(60);
 const SONDEO: Duration = Duration::from_millis(250);
@@ -49,7 +49,9 @@ fn fallo_de(pid: u32) -> Option<Fallo> {
 }
 
 fn esperar_salida(pid: u32) -> bool {
-    esperar_mientras(ESPERA_SALIDA, SONDEO, || find_pids(EJECUTABLE).contains(&pid))
+    esperar_mientras(ESPERA_SALIDA, SONDEO, || {
+        find_pids(EJECUTABLE).contains(&pid)
+    })
 }
 
 /// What starts after PVsyst quits.
