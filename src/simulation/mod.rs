@@ -14,7 +14,7 @@ pub(crate) mod results;
 mod ejecucion;
 mod estado;
 mod gui;
-mod preparacion;
+pub(crate) mod preparacion;
 
 pub(crate) use avisos_pvsyst::avisos_simulacion;
 pub(crate) use estado::estado_simulacion;

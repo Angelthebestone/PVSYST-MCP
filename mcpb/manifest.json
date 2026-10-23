@@ -244,12 +244,22 @@
         "simular": {
           "argumentos": {
             "action": "accion",
+            "bpf": "batch_params_file",
+            "brf": "batch_rvt_file",
+            "cof": "cmd_options_file",
+            "csv": "output_csv",
+            "imf": "input_met_file",
+            "ipf": "input_param_file",
+            "irf": "input_rvt_file",
+            "isf": "input_sfi_file",
             "job": "trabajo",
             "latitude": "latitud",
             "longitude": "longitud",
             "parameters": "parametros",
+            "pdf": "report_pdf",
             "project": "proyecto",
             "rows": "filas",
+            "sitio": "site",
             "target": "destino",
             "variant": "variante"
           },

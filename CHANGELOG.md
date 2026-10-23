@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Simulation short argument flags are normalised to canonical names.**
+  Aliases such as `csv`, `pdf`, `bpf`, `sitio`, `cof` are now declared in `SINONIMOS_SIMULAR`
+  and normalised by `preparar_args` prior to CLI argument construction. Removed duplicated
+  entries in `FILE_OPTIONS` and `.or_else` in `preparar()`, eliminating duplicate flags and
+  cache mismatch.
 - **Approximated actions and synonyms are hidden from descriptions and coverage.**
   When approximations are disabled, `tools/list` previously retained approximated
   actions (`preestimar`, `barrido`, etc.) and their aliases in the discriminator

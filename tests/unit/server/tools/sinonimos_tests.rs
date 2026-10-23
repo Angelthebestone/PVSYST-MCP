@@ -171,6 +171,24 @@ fn should_not_corrupt_declared_property_source_in_sitio() {
 }
 
 #[test]
+fn should_normalize_simulation_short_flags_and_reject_conflicting_values() {
+    let tool_sim = REGISTRO.iter().find(|h| h.nombre == "simular").unwrap();
+    let args_alias = json!({ "csv": "out.csv", "pdf": "out.pdf", "sitio": "Demo" });
+    let norm = tool_sim.preparar_args(&args_alias).expect("preparar_args");
+    assert_eq!(norm.get("output_csv"), Some(&json!("out.csv")));
+    assert_eq!(norm.get("report_pdf"), Some(&json!("out.pdf")));
+    assert_eq!(norm.get("site"), Some(&json!("Demo")));
+    assert_eq!(norm.get("csv"), None);
+
+    let mut cli_args = Vec::new();
+    crate::simulation::preparacion::push_options(&norm, &mut cli_args);
+    assert_eq!(cli_args, vec!["-ocf:out.csv", "-rpf:out.pdf", "-s:Demo"]);
+
+    let conflict = json!({ "output_csv": "a.csv", "csv": "b.csv" });
+    assert!(tool_sim.preparar_args(&conflict).is_err());
+}
+
+#[test]
 fn should_have_synchronized_alias_blocks_in_readmes_and_manifest() {
     let bloque = generar_bloque_alias_markdown();
     let readme_en = include_str!("../../../../README.md");
