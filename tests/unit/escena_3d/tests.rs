@@ -10,13 +10,7 @@ const FIXTURE_ESCENA_SINTETICA: &[u8] =
     b"pvShdBuilding;Synthetic Test;\r\nVersion 4.21; Calcul=$0001;\r\npvShdElemObject;Box;\r\nVersion 4.21; Calcul=$0005;\r\n";
 
 fn paths_de_test(ws: &Path) -> Paths {
-    Paths {
-        workspace: ws.to_path_buf(),
-        cli_exe: PathBuf::new(),
-        gui_exe: PathBuf::new(),
-        aproximaciones: Default::default(),
-        estado: Default::default(),
-    }
+    Paths::para_test(ws)
 }
 
 #[test]

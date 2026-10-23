@@ -7,13 +7,7 @@ use std::path::Path;
 use tempfile::tempdir;
 
 fn dummy_paths(ws: &Path) -> Paths {
-    Paths {
-        workspace: ws.to_path_buf(),
-        cli_exe: Default::default(),
-        gui_exe: Default::default(),
-        aproximaciones: false,
-        estado: Default::default(),
-    }
+    Paths::para_test(ws)
 }
 
 #[test]

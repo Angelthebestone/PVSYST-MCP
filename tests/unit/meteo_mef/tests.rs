@@ -4,20 +4,14 @@ use super::dominio::{DatosVariableMef, MeteoMef, VariableMef};
 use crate::config::Paths;
 use serde_json::json;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 const FIXTURE_LEGACY_MEF: &[u8] = b"pvMeteoFormat;Sample Legacy Format;\r\nVersion 5.67; Calcul=$00003043;\r\nDelim=;\r\nGlobHor;Irrad;2;0;1500;1.0;\r\nT_Amb;Temper;3;-40;60;1.0;\r\nWindVel;WindVel;4;0;50;1.0;\r\n";
 
 const FIXTURE_MODERNO_CON_DESCONOCIDO: &[u8] = b"\xef\xbb\xbfPVObject_=pvMeteoFormat\r\n  Comment=Modern Test\r\n  Version=8.1.0\r\n  DateFmtType=MM_DD_hh_mm\r\n  Separ=$003B\r\n  CampoDesconocido=ValorArbitrario\r\n  MeasureStep=60\r\n  AlbedoSolMF=0.20\r\n  NoFieldDate=1,2,0,\r\n  VarASCIIList, list of=1 tVarASCII\r\n    VarASCII=1\r\n      VarIdent=GlobHor\r\n      VarType=Irrad\r\n      NoField=2\r\n      FieldMult=1.00000\r\n      UnitId=W_m2\r\n    End of TVarASCII\r\n  End of List VarASCIIList\r\n  LargChamps\r\nEnd of PVObject pvMeteoFormat\r\n";
 
 fn paths_de_test(ws: &Path) -> Paths {
-    Paths {
-        workspace: ws.to_path_buf(),
-        cli_exe: PathBuf::new(),
-        gui_exe: PathBuf::new(),
-        aproximaciones: Default::default(),
-        estado: Default::default(),
-    }
+    Paths::para_test(ws)
 }
 
 #[test]

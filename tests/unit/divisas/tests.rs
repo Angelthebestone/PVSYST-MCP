@@ -10,13 +10,7 @@ const FIXTURE_CURRENCY: &[u8] =
     b"CURRENCY_RATES_V2;\r\n3; 1;1;\r\nEUR;Euro;    1.0000;\r\nUSD;US Dollar;    1.2500;\r\nJPY;Japanese Yen;  130.0000;";
 
 fn paths_de_test(ws: &Path) -> Paths {
-    Paths {
-        workspace: ws.to_path_buf(),
-        cli_exe: PathBuf::new(),
-        gui_exe: PathBuf::new(),
-        aproximaciones: Default::default(),
-        estado: Default::default(),
-    }
+    Paths::para_test(ws)
 }
 
 #[test]
