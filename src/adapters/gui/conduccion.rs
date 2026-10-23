@@ -66,41 +66,46 @@ pub(crate) fn formularios(pid: u32) -> Vec<Hwnd> {
         .collect()
 }
 
-/// Waits until a visible form of class `clase` exists in `pid`.
-pub(crate) fn esperar(pid: u32, clase: &str, espera: Duration) -> Result<Formulario> {
-    let fin = Instant::now() + espera;
+pub(crate) fn sondear_hasta<T, F>(plazo: Duration, intervalo: Duration, mut sondeo: F) -> Option<T>
+where
+    F: FnMut() -> Option<T>,
+{
+    let fin = Instant::now() + plazo;
     loop {
-        if let Some(h) = formularios(pid).into_iter().find(|h| class_of(*h) == clase) {
-            return Ok(Formulario::de(h));
+        if let Some(valor) = sondeo() {
+            return Some(valor);
         }
         if Instant::now() >= fin {
-            return Err(Error::Gui(format!(
-                "PVsyst no abrió '{clase}' en {} s",
-                espera.as_secs()
-            )));
+            return None;
         }
-        std::thread::sleep(SONDEO);
+        std::thread::sleep(intervalo);
     }
+}
+
+pub(crate) fn esperar_mientras<F>(plazo: Duration, intervalo: Duration, mut condicion: F) -> bool
+where
+    F: FnMut() -> bool,
+{
+    sondear_hasta(plazo, intervalo, || (!condicion()).then_some(())).is_some()
+}
+
+/// Waits until a visible form of class `clase` exists in `pid`.
+pub(crate) fn esperar(pid: u32, clase: &str, espera: Duration) -> Result<Formulario> {
+    sondear_hasta(espera, SONDEO, || {
+        formularios(pid).into_iter().find(|h| class_of(*h) == clase)
+    })
+    .map(Formulario::de)
+    .ok_or_else(|| {
+        Error::Gui(format!(
+            "PVsyst no abrió '{clase}' en {} s",
+            espera.as_secs()
+        ))
+    })
 }
 
 /// Waits until `h` is gone or hidden; `false` on timeout.
 pub(crate) fn esperar_cierre(h: Hwnd, espera: Duration) -> bool {
-    let fin = Instant::now() + espera;
-    while ffi::es_ventana(h) && visible(h) {
-        if Instant::now() >= fin {
-            return false;
-        }
-        std::thread::sleep(SONDEO);
-    }
-    true
-}
-
-/// Target point inside an action toolbar of a form.
-#[derive(Clone, Copy, Debug)]
-pub(crate) struct PuntoBarra {
-    pub(crate) n: usize,
-    pub(crate) ancho_min: i32,
-    pub(crate) x: i32,
+    esperar_mientras(espera, SONDEO, || ffi::es_ventana(h) && visible(h))
 }
 
 impl Formulario {
@@ -213,7 +218,7 @@ impl Formulario {
     pub(crate) fn escribir_unico(&self, clase: &str, texto: &str) -> Result<()> {
         let c = self.unico(clase)?;
         self.clic_en_control(c);
-        ffi::teclear_en(c, texto);
+        ffi::teclear_en(c, texto)?;
         std::thread::sleep(PAUSA_ACCION);
         Ok(())
     }
@@ -231,16 +236,17 @@ impl Formulario {
     /// Types `texto` into the field and commits it with Tab.
     pub(crate) fn escribir(&self, campo: Campo, texto: &str) -> Result<()> {
         let c = self.control(campo)?;
-        self.escribir_en(c, texto);
+        self.escribir_en(c, texto)?;
         Ok(())
     }
 
     /// Types `texto` into control `c` of this form and commits it with Tab.
-    pub(crate) fn escribir_en(&self, c: Hwnd, texto: &str) {
+    pub(crate) fn escribir_en(&self, c: Hwnd, texto: &str) -> Result<()> {
         self.clic_en_control(c);
-        ffi::teclear_en(c, texto);
+        ffi::teclear_en(c, texto)?;
         ffi::pulsar_tabulador();
         std::thread::sleep(PAUSA_ACCION);
+        Ok(())
     }
 
     pub(crate) fn leer(&self, campo: Campo) -> Result<String> {
@@ -257,7 +263,7 @@ impl Formulario {
     /// Picks the first item of the combo at `campo` that starts with `prefijo`.
     pub(crate) fn seleccionar(&self, campo: Campo, prefijo: &str) -> Result<()> {
         let c = self.control(campo)?;
-        if !ffi::elegir_en_combo(c, prefijo) {
+        if !ffi::elegir_en_combo(c, prefijo)? {
             return Err(Error::Invalid(format!(
                 "PVsyst no ofrece '{prefijo}' en esa lista de '{}'",
                 self.titulo()
@@ -273,26 +279,27 @@ impl Formulario {
             .hijos_visibles()
             .find(|c| class_of(*c) == "TPageControl")
             .ok_or_else(|| Error::Gui(format!("'{}' no tiene pestañas", self.titulo())))?;
-        ffi::mostrar_pagina(pc, indice);
+        ffi::mostrar_pagina(pc, indice)?;
         std::thread::sleep(PAUSA_ACCION);
         Ok(())
     }
 
     /// Clicks a point of a toolbar (`TActionToolBar`), the only way to reach
-    /// its actions: the `n`-th toolbar wider than `ancho_min`, top to bottom.
-    pub(crate) fn clic_barra(&self, punto: PuntoBarra) -> Result<()> {
+    /// its actions: the `n`-th toolbar wider than 500 px, top to bottom.
+    pub(crate) fn clic_barra(&self, n: usize, x: i32) -> Result<()> {
+        const ANCHO_BARRA_MIN_PX: i32 = 500;
         let mut barras: Vec<ffi::Rect> = self
             .hijos_visibles()
             .filter(|c| class_of(*c) == "TActionToolBar")
             .map(rect_of)
-            .filter(|r| r.right - r.left >= self.escalar(punto.ancho_min))
+            .filter(|r| r.right - r.left >= self.escalar(ANCHO_BARRA_MIN_PX))
             .collect();
         barras.sort_by_key(|r| r.top);
         let r = barras
-            .get(punto.n)
+            .get(n)
             .ok_or_else(|| Error::Gui(format!("'{}' no tiene esa barra", self.titulo())))?;
         ffi::traer_al_frente(self.h);
-        ffi::clic_fisico_en(r.left + self.escalar(punto.x), (r.top + r.bottom) / 2);
+        ffi::clic_fisico_en(r.left + self.escalar(x), (r.top + r.bottom) / 2);
         std::thread::sleep(PAUSA_ACCION);
         Ok(())
     }

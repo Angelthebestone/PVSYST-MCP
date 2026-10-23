@@ -2,14 +2,15 @@
 //! text row into a single line, so a caption, its field's own text and the
 //! caption of the next column come back glued together. Pure: no I/O.
 
-use super::dominio::{LineaOcr, PalabraOcr, RectOcr};
+use super::dominio::{LineaOcr, PalabraOcr};
+use crate::adapters::gui::ffi::Rect;
 
 /// Margin that still counts a word as drawn inside a control.
 const MARGEN_CONTROL_PX: i32 = 2;
 
 /// Words of one caption and the box that holds them.
 struct Segmento {
-    caja: RectOcr,
+    caja: Rect,
     palabras: Vec<PalabraOcr>,
 }
 
@@ -44,7 +45,7 @@ impl Segmento {
 /// Caption segments of `lineas`: words centred inside any of `controles` are
 /// the control's own text and are dropped, and a gap wider than the word's
 /// height starts a new segment. O(palabras · controles).
-pub(crate) fn segmentar_lineas(lineas: &[LineaOcr], controles: &[RectOcr]) -> Vec<LineaOcr> {
+pub(crate) fn segmentar_lineas(lineas: &[LineaOcr], controles: &[Rect]) -> Vec<LineaOcr> {
     lineas
         .iter()
         .flat_map(|linea| segmentos_de(&linea.palabras, controles))
@@ -52,14 +53,14 @@ pub(crate) fn segmentar_lineas(lineas: &[LineaOcr], controles: &[RectOcr]) -> Ve
         .collect()
 }
 
-fn segmentos_de(palabras: &[PalabraOcr], controles: &[RectOcr]) -> Vec<Segmento> {
+fn segmentos_de(palabras: &[PalabraOcr], controles: &[Rect]) -> Vec<Segmento> {
     palabras
         .iter()
         .filter(|p| !dentro_de_un_control(&p.rect, controles))
         .fold(Vec::new(), agrupar)
 }
 
-fn dentro_de_un_control(palabra: &RectOcr, controles: &[RectOcr]) -> bool {
+fn dentro_de_un_control(palabra: &Rect, controles: &[Rect]) -> bool {
     let (x, y) = ((palabra.left + palabra.right) / 2, palabra.centro_y());
     controles.iter().any(|c| {
         x >= c.left - MARGEN_CONTROL_PX
@@ -80,7 +81,7 @@ fn agrupar(mut grupos: Vec<Segmento>, palabra: &PalabraOcr) -> Vec<Segmento> {
     grupos
 }
 
-fn alto_de(r: &RectOcr) -> i32 {
+fn alto_de(r: &Rect) -> i32 {
     r.bottom - r.top
 }
 

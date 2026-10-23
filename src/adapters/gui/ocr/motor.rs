@@ -2,7 +2,8 @@
 //!
 //! Uses WinRT built-in OCR without external native dependencies.
 
-use super::dominio::{LineaOcr, PalabraOcr, RectOcr};
+use super::dominio::{LineaOcr, PalabraOcr};
+use crate::adapters::gui::ffi::Rect;
 use crate::error::{Error, Result};
 use std::time::Duration;
 use windows::core::HSTRING;
@@ -182,19 +183,29 @@ fn extraer_palabra(word: &windows::Media::Ocr::OcrWord) -> Result<PalabraOcr> {
     let bottom = (r.Y + r.Height).round() as i32;
     Ok(PalabraOcr {
         texto,
-        rect: RectOcr::new(left, top, right, bottom),
+        rect: Rect {
+            left,
+            top,
+            right,
+            bottom,
+        },
     })
 }
 
-fn bounding_box_palabras(palabras: &[PalabraOcr]) -> RectOcr {
+fn bounding_box_palabras(palabras: &[PalabraOcr]) -> Rect {
     if palabras.is_empty() {
-        return RectOcr::new(0, 0, 0, 0);
+        return Rect::default();
     }
     let min_x = palabras.iter().map(|p| p.rect.left).min().unwrap_or(0);
     let min_y = palabras.iter().map(|p| p.rect.top).min().unwrap_or(0);
     let max_x = palabras.iter().map(|p| p.rect.right).max().unwrap_or(0);
     let max_y = palabras.iter().map(|p| p.rect.bottom).max().unwrap_or(0);
-    RectOcr::new(min_x, min_y, max_x, max_y)
+    Rect {
+        left: min_x,
+        top: min_y,
+        right: max_x,
+        bottom: max_y,
+    }
 }
 
 fn extraer_linea(line: &windows::Media::Ocr::OcrLine) -> Result<LineaOcr> {

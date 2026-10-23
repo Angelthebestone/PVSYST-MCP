@@ -2,11 +2,13 @@
 //! and UIA tab items into a single structured view of an interactive form.
 
 use super::captura_ocr::{capturar_lineas_pantalla, ParametrosCaptura};
-use super::dominio::{asociar_etiqueta, normalizar_etiqueta, LineaOcr, RectOcr};
+use super::dominio::{asociar_etiqueta, normalizar_etiqueta, LineaOcr};
 use super::segmentacion::segmentar_lineas;
 use crate::adapters::gui::ffi::{self, Hwnd, Rect};
 use crate::adapters::gui::uia_vista::{aplanar, raiz_por_defecto};
-use crate::adapters::gui::ventanas::{class_of, hwnd_de, rect_of, text_of, ventanas_de, visible};
+use crate::adapters::gui::ventanas::{
+    class_of, hijos_visibles_con_clase, hwnd_de, rect_of, text_of, ventanas_de,
+};
 use crate::adapters::uia;
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
@@ -34,8 +36,13 @@ const CLASES_OTRO_CAMPO: &[&str] = &["TListBox", "TTrackBar", "TUpDown", "TDateT
 /// How far outside a button its OCR text may still lie and count as its caption.
 const MARGEN_BOTON_PX: i32 = 4;
 
-pub(crate) fn esta_marcado(h: Hwnd) -> bool {
-    ffi::send_message_res(h, ffi::Mensaje::simple(BM_GETCHECK)) == BST_CHECKED
+pub(crate) fn esta_marcado(h: Hwnd) -> Option<bool> {
+    ffi::send_message_timeout(
+        h,
+        ffi::Mensaje::simple(BM_GETCHECK),
+        ffi::TIMEOUT_MENSAJE_MS,
+    )
+    .map(|res| res == BST_CHECKED)
 }
 
 fn rect_json(r: &Rect) -> Value {
@@ -50,13 +57,28 @@ fn rect_json(r: &Rect) -> Value {
 }
 
 /// Caption of a button that has none as window text: the OCR words drawn inside it.
+struct DatosControl {
+    rect: Rect,
+    estado: ffi::EstadoVentana,
+    texto_raw: String,
+}
+
+fn leer_control(c: Hwnd) -> DatosControl {
+    DatosControl {
+        rect: rect_of(c),
+        estado: ffi::estado_ventana(c),
+        texto_raw: ffi::texto_control(c),
+    }
+}
+
+/// Caption of a button that has none as window text: the OCR words drawn inside it.
 fn texto_dibujado(r: &Rect, lineas: &[LineaOcr]) -> String {
-    let caja = RectOcr::new(
-        r.left - MARGEN_BOTON_PX,
-        r.top - MARGEN_BOTON_PX,
-        r.right + MARGEN_BOTON_PX,
-        r.bottom + MARGEN_BOTON_PX,
-    );
+    let caja = Rect {
+        left: r.left - MARGEN_BOTON_PX,
+        top: r.top - MARGEN_BOTON_PX,
+        right: r.right + MARGEN_BOTON_PX,
+        bottom: r.bottom + MARGEN_BOTON_PX,
+    };
     let palabras: Vec<&str> = lineas
         .iter()
         .flat_map(|l| &l.palabras)
@@ -66,38 +88,33 @@ fn texto_dibujado(r: &Rect, lineas: &[LineaOcr]) -> String {
     normalizar_etiqueta(&palabras.join(" "))
 }
 
-fn centro_dentro(palabra: &RectOcr, caja: &RectOcr) -> bool {
+fn centro_dentro(palabra: &Rect, caja: &Rect) -> bool {
     let (x, y) = ((palabra.left + palabra.right) / 2, palabra.centro_y());
     x >= caja.left && x <= caja.right && y >= caja.top && y <= caja.bottom
 }
 
 fn procesar_boton(c: Hwnd, clase: &str, lineas: &[LineaOcr]) -> Value {
-    let r = rect_of(c);
-    let estado = ffi::estado_ventana(c);
-    let raw_texto = ffi::texto_control(c);
-    let texto = if raw_texto.trim().is_empty() {
-        texto_dibujado(&r, lineas)
+    let ctrl = leer_control(c);
+    let texto = if ctrl.texto_raw.trim().is_empty() {
+        texto_dibujado(&ctrl.rect, lineas)
     } else {
-        normalizar_etiqueta(&raw_texto)
+        normalizar_etiqueta(&ctrl.texto_raw)
     };
     json!({
         "hwnd": format!("0x{:X}", c),
         "clase": clase,
         "texto": texto,
-        "habilitado": estado.habilitada,
-        "rect": rect_json(&r),
+        "habilitado": ctrl.estado.habilitada,
+        "rect": rect_json(&ctrl.rect),
     })
 }
 
 fn procesar_campo(c: Hwnd, clase: &str, lineas: &[LineaOcr]) -> Value {
-    let r = rect_of(c);
-    let estado = ffi::estado_ventana(c);
-    let raw_texto = ffi::texto_control(c);
-    let r_ocr = RectOcr::new(r.left, r.top, r.right, r.bottom);
-    let asociacion = asociar_etiqueta(&r_ocr, lineas);
+    let ctrl = leer_control(c);
+    let asociacion = asociar_etiqueta(&ctrl.rect, lineas);
     let es_opcion = CLASES_OPCION.contains(&clase);
-    let etiqueta = if es_opcion && !raw_texto.trim().is_empty() {
-        Some(normalizar_etiqueta(&raw_texto))
+    let etiqueta = if es_opcion && !ctrl.texto_raw.trim().is_empty() {
+        Some(normalizar_etiqueta(&ctrl.texto_raw))
     } else {
         asociacion.etiqueta
     };
@@ -107,12 +124,12 @@ fn procesar_campo(c: Hwnd, clase: &str, lineas: &[LineaOcr]) -> Value {
         "etiqueta": etiqueta,
         "ambiguo": asociacion.ambiguo,
         "candidatos": asociacion.candidatos,
-        "habilitado": estado.habilitada,
-        "rect": rect_json(&r),
+        "habilitado": ctrl.estado.habilitada,
+        "rect": rect_json(&ctrl.rect),
     });
     if let Some(map) = obj.as_object_mut() {
         if CLASES_TEXTO.contains(&clase) {
-            map.insert("valor".into(), json!(raw_texto));
+            map.insert("valor".into(), json!(ctrl.texto_raw));
         }
         if es_opcion {
             map.insert("marcado".into(), json!(esta_marcado(c)));
@@ -129,11 +146,6 @@ fn es_campo(clase: &str) -> bool {
     [CLASES_TEXTO, CLASES_OPCION, CLASES_OTRO_CAMPO]
         .iter()
         .any(|clases| clases.contains(&clase))
-}
-
-fn rect_ocr_de(c: Hwnd) -> RectOcr {
-    let r = rect_of(c);
-    RectOcr::new(r.left, r.top, r.right, r.bottom)
 }
 
 fn extraer_pestanas(paths: &crate::config::Paths, h: Hwnd) -> Result<Vec<Value>> {
@@ -208,15 +220,11 @@ pub(crate) fn formulario(paths: &crate::config::Paths, args: &Value) -> Result<V
         rect_win: &rect_win,
     };
     let lineas = lineas_o_nada(&params, h)?;
-    let hijos: Vec<(Hwnd, String)> = ffi::enum_children(h)
-        .into_iter()
-        .filter(|c| visible(*c))
-        .map(|c| (c, class_of(c)))
-        .collect();
-    let rects: Vec<RectOcr> = hijos
+    let hijos: Vec<(Hwnd, String)> = hijos_visibles_con_clase(h).collect();
+    let rects: Vec<Rect> = hijos
         .iter()
         .filter(|(_, clase)| es_boton(clase) || es_campo(clase))
-        .map(|(c, _)| rect_ocr_de(*c))
+        .map(|(c, _)| rect_of(*c))
         .collect();
     let etiquetas = segmentar_lineas(&lineas, &rects);
     let (campos, botones) = clasificar_controles(&hijos, &lineas, &etiquetas);

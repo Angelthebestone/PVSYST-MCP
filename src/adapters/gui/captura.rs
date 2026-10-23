@@ -4,7 +4,7 @@ use super::base64::base64;
 use super::ffi::{self, Hwnd, GA_ROOT};
 use super::gdi::capture_pixels;
 use super::png::png_rgb;
-use super::ventanas::{class_of, hwnd_de, rect_of, text_of};
+use super::ventanas::{class_of, hwnd_de, json_identidad_ventana, rect_of};
 use crate::args::flag;
 use crate::error::{Error, Result};
 use crate::workspace::{resolver_ruta, Alcance};
@@ -162,24 +162,23 @@ pub(crate) fn capturar(paths: &crate::config::Paths, args: &Value) -> Result<Val
     } else {
         (rgb_dibujado, lienzo.ancho, lienzo.alto)
     };
-    let png = png_rgb(ancho as u32, alto_img as u32, &rgb_final);
+    if ancho == 0 || alto_img == 0 || rgb_final.is_empty() {
+        return Err(Error::Gui(
+            "El área de la captura está vacía (0x0 píxeles)".into(),
+        ));
+    }
+    let png = png_rgb(ancho as u32, alto_img as u32, &rgb_final)?;
     let out = ruta_salida(paths, args, h)?;
     escribir_png(&out, &png)?;
-    let mut res = json!({
-        "hwnd": format!("0x{:X}", h),
-        "class": class_of(h),
-        "title": text_of(h),
-        "path": out.to_string_lossy(),
-        "width": ancho,
-        "height": alto_img,
-        "bytes": png.len(),
-    });
+    let mut obj = json_identidad_ventana(h);
+    obj.insert("path".into(), json!(out.to_string_lossy()));
+    obj.insert("width".into(), json!(ancho));
+    obj.insert("height".into(), json!(alto_img));
+    obj.insert("bytes".into(), json!(png.len()));
     if flag(args, &["imagen"]) {
-        if let Some(obj) = res.as_object_mut() {
-            obj.insert("_imagen_png_base64".to_string(), json!(base64(&png)));
-        }
+        obj.insert("_imagen_png_base64".into(), json!(base64(&png)));
     }
-    Ok(res)
+    Ok(Value::Object(obj))
 }
 
 #[cfg(test)]

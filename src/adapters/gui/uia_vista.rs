@@ -73,6 +73,15 @@ fn asociar_nodo_uia(v: &mut Value, plano: &[&Value]) {
     );
 }
 
+fn nodos_sin_hwnd(plano: &[&Value]) -> Vec<Value> {
+    plano
+        .iter()
+        .copied()
+        .filter(|n| n.get("hwnd").is_none())
+        .map(resumen_uia)
+        .collect()
+}
+
 pub(crate) fn fusionar(ventanas_win: Vec<Value>, arbol: &Value) -> Value {
     let mut plano: Vec<&Value> = Vec::new();
     aplanar(arbol, &mut plano);
@@ -83,12 +92,7 @@ pub(crate) fn fusionar(ventanas_win: Vec<Value>, arbol: &Value) -> Value {
             v
         })
         .collect();
-    let sin_hwnd: Vec<Value> = plano
-        .iter()
-        .copied()
-        .filter(|n| n.get("hwnd").is_none())
-        .map(resumen_uia)
-        .collect();
+    let sin_hwnd = nodos_sin_hwnd(&plano);
     json!({ "ventanas": ventanas, "uia_sin_hwnd": sin_hwnd })
 }
 
@@ -103,12 +107,7 @@ pub(crate) fn controles_con_uia(paths: &crate::config::Paths, args: &Value) -> R
         let arbol = uia::arbol(&paths.estado, h, DEFAULT_UIA_DEPTH, DEFAULT_UIA_MAX_NODES)?;
         let mut plano = Vec::new();
         aplanar(&arbol, &mut plano);
-        let uia_sin: Vec<Value> = plano
-            .iter()
-            .copied()
-            .filter(|n| n.get("hwnd").is_none())
-            .map(resumen_uia)
-            .collect();
+        let uia_sin = nodos_sin_hwnd(&plano);
         if let Some(obj) = r.as_object_mut() {
             obj.insert("uia".into(), json!(uia_sin));
         }

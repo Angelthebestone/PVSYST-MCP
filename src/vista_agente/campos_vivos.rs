@@ -4,7 +4,7 @@
 use super::dominio::{Ancla, CampoEsquema, TOLERANCIA_ANCLA_PX};
 use crate::adapters::gui::ffi::{self, Hwnd};
 use crate::adapters::gui::ocr::esta_marcado;
-use crate::adapters::gui::ventanas::{class_of, rect_of, visible};
+use crate::adapters::gui::ventanas::{hijos_visibles_con_clase, rect_of};
 
 const CLASES_TEXTO: &[&str] = &["TEdit", "TMemo", "TLabeledEdit", "TMaskEdit", "TSpinEdit"];
 const CLASES_LISTA: &[&str] = &["TComboBox", "TComboBoxEx"];
@@ -28,7 +28,9 @@ fn es_campo(clase: &str) -> bool {
 
 fn valor_de(c: Hwnd, clase: &str) -> String {
     if CLASES_OPCION.contains(&clase) {
-        return esta_marcado(c).to_string();
+        return esta_marcado(c)
+            .map(|m| m.to_string())
+            .unwrap_or_else(|| "desconocido".to_string());
     }
     ffi::texto_control(c)
 }
@@ -40,10 +42,7 @@ pub(crate) fn campos_vivos(h: Hwnd) -> Vec<CampoVivo> {
     let escala = ffi::escala_de_captura(h);
     let origen = rect_of(h);
     let a_logico = |v: i32| (f64::from(v) / escala).round() as i32;
-    ffi::enum_children(h)
-        .into_iter()
-        .filter(|c| visible(*c))
-        .map(|c| (c, class_of(c)))
+    hijos_visibles_con_clase(h)
         .filter(|(_, clase)| es_campo(clase))
         .map(|(c, clase)| {
             let r = rect_of(c);

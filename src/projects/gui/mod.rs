@@ -8,7 +8,7 @@ pub(crate) mod horizonte;
 pub(crate) mod p50;
 pub(crate) mod rotulos;
 
-use crate::adapters::gui::conduccion::{Campo, Formulario, PuntoBarra};
+use crate::adapters::gui::conduccion::{Campo, Formulario};
 use crate::adapters::gui::rotulos::Idioma;
 use crate::adapters::gui::sesion_pvsyst::Sesion;
 use crate::config::Paths;
@@ -22,8 +22,6 @@ use crate::projects::tipo_sistema::TipoSistema;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
-/// Toolbars wider than this (px at 96 DPI) are the project and variant bars.
-const ANCHO_BARRA: i32 = 500;
 /// Offsets (px at 96 DPI) of "Carga" in the project bar and "Guardar" in the variant bar.
 const X_CARGAR: i32 = 100;
 const X_GUARDAR_VARIANTE: i32 = 113;
@@ -64,11 +62,7 @@ fn esperar_titulo(f: &Formulario, prj: &str) -> Result<()> {
 }
 
 fn cargar(sesion: &Sesion, proyecto: &Formulario, prj: &str) -> Result<()> {
-    proyecto.clic_barra(PuntoBarra {
-        n: 0,
-        ancho_min: ANCHO_BARRA,
-        x: X_CARGAR,
-    })?;
+    proyecto.clic_barra(0, X_CARGAR)?;
     let lista = sesion.esperar(ROTULOS.formulario_cargar)?;
     lista.escribir_unico("TEdit", prj)?;
     lista.clic_en_unico("TVirtualStringTree", FILA_1)?;
@@ -110,11 +104,7 @@ impl<'s> ProyectoEnPvsyst<'s> {
     /// Saves the variant through PVsyst and checks that PVsyst wrote the file.
     pub(crate) fn guardar_variante(&self) -> Result<PvNode> {
         let antes = crate::workspace::leer_bytes(&self.archivo_variante)?;
-        self.ventana.clic_barra(PuntoBarra {
-            n: 1,
-            ancho_min: ANCHO_BARRA,
-            x: X_GUARDAR_VARIANTE,
-        })?;
+        self.ventana.clic_barra(1, X_GUARDAR_VARIANTE)?;
         let dialogo = self.sesion.esperar(ROTULOS.formulario_guardar)?;
         dialogo.pulsar(ROTULOS.guardar)?;
         self.sesion.aceptar_mensajes();

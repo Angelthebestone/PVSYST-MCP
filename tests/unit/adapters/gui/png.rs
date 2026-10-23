@@ -21,7 +21,7 @@ fn crc32_matches_known_iend_value() {
 #[test]
 fn png_has_signature_header_and_decodable_pixels() {
     let rgb = [1u8, 2, 3, 4, 5, 6];
-    let png = png_rgb(2, 1, &rgb);
+    let png = png_rgb(2, 1, &rgb).expect("valid png");
     assert_eq!(&png[..8], &PNG_FIRMA);
     let parts = chunks(&png);
     assert_eq!(parts[0].0, *b"IHDR");
@@ -31,4 +31,10 @@ fn png_has_signature_header_and_decodable_pixels() {
     let idat = parts.iter().find(|c| &c.0 == b"IDAT").unwrap();
     let raw = miniz_oxide::inflate::decompress_to_vec_zlib(&idat.1).unwrap();
     assert_eq!(raw, [0, 1, 2, 3, 4, 5, 6]);
+}
+
+#[test]
+fn should_reject_zero_dimensions_without_panic() {
+    let res = png_rgb(0, 0, &[]);
+    assert!(res.is_err());
 }

@@ -3,6 +3,8 @@
 //!
 //! No I/O, no Win32/WinRT dependencies, zero side effects.
 
+use crate::adapters::gui::ffi::Rect;
+
 const MAX_DISTANCIA_FILA_PX: i32 = 400;
 const MAX_DISTANCIA_COLUMNA_PX: i32 = 80;
 const TOLERANCIA_SOLAPAMIENTO_PX: i32 = 4;
@@ -10,65 +12,18 @@ const UMBRAL_AMBIGUEDAD_PX: i32 = 4;
 const PENALIZACION_DESALINEACION_PX: i32 = 1;
 const TOLERANCIA_COLUMNA_IZQ_PX: i32 = 24;
 
-/// A rectangle in image/screen physical pixels.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub(crate) struct RectOcr {
-    pub(crate) left: i32,
-    pub(crate) top: i32,
-    pub(crate) right: i32,
-    pub(crate) bottom: i32,
-}
-
-impl RectOcr {
-    /// Creates a new rectangle.
-    #[expect(
-        clippy::too_many_arguments,
-        reason = "constructor canónico de 4 coordenadas (left, top, right, bottom) para rectángulo 2D"
-    )]
-    pub(crate) const fn new(left: i32, top: i32, right: i32, bottom: i32) -> Self {
-        Self {
-            left,
-            top,
-            right,
-            bottom,
-        }
-    }
-
-    /// Vertical center.
-    pub(crate) const fn centro_y(&self) -> i32 {
-        (self.top + self.bottom) / 2
-    }
-
-    /// The smallest rectangle that holds both.
-    pub(crate) fn union(&self, otro: &Self) -> Self {
-        Self::new(
-            self.left.min(otro.left),
-            self.top.min(otro.top),
-            self.right.max(otro.right),
-            self.bottom.max(otro.bottom),
-        )
-    }
-
-    /// The rectangle with every coordinate multiplied by `k` (rounded). Used
-    /// to bring a capture made at 96-DPI layout to physical pixels.
-    pub(crate) fn escalado(&self, k: f64) -> Self {
-        let f = |v: i32| (f64::from(v) * k).round() as i32;
-        Self::new(f(self.left), f(self.top), f(self.right), f(self.bottom))
-    }
-}
-
 /// A recognized word with its bounding box.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct PalabraOcr {
     pub(crate) texto: String,
-    pub(crate) rect: RectOcr,
+    pub(crate) rect: Rect,
 }
 
 /// A recognized line of text composed of words.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct LineaOcr {
     pub(crate) texto: String,
-    pub(crate) rect: RectOcr,
+    pub(crate) rect: Rect,
     pub(crate) palabras: Vec<PalabraOcr>,
 }
 
@@ -152,7 +107,7 @@ fn colapsar_espacios(texto: &str) -> String {
 }
 
 /// Checks if an OCR line is a valid label to the left of the control on the same row.
-fn candidato_izquierda(linea: &RectOcr, control: &RectOcr) -> Option<i32> {
+fn candidato_izquierda(linea: &Rect, control: &Rect) -> Option<i32> {
     if linea.right > control.left + TOLERANCIA_SOLAPAMIENTO_PX {
         return None;
     }
@@ -173,7 +128,7 @@ fn candidato_izquierda(linea: &RectOcr, control: &RectOcr) -> Option<i32> {
 }
 
 /// Checks if an OCR line is a valid label directly above the control.
-fn candidato_arriba(linea: &RectOcr, control: &RectOcr) -> Option<i32> {
+fn candidato_arriba(linea: &Rect, control: &Rect) -> Option<i32> {
     if linea.bottom > control.top + TOLERANCIA_SOLAPAMIENTO_PX {
         return None;
     }
@@ -193,9 +148,9 @@ fn candidato_arriba(linea: &RectOcr, control: &RectOcr) -> Option<i32> {
 /// Distance of every OCR line that qualifies under one placement rule
 /// (`candidato_izquierda` or `candidato_arriba`).
 fn evaluar_candidatos(
-    control: &RectOcr,
+    control: &Rect,
     lineas: &[LineaOcr],
-    regla: fn(&RectOcr, &RectOcr) -> Option<i32>,
+    regla: fn(&Rect, &Rect) -> Option<i32>,
 ) -> Vec<CandidatoEtiqueta> {
     lineas
         .iter()
@@ -223,7 +178,7 @@ fn mejores_dos_candidatos(
 
 /// Associates an OCR line to a control by geometry. Nearest candidate wins;
 /// ties/ambiguity are reported rather than guessed.
-pub(crate) fn asociar_etiqueta(control: &RectOcr, lineas: &[LineaOcr]) -> ResultadoEtiqueta {
+pub(crate) fn asociar_etiqueta(control: &Rect, lineas: &[LineaOcr]) -> ResultadoEtiqueta {
     // VCL forms put the caption to the left of a field; text above a field is
     // usually a heading or formula for the group, so it only counts when no
     // caption sits to the left.

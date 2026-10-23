@@ -40,7 +40,9 @@ fn campos_de(ficha: &Value) -> Result<Vec<CampoEtiquetado>> {
 /// Current value of a field as text, for the before/after report.
 fn leer_valor(c: &CampoEtiquetado) -> String {
     if CLASES_OPCION.contains(&c.clase.as_str()) {
-        return esta_marcado(c.hwnd).to_string();
+        return esta_marcado(c.hwnd)
+            .map(|m| m.to_string())
+            .unwrap_or_else(|| "desconocido".to_string());
     }
     ffi::texto_control(c.hwnd)
 }
@@ -48,17 +50,20 @@ fn leer_valor(c: &CampoEtiquetado) -> String {
 fn poner_valor(f: &Formulario, c: &CampoEtiquetado, valor: &str) -> Result<()> {
     let clase = c.clase.as_str();
     if CLASES_TEXTO.contains(&clase) {
-        f.escribir_en(c.hwnd, valor);
+        f.escribir_en(c.hwnd, valor)?;
         return Ok(());
     }
     if CLASES_LISTA.contains(&clase) {
-        if ffi::elegir_item_por_clase(c.hwnd, &c.clase, valor) {
+        if ffi::elegir_item_por_clase(c.hwnd, &c.clase, valor)? {
             return Ok(());
         }
         return Err(Error::Invalid(format!("La lista no ofrece '{valor}'")));
     }
     if CLASES_OPCION.contains(&clase) {
-        if esta_marcado(c.hwnd) != valor_logico(valor)? {
+        let marcado = esta_marcado(c.hwnd).ok_or_else(|| {
+            Error::Gui("PVsyst no respondió en 3 s al consultar estado de casilla".into())
+        })?;
+        if marcado != valor_logico(valor)? {
             clic_por_mensajes(c.hwnd)?;
         }
         return Ok(());

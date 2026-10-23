@@ -4,18 +4,16 @@
 //! can never discard work PVsyst did not already declare at risk.
 
 use super::acciones::{clic_por_mensajes, CLASE_EXCEPCION, CLASE_MENSAJE};
-use super::conduccion::esperar;
+use super::conduccion::{esperar, esperar_mientras, formularios, sondear_hasta};
 use super::ffi::Hwnd;
 use super::ocr::captura_ocr::lineas_vivas;
 use super::ocr::ubicacion::plegar;
 use super::proceso::lanzar;
 use super::rotulos::{rotulos_recuperacion, Idioma, RotulosRecuperacion};
-use super::ventanas::{
-    class_of, enum_windows_de, find_pids, hijo_visible_con_texto, target_pids, visible,
-};
+use super::ventanas::{class_of, find_pids, hijo_visible_con_texto, target_pids};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 const INICIO: &str = "THomeForm";
 const EJECUTABLE: &str = "PVsyst.exe";
@@ -41,9 +39,8 @@ fn es_aviso_inestable(ventana: Hwnd) -> bool {
 }
 
 fn fallo_de(pid: u32) -> Option<Fallo> {
-    enum_windows_de(pid)
+    formularios(pid)
         .into_iter()
-        .filter(|h| visible(*h))
         .find_map(|h| match class_of(h).as_str() {
             CLASE_EXCEPCION => Some(Fallo::Excepcion(h)),
             CLASE_MENSAJE if es_aviso_inestable(h) => Some(Fallo::Inestable(h)),
@@ -51,16 +48,10 @@ fn fallo_de(pid: u32) -> Option<Fallo> {
         })
 }
 
-/// Waits until process `pid` is gone; `false` on timeout.
 fn esperar_salida(pid: u32) -> bool {
-    let fin = Instant::now() + ESPERA_SALIDA;
-    while find_pids(EJECUTABLE).contains(&pid) {
-        if Instant::now() >= fin {
-            return false;
-        }
-        std::thread::sleep(SONDEO);
-    }
-    true
+    esperar_mientras(ESPERA_SALIDA, SONDEO, || {
+        find_pids(EJECUTABLE).contains(&pid)
+    })
 }
 
 /// What starts after PVsyst quits.
@@ -74,20 +65,18 @@ enum Reaparicion {
 }
 
 fn nueva_instancia(anterior: u32) -> Reaparicion {
-    let fin = Instant::now() + ESPERA_ARRANQUE;
     let mut nuevo = None;
-    while Instant::now() < fin {
+    sondear_hasta(ESPERA_ARRANQUE, SONDEO, || {
         let vivos = find_pids(EJECUTABLE);
         // A process that died before showing its home screen no longer counts.
         nuevo = nuevo
             .filter(|p| vivos.contains(p))
             .or_else(|| vivos.into_iter().find(|p| *p != anterior));
-        if let Some(pid) = nuevo.filter(|&p| esperar(p, INICIO, SONDEO * 4).is_ok()) {
-            return Reaparicion::Lista(pid);
-        }
-        std::thread::sleep(SONDEO);
-    }
-    nuevo.map_or(Reaparicion::Ninguna, Reaparicion::SinInicio)
+        nuevo
+            .filter(|&p| esperar(p, INICIO, SONDEO * 4).is_ok())
+            .map(Reaparicion::Lista)
+    })
+    .unwrap_or_else(|| nuevo.map_or(Reaparicion::Ninguna, Reaparicion::SinInicio))
 }
 
 fn pulsar(ventana: Hwnd, rotulo: &str) -> Result<()> {

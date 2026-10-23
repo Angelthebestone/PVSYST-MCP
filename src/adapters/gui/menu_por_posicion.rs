@@ -137,11 +137,17 @@ fn salir_de_la_barra(ventana: Hwnd, origen: OrigenSalida) {
     let _ = pulsar(ventana, tecla, veces);
 }
 
-fn entradas_del_popup(ventana: Hwnd, menu: usize) -> (Result<Vec<ItemMenu>>, OrigenSalida) {
-    if let Err(e) = abrir_menu(ventana, menu) {
-        return (Err(e), OrigenSalida::Barra);
-    }
-    let popup = esperar_popup(pid_of(ventana));
+/// Opens top-level menu `menu` of `ventana`, reads its entries and always
+/// leaves the menu bar, also when something failed half way.
+fn leer_menu(ventana: Hwnd, menu: usize) -> Result<Vec<ItemMenu>> {
+    poner_al_frente(ventana)?;
+    let popup = match abrir_menu(ventana, menu) {
+        Ok(()) => esperar_popup(pid_of(ventana)),
+        Err(e) => {
+            salir_de_la_barra(ventana, OrigenSalida::Barra);
+            return Err(e);
+        }
+    };
     let items = popup.and_then(ffi::items_de_popup).ok_or_else(|| {
         Error::NotFound(format!(
             "El menú {menu} de {} no se abrió",
@@ -153,14 +159,6 @@ fn entradas_del_popup(ventana: Hwnd, menu: usize) -> (Result<Vec<ItemMenu>>, Ori
     } else {
         OrigenSalida::Barra
     };
-    (items, origen)
-}
-
-/// Opens top-level menu `menu` of `ventana`, reads its entries and always
-/// leaves the menu bar, also when something failed half way.
-fn leer_menu(ventana: Hwnd, menu: usize) -> Result<Vec<ItemMenu>> {
-    poner_al_frente(ventana)?;
-    let (items, origen) = entradas_del_popup(ventana, menu);
     salir_de_la_barra(ventana, origen);
     items
 }

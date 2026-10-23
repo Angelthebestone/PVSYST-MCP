@@ -10,7 +10,7 @@ pub(crate) const SW_RESTORE: i32 = 9;
 pub(crate) const GA_ROOT: u32 = 2;
 pub(crate) const TH32CS_SNAPPROCESS: u32 = 0x0000_0002;
 const SMTO_ABORTIFHUNG: u32 = 0x0002;
-const TIMEOUT_MENSAJE_MS: u32 = 3000;
+pub(crate) const TIMEOUT_MENSAJE_MS: u32 = 3000;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct Mensaje {
@@ -34,12 +34,37 @@ impl Mensaje {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Rect {
     pub(crate) left: i32,
     pub(crate) top: i32,
     pub(crate) right: i32,
     pub(crate) bottom: i32,
+}
+
+impl Rect {
+    pub(crate) const fn centro_y(&self) -> i32 {
+        (self.top + self.bottom) / 2
+    }
+
+    pub(crate) fn union(&self, otro: &Self) -> Self {
+        Self {
+            left: self.left.min(otro.left),
+            top: self.top.min(otro.top),
+            right: self.right.max(otro.right),
+            bottom: self.bottom.max(otro.bottom),
+        }
+    }
+
+    pub(crate) fn escalado(&self, k: f64) -> Self {
+        let f = |v: i32| (f64::from(v) * k).round() as i32;
+        Self {
+            left: f(self.left),
+            top: f(self.top),
+            right: f(self.right),
+            bottom: f(self.bottom),
+        }
+    }
 }
 
 #[repr(C)]
@@ -163,8 +188,14 @@ pub(crate) fn send_message_timeout(h: Hwnd, msg: Mensaje, timeout_ms: u32) -> Op
         return None;
     }
     let mut respuesta = 0isize;
-    // SAFETY: `SendMessageTimeoutW` previene bloqueos infinitos usando SMTO_ABORTIFHUNG;
-    // `respuesta` es una variable local viva de 64 bits donde la API escribe el resultado.
+    // SAFETY: Windows serializa los mensajes entre procesos usando un búfer interno del sistema;
+    // para mensajes como WM_GETTEXT, CB_GETLBTEXT o CB_FINDSTRING que transportan cadenas o búferes,
+    // el kernel valida los límites y copia los datos a la memoria de nuestro proceso antes de retornar.
+    // La comprobación `es_ventana` previa es una heurística sujeta a condición de carrera (TOCTOU): si la
+    // ventana se destruye inmediatamente después, `SendMessageTimeoutW` falla de forma segura devolviendo 0,
+    // sin provocar comportamiento indefinido.
+    // `SMTO_ABORTIFHUNG` garantiza que la llamada no quede bloqueada indefinidamente si el hilo receptor cuelga.
+    // `respuesta` es una variable local en la pila de 64 bits donde la API escribe el resultado.
     let ok = unsafe {
         SendMessageTimeoutW(
             h,
@@ -177,14 +208,6 @@ pub(crate) fn send_message_timeout(h: Hwnd, msg: Mensaje, timeout_ms: u32) -> Op
         )
     };
     (ok != 0).then_some(respuesta)
-}
-
-pub(crate) fn send_message(h: Hwnd, msg: Mensaje) {
-    let _ = send_message_timeout(h, msg, TIMEOUT_MENSAJE_MS);
-}
-
-pub(crate) fn send_message_res(h: Hwnd, msg: Mensaje) -> isize {
-    send_message_timeout(h, msg, TIMEOUT_MENSAJE_MS).unwrap_or(0)
 }
 
 pub(crate) fn mostrar_ventana(h: Hwnd, cmd: i32) {
