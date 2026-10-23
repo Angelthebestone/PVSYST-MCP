@@ -72,27 +72,40 @@ impl CampoEsquema {
         Self::base(clave, etiqueta, ancla)
     }
 
-    pub(crate) const fn numero(clave: &'static str, etiqueta: &'static str, ancla: Ancla) -> Self {
-        Self::base(clave, etiqueta, ancla)
-    }
-
-    pub(crate) const fn con_rango(mut self, minimo: f64, maximo: f64) -> Self {
-        self.tipo = TipoValor::Numero { minimo, maximo };
-        self
-    }
-
-    pub(crate) const fn entero(clave: &'static str, etiqueta: &'static str, ancla: Ancla) -> Self {
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "constructor de campo numérico con rango obligatorio de dominio"
+    )]
+    pub(crate) const fn numero(
+        clave: &'static str,
+        etiqueta: &'static str,
+        ancla: Ancla,
+        rango: (f64, f64),
+    ) -> Self {
         let mut c = Self::base(clave, etiqueta, ancla);
-        c.tipo = TipoValor::Entero {
-            minimo: i64::MIN,
-            maximo: i64::MAX,
+        c.tipo = TipoValor::Numero {
+            minimo: rango.0,
+            maximo: rango.1,
         };
         c
     }
 
-    pub(crate) const fn con_rango_entero(mut self, minimo: i64, maximo: i64) -> Self {
-        self.tipo = TipoValor::Entero { minimo, maximo };
-        self
+    #[expect(
+        clippy::too_many_arguments,
+        reason = "constructor de campo entero con rango obligatorio de dominio"
+    )]
+    pub(crate) const fn entero(
+        clave: &'static str,
+        etiqueta: &'static str,
+        ancla: Ancla,
+        rango: (i64, i64),
+    ) -> Self {
+        let mut c = Self::base(clave, etiqueta, ancla);
+        c.tipo = TipoValor::Entero {
+            minimo: rango.0,
+            maximo: rango.1,
+        };
+        c
     }
 
     pub(crate) const fn lista(clave: &'static str, etiqueta: &'static str, ancla: Ancla) -> Self {
