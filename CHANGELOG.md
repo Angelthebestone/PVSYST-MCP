@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Argument alias no longer collides with declared property `source` in `sitio`.**
+  The normaliser incorrectly mapped `source` to the `origen` selector instead of
+  preserving the CLI `-s` property, causing calls using `source` to be rejected as
+  invalid selector values. Added a general assertion preventing any argument alias
+  from colliding with declared properties of the same tool.
 - **GUI capture crop no longer panics on a zero-sized window.** `recortar_rgb`
   called `clamp(0, ancho - 1)` with `ancho == 0` (`min > max` panics).
 - **GUI messages can no longer hang the server.** `SendMessageW` waited without

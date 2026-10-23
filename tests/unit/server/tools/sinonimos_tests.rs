@@ -142,6 +142,12 @@ fn verificar_colisiones_argumentos(h: &Herramienta) {
                     .as_ref()
                     .is_some_and(|d| d.campo == canonico)
         );
+        assert!(
+            !h.propiedades.iter().any(|(p, _)| *p == alias),
+            "Tool '{}': alias '{}' collides with an already declared property",
+            h.nombre,
+            alias
+        );
     }
 }
 
@@ -153,6 +159,15 @@ fn verificar_colisiones_valores(h: &Herramienta) {
         assert_ne!(alias, canonico);
         assert!(disc.valores.contains(&canonico));
     }
+}
+
+#[test]
+fn should_not_corrupt_declared_property_source_in_sitio() {
+    let tool_sitio = REGISTRO.iter().find(|h| h.nombre == "sitio").unwrap();
+    let args = json!({ "accion": "crear", "source": "NASA SSE" });
+    let preparados = tool_sitio.preparar_args(&args).expect("preparar_args");
+    assert_eq!(preparados.get("source"), Some(&json!("NASA SSE")));
+    assert_eq!(preparados.get("origen"), None);
 }
 
 #[test]

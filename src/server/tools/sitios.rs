@@ -81,7 +81,6 @@ pub(crate) const TOOL_SITIO: Herramienta = Herramienta {
 const SINONIMOS_SITIO: Sinonimos = Sinonimos {
     argumentos: &[
         ("action", "accion"),
-        ("source", "origen"),
         ("site_name", "nombre_sitio"),
         ("latitude", "latitud"),
         ("longitude", "longitud"),
