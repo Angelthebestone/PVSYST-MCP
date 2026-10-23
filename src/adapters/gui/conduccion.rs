@@ -66,33 +66,41 @@ pub(crate) fn formularios(pid: u32) -> Vec<Hwnd> {
         .collect()
 }
 
-/// Waits until a visible form of class `clase` exists in `pid`.
-pub(crate) fn esperar(pid: u32, clase: &str, espera: Duration) -> Result<Formulario> {
-    let fin = Instant::now() + espera;
+pub(crate) fn sondear_hasta<T, F>(plazo: Duration, intervalo: Duration, mut sondeo: F) -> Option<T>
+where
+    F: FnMut() -> Option<T>,
+{
+    let fin = Instant::now() + plazo;
     loop {
-        if let Some(h) = formularios(pid).into_iter().find(|h| class_of(*h) == clase) {
-            return Ok(Formulario::de(h));
+        if let Some(valor) = sondeo() {
+            return Some(valor);
         }
         if Instant::now() >= fin {
-            return Err(Error::Gui(format!(
-                "PVsyst no abrió '{clase}' en {} s",
-                espera.as_secs()
-            )));
+            return None;
         }
-        std::thread::sleep(SONDEO);
+        std::thread::sleep(intervalo);
     }
+}
+
+pub(crate) fn esperar_mientras<F>(plazo: Duration, intervalo: Duration, mut condicion: F) -> bool
+where
+    F: FnMut() -> bool,
+{
+    sondear_hasta(plazo, intervalo, || (!condicion()).then_some(())).is_some()
+}
+
+/// Waits until a visible form of class `clase` exists in `pid`.
+pub(crate) fn esperar(pid: u32, clase: &str, espera: Duration) -> Result<Formulario> {
+    sondear_hasta(espera, SONDEO, || {
+        formularios(pid).into_iter().find(|h| class_of(*h) == clase)
+    })
+    .map(Formulario::de)
+    .ok_or_else(|| Error::Gui(format!("PVsyst no abrió '{clase}' en {} s", espera.as_secs())))
 }
 
 /// Waits until `h` is gone or hidden; `false` on timeout.
 pub(crate) fn esperar_cierre(h: Hwnd, espera: Duration) -> bool {
-    let fin = Instant::now() + espera;
-    while ffi::es_ventana(h) && visible(h) {
-        if Instant::now() >= fin {
-            return false;
-        }
-        std::thread::sleep(SONDEO);
-    }
-    true
+    esperar_mientras(espera, SONDEO, || ffi::es_ventana(h) && visible(h))
 }
 
 /// Target point inside an action toolbar of a form.
