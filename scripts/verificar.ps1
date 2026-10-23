@@ -28,10 +28,11 @@ function Get-PVsystPids {
 
 function Kill-NewPVsystPids($initialPids) {
     $currentPids = Get-PVsystPids
-    foreach ($pid in $currentPids) {
-        if ($initialPids -notcontains $pid) {
-            Write-Host "Matando proceso huerfano PVsyst.exe nuevo (PID: $pid)..." -ForegroundColor Yellow
-            Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+    # $pid es la variable automatica (solo lectura) del propio host: no sirve de iterador.
+    foreach ($idHuerfano in $currentPids) {
+        if ($initialPids -notcontains $idHuerfano) {
+            Write-Host "Matando proceso huerfano PVsyst.exe nuevo (PID: $idHuerfano)..." -ForegroundColor Yellow
+            Stop-Process -Id $idHuerfano -Force -ErrorAction SilentlyContinue
         }
     }
 }
