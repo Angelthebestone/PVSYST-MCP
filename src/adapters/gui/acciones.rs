@@ -1,7 +1,7 @@
 //! Window actions: clicks, messages, physical inputs and desktop interactivity.
 
 use super::ffi::{self, Hwnd, BM_CLICK, GA_ROOT, SW_RESTORE, WM_CLOSE};
-use super::rotulos::{RotulosAcciones, ROTULOS_ACCIONES};
+use super::rotulos::{rotulos_acciones, Idioma, RotulosAcciones};
 use super::ventanas::{class_of, rect_of, resolve, text_of, ventanas_de, visible, window_json};
 use crate::args::{opt_i32, opt_u32, req_str};
 use crate::error::{Error, Result};
@@ -10,7 +10,7 @@ use std::time::Duration;
 
 /// Window classes (Win32 and VCL) that implement `BM_CLICK`.
 const CLASES_BOTON: &[&str] = &["Button", "TButton", "TBitBtn", "TCheckBox", "TRadioButton"];
-const ROTULOS: RotulosAcciones = ROTULOS_ACCIONES;
+const ROTULOS: RotulosAcciones = rotulos_acciones(Idioma::Es);
 /// Class of PVsyst's message boxes.
 pub(crate) const CLASE_MENSAJE: &str = "TMessageForm";
 /// Class of the madExcept crash dialog.

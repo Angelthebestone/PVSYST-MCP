@@ -80,6 +80,11 @@ pub(crate) fn ultimos_mensajes(limite: usize) -> Value {
 fn columnas(linea: &str) -> Vec<&str> {
     linea.splitn(5, '|').map(str::trim).collect()
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum EstadoMensaje {
+    Abierto,
+    Cerrado,
+}
 
 fn es_continuacion(c: &[&str]) -> bool {
     c.len() == 5 && c.first() == Some(&"") && c.get(1) == Some(&"")
@@ -102,26 +107,26 @@ pub(crate) fn mensajes_desde(marca: &Marca) -> Vec<String> {
         return Vec::new();
     }
     let mut salida: Vec<String> = Vec::new();
-    let mut mensaje_abierto = false;
+    let mut estado = EstadoMensaje::Cerrado;
     for linea in BufReader::new(f).lines().map_while(std::result::Result::ok) {
-        mensaje_abierto = acumular(&mut salida, &linea, mensaje_abierto);
+        estado = acumular(&mut salida, &linea, estado);
     }
     salida.dedup();
     salida
 }
 
 /// Adds `linea` to `salida`; returns whether a message is still open.
-fn acumular(salida: &mut Vec<String>, linea: &str, mensaje_abierto: bool) -> bool {
+fn acumular(salida: &mut Vec<String>, linea: &str, estado: EstadoMensaje) -> EstadoMensaje {
     let c = columnas(linea);
     let cuerpo = c.get(4).copied().unwrap_or("");
     if es_continuacion(&c) {
-        if mensaje_abierto && !cuerpo.is_empty() {
+        if estado == EstadoMensaje::Abierto && !cuerpo.is_empty() {
             anadir_continuacion(salida, cuerpo);
         }
-        return mensaje_abierto;
+        return estado;
     }
     if c.len() < 5 || RUIDO.iter().any(|r| linea.contains(r)) {
-        return false;
+        return EstadoMensaje::Cerrado;
     }
     let metodo = c.get(2).copied().unwrap_or("");
     let nivel = c.get(1).copied().unwrap_or("");
@@ -129,7 +134,11 @@ fn acumular(salida: &mut Vec<String>, linea: &str, mensaje_abierto: bool) -> boo
     if es_mensaje && !cuerpo.is_empty() {
         salida.push(cuerpo.to_string());
     }
-    es_mensaje
+    if es_mensaje {
+        EstadoMensaje::Abierto
+    } else {
+        EstadoMensaje::Cerrado
+    }
 }
 
 #[cfg(test)]

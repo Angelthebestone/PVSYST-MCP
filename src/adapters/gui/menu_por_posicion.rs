@@ -117,16 +117,21 @@ fn abrir_menu(ventana: Hwnd, menu: usize) -> Result<()> {
     pulsar(ventana, VK_ABAJO, 1)
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum OrigenSalida {
+    Popup,
+    Barra,
+}
+
 /// Leaves the menu bar. `origen` says whether a popup was open. VCL's
 /// menu bar is its own loop, so Windows cannot say whether it is active:
 /// Escape twice closes the popup and then the bar, but sent when the bar is
 /// already off it reaches the form, where VCL takes it as Cancel. Without a
 /// popup the bar is at most armed by Alt, and Alt again disarms it.
-fn salir_de_la_barra(ventana: Hwnd, popup_abierto: bool) {
-    let (tecla, veces) = if popup_abierto {
-        (VK_ESCAPE, NIVELES_DE_MENU)
-    } else {
-        (VK_ALT, 1)
+fn salir_de_la_barra(ventana: Hwnd, origen: OrigenSalida) {
+    let (tecla, veces) = match origen {
+        OrigenSalida::Popup => (VK_ESCAPE, NIVELES_DE_MENU),
+        OrigenSalida::Barra => (VK_ALT, 1),
     };
     // A lost focus means the keys must not be sent at all.
     let _ = pulsar(ventana, tecla, veces);
@@ -139,7 +144,7 @@ fn leer_menu(ventana: Hwnd, menu: usize) -> Result<Vec<ItemMenu>> {
     let popup = match abrir_menu(ventana, menu) {
         Ok(()) => esperar_popup(pid_of(ventana)),
         Err(e) => {
-            salir_de_la_barra(ventana, false);
+            salir_de_la_barra(ventana, OrigenSalida::Barra);
             return Err(e);
         }
     };
@@ -149,7 +154,12 @@ fn leer_menu(ventana: Hwnd, menu: usize) -> Result<Vec<ItemMenu>> {
             class_of(ventana)
         ))
     });
-    salir_de_la_barra(ventana, popup.is_some());
+    let origen = if popup.is_some() {
+        OrigenSalida::Popup
+    } else {
+        OrigenSalida::Barra
+    };
+    salir_de_la_barra(ventana, origen);
     items
 }
 
