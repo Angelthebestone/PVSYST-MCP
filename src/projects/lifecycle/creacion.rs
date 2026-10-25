@@ -73,6 +73,35 @@ fn personalizar(args: &Value, prj_src: &[u8], var_src: &[u8]) -> Result<Personal
     Ok(Personalizado { prj, var, applied })
 }
 
+/// Resolves the base project: the workspace first, then the read-only DataRO demo projects.
+fn resolver_plantilla(workspace: &Path, plantilla: &str, alcance: Alcance) -> Result<PathBuf> {
+    match crate::projects::resolve_project_file_con_alcance(workspace, plantilla, alcance) {
+        Ok(p) => Ok(p),
+        Err(e) => plantilla_demo_ro(plantilla).ok_or(e),
+    }
+}
+
+/// A PVsyst demo project in DataRO named `plantilla`, with or without `.PRJ`.
+fn plantilla_demo_ro(plantilla: &str) -> Option<PathBuf> {
+    if Path::new(plantilla).is_absolute() || plantilla.contains("..") {
+        return None;
+    }
+    let base = crate::config::proyectos_demo_ro();
+    [plantilla.to_string(), format!("{plantilla}.PRJ")]
+        .iter()
+        .map(|c| base.join(c))
+        .find(|p| p.is_file())
+}
+
+/// Output always goes to the workspace: a DataRO template is never written beside.
+fn carpeta_de_salida(workspace: &Path, src_prj: &Path, src_parent: &Path) -> PathBuf {
+    if src_prj.starts_with(workspace) {
+        src_parent.to_path_buf()
+    } else {
+        workspace.join("Projects")
+    }
+}
+
 pub(crate) fn crear_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
     let plantilla = req_str(args, &["plantilla"], "existing project to base on")?;
@@ -84,14 +113,14 @@ pub(crate) fn crear_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
         .to_uppercase();
 
     let alcance = Alcance::de_args(args);
-    let src_prj =
-        crate::projects::resolve_project_file_con_alcance(&workspace, plantilla, alcance)?;
+    let src_prj = resolver_plantilla(&workspace, plantilla, alcance)?;
     let src_stem = stem_de(&src_prj)?;
-    let parent = src_prj
+    let src_parent = src_prj
         .parent()
         .ok_or_else(|| Error::Invalid("No parent directory".into()))?
         .to_path_buf();
-    let src_var = ruta_variante(&parent, &src_stem, &variante)?;
+    let parent = carpeta_de_salida(&workspace, &src_prj, &src_parent);
+    let src_var = ruta_variante(&src_parent, &src_stem, &variante)?;
     if !src_var.exists() {
         return Err(variante_no_encontrada(&parent, &src_stem, &variante));
     }

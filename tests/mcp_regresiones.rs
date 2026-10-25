@@ -28,5 +28,8 @@ mod ruta_pvsyst;
 #[path = "mcp_regresiones/proyectos.rs"]
 mod proyectos;
 
+#[path = "mcp_regresiones/plantillas.rs"]
+mod plantillas;
+
 #[path = "mcp_regresiones/exportar.rs"]
 mod exportar;
