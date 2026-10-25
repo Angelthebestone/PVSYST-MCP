@@ -134,9 +134,11 @@ pub(crate) struct Respuesta<'a> {
     pub(crate) ignorados: Vec<String>,
 }
 
-/// Trims the result to `detalle` and adds `elapsed_ms`, `siguiente`, `ignorados`, and `truncado`/`hint` when cut.
+/// Trims the result to `detalle` and adds `elapsed_ms`, `siguiente`, `ignorados`, and, when cut, `truncado`, `hint` and `total`.
 pub(crate) fn decorar(v: &mut Value, args: &Value, r: Respuesta<'_>) {
-    let truncado = limites(args).is_some_and(|lim| recortar(v, lim));
+    let lim = limites(args);
+    let total = lim.and_then(|l| total_principal(v, l));
+    let truncado = lim.is_some_and(|l| recortar(v, l));
     let Some(obj) = v.as_object_mut() else {
         return;
     };
@@ -151,4 +153,17 @@ pub(crate) fn decorar(v: &mut Value, args: &Value, r: Respuesta<'_>) {
         obj.insert("truncado".to_string(), Value::Bool(true));
         obj.insert("hint".to_string(), Value::from(HINT_DETALLE));
     }
+    if let Some(n) = total {
+        obj.entry("total").or_insert(Value::from(n));
+    }
+}
+
+/// Original length of the longest top-level list that the detail level trims.
+fn total_principal(v: &Value, (max_arr, _): (usize, usize)) -> Option<usize> {
+    v.as_object()?
+        .iter()
+        .filter(|(k, _)| !SIN_RECORTE.contains(&k.as_str()))
+        .filter_map(|(_, hijo)| hijo.as_array().map(Vec::len))
+        .filter(|n| *n > max_arr)
+        .max()
 }

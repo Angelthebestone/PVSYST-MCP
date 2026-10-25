@@ -29,6 +29,29 @@ fn should_mark_a_trimmed_answer_with_truncado_and_hint() {
 }
 
 #[test]
+fn should_report_the_original_length_as_top_level_total_when_trimmed() {
+    let mut v = json!({ "items": (0..20).collect::<Vec<u32>>() });
+    decorar(
+        &mut v,
+        &json!({}),
+        respuesta("listar", "proyectos", Vec::new()),
+    );
+    assert_eq!(v["total"], 20);
+    assert_eq!(v["items_total"], 20);
+}
+
+#[test]
+fn should_omit_top_level_total_when_nothing_was_trimmed() {
+    let mut v = json!({ "items": (0..3).collect::<Vec<u32>>() });
+    decorar(
+        &mut v,
+        &json!({}),
+        respuesta("listar", "proyectos", Vec::new()),
+    );
+    assert!(v.get("total").is_none());
+}
+
+#[test]
 fn should_keep_every_item_and_no_marker_with_detalle_completo() {
     let mut v = json!({ "items": (0..20).collect::<Vec<u32>>() });
     decorar(
