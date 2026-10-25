@@ -11,7 +11,10 @@ __pycache__/
 command-code-session-4ebba3ca.html
 critica_codigo_src.md
 informe.md
-docs/handoff.md
+# Working notes for agents (handoffs, cleanup reports): local only, never committed.
+docs/handoff*.md
+docs/limpieza_*.md
+docs/convencion_nombres.md
 .claude/
 .env
 .mcp.json

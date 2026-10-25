@@ -7,23 +7,23 @@
 
 #[expect(
     clippy::excessive_nesting,
-    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+    reason = "deuda medida; pendiente del paso 2 de la limpieza"
 )]
 mod bucle;
 #[expect(
     clippy::excessive_nesting,
-    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+    reason = "deuda medida; pendiente del paso 2 de la limpieza"
 )]
 pub(crate) mod cancelacion;
 #[expect(
     clippy::indexing_slicing,
-    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+    reason = "deuda medida; pendiente del paso 2 de la limpieza"
 )]
 mod recetas;
 mod resources;
 #[expect(
     clippy::indexing_slicing,
-    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+    reason = "deuda medida; pendiente del paso 2 de la limpieza"
 )]
 mod respuesta;
 pub(crate) mod salida;
@@ -110,7 +110,7 @@ impl Server {
 
     #[expect(
         clippy::too_many_arguments,
-        reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+        reason = "deuda medida; pendiente del paso 2 de la limpieza"
     )]
     fn dispatch_request(&self, method: &str, params: &Value, id: &Value) -> Option<String> {
         let reply = |result: Value| Some(ok_response(id, &result));

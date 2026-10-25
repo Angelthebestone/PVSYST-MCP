@@ -2,7 +2,7 @@
 #![expect(
     clippy::indexing_slicing,
     clippy::too_many_arguments,
-    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+    reason = "deuda medida; pendiente del paso 2 de la limpieza"
 )]
 #![allow(
     clippy::unwrap_used,

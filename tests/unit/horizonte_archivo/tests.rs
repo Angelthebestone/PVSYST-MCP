@@ -224,7 +224,7 @@ fn should_read_and_write_via_application() {
 
 #[expect(
     clippy::too_many_arguments,
-    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+    reason = "deuda medida; pendiente del paso 2 de la limpieza"
 )]
 fn invocar_tool_json(
     server: &crate::Server,

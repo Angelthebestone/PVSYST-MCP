@@ -5,7 +5,7 @@
     clippy::excessive_nesting,
     clippy::indexing_slicing,
     clippy::too_many_arguments,
-    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+    reason = "deuda medida; pendiente del paso 2 de la limpieza"
 )]
 pub(crate) mod cli;
 pub(crate) mod gui;
@@ -13,7 +13,7 @@ pub(crate) mod http;
 #[expect(
     clippy::indexing_slicing,
     clippy::too_many_arguments,
-    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+    reason = "deuda medida; pendiente del paso 2 de la limpieza"
 )]
 pub(crate) mod ledger;
 #[cfg(windows)]
@@ -21,6 +21,6 @@ pub(crate) mod ledger;
     clippy::excessive_nesting,
     clippy::indexing_slicing,
     clippy::too_many_arguments,
-    reason = "deuda medida; se limpia en el paso 2 de docs/handoff_limpieza_optimizacion.md"
+    reason = "deuda medida; pendiente del paso 2 de la limpieza"
 )]
 pub(crate) mod uia;
