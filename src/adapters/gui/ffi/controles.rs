@@ -27,6 +27,7 @@ const CB_ERR: isize = -1;
 const DESDE_EL_PRINCIPIO: usize = usize::MAX;
 /// VCL class of a page control (the tab strip and its pages).
 pub(crate) const CLASE_PESTANAS: &str = "TPageControl";
+const TCM_GETITEMCOUNT: u32 = 0x1304;
 const TCM_GETCURSEL: u32 = 0x130B;
 const TCM_SETCURFOCUS: u32 = 0x1330;
 /// Longest text read back from a PVsyst edit control.
@@ -123,6 +124,12 @@ pub(crate) fn mostrar_pagina(h: Hwnd, indice: usize) -> Result<()> {
 pub(crate) fn pagina_seleccionada(h: Hwnd) -> Option<usize> {
     let indice = send_message_timeout(h, Mensaje::nuevo(TCM_GETCURSEL, 0, 0), TIMEOUT_MENSAJE_MS)?;
     usize::try_from(indice).ok()
+}
+
+/// Number of tab pages of a page control; `None` when the control does not answer.
+pub(crate) fn paginas_de(h: Hwnd) -> Option<usize> {
+    let total = send_message_timeout(h, Mensaje::nuevo(TCM_GETITEMCOUNT, 0, 0), TIMEOUT_MENSAJE_MS)?;
+    usize::try_from(total).ok()
 }
 
 /// Window messages of a list control: find an item, select it.

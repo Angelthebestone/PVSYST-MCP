@@ -259,6 +259,14 @@ impl Formulario {
             .hijos_visibles()
             .find(|c| class_of(*c) == ffi::CLASE_PESTANAS)
             .ok_or_else(|| Error::Gui(format!("'{}' no tiene pestañas", self.titulo())))?;
+        let total = ffi::paginas_de(pc).unwrap_or(usize::MAX);
+        if indice >= total {
+            return Err(Error::Invalid(format!(
+                "'indice' {indice} fuera de rango: '{}' tiene {total} pestañas (0 a {})",
+                self.titulo(),
+                total.saturating_sub(1)
+            )));
+        }
         ffi::mostrar_pagina(pc, indice)?;
         std::thread::sleep(PAUSA_ACCION);
         match ffi::pagina_seleccionada(pc) {
