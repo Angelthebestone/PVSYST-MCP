@@ -59,14 +59,6 @@ impl Paths {
         }
     }
 
-    /// Modifica la bandera de aproximaciones en una instancia de pruebas.
-    #[cfg(test)]
-    #[must_use]
-    pub fn con_aproximaciones(mut self, aproximaciones: bool) -> Self {
-        self.aproximaciones = aproximaciones;
-        self
-    }
-
     /// Sub-directory helpers relative to the workspace.
     pub(crate) fn projects_dir(&self) -> PathBuf {
         self.workspace.join("Projects")

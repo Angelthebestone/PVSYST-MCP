@@ -7,7 +7,9 @@ const PREESTIMAR: Aproximacion = Aproximacion {
 };
 
 fn paths(aproximaciones: bool) -> Paths {
-    Paths::para_test(PathBuf::new()).con_aproximaciones(aproximaciones)
+    let mut p = Paths::para_test(PathBuf::new());
+    p.aproximaciones = aproximaciones;
+    p
 }
 
 #[test]
