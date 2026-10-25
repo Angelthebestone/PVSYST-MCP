@@ -55,6 +55,26 @@ fn should_list_the_required_keys_of_each_action_in_the_discriminator() {
 }
 
 #[test]
+fn should_accept_either_spelling_of_leer_archivo_in_the_schema() {
+    let paths = Paths::resolve();
+    let schemas = list(&paths);
+    let leer = schemas
+        .iter()
+        .find(|t| t["name"] == "leer")
+        .expect("leer schema");
+    let alternativas = leer["inputSchema"]["allOf"].as_array().expect("allOf");
+    let esperada = json!({ "anyOf": [{ "required": ["archivo"] }, { "required": ["file"] }] });
+    assert!(alternativas.contains(&esperada), "{alternativas:?}");
+    assert!(
+        !leer["inputSchema"]["required"]
+            .as_array()
+            .expect("required")
+            .contains(&json!("file")),
+        "an alias must never appear in the top-level required list"
+    );
+}
+
+#[test]
 fn should_annotate_phase_three_schema_constraints() {
     let paths = Paths::resolve();
     let schemas = list(&paths);

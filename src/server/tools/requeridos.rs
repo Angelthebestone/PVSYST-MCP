@@ -2,7 +2,7 @@
 //! a ready-to-send example, the schema lists the keys each action needs, and
 //! undeclared arguments are reported back instead of being silently dropped.
 
-use super::declaracion::Herramienta;
+use super::declaracion::{extraer_aliases, Herramienta};
 use crate::error::{Error, Result};
 use serde_json::{json, Map, Value};
 
@@ -44,6 +44,37 @@ impl Herramienta {
         }
         let previo = prop["description"].as_str().unwrap_or_default().to_owned();
         prop["description"] = json!(format!("{previo} Requeridos por acción: {detalle}."));
+    }
+
+    /// Top-level `required` keeps the keys without aliases. Each aliased required key
+    /// becomes an `anyOf` over its spellings, so a validating client accepts either one.
+    pub(crate) fn anotar_requisitos(&self, esquema: &mut Value) {
+        let discriminador = self
+            .discriminador
+            .as_ref()
+            .filter(|d| d.defecto.is_none())
+            .map(|d| d.campo);
+        let (simples, con_alias): (Vec<&str>, Vec<&str>) = self
+            .requeridos
+            .iter()
+            .copied()
+            .chain(discriminador)
+            .partition(|clave| extraer_aliases(self.sinonimos.argumentos, clave).is_empty());
+        esquema["required"] = json!(simples);
+        let alternativas: Vec<Value> = con_alias
+            .iter()
+            .map(|clave| self.alternativa_con_alias(clave))
+            .collect();
+        if !alternativas.is_empty() {
+            esquema["allOf"] = json!(alternativas);
+        }
+    }
+
+    fn alternativa_con_alias(&self, clave: &str) -> Value {
+        let nombres =
+            std::iter::once(clave).chain(extraer_aliases(self.sinonimos.argumentos, clave));
+        let alternativas: Vec<Value> = nombres.map(|n| json!({ "required": [n] })).collect();
+        json!({ "anyOf": alternativas })
     }
 
     /// Argument keys the tool does not declare; the handler would never read them.

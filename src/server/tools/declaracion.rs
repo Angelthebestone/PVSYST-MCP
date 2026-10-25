@@ -166,6 +166,8 @@ impl Herramienta {
             json!({ "type": "string", "enum": super::recorte::DETALLES }),
         );
 
+        let mut entrada = json!({ "type": "object", "properties": props });
+        self.anotar_requisitos(&mut entrada);
         json!({
             "name": self.nombre,
             "title": self.anotaciones.titulo,
@@ -177,30 +179,8 @@ impl Herramienta {
                 "idempotentHint": self.anotaciones.es_idempotente,
                 "openWorldHint": self.anotaciones.usa_red,
             },
-            "inputSchema": {
-                "type": "object",
-                "properties": props,
-                "required": self.requeridos_en_esquema(),
-            }
+            "inputSchema": entrada,
         })
-    }
-
-    /// Required arguments that clients may validate before sending. A required
-    /// argument that has an alias is left out: a schema-validating client would
-    /// otherwise reject the alias spelling, and `validar` enforces it after alias
-    /// normalization anyway (the description says "Requerido.").
-    fn requeridos_en_esquema(&self) -> Vec<&str> {
-        let discriminador = self
-            .discriminador
-            .as_ref()
-            .filter(|d| d.defecto.is_none())
-            .map(|d| d.campo);
-        self.requeridos
-            .iter()
-            .copied()
-            .chain(discriminador)
-            .filter(|clave| extraer_aliases(self.sinonimos.argumentos, clave).is_empty())
-            .collect()
     }
 
     fn anotar_alias_propiedad(&self, prop_val: &mut Value, clave: &str) {
@@ -307,7 +287,7 @@ fn formatear_valor_con_aliases(val: &str, sinonimos: &Sinonimos) -> String {
     }
 }
 
-fn extraer_aliases<'a>(tabla: &[(&'a str, &'a str)], canonico: &str) -> Vec<&'a str> {
+pub(crate) fn extraer_aliases<'a>(tabla: &[(&'a str, &'a str)], canonico: &str) -> Vec<&'a str> {
     tabla
         .iter()
         .filter(|(_, can)| *can == canonico)
