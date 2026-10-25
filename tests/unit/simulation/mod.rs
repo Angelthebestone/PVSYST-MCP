@@ -44,7 +44,9 @@ fn default_outputs_point_into_results_and_respect_overrides() {
         "Planta",
         "VC0",
     );
-    assert!(explicito.get("output_csv").is_none());
+    let csv_explicito = Path::new(explicito["output_csv"].as_str().unwrap());
+    assert!(csv_explicito.ends_with("x.csv"), "data={explicito}");
+    assert!(!csv_explicito.starts_with(ws.join("Results")));
     assert!(explicito.get("report_pdf").is_none());
 }
 
