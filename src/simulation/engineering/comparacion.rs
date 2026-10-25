@@ -80,11 +80,8 @@ pub(super) fn diferencias_parametros(
     for v in variantes {
         let archivo = workspace.join("Projects").join(format!("{proyecto}.{v}"));
         let mut mapa = Map::new();
-        for item in leer_objeto(paths, &json!({"archivo": archivo.display().to_string()}))?
-            .as_array()
-            .into_iter()
-            .flatten()
-        {
+        let args = json!({"workspace": workspace.display().to_string(), "archivo": archivo.display().to_string()});
+        for item in leer_objeto(paths, &args)?.as_array().into_iter().flatten() {
             if let (Some(c), Some(val)) = (item["campo"].as_str(), item.get("valor")) {
                 if !excluida(c) {
                     mapa.insert(c.to_string(), val.clone());
