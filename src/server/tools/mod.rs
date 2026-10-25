@@ -116,7 +116,7 @@ pub(crate) fn call_seguido(solicitud: &Solicitud<'_>) -> Result<Value> {
         })
         .unwrap_or_default();
     aproximadas::exigir(paths, name, accion_candidata)?;
-    let accion = h.validar(&args_efectivos)?;
+    let accion = h.validar(&args_efectivos, paths.aproximaciones)?;
     let mut v = match h.ejecutar {
         Ejecutor::Simple(ejecutar) => ejecutar(paths, &args_efectivos)?,
         Ejecutor::Seguido(ejecutar) => ejecutar(paths, &args_efectivos, seguimiento)?,

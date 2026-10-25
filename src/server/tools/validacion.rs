@@ -10,8 +10,8 @@ use serde_json::{json, Value};
 
 impl Herramienta {
     /// Validates arguments at the boundary and returns the resolved discriminator action.
-    pub(crate) fn validar(&self, args: &Value) -> Result<String> {
-        let accion = self.validar_discriminador(args)?;
+    pub(crate) fn validar(&self, args: &Value, aproximaciones: bool) -> Result<String> {
+        let accion = self.validar_discriminador(args, aproximaciones)?;
         self.validar_detalle(args)?;
         self.validar_requeridos_globales(args)?;
         self.validar_requeridos_por_accion(args, &accion)?;
@@ -37,7 +37,7 @@ impl Herramienta {
         Ok(Value::Object(mapa))
     }
 
-    fn validar_discriminador(&self, args: &Value) -> Result<String> {
+    fn validar_discriminador(&self, args: &Value, aproximaciones: bool) -> Result<String> {
         let Some(disc) = &self.discriminador else {
             return Ok(String::new());
         };
@@ -45,12 +45,20 @@ impl Herramienta {
 
         if disc.valores.contains(&valor.as_str()) {
             Ok(valor)
+            let visibles: Vec<&str> = disc
+                .valores
+                .iter()
+                .copied()
+                .filter(|accion| {
+                    aproximaciones || super::aproximadas::de(self.nombre, accion).is_none()
+                })
+                .collect();
         } else {
             Err(Error::Invalid(format!(
                 "Valor '{valor}' no válido para {} ({}); valores: {}",
                 self.nombre,
                 disc.campo,
-                disc.valores.join(", ")
+                visibles.join(", ")
             )))
         }
     }

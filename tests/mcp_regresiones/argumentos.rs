@@ -273,3 +273,48 @@ fn should_reject_a_log_level_outside_range_on_convert_meteo() {
     ));
     assert!(msg.contains("log_level"), "{msg}");
 }
+
+#[test]
+fn should_not_list_approximated_results_actions_when_approximations_are_off() {
+    let ws = synthetic_workspace();
+    let mut c = servidor(&ws);
+    let msg = error_text(&c.call(2, "resultados", json!({ "que": "zzz" })));
+    assert!(msg.contains("kpis"), "{msg}");
+    assert!(!msg.contains("medido_vs_simulado"), "{msg}");
+}
+
+#[test]
+fn should_require_a_project_or_pdf_for_resultados_kpis() {
+    let ws = synthetic_workspace();
+    let mut c = servidor(&ws);
+    let msg = error_text(&c.call(2, "resultados", json!({ "que": "kpis" })));
+    assert!(msg.contains("'proyecto'"), "{msg}");
+}
+
+#[test]
+fn should_report_unknown_project_for_resultados_kpis_as_project_not_found() {
+    let ws = synthetic_workspace();
+    let mut c = servidor(&ws);
+    let msg = error_text(&c.call(
+        2,
+        "resultados",
+        json!({ "que": "kpis", "proyecto": "NoExiste" }),
+    ));
+    assert!(
+        msg.contains("Proyecto") && msg.contains("no encontrado"),
+        "{msg}"
+    );
+    assert!(!msg.contains("Informe PDF"), "{msg}");
+}
+
+#[test]
+fn should_reject_include_text_outside_resultados_csv() {
+    let ws = synthetic_workspace();
+    let mut c = servidor(&ws);
+    let msg = error_text(&c.call(
+        2,
+        "resultados",
+        json!({ "que": "kpis", "proyecto": "X", "include_text": true }),
+    ));
+    assert!(msg.contains("include_text"), "{msg}");
+}

@@ -84,12 +84,12 @@ fn should_accept_compatible_union_types() {
         json!({ "accion": "crear", "plantilla": "P", "nombre_nuevo": "N", "n_mod_serie": 20 });
     let val_str =
         json!({ "accion": "crear", "plantilla": "P", "nombre_nuevo": "N", "n_mod_serie": "20" });
-    assert!(h.validar(&val_int).is_ok());
-    assert!(h.validar(&val_str).is_ok());
+    assert!(h.validar(&val_int, false).is_ok());
+    assert!(h.validar(&val_str, false).is_ok());
 
     let val_bad =
         json!({ "accion": "crear", "plantilla": "P", "nombre_nuevo": "N", "n_mod_serie": false });
-    assert!(h.validar(&val_bad).is_err());
+    assert!(h.validar(&val_bad, false).is_err());
 }
 
 #[test]

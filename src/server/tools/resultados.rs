@@ -1,9 +1,11 @@
 //! Tool for simulation output and engineering analysis: KPIs, CSV, losses, economics.
 
 use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, Sinonimos, TipoDato};
+use crate::args::workspace_of;
 use crate::config::Paths;
 use crate::easy_mode;
 use crate::error::{Error, Result};
+use crate::projects;
 use crate::simulation::{engineering, results};
 use serde_json::Value;
 
@@ -82,6 +84,10 @@ const SINONIMOS_RESULTADOS: Sinonimos = Sinonimos {
 
 fn ejecutar_resultados(paths: &Paths, args: &Value) -> Result<Value> {
     let valor = args.get("que").and_then(Value::as_str).unwrap_or("kpis");
+    exigir_include_text_solo_csv(valor, args)?;
+    if valor == "kpis" {
+        exigir_proyecto_de_kpis(paths, args)?;
+    }
     match valor {
         "kpis" => easy_mode::leer_kpis(paths, args),
         "csv" => results::leer_resultados(paths, args),
@@ -97,4 +103,30 @@ fn ejecutar_resultados(paths: &Paths, args: &Value) -> Result<Value> {
             "Valor '{valor}' no soportado para resultados"
         ))),
     }
+}
+
+/// `include_text` only shapes the CSV listing; elsewhere it would be silently ignored.
+fn exigir_include_text_solo_csv(valor: &str, args: &Value) -> Result<()> {
+    if valor != "csv" && args.get("include_text").is_some() {
+        return Err(Error::Invalid(format!(
+            "'include_text' solo aplica a que:csv (recibido que:{valor})"
+        )));
+    }
+    Ok(())
+}
+
+/// `kpis` reads one PDF: name the project or the PDF instead of picking one arbitrarily.
+fn exigir_proyecto_de_kpis(paths: &Paths, args: &Value) -> Result<()> {
+    if let Some(proyecto) = args.get("proyecto").and_then(Value::as_str) {
+        return projects::resolve_project_file(&workspace_of(paths, args), proyecto).map(|_| ());
+    }
+    if ["archivo", "report_pdf"]
+        .iter()
+        .any(|clave| args.get(clave).is_some())
+    {
+        return Ok(());
+    }
+    Err(Error::Invalid(
+        "'proyecto' es obligatorio para que:kpis (o 'archivo'/'report_pdf' con el PDF)".into(),
+    ))
 }
