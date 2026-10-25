@@ -138,18 +138,28 @@ pub(crate) fn clasificar(command: &str, stdout: &str) -> Clasificacion {
     )
 }
 
-/// Clasifica la salida del proceso teniendo en cuenta el código de salida si existe.
+/// Clasifica la salida del proceso. Con código de salida, los comandos informativos
+/// (`help`, `version`, `lic-info`) se deciden solo por el código: su texto de ayuda
+/// documenta marcadores como "Required option" sin ser un error.
 pub(crate) fn clasificar_salida(
     command: &str,
     stdout: &str,
     exit_code: Option<i32>,
 ) -> Clasificacion {
-    if let Some(code) = exit_code {
-        if code != 0 {
-            return Clasificacion::Error(format!("Proceso terminó con código de error {code}"));
+    match exit_code {
+        Some(0) if es_comando_informativo(command) => clasificar_informativo(command, stdout),
+        Some(code) if code != 0 => {
+            Clasificacion::Error(format!("Proceso terminó con código de error {code}"))
         }
+        _ => clasificar(command, stdout),
     }
-    clasificar(command, stdout)
+}
+
+fn clasificar_informativo(command: &str, stdout: &str) -> Clasificacion {
+    if stdout.trim().is_empty() {
+        return Clasificacion::Ambiguo(format!("Salida vacía para '{command}'"));
+    }
+    Clasificacion::Exito
 }
 
 /// Interfaz retrocompatible para llamadas externas que esperan `(bool, Option<String>)`.

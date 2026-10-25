@@ -117,6 +117,12 @@ fn should_classify_nonzero_exit_code_as_error() {
     let res = clasificar_salida("help", "Some text", Some(1));
     assert!(matches!(res, Clasificacion::Error(_)));
 }
+#[test]
+fn should_classify_help_with_exit_zero_as_success_despite_option_text() {
+    let salida = "run-simulation: Required option -p <project> is needed";
+    let res = clasificar_salida("help", salida, Some(0));
+    assert_eq!(res, Clasificacion::Exito);
+}
 
 #[test]
 fn should_maintain_backwards_compatible_classify_tuple() {
