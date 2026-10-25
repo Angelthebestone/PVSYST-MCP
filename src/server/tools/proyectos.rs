@@ -20,6 +20,7 @@ pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
         ("proyecto", TipoDato::String),
         ("plantilla", TipoDato::String),
         ("nombre_nuevo", TipoDato::String),
+        ("sitio", TipoDato::String),
         ("variante", TipoDato::String),
         ("variante_origen", TipoDato::String),
         ("variante_nueva", TipoDato::String),

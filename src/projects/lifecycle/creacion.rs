@@ -102,6 +102,24 @@ fn carpeta_de_salida(workspace: &Path, src_prj: &Path, src_parent: &Path) -> Pat
     }
 }
 
+/// The workspace `Sites/<sitio>.SIT` requested with `sitio`; a missing site is an error.
+fn sit_pedido(workspace: &Path, args: &Value) -> Result<Option<PathBuf>> {
+    let Some(sitio) = args.get("sitio").and_then(Value::as_str) else {
+        return Ok(None);
+    };
+    let dir = workspace.join("Sites");
+    let sit = dir.join(format!("{sitio}.SIT"));
+    if !sit.is_file() {
+        return Err(crate::args::no_encontrado(
+            "Sitio",
+            sitio,
+            &[],
+            &dir.to_string_lossy(),
+        ));
+    }
+    Ok(Some(sit))
+}
+
 pub(crate) fn crear_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
     let plantilla = req_str(args, &["plantilla"], "existing project to base on")?;
@@ -136,17 +154,22 @@ pub(crate) fn crear_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     let prj_src = fs::read(&src_prj).map_err(|e| Error::io("Read PRJ", e))?;
     let var_src = fs::read(&src_var).map_err(|e| Error::io("Read variant", e))?;
     let nuevo = personalizar(args, &prj_src, &var_src)?;
+    let sit = sit_pedido(&workspace, args)?;
 
     let historial_id = escribir_par(
         &workspace,
         &[(new_prj.clone(), nuevo.prj), (new_var.clone(), nuevo.var)],
     )?;
+    if let Some(sit) = &sit {
+        crate::easy_mode::proyecto::vincular_sitio(paths, nombre, &sit.to_string_lossy())?;
+    }
 
     Ok(json!({
         "project": nombre,
         "project_file": new_prj.to_string_lossy(),
         "variant_file": new_var.to_string_lossy(),
         "based_on": src_stem,
+        "sitio": sit.as_ref().map(|p| p.to_string_lossy().to_string()),
         "applied": nuevo.applied,
         "historial_id": historial_id,
     }))

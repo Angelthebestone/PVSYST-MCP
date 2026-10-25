@@ -11,7 +11,7 @@ mod dimensionado;
 mod lectura_argumentos;
 mod parametros;
 mod pasos;
-mod proyecto;
+pub(crate) mod proyecto;
 mod serie_plantilla;
 mod simulacion;
 mod sitio;
