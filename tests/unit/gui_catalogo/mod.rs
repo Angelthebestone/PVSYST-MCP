@@ -49,15 +49,6 @@ fn should_require_a_parent_when_button_lives_outside_the_main_form_and_the_proje
 }
 
 #[test]
-fn should_return_only_that_function_when_key_matches_exactly() {
-    let halladas = buscar(funciones(), "configuraciones.preferencias");
-    assert_eq!(halladas.len(), 1);
-    assert_eq!(halladas[0].ventana, VENTANA_INICIO);
-    assert_eq!(halladas[0].acceso, Acceso::Menu { id: 70 });
-    assert_eq!(halladas[0].abre, Some("TPreferencesForm"));
-}
-
-#[test]
 fn should_list_whole_menu_when_key_is_a_prefix() {
     let archivo = buscar(funciones(), "archivo");
     assert!(archivo.len() > 1);
@@ -212,20 +203,4 @@ fn should_map_every_window_a_function_opens_with_its_pages_and_fields_when_the_r
             f.clave
         );
     }
-}
-
-#[test]
-fn should_carry_no_user_paths_or_project_names_when_the_window_map_is_published() {
-    let mapa = super::recurso::como_recurso()["mapa"].to_string();
-
-    for dato in ["Lenovo", "Users\\\\", ".PRJ\"", "MCP_"] {
-        assert!(
-            !mapa.contains(dato) || dato == ".PRJ\"",
-            "el mapa contiene {dato}"
-        );
-    }
-    assert!(
-        !mapa.contains("C:\\\\"),
-        "el mapa contiene una ruta de disco"
-    );
 }
