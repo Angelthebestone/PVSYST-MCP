@@ -151,6 +151,7 @@ pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
         ("proyecto", TipoDato::String),
         ("esperar_segundos", TipoDato::Integer),
         ("permitir_fuera_del_workspace", TipoDato::Boolean),
+        ("cerrar_demo", TipoDato::Boolean),
         ("funcion", TipoDato::String),
         ("id", TipoDato::Integer),
         ("etiqueta", TipoDato::String),
