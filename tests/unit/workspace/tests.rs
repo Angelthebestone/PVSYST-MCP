@@ -27,6 +27,22 @@ fn should_reject_path_outside_workspace_by_default() {
 }
 
 #[test]
+fn should_suggest_the_pvsyst_file_when_leer_gets_a_bare_site_name() {
+    let ws = tempdir().expect("ws");
+    fs::create_dir_all(ws.path().join("Sites")).expect("sites dir");
+    fs::write(ws.path().join("Sites/E2E_Site.SIT"), "x").expect("sitio");
+    let paths = dummy_paths(ws.path());
+    let args = json!({ "workspace": ws.path(), "archivo": "E2E_Site" });
+    let err = leer_archivo(&paths, &args).expect_err("un nombre suelto no es un archivo");
+    let texto = err.to_string();
+    assert!(
+        texto.contains("Archivo 'E2E_Site' no encontrado"),
+        "{texto}"
+    );
+    assert!(texto.contains("Sites/E2E_Site.SIT"), "{texto}");
+}
+
+#[test]
 fn should_allow_path_outside_workspace_when_explicitly_permitted() {
     let ws = tempdir().expect("ws");
     let outside = tempdir().expect("outside");

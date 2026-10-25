@@ -144,13 +144,39 @@ fn leer_ventana_texto(file: &mut File, r: &RangoVentana) -> Result<(usize, usize
     Ok((start, end, chunk))
 }
 
+/// Names of the PVsyst data files a bare name could mean, as `Carpeta/nombre`.
+fn archivos_pvsyst(workspace: &Path) -> Vec<String> {
+    ["Projects", "Sites", "Meteo"]
+        .iter()
+        .flat_map(|carpeta| {
+            fs::read_dir(workspace.join(carpeta))
+                .into_iter()
+                .flatten()
+                .flatten()
+                .filter_map(move |e| e.file_name().to_str().map(|n| format!("{carpeta}/{n}")))
+        })
+        .collect()
+}
+
+/// Metadata of `path`; a missing file names the candidates among the PVsyst folders.
+fn metadatos(workspace: &Path, pedido: &str, path: &Path) -> Result<fs::Metadata> {
+    fs::metadata(path).map_err(|e| match e.kind() {
+        std::io::ErrorKind::NotFound => crate::args::no_encontrado(
+            "Archivo",
+            pedido,
+            &archivos_pvsyst(workspace),
+            &workspace.to_string_lossy(),
+        ),
+        _ => Error::io(format!("Cannot read metadata {}", path.display()), e),
+    })
+}
+
 /// Read a file within a bounded memory window without loading the whole file into RAM.
 pub(crate) fn leer_archivo(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
     let p = req_str(args, &["archivo"], "")?;
     let path = resolver_ruta(&workspace, p, Alcance::de_args(args))?;
-    let meta = fs::metadata(&path)
-        .map_err(|e| Error::io(format!("Cannot read metadata {}", path.display()), e))?;
+    let meta = metadatos(&workspace, p, &path)?;
     if meta.is_dir() {
         return Err(Error::Invalid(format!(
             "'{}' es un directorio, no un archivo",
