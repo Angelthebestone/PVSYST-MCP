@@ -1,7 +1,7 @@
 //! Text recognition of a window: a live capture, or a PNG saved earlier.
 
 use super::ampliacion::{ampliar, factor_para, ImagenBgra, Region, LADO_MAXIMO_OCR};
-use super::dominio::{LineaOcr, PalabraOcr};
+use super::dominio::LineaOcr;
 use super::motor::{reconocer_texto, EntradaOcr};
 use crate::adapters::gui::ffi::{self, Hwnd, Rect};
 use crate::adapters::gui::gdi;
@@ -16,18 +16,7 @@ fn trasladar_linea(l: LineaOcr, offset_x: i32, offset_y: i32) -> LineaOcr {
         right: r.right + offset_x,
         bottom: r.bottom + offset_y,
     };
-    LineaOcr {
-        texto: l.texto,
-        rect: mover(l.rect),
-        palabras: l
-            .palabras
-            .into_iter()
-            .map(|p| PalabraOcr {
-                texto: p.texto,
-                rect: mover(p.rect),
-            })
-            .collect(),
-    }
+    l.con_rects(mover)
 }
 
 /// What to read: where saved PNGs resolve and which window is on screen.

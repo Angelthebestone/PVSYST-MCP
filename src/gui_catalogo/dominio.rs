@@ -72,19 +72,13 @@ pub(crate) struct Funcion {
     pub(crate) efecto: Efecto,
 }
 
-#[derive(Clone, Copy)]
-struct DescriptoresFuncion {
-    clave: &'static str,
-    etiqueta: &'static str,
-    ventana: &'static str,
-}
-
 impl Funcion {
-    const fn nueva(descriptores: DescriptoresFuncion, acceso: Acceso) -> Self {
+    /// Entry on the main form; [`Self::en`] moves it to another window.
+    const fn nueva(clave: &'static str, etiqueta: &'static str, acceso: Acceso) -> Self {
         Self {
-            clave: descriptores.clave,
-            etiqueta: descriptores.etiqueta,
-            ventana: descriptores.ventana,
+            clave,
+            etiqueta,
+            ventana: VENTANA_INICIO,
             acceso,
             abre: None,
             requiere: None,
@@ -96,12 +90,7 @@ impl Funcion {
     }
     /// Item of the main form's menu bar, by command id.
     pub(crate) const fn menu(clave: &'static str, etiqueta: &'static str, id: u16) -> Self {
-        let d = DescriptoresFuncion {
-            clave,
-            etiqueta,
-            ventana: VENTANA_INICIO,
-        };
-        Self::nueva(d, Acceso::Menu { id })
+        Self::nueva(clave, etiqueta, Acceso::Menu { id })
     }
 
     /// Item `item` of menu `menu` (both from 0, separators counted) of the main
@@ -111,13 +100,7 @@ impl Funcion {
         etiqueta: &'static str,
         (menu, item): (u8, u8),
     ) -> Self {
-        let d = DescriptoresFuncion {
-            clave,
-            etiqueta,
-            ventana: VENTANA_INICIO,
-        };
-        let acceso = Acceso::MenuPosicion { menu, item };
-        Self::nueva(d, acceso)
+        Self::nueva(clave, etiqueta, Acceso::MenuPosicion { menu, item })
     }
 
     /// Button of `ventana` whose caption is `titulo`.
@@ -126,12 +109,7 @@ impl Funcion {
         ventana: &'static str,
         titulo: &'static str,
     ) -> Self {
-        let d = DescriptoresFuncion {
-            clave,
-            etiqueta: titulo,
-            ventana,
-        };
-        Self::nueva(d, Acceso::Boton { titulo })
+        Self::nueva(clave, titulo, Acceso::Boton { titulo }).en(ventana)
     }
     /// Records the class of the window the function was seen to open.
     pub(crate) const fn abre(mut self, clase: &'static str) -> Self {

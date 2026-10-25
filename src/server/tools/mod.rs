@@ -137,13 +137,17 @@ pub(crate) fn call_seguido(solicitud: &Solicitud<'_>) -> Result<Value> {
     Ok(v)
 }
 
+/// Tools that declare at least one synonym, in registry order.
+fn con_sinonimos() -> impl Iterator<Item = &'static Herramienta> {
+    REGISTRO
+        .iter()
+        .filter(|h| !h.sinonimos.argumentos.is_empty() || !h.sinonimos.valores.is_empty())
+}
+
 /// Returns the declarative map of synonyms (argument and value aliases) for every tool.
 pub(crate) fn tabla_alias() -> Value {
     let mut mapa = serde_json::Map::new();
-    for h in REGISTRO {
-        if h.sinonimos.argumentos.is_empty() && h.sinonimos.valores.is_empty() {
-            continue;
-        }
+    for h in con_sinonimos() {
         let mut tool_obj = serde_json::Map::new();
         if !h.sinonimos.argumentos.is_empty() {
             tool_obj.insert(
@@ -170,10 +174,7 @@ fn pares_a_objeto(pares: &[(&str, &str)]) -> Value {
 #[cfg(test)]
 pub(crate) fn generar_bloque_alias_markdown() -> String {
     let mut out = String::from("<!-- alias:inicio -->\n| Herramienta / Tool | Argumentos (alias → canónico) | Valores (alias → canónico) |\n|---|---|---|\n");
-    for h in REGISTRO {
-        if h.sinonimos.argumentos.is_empty() && h.sinonimos.valores.is_empty() {
-            continue;
-        }
+    for h in con_sinonimos() {
         let args_str = formatear_pares_markdown(h.sinonimos.argumentos);
         let vals_str = formatear_pares_markdown(h.sinonimos.valores);
 

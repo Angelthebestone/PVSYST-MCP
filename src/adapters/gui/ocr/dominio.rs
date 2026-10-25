@@ -30,15 +30,20 @@ pub(crate) struct LineaOcr {
 impl LineaOcr {
     /// The line and its words with coordinates multiplied by `k`.
     pub(crate) fn escalada(self, k: f64) -> Self {
+        self.con_rects(|r| r.escalado(k))
+    }
+
+    /// The line and its words with `mover` applied to every rectangle.
+    pub(crate) fn con_rects(self, mover: impl Fn(Rect) -> Rect) -> Self {
         Self {
             texto: self.texto,
-            rect: self.rect.escalado(k),
+            rect: mover(self.rect),
             palabras: self
                 .palabras
                 .into_iter()
                 .map(|p| PalabraOcr {
                     texto: p.texto,
-                    rect: p.rect.escalado(k),
+                    rect: mover(p.rect),
                 })
                 .collect(),
         }
