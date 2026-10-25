@@ -192,3 +192,31 @@ fn should_reject_a_legacy_component_field_key_containing_equals_without_touching
     assert!(msg.contains("Nombre de campo inválido"), "{msg}");
     assert_eq!(fs::read(&pan).expect("PAN"), antes);
 }
+
+#[test]
+fn should_name_the_missing_water_use_section_when_bombeo_targets_a_variant_without_it() {
+    let ws = synthetic_workspace();
+    let vc0 = ws.path().join("Projects/SYNTH_Bomba.VC0");
+    fs::write(
+        &vc0,
+        "PVObject_=pvSystem\r\n  SystemType=Pumping\r\nEnd of PVObject pvSystem\r\n",
+    )
+    .expect("VC0 de bombeo sin WaterUse");
+    fs::copy(
+        ws.path().join("Projects/SYNTH_Plant.PRJ"),
+        ws.path().join("Projects/SYNTH_Bomba.PRJ"),
+    )
+    .expect("PRJ de bombeo");
+    let antes = fs::read(&vc0).expect("VC0");
+    let ws_str = ws.path().to_string_lossy().to_string();
+    let mut c = Client::start(Some(&ws_str));
+    c.initialize();
+    let resp = c.call(
+        17,
+        "proyecto",
+        json!({ "accion": "bombeo", "proyecto": "SYNTH_Bomba", "variante": "VC0", "caudal_m3_dia": 25 }),
+    );
+    let msg = error_text(&resp);
+    assert!(msg.contains("WaterUse"), "{msg}");
+    assert_eq!(fs::read(&vc0).expect("VC0"), antes);
+}

@@ -3,7 +3,7 @@
 
 use crate::bombeo::dominio::{EntradaBombeo, ParametrosBombeo};
 use crate::config::Paths;
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::format::{edit, seccion};
 use crate::projects::lifecycle::{abrir_variante, guardar_variante};
 use crate::projects::tipo_sistema::TipoSistema;
@@ -23,7 +23,8 @@ pub(crate) fn configurar_bombeo(paths: &Paths, args: &Value) -> Result<Value> {
     let (bytes, agua) = if cambios_seccion.is_empty() {
         (actual, Vec::new())
     } else {
-        seccion::editar_campos_seccion(&actual, "WaterUse", &cambios_seccion)?
+        seccion::editar_campos_seccion(&actual, "WaterUse", &cambios_seccion)
+            .map_err(sin_seccion_water_use)?
     };
     let outcomes: Vec<edit::ChangeOutcome> = sistema.into_iter().chain(agua).collect();
     let historial_id = guardar_variante(&variante, &bytes, "proyecto bombeo")?;
@@ -35,4 +36,16 @@ pub(crate) fn configurar_bombeo(paths: &Paths, args: &Value) -> Result<Value> {
         "cambios": outcomes.iter().map(edit::ChangeOutcome::to_json).collect::<Vec<_>>(),
         "historial_id": historial_id,
     }))
+}
+
+/// Variants made with `anadir circuito_hidraulico` carry the pump circuit but not the
+/// `WaterUse` section, which lives in the pumping template's `pvLoad`. Say so instead of
+/// the generic section-not-found error.
+fn sin_seccion_water_use(error: Error) -> Error {
+    match error {
+        Error::NotFound(_) => Error::Invalid(
+            "La variante no tiene la sección 'WaterUse' (solo la trae una plantilla de bombeo completa; 'anadir circuito_hidraulico' copia únicamente el circuito). Cree la variante desde _DEMO_Pumping.".into(),
+        ),
+        otro => otro,
+    }
 }
