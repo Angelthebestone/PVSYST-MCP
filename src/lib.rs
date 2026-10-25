@@ -111,7 +111,6 @@ mod medicion;
 )]
 mod meteo_mef;
 #[expect(
-    clippy::excessive_nesting,
     clippy::indexing_slicing,
     reason = "deuda medida; pendiente del paso 2 de la limpieza"
 )]
