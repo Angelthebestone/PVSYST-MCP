@@ -2,6 +2,7 @@
 
 Medida el 2026-10-22 sobre `b4149ac`, antes de tocar código. Herramientas: `cargo clippy 0.1.99`,
 recuento de líneas y `grep` sobre `src/` y `tests/`.
+Resultado del paso 1 (antes y después, bugs y pendientes): `docs/limpieza_informe.md`.
 
 ## Tamaño
 | Medida | Valor |
