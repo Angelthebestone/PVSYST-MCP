@@ -222,6 +222,7 @@ pub(crate) const TOOL_LISTAR: Herramienta = Herramienta {
         ("extension", TipoDato::String),
         ("recursivo", TipoDato::Boolean),
         ("archivo", TipoDato::String),
+        ("todos", TipoDato::Boolean),
         ("permitir_fuera_del_workspace", TipoDato::Boolean),
     ],
     requeridos: &[],

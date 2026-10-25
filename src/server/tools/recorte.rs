@@ -134,9 +134,20 @@ pub(crate) struct Respuesta<'a> {
     pub(crate) ignorados: Vec<String>,
 }
 
+/// `todos:true` on `listar objetos` keeps every object, as `detalle:completo` does.
+fn pide_todos(r: &Respuesta<'_>, args: &Value) -> bool {
+    r.herramienta == "listar"
+        && r.accion == "objetos"
+        && args.get("todos").and_then(Value::as_bool) == Some(true)
+}
+
 /// Trims the result to `detalle` and adds `elapsed_ms`, `siguiente`, `ignorados`, and, when cut, `truncado`, `hint` and `total`.
 pub(crate) fn decorar(v: &mut Value, args: &Value, r: Respuesta<'_>) {
-    let lim = limites(args);
+    let lim = if pide_todos(&r, args) {
+        None
+    } else {
+        limites(args)
+    };
     let total = lim.and_then(|l| total_principal(v, l));
     let truncado = lim.is_some_and(|l| recortar(v, l));
     let Some(obj) = v.as_object_mut() else {

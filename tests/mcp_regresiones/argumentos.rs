@@ -162,6 +162,29 @@ fn should_report_trial_cost_estimate_and_cap_in_a_dry_run() {
     assert_eq!(dado["costo_estimado"]["ejecuciones"], 1, "data={dado}");
     assert_eq!(dado["max_ejecuciones"], 1, "data={dado}");
 }
+#[test]
+fn should_keep_every_object_only_when_listar_objetos_asks_for_todos() {
+    let ws = synthetic_workspace();
+    let cuerpo: String = (0..20)
+        .map(|i| format!("PVObject_=pvAgeing\r\n  Mode={i}\r\nEnd of PVObject pvAgeing\r\n"))
+        .collect();
+    fs::write(ws.path().join("Objetos.VC0"), cuerpo).expect("archivo de objetos");
+    let mut c = servidor(&ws);
+    let args = json!({ "que": "objetos", "archivo": "Objetos.VC0" });
+    let resumen = tool_text(&c.call(1, "listar", args.clone()));
+    assert_eq!(resumen["truncado"], true, "data={resumen}");
+    assert_eq!(resumen["objects"].as_array().map(Vec::len), Some(13));
+    let mut con_todos = args;
+    con_todos["todos"] = json!(true);
+    let completo = tool_text(&c.call(2, "listar", con_todos));
+    let n = completo["count"].as_u64().unwrap_or_default();
+    assert!(n > 13, "data={completo}");
+    assert!(completo.get("truncado").is_none(), "data={completo}");
+    assert_eq!(
+        completo["objects"].as_array().map(Vec::len),
+        Some(n as usize)
+    );
+}
 
 #[test]
 fn should_reject_a_count_below_its_declared_minimum() {
