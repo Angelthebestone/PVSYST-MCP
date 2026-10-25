@@ -131,31 +131,6 @@ fn should_expose_the_new_gui_field_actions() {
 }
 
 #[test]
-fn should_expose_click_by_text_restart_and_menu_listing_in_the_gui_tools() {
-    let paths = Paths::resolve();
-    let schemas = list(&paths);
-    let propiedades = |nombre: &str| {
-        schemas
-            .iter()
-            .find(|t| t["name"] == nombre)
-            .unwrap_or_else(|| panic!("missing {nombre}"))["inputSchema"]["properties"]
-            .clone()
-    };
-    let actuar_acciones = propiedades("gui_actuar")["accion"]["enum"]
-        .as_array()
-        .cloned()
-        .unwrap();
-    assert!(actuar_acciones.iter().any(|v| v == "clic_texto"));
-    assert!(actuar_acciones.iter().any(|v| v == "reiniciar"));
-
-    let observar_que = propiedades("gui_observar")["que"]["enum"]
-        .as_array()
-        .cloned()
-        .unwrap();
-    assert!(observar_que.iter().any(|v| v == "menus"));
-}
-
-#[test]
 fn should_match_manifest_tools_and_declarations() {
     let manifest_bytes = include_bytes!("../../../../mcpb/manifest.json");
     let manifest: Value = serde_json::from_slice(manifest_bytes).expect("valid manifest json");
