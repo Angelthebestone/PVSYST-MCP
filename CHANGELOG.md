@@ -8,21 +8,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-
-- `proyecto bombeo` on a variant without a `WaterUse` section (for example one made with `anadir circuito_hidraulico`) now fails with a typed error that names the section and its cause, instead of a generic section-not-found error.
-- **`editar` rejects `campos` on `insertar_objeto` with `desde`, and `rvt` with `variables` needs `operacion`.** Both calls fail with an error naming the parameter instead of ignoring it or silently listing the template.
-- **`resultados` compares variants from the requested `workspace`.** `que:comparacion` no longer reads the default workspace when `workspace` differs.
-- **GUI-only P50/P90 and PVGIS horizon routes reject a `workspace` override.** The call fails with an error naming `workspace` instead of silently reading the real PVsyst workspace.
-- **`entorno preferencias_editar` keeps its history snapshots outside the workspace,** under the user data directory.
-- **`entorno preferencias` returns only the requested `clave` inside `seccion`,** and rejects `clave` without `seccion`.
-- **`workspace` confines export ZIP paths, honours `sobrescribir` and rejects `..` in `crear`.** A default export ZIP outside the workspace requires `permitir_fuera_del_workspace`.
-- **`simular` validates its options before running** (`time_step`, calendar dates, `paginas_reporte`, `log_level` 0 to 3, existing variant). Relative output paths are anchored to the workspace.
-- **`resultados` hides approximation-only actions from invalid-value hints, requires a project for `kpis`, names an unknown project and rejects `include_text` outside `que:csv`.**
-- **`leer` returns the text of `.csv`, `.md`, `.json` and `.txt` files.** Without `max_bytes`, these files are read as UTF-8 text instead of failing with `Binary file; use leer with base64:true`. `leer` with `objeto` or `plano` on a file that is not a PVObject now fails with an error naming the file.
+- **`help` with exit code 0 is success.** `pvsyst_cli help <cmd>` text documents
+  markers such as "Required option"; those no longer classify the call as an error.
+- **`resultados que:resumen`.** One call returns KPIs, monthly production and the
+  three largest losses, with `avisos` when the loss diagram is missing.
+- **Approximation-only `resultados` properties are hidden.** `medido_kwh`,
+  `medido_csv` and `umbral_pct` leave `tools/list` unless approximations are enabled.
+- **`simular` dry_run reports the trial cost.** `costo_estimado` gives the executions
+  a run would charge and the remaining licence count; `max_ejecuciones` gives the cap
+  for that call (1, or 2 for batch runs).
+- **`proyecto crear` takes `proyecto` as the new project name.** `nombre_nuevo` still
+  works; the error names both keys when neither is given.
+- **New projects get the project name as their demo comment.** A `DEMO` comment is
+  replaced by the project name unless `comentario` is passed, and `comentario` is
+  written on both `pvProject` and `pvVCalcul`.
+- **`proyecto dimensionar` validates the module and inverter before writing.** A
+  module that does not exist (and has no inferable `Pnom`) or an unknown inverter is
+  rejected, and `modulo`/`inversor` are refused on the GUI-only route.
+- **`disenar_sistema` rejects a grid design without `n_mod_serie` and `n_strings`
+  before any GUI run,** unless `via:"aproximacion"` is requested.
+- **`disenar_sistema` checks the realised kWp against `tolerancia_kwp_pct`** (20 % by
+  default). A failed run removes the project files it created; pre-existing files and
+  `sobrescribir` overwrites are not rolled back.
+- **The project site is the one requested.** `disenar_sistema` binds the new `.SIT` to
+  the project after the project step and sets `MeteoFileName` only after the simulation.
+- **`sitio crear` validates `region`, latitude, longitude and `nombre_sitio` before calling
+  PVsystCLI.** An explicit `nombre_sitio` that already holds other coordinates is refused
+  unless `forzar` is set; `timezone` is checked too.
+- **`sitio convertir_meteo` validates `input_mef_timeshift` (-30 to 30) and the three input
+  files before running,** including in `dry_run`, and names the parameter that fails.
+- **`componente crear` and `importar` refuse to overwrite without `sobrescribir: true`.**
+  `importar` rejects `destino` and points to `nombre_nuevo`.
+- **`listar proyectos` filters with `texto`** (case-insensitive substring of the file name).
+- **`proyecto p50_p90` rejects a `workspace` override on the PVsyst route** like the other
+  GUI-only actions.
 - **`proyecto anadir elemento:envejecimiento` works on CRLF demos.** Named closers
   such as `End of TAgeing` are matched without their trailing `\r`, so the
   `pvAgeing` block is no longer left open and the insert no longer fails with
   `Estructura PVObject desbalanceada`.
+- **Missing arguments are reported all at once with an example.** A call that
+  lacks several required keys now names every one and shows a call that supplies
+  them (`Faltan: plantilla, nombre_nuevo. Ejemplo: …`). `editar rvt` without
+  `operacion` is an error instead of silently running `listar`.
+- **Schema lists the required keys of each action.** The discriminator
+  description of `editar`, `proyecto`, … now says which keys each action needs.
+- **Answers say what was ignored and how to get more.** Undeclared arguments are
+  returned in `ignorados`; trimmed answers carry `truncado: true` and
+  `hint: detalle:completo`; `siguiente` after `resultados kpis` and
+  `proyecto crear` names a call that exists.
+- **MCP instructions and prompts match the real behaviour.** The approximation
+  gate is mentioned only when enabled; the instructions list the actions that
+  spend TRIAL executions and the 13-item default truncation. `disenar_desde_coordenadas`
+  uses component names the bundle ships, and `convertir_a_seguidor` creates a
+  variant first.
+- **`listar componentes` accepts names as `tipo`.** `inverters`, `modulos`,
+  `batteries`… resolve to the PVsyst codes (`OND`, `PAN`, `BTR`).
+- **`leer` accepts `Projects/X.VC0` and `Projects\X.VC0`.**
 - **`editar` refuses field names with `=` or empty names.** A key such as `A=B`
   was written as `A=B=1` and read back as `A: "B=1"`. The edit now fails with
   an error naming the key, before the file is touched.
