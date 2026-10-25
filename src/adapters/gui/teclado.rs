@@ -60,16 +60,22 @@ pub(crate) fn teclas(paths: &crate::config::Paths, args: &Value) -> Result<Value
     let combo = req_str(args, &["teclas"], "e.g. \"F1\" or \"CTRL+S\"")?.to_uppercase();
     let parts: Vec<&str> = combo.split('+').map(str::trim).collect();
     let mut mods = Vec::new();
-    let mut main = None;
+    let mut principales = Vec::new();
     for p in &parts {
         match *p {
             "CTRL" | "CONTROL" => mods.push(VK_CONTROL),
             "SHIFT" => mods.push(VK_SHIFT),
             "ALT" => mods.push(VK_MENU),
-            other => main = vk_for(other),
+            other => principales.push(vk_for(other).ok_or_else(|| {
+                Error::Gui(format!("Tecla no reconocida '{other}' en '{combo}'"))
+            })?),
         }
     }
-    let vk = main.ok_or_else(|| Error::Gui(format!("Unrecognized key in '{combo}'")))?;
+    let &[vk] = principales.as_slice() else {
+        return Err(Error::Gui(format!(
+            "'{combo}' necesita exactamente una tecla principal (p. ej. CTRL+S)"
+        )));
+    };
     if escritorio::es_aislado() && mods.iter().any(|m| *m != VK_MENU) {
         return Err(Error::Gui(
             "En el escritorio aislado solo se admite Alt como modificador: Ctrl y Mayús no se pueden enviar como mensajes".into(),

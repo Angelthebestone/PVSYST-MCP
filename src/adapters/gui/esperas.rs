@@ -6,6 +6,7 @@ use crate::error::{Error, Result};
 use serde_json::Value;
 use std::cell::{Cell, RefCell};
 
+const MS_POR_SEGUNDO: u64 = 1_000;
 const DEFAULT_TIMEOUT_MS: u64 = 10_000;
 
 /// Window-matching criteria for `esperar`, checked from the hook callback.
@@ -119,10 +120,13 @@ pub(crate) fn esperar_ventana(args: &Value, params: &EsperarParams) -> Result<Va
 }
 
 pub(crate) fn esperar(args: &Value) -> Result<Value> {
-    let timeout = args
-        .get("timeout_ms")
-        .and_then(Value::as_u64)
-        .unwrap_or(DEFAULT_TIMEOUT_MS);
+    let timeout = match args.get("esperar_segundos").and_then(Value::as_u64) {
+        Some(segundos) => segundos.saturating_mul(MS_POR_SEGUNDO),
+        None => args
+            .get("timeout_ms")
+            .and_then(Value::as_u64)
+            .unwrap_or(DEFAULT_TIMEOUT_MS),
+    };
     let params = EsperarParams {
         clase: args.get("clase").and_then(Value::as_str),
         titulo: args.get("titulo").and_then(Value::as_str),
