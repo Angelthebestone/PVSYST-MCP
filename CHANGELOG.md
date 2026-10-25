@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`resultados` compares variants from the requested `workspace`.** `que:comparacion` no longer reads the default workspace when `workspace` differs.
+- **GUI-only P50/P90 and PVGIS horizon routes reject a `workspace` override.** The call fails with an error naming `workspace` instead of silently reading the real PVsyst workspace.
+- **`entorno preferencias_editar` keeps its history snapshots outside the workspace,** under the user data directory.
+- **`entorno preferencias` returns only the requested `clave` inside `seccion`,** and rejects `clave` without `seccion`.
+- **`workspace` confines export ZIP paths, honours `sobrescribir` and rejects `..` in `crear`.** A default export ZIP outside the workspace requires `permitir_fuera_del_workspace`.
+- **`simular` validates its options before running** (`time_step`, calendar dates, `paginas_reporte`, `log_level` 0 to 3, existing variant). Relative output paths are anchored to the workspace.
+- **`resultados` hides approximation-only actions from invalid-value hints, requires a project for `kpis`, names an unknown project and rejects `include_text` outside `que:csv`.**
 - **`leer` returns the text of `.csv`, `.md`, `.json` and `.txt` files.** Without `max_bytes`, these files are read as UTF-8 text instead of failing with `Binary file; use leer with base64:true`. `leer` with `objeto` or `plano` on a file that is not a PVObject now fails with an error naming the file.
 - **`proyecto anadir elemento:envejecimiento` works on CRLF demos.** Named closers
   such as `End of TAgeing` are matched without their trailing `\r`, so the
