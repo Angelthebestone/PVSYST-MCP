@@ -42,8 +42,8 @@ const COMPOS_SUBDIRS: &[&str] = &[
     "Clients",
 ];
 
-/// Create a new empty workspace with the standard folder layout.
-pub(crate) fn crear_workspace(paths: &Paths, args: &Value) -> Result<Value> {
+/// Resolves `ruta` (or `path`) to the workspace folder. Relative paths anchor to the parent of the active workspace.
+fn ruta_de_workspace(paths: &Paths, args: &Value) -> Result<PathBuf> {
     let base = args
         .get("ruta")
         .or_else(|| args.get("path"))
@@ -60,15 +60,37 @@ pub(crate) fn crear_workspace(paths: &Paths, args: &Value) -> Result<Value> {
             "'ruta' no admite '..': indica una ruta explícita".into(),
         ));
     }
-    let base = if Path::new(&base).is_absolute() {
-        base
-    } else {
-        paths
-            .workspace
-            .parent()
-            .unwrap_or(Path::new("."))
-            .join(base)
-    };
+    if base.is_absolute() {
+        return Ok(base);
+    }
+    Ok(paths
+        .workspace
+        .parent()
+        .unwrap_or(Path::new("."))
+        .join(base))
+}
+
+fn crear_dir(p: &Path) -> Result<()> {
+    fs::create_dir_all(p).map_err(|e| Error::io(format!("Cannot create {}", p.display()), e))
+}
+
+/// Creates the standard folder layout under `base` and returns the top-level folder names.
+fn crear_carpetas(base: &Path) -> Result<Vec<String>> {
+    let mut created = Vec::new();
+    for d in WORKSPACE_DIRS {
+        crear_dir(&base.join(d))?;
+        created.push((*d).to_string());
+    }
+    let compos = base.join("ComposPV");
+    for d in COMPOS_SUBDIRS {
+        crear_dir(&compos.join(d))?;
+    }
+    Ok(created)
+}
+
+/// Create a new empty workspace with the standard folder layout.
+pub(crate) fn crear_workspace(paths: &Paths, args: &Value) -> Result<Value> {
+    let base = ruta_de_workspace(paths, args)?;
 
     if base.exists() && !flag(args, &["sobrescribir"]) {
         return Err(Error::Invalid(format!(
@@ -78,19 +100,7 @@ pub(crate) fn crear_workspace(paths: &Paths, args: &Value) -> Result<Value> {
     }
     fs::create_dir_all(&base)
         .map_err(|e| Error::io(format!("Cannot create {}", base.display()), e))?;
-    let mut created = Vec::new();
-    for d in WORKSPACE_DIRS {
-        let p = base.join(d);
-        fs::create_dir_all(&p)
-            .map_err(|e| Error::io(format!("Cannot create {}", p.display()), e))?;
-        created.push((*d).to_string());
-    }
-    let compos = base.join("ComposPV");
-    for d in COMPOS_SUBDIRS {
-        let sub = compos.join(d);
-        fs::create_dir_all(&sub)
-            .map_err(|e| Error::io(format!("Cannot create {}", sub.display()), e))?;
-    }
+    let created = crear_carpetas(&base)?;
     Ok(json!({
         "workspace": base.to_string_lossy(),
         "folders": created,
