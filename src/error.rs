@@ -14,6 +14,12 @@ pub(crate) enum Error {
     /// A required argument is absent (`hint` may be empty).
     #[error("{}", missing_text(.key, .hint))]
     MissingArg { key: String, hint: String },
+    /// Several required arguments are absent; `ejemplo` is a call that supplies them all.
+    #[error("Faltan: {}. Ejemplo: {}", .claves.join(", "), .ejemplo)]
+    MissingArgs {
+        claves: Vec<String>,
+        ejemplo: String,
+    },
     /// A file, object, project or component does not exist; the text lists candidates.
     #[error("{0}")]
     NotFound(String),
@@ -61,7 +67,7 @@ impl Error {
     /// Short stable name of the variant, for logs.
     pub(crate) fn kind(&self) -> &'static str {
         match self {
-            Self::MissingArg { .. } => "missing_arg",
+            Self::MissingArg { .. } | Self::MissingArgs { .. } => "missing_arg",
             Self::NotFound(_) => "not_found",
             Self::Io { .. } => "io",
             Self::Format(_) => "format",

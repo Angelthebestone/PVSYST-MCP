@@ -37,6 +37,24 @@ fn should_include_permitir_fuera_del_workspace_property() {
 }
 
 #[test]
+fn should_list_the_required_keys_of_each_action_in_the_discriminator() {
+    let paths = Paths::resolve();
+    let schemas = list(&paths);
+    let editar = schemas
+        .iter()
+        .find(|t| t["name"] == "editar")
+        .expect("editar schema");
+    let descripcion = editar["inputSchema"]["properties"]["accion"]["description"]
+        .as_str()
+        .expect("discriminator description");
+    assert!(
+        descripcion.contains("insertar_objeto (archivo, padre, desde)"),
+        "{descripcion}"
+    );
+    assert!(descripcion.contains("rvt (operacion)"), "{descripcion}");
+}
+
+#[test]
 fn should_annotate_phase_three_schema_constraints() {
     let paths = Paths::resolve();
     let schemas = list(&paths);

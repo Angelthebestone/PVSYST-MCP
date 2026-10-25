@@ -252,6 +252,7 @@ impl Herramienta {
             desc.push_str(SUFIJO_REQUERIDO);
         }
         obj.insert("description".to_string(), json!(desc));
+        self.anotar_requeridos_por_accion(prop);
     }
 }
 

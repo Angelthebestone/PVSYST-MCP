@@ -6,9 +6,33 @@ fn should_reject_missing_required_arg() {
     let err = call(&paths, "leer", &json!({})).expect_err("should reject missing required arg");
     let msg = err.to_string();
     assert!(
-        msg.contains("Missing required argument 'archivo'"),
-        "error message must name the missing field: {msg}"
+        msg.contains("Faltan: archivo") && msg.contains("Ejemplo:"),
+        "error message must name the missing field and give an example: {msg}"
     );
+}
+
+#[test]
+fn should_name_every_missing_required_arg_of_the_action() {
+    let paths = Paths::resolve();
+    let err = call(&paths, "sitio", &json!({ "accion": "meteo_pvgis" }))
+        .expect_err("meteo_pvgis needs latitud, longitud and nombre_sitio");
+    let msg = err.to_string();
+    assert!(
+        msg.contains("latitud") && msg.contains("longitud") && msg.contains("nombre_sitio"),
+        "{msg}"
+    );
+    assert!(
+        msg.contains("Ejemplo:") && msg.contains("<nombre_sitio>"),
+        "{msg}"
+    );
+}
+
+#[test]
+fn should_require_operacion_for_editar_rvt() {
+    let paths = Paths::resolve();
+    let err = call(&paths, "editar", &json!({ "accion": "rvt" }))
+        .expect_err("rvt without operacion must not default to listar");
+    assert!(err.to_string().contains("operacion"), "{err}");
 }
 
 #[test]
@@ -140,7 +164,7 @@ fn should_demand_the_window_when_a_menu_command_names_none() {
         .unwrap_err()
         .to_string();
     assert!(
-        error.contains("Missing required argument 'ventana'"),
+        error.contains("Faltan: ventana"),
         "missing expected 'ventana' error, got: {error}"
     );
 }

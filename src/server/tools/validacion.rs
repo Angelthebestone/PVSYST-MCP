@@ -13,8 +13,7 @@ impl Herramienta {
     pub(crate) fn validar(&self, args: &Value, aproximaciones: bool) -> Result<String> {
         let accion = self.validar_discriminador(args, aproximaciones)?;
         self.validar_detalle(args)?;
-        self.validar_requeridos_globales(args)?;
-        self.validar_requeridos_por_accion(args, &accion)?;
+        self.validar_requeridos(args, &accion)?;
         self.validar_tipos(args)?;
         self.validar_via(args)?;
         Ok(accion)
@@ -45,6 +44,7 @@ impl Herramienta {
 
         if disc.valores.contains(&valor.as_str()) {
             Ok(valor)
+        } else {
             let visibles: Vec<&str> = disc
                 .valores
                 .iter()
@@ -53,7 +53,6 @@ impl Herramienta {
                     aproximaciones || super::aproximadas::de(self.nombre, accion).is_none()
                 })
                 .collect();
-        } else {
             Err(Error::Invalid(format!(
                 "Valor '{valor}' no válido para {} ({}); valores: {}",
                 self.nombre,
@@ -103,36 +102,6 @@ impl Herramienta {
                 "Valor '{d}' no válido para detalle; valores: {}",
                 super::recorte::DETALLES.join(", ")
             )));
-        }
-        Ok(())
-    }
-
-    fn validar_requeridos_globales(&self, args: &Value) -> Result<()> {
-        if let Some(req) = self
-            .requeridos
-            .iter()
-            .find(|&&r| esta_vacio_o_nulo(args, r))
-        {
-            return Err(missing(req, self.nombre));
-        }
-        Ok(())
-    }
-
-    fn validar_requeridos_por_accion(&self, args: &Value, accion: &str) -> Result<()> {
-        let Some((_, claves)) = self
-            .requeridos_por_accion
-            .iter()
-            .find(|(acc, _)| *acc == accion)
-        else {
-            return Ok(());
-        };
-        let destino = if accion.is_empty() {
-            self.nombre.to_string()
-        } else {
-            format!("{} {accion}", self.nombre)
-        };
-        if let Some(req) = claves.iter().find(|&&r| esta_vacio_o_nulo(args, r)) {
-            return Err(missing(req, &destino));
         }
         Ok(())
     }
@@ -253,10 +222,6 @@ fn validar_limites_enteros(prop_nombre: &str, val: &Value) -> Result<()> {
     Err(Error::Invalid(format!(
         "Valor {n} fuera de rango para '{prop_nombre}' ({rango})"
     )))
-}
-
-fn esta_vacio_o_nulo(args: &Value, clave: &str) -> bool {
-    matches!(args.get(clave), None | Some(Value::Null))
 }
 
 fn valor_no_nulo<'a>(args: &'a Value, clave: &str) -> Option<&'a Value> {

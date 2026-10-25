@@ -227,10 +227,7 @@ fn a_missing_required_argument_is_reported_as_a_tool_error() {
     let resp = c.call(2, "leer", json!({}));
     assert_eq!(resp["result"]["isError"], true, "resp={resp}");
     let text = resp["result"]["content"][0]["text"].as_str().unwrap();
-    assert!(
-        text.contains("Missing required argument 'archivo'"),
-        "text={text}"
-    );
+    assert!(text.contains("Faltan: archivo"), "text={text}");
 }
 
 #[test]
@@ -292,4 +289,14 @@ fn doctor_without_flag_skips_electrical_math() {
         avisos.contains("ventana eléctrica es validada"),
         "informe={informe}"
     );
+}
+
+#[test]
+fn leer_accepts_project_paths_written_with_projects_prefix_and_backslashes() {
+    let ws = synthetic_workspace();
+    let mut c = start(&ws);
+    for ruta in ["Projects/SYNTH_Plant.VC0", "Projects\\SYNTH_Plant.VC0"] {
+        let resp = c.call(2, "leer", json!({ "archivo": ruta }));
+        assert_ne!(resp["result"]["isError"], json!(true), "{ruta}: {resp}");
+    }
 }

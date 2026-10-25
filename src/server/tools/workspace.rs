@@ -171,6 +171,8 @@ pub(crate) const TOOL_EDITAR: Herramienta = Herramienta {
     requeridos_por_accion: &[
         ("insertar_objeto", &["archivo", "padre", "desde"]),
         ("eliminar_objeto", &["archivo", "objeto"]),
+        ("rvt", &["operacion"]),
+        ("plantilla_rvt", &["operacion"]),
     ],
     sinonimos: SINONIMOS_EDITAR,
     ejecutar: Ejecutor::Simple(ejecutar_editar),
