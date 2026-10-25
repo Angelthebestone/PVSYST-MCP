@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the command got two `-ocf` options and the cache tracked the other file; the
   short names (`csv`, `pdf`, `bpf`, `sitio`, `cof`…) are now aliases of the
   canonical argument, and `simular {csv: …}` reports it as `output_csv`.
+- **`proyecto eliminar` with `variante` deletes only that variant.** It used to
+  move the whole project (PRJ and every VC/CM file) to the recycle bin. Now only
+  the named variant and its `Results/<proyecto>_<VARIANTE>.csv|pdf` are moved; an
+  unknown variant is an error that names it.
 - **The remaining loose aliases of `sitio` and `disenar_sistema`** (`fuente`,
   `zona_horaria`, `pais`, `inclinacion`, `azimuth`, `potencia_kwp`…) live in the
   same synonym tables, so they are validated and announced like the rest.

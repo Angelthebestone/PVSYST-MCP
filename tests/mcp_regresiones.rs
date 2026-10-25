@@ -18,3 +18,6 @@ mod diseno;
 
 #[path = "mcp_regresiones/workspace.rs"]
 mod workspace;
+
+#[path = "mcp_regresiones/archivos.rs"]
+mod archivos;

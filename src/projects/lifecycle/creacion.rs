@@ -115,19 +115,45 @@ fn mover_todos(workspace: &Path, origenes: &[PathBuf]) -> (Vec<String>, Vec<Stri
     (movidos, fallidos)
 }
 
+/// Files of one variant and its results (`Results/<stem>_<VARIANTE>.csv|pdf`).
+/// A variant that does not exist is an error, never a silent project delete.
+fn archivos_de_variante(workspace: &Path, prj: &Path, variante: &str) -> Result<Vec<PathBuf>> {
+    let stem = stem_de(prj)?;
+    let parent = prj
+        .parent()
+        .ok_or_else(|| Error::Invalid("No parent directory".into()))?;
+    let variante = variante.to_uppercase();
+    let vpath = ruta_variante(parent, &stem, &variante)?;
+    if !vpath.exists() {
+        return Err(variante_no_encontrada(parent, &stem, &variante));
+    }
+    let base = format!("{stem}_{variante}");
+    let resultados = ["csv", "pdf"]
+        .iter()
+        .map(|ext| workspace.join("Results").join(format!("{base}.{ext}")))
+        .filter(|p| p.exists());
+    Ok(std::iter::once(vpath).chain(resultados).collect())
+}
+
+/// `proyecto accion:eliminar`: without `variante` the whole project (and every
+/// variant) goes to the recycle bin; with `variante` only that variant and its results.
 pub(crate) fn eliminar_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
     let proyecto = req_str(args, &["proyecto"], "")?;
     let alcance = Alcance::de_args(args);
     let prj = crate::projects::resolve_project_file_con_alcance(&workspace, proyecto, alcance)?;
-    let stem = stem_de(&prj)?;
-    let parent = prj
-        .parent()
-        .ok_or_else(|| Error::Invalid("No parent directory".into()))?
-        .to_path_buf();
-
-    let mut targets = vec![prj];
-    targets.extend(variant_files(&parent, &stem));
+    let targets = match crate::args::opt_str(args, &["variante"]) {
+        Some(variante) => archivos_de_variante(&workspace, &prj, variante)?,
+        None => {
+            let stem = stem_de(&prj)?;
+            let parent = prj
+                .parent()
+                .ok_or_else(|| Error::Invalid("No parent directory".into()))?;
+            std::iter::once(prj.clone())
+                .chain(variant_files(parent, &stem))
+                .collect()
+        }
+    };
     let (movidos, fallidos) = mover_todos(&workspace, &targets);
     if !fallidos.is_empty() {
         return Err(Error::Invalid(format!(
