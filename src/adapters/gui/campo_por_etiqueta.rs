@@ -11,8 +11,8 @@ use crate::args::req_str;
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
 
-const CLASES_TEXTO: &[&str] = &["TEdit", "TMemo", "TLabeledEdit", "TMaskEdit", "TSpinEdit"];
-const CLASES_LISTA: &[&str] = &["TComboBox", "TComboBoxEx", "TListBox"];
+pub(crate) const CLASES_TEXTO: &[&str] = &["TEdit", "TMemo", "TLabeledEdit", "TMaskEdit", "TSpinEdit"];
+pub(crate) const CLASES_LISTA: &[&str] = &["TComboBox", "TComboBoxEx", "TListBox"];
 const CLASES_OPCION: &[&str] = &["TCheckBox", "TRadioButton"];
 
 fn hwnd_de_texto(texto: &str) -> Result<Hwnd> {

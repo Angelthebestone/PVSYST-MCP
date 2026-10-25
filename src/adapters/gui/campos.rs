@@ -58,6 +58,19 @@ fn objetivo_habilitado(args: &Value) -> Result<Hwnd> {
     Ok(h)
 }
 
+/// Rejects a plain-window target: typing or picking into a form window has no
+/// effect, so the caller must name the control (`campo`) or pick a control of `clases`.
+fn exigir_clase(h: Hwnd, clases: &[&str], accion: &str) -> Result<()> {
+    let clase = class_of(h);
+    if clases.contains(&clase.as_str()) {
+        return Ok(());
+    }
+    Err(Error::Invalid(format!(
+        "'{accion}' sobre la clase {clase} no tiene efecto: indique 'campo' (clase, x, y) del control o una ventana de clase {}",
+        clases.join("/")
+    )))
+}
+
 fn formulario(args: &Value) -> Result<Formulario> {
     objetivo_habilitado(args).map(Formulario::de)
 }
@@ -77,6 +90,7 @@ pub(crate) fn escribir(_paths: &crate::config::Paths, args: &Value) -> Result<Va
         }));
     }
     let h = objetivo_habilitado(args)?;
+    exigir_clase(h, super::campo_por_etiqueta::CLASES_TEXTO, "escribir")?;
     ffi::teclear_en(h, texto)?;
     Ok(json!({
         "accion": "escribir",
@@ -94,6 +108,7 @@ pub(crate) fn seleccionar(_paths: &crate::config::Paths, args: &Value) -> Result
         true
     } else {
         let h = objetivo_habilitado(args)?;
+        exigir_clase(h, super::campo_por_etiqueta::CLASES_LISTA, "seleccionar")?;
         ffi::elegir_item_por_clase(h, &class_of(h), texto)?
     };
     if !elegido {
@@ -106,11 +121,13 @@ pub(crate) fn seleccionar(_paths: &crate::config::Paths, args: &Value) -> Result
 
 /// Shows tab page `indice` of the target form.
 pub(crate) fn pagina(_paths: &crate::config::Paths, args: &Value) -> Result<Value> {
-    let indice = args
-        .get("indice")
-        .and_then(Value::as_u64)
-        .and_then(|v| usize::try_from(v).ok())
-        .ok_or_else(|| crate::args::missing("indice", "pestaña a mostrar"))?;
+    let indice = match args.get("indice") {
+        None => return Err(crate::args::missing("indice", "pestaña a mostrar")),
+        Some(v) => v
+            .as_u64()
+            .and_then(|n| usize::try_from(n).ok())
+            .ok_or_else(|| Error::Invalid("'indice' debe ser un entero mayor o igual que 0".into()))?,
+    };
     let f = formulario(args)?;
     f.pagina(indice)?;
     Ok(json!({ "accion": "pagina", "hwnd": format!("0x{:X}", f.h), "indice": indice }))
