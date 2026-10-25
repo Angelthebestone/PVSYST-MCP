@@ -154,7 +154,7 @@ fn con_texto_actual(antes: &[CampoVivo]) -> Vec<(&CampoVivo, String)> {
 }
 
 /// Validates, then types (or, with `simular`, only reports) the values.
-pub(crate) fn rellenar(args: &Value) -> Result<Value> {
+pub(crate) fn rellenar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     let ent = entidad(req_str(
         args,
         &["entidad"],
@@ -179,11 +179,16 @@ pub(crate) fn rellenar(args: &Value) -> Result<Value> {
         .iter()
         .map(|p| resultado_del_paso(&formulario, p, modo))
         .collect::<Result<Vec<_>>>()?;
+    let vista = super::vista::vista(
+        paths,
+        &json!({"entidad": ent.clave, "ventana": format!("0x{h:X}")}),
+    )?;
     Ok(json!({
         "entidad": ent.clave,
         "ventana": format!("0x{h:X}"),
         "simulado": modo == ModoEjecucion::Simular,
         "resultados": resultados,
         "recalculados": recalculados(ent, &vivos, &pasos),
+        "vista": vista,
     }))
 }

@@ -1,6 +1,7 @@
 //! Parsing of the `campo` selector used by the GUI field actions.
 
 use super::*;
+use crate::adapters::gui::campo_por_etiqueta::CLASES_TEXTO;
 use serde_json::json;
 
 #[test]
@@ -42,4 +43,21 @@ fn should_require_both_coordinates() {
 fn should_reject_a_missing_field_selector() {
     let err = campo_de(&json!({})).expect_err("missing campo");
     assert!(err.to_string().contains("campo"));
+}
+
+#[test]
+fn should_refuse_typing_into_a_class_that_is_not_a_text_control() {
+    let err = clase_admitida("TProjectLoadForm", CLASES_TEXTO, "escribir")
+        .unwrap_err()
+        .to_string();
+    assert!(
+        err.contains("'escribir' sobre la clase TProjectLoadForm"),
+        "{err}"
+    );
+    assert!(err.contains("indique 'campo'"), "{err}");
+}
+
+#[test]
+fn should_accept_a_text_control_class_for_typing() {
+    assert!(clase_admitida("TEdit", CLASES_TEXTO, "escribir").is_ok());
 }

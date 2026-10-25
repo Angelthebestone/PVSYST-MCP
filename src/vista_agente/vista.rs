@@ -65,6 +65,27 @@ fn sin_mapear(ent: &Entidad, vivos: &[CampoVivo]) -> Vec<Value> {
         .collect()
 }
 
+/// The fields of `ent` as the window shows them, and how many it shows.
+fn campos_de_vista(ent: &Entidad, vivos: &[CampoVivo], compacto: bool) -> (Vec<Value>, usize) {
+    let localizados: Vec<_> = ent
+        .campos
+        .iter()
+        .map(|c| (c, localizar(c, vivos)))
+        .collect();
+    let presentes = localizados.iter().filter(|(_, v)| v.is_some()).count();
+    let campos = localizados
+        .iter()
+        .filter_map(|&(c, vivo)| {
+            if compacto {
+                campo_compacto(c, vivo)
+            } else {
+                Some(campo_json(c, vivo))
+            }
+        })
+        .collect();
+    (campos, presentes)
+}
+
 /// Entity named by `entidad`, or the one whose window is on screen.
 fn entidad_pedida(args: &Value) -> Result<Option<&'static Entidad>> {
     if let Some(clave) = opt_str(args, &["entidad"]) {
@@ -95,26 +116,8 @@ pub(crate) fn vista(paths: &crate::config::Paths, args: &Value) -> Result<Value>
     };
     let h = ventana_de(args, ent)?;
     let vivos = campos_vivos(h);
-    let localizados: Vec<_> = ent
-        .campos
-        .iter()
-        .map(|c| (c, localizar(c, &vivos)))
-        .collect();
-    let presentes = localizados
-        .iter()
-        .filter(|(_, vivo)| vivo.is_some())
-        .count();
     let compacto = compact_default(args);
-    let campos: Vec<Value> = localizados
-        .iter()
-        .filter_map(|&(c, vivo)| {
-            if compacto {
-                campo_compacto(c, vivo)
-            } else {
-                Some(campo_json(c, vivo))
-            }
-        })
-        .collect();
+    let (campos, presentes) = campos_de_vista(ent, &vivos, compacto);
     let mut map = serde_json::Map::new();
     map.insert("entidad".into(), json!(ent.clave));
     map.insert("ventana".into(), json!(format!("0x{h:X}")));

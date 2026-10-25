@@ -61,8 +61,12 @@ fn objetivo_habilitado(args: &Value) -> Result<Hwnd> {
 /// Rejects a plain-window target: typing or picking into a form window has no
 /// effect, so the caller must name the control (`campo`) or pick a control of `clases`.
 fn exigir_clase(h: Hwnd, clases: &[&str], accion: &str) -> Result<()> {
-    let clase = class_of(h);
-    if clases.contains(&clase.as_str()) {
+    clase_admitida(&class_of(h), clases, accion)
+}
+
+/// Pure decision behind `exigir_clase`: the class must be one of `clases`.
+fn clase_admitida(clase: &str, clases: &[&str], accion: &str) -> Result<()> {
+    if clases.contains(&clase) {
         return Ok(());
     }
     Err(Error::Invalid(format!(
@@ -120,7 +124,7 @@ pub(crate) fn seleccionar(_paths: &crate::config::Paths, args: &Value) -> Result
 }
 
 /// Shows tab page `indice` of the target form.
-pub(crate) fn pagina(_paths: &crate::config::Paths, args: &Value) -> Result<Value> {
+pub(crate) fn pagina(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     let indice = match args.get("indice") {
         None => return Err(crate::args::missing("indice", "pestaña a mostrar")),
         Some(v) => v
@@ -131,8 +135,24 @@ pub(crate) fn pagina(_paths: &crate::config::Paths, args: &Value) -> Result<Valu
             })?,
     };
     let f = formulario(args)?;
-    f.pagina(indice)?;
+    f.pagina(indice)
+        .map_err(|e| con_motivo_del_veto(paths, f.h, e))?;
     Ok(json!({ "accion": "pagina", "hwnd": format!("0x{:X}", f.h), "indice": indice }))
+}
+
+/// A refused tab change names what the form draws, where the reason is.
+fn con_motivo_del_veto(paths: &crate::config::Paths, h: Hwnd, e: Error) -> Error {
+    let Error::Gui(texto) = e else {
+        return e;
+    };
+    let ventana = format!("0x{h:X}");
+    match super::ocr::formulario(paths, &json!({ "ventana": ventana })) {
+        Ok(vista) => Error::Gui(format!(
+            "{texto}. Textos del formulario: {}",
+            vista.get("textos").unwrap_or(&Value::Null)
+        )),
+        Err(err) => Error::Gui(format!("{texto}. Textos no disponibles: {err}")),
+    }
 }
 
 /// Waits until the target window is gone or hidden.
