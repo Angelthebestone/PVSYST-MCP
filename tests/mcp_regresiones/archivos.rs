@@ -135,3 +135,42 @@ fn should_return_text_of_a_csv_when_leer_gets_no_max_bytes() {
     assert_eq!(out["text"], json!("a;b\n1;2\n"), "resp={out}");
     assert!(out.get("note").is_none(), "resp={out}");
 }
+
+#[test]
+fn should_reject_campos_in_insertar_objeto_with_desde_without_touching_the_file() {
+    let ws = synthetic_workspace();
+    let vc0 = ws.path().join("Projects").join("SYNTH_Plant.VC0");
+    let antes = fs::read(&vc0).expect("VC0 del fixture");
+    let ws_str = ws.path().to_string_lossy().to_string();
+    let mut c = Client::start(Some(&ws_str));
+    c.initialize();
+    let resp = c.call(
+        13,
+        "editar",
+        json!({
+            "accion": "insertar_objeto",
+            "archivo": "Projects/SYNTH_Plant.VC0",
+            "padre": "pvSubArray",
+            "desde": { "archivo": "Projects/SYNTH_Plant.VC0", "objeto": "pvSubArray" },
+            "campos": { "NStringCh": 3 }
+        }),
+    );
+    let msg = error_text(&resp);
+    assert!(msg.contains("campos"), "{msg}");
+    assert_eq!(fs::read(&vc0).expect("VC0"), antes);
+}
+
+#[test]
+fn should_reject_rvt_with_variables_and_no_operacion() {
+    let ws = synthetic_workspace();
+    let ws_str = ws.path().to_string_lossy().to_string();
+    let mut c = Client::start(Some(&ws_str));
+    c.initialize();
+    let resp = c.call(
+        14,
+        "editar",
+        json!({ "accion": "rvt", "archivo": "Results/NoExiste.rvt", "variables": ["Ta"] }),
+    );
+    let msg = error_text(&resp);
+    assert!(msg.contains("operacion"), "{msg}");
+}

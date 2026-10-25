@@ -57,12 +57,22 @@ fn leer_existentes(ruta: &Path) -> Result<Vec<String>> {
     parse_rvt(&texto)
 }
 
+/// Operation of an RVT call. Without `operacion`, a call that names `variables` is ambiguous and rejected.
+fn operacion_de(args: &Value) -> Result<&str> {
+    match opt_str(args, &["operacion"]).or_else(|| opt_str(args, &["accion_rvt"])) {
+        Some(op) => Ok(op),
+        None if args.get("variables").is_some() => Err(Error::Invalid(
+            "'variables' requiere 'operacion' (anadir, eliminar, reordenar, listar o catalogo)"
+                .into(),
+        )),
+        None => Ok("listar"),
+    }
+}
+
 /// Executes an RVT template operation (listar, anadir, eliminar, reordenar, catalogo).
 pub(crate) fn gestionar_rvt(paths: &Paths, args: &Value) -> Result<Value> {
     let ws = workspace_of(paths, args);
-    let op = opt_str(args, &["operacion"])
-        .or_else(|| opt_str(args, &["accion_rvt"]))
-        .unwrap_or("listar");
+    let op = operacion_de(args)?;
 
     if op == "catalogo" || op == "validas" {
         return Ok(json!({

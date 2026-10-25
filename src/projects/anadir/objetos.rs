@@ -73,6 +73,11 @@ pub(crate) fn tipo_del_bloque(bloque: &[u8]) -> Result<String> {
 
 /// `editar accion:insertar_objeto {archivo, padre, desde:{archivo, objeto}, rol?, reemplazar?}`.
 pub(crate) fn insertar_objeto_archivo(paths: &Paths, args: &Value) -> Result<Value> {
+    if args.get("campos").is_some() {
+        return Err(Error::Invalid(
+            "'campos' no aplica a insertar_objeto con 'desde': el bloque se copia tal cual; edite los campos con editar campos tras insertarlo".into(),
+        ));
+    }
     let ws = args::workspace_of(paths, args);
     let destino = objects::resolve_file(&ws, args)?;
     let padre = req_str(args, &["padre"], "padre")?;

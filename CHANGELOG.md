@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`editar` rejects `campos` on `insertar_objeto` with `desde`, and `rvt` with `variables` needs `operacion`.** Both calls fail with an error naming the parameter instead of ignoring it or silently listing the template.
 - **`resultados` compares variants from the requested `workspace`.** `que:comparacion` no longer reads the default workspace when `workspace` differs.
 - **GUI-only P50/P90 and PVGIS horizon routes reject a `workspace` override.** The call fails with an error naming `workspace` instead of silently reading the real PVsyst workspace.
 - **`entorno preferencias_editar` keeps its history snapshots outside the workspace,** under the user data directory.
