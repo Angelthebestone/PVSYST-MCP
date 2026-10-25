@@ -174,3 +174,21 @@ fn should_reject_rvt_with_variables_and_no_operacion() {
     let msg = error_text(&resp);
     assert!(msg.contains("operacion"), "{msg}");
 }
+
+#[test]
+fn should_reject_a_legacy_component_field_key_containing_equals_without_touching_the_file() {
+    let ws = synthetic_workspace();
+    let pan = ws.path().join("ComposPV/PVModules/Synth_Legacy_300W.PAN");
+    let antes = fs::read(&pan).expect("PAN legacy del fixture");
+    let ws_str = ws.path().to_string_lossy().to_string();
+    let mut c = Client::start(Some(&ws_str));
+    c.initialize();
+    let resp = c.call(
+        15,
+        "componente",
+        json!({ "accion": "editar", "componente": "Synth_Legacy_300W.PAN", "cambios": { "a=b": "1" } }),
+    );
+    let msg = error_text(&resp);
+    assert!(msg.contains("Nombre de campo inválido"), "{msg}");
+    assert_eq!(fs::read(&pan).expect("PAN"), antes);
+}
