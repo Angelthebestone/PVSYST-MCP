@@ -19,7 +19,8 @@ const ROTULOS: RotulosProyectoGui = rotulos_proyecto_gui(Idioma::Es);
 use crate::format::object::{self, PvNode};
 use crate::projects::lifecycle::variantes::{es_variante_valida, ruta_variante};
 use crate::projects::tipo_sistema::TipoSistema;
-use std::path::PathBuf;
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
 /// Offsets (px at 96 DPI) of "Carga" in the project bar and "Guardar" in the variant bar.
@@ -71,6 +72,29 @@ fn cargar(sesion: &Sesion, proyecto: &Formulario, prj: &str) -> Result<()> {
     esperar_titulo(proyecto, prj)
 }
 
+/// Bytes of the variant file; a missing one lists the project folder's files instead of `os error 2`.
+fn leer_variante(archivo: &Path, dir: &Path) -> Result<Vec<u8>> {
+    if archivo.exists() {
+        return crate::workspace::leer_bytes(archivo);
+    }
+    let pedido = archivo
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let opciones: Vec<String> = fs::read_dir(dir)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter_map(|e| e.file_name().into_string().ok())
+        .collect();
+    Err(crate::args::no_encontrado(
+        "Variante",
+        &pedido,
+        &opciones,
+        &dir.to_string_lossy(),
+    ))
+}
+
 impl<'s> ProyectoEnPvsyst<'s> {
     /// Opens `proyecto` (stem) on `variante` in PVsyst.
     pub(crate) fn abrir(
@@ -84,7 +108,7 @@ impl<'s> ProyectoEnPvsyst<'s> {
         }
         let dir = paths.projects_dir();
         let archivo_variante = ruta_variante(&dir, proyecto, variante)?;
-        let bytes = crate::workspace::leer_bytes(&archivo_variante)?;
+        let bytes = leer_variante(&archivo_variante, &dir)?;
         let tipo = TipoSistema::de_variante(&bytes)?;
         sesion.inicio.pulsar(boton_de_inicio(tipo))?;
         let ventana = sesion.esperar(ROTULOS.formulario_proyecto)?;
@@ -139,3 +163,7 @@ pub(crate) fn contar(raiz: &PvNode, tipo: &str) -> usize {
     usize::from(raiz.obj_type.eq_ignore_ascii_case(tipo))
         + raiz.children.iter().map(|c| contar(c, tipo)).sum::<usize>()
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/projects/gui/variante.rs"]
+mod tests;
