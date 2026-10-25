@@ -138,6 +138,16 @@ fn resolve_in(paths: &Paths, args: &Value, dest: &DestinoLectura<'_>) -> Result<
     )))
 }
 
+/// First root object of a PVObject file; empty or truncated files are errors.
+fn leer_raiz(path: &Path, extension: &str) -> Result<object::PvNode> {
+    let bytes = leer_bytes_acotado(path, MAX_BYTES_LECTURA)?;
+    let text = String::from_utf8_lossy(&bytes);
+    object::parse_completo(&text, path)?
+        .into_iter()
+        .next()
+        .ok_or_else(|| Error::Format(format!("Not a PVObject .{extension} file")))
+}
+
 pub(crate) fn leer_meteo(paths: &Paths, args: &Value) -> Result<Value> {
     let dest = DestinoLectura {
         carpeta: "Meteo",
@@ -145,10 +155,7 @@ pub(crate) fn leer_meteo(paths: &Paths, args: &Value) -> Result<Value> {
         claves: &["meteo"],
     };
     let path = resolve_in(paths, args, &dest)?;
-    let bytes = leer_bytes_acotado(&path, MAX_BYTES_LECTURA)?;
-    let text = String::from_utf8_lossy(&bytes);
-    let root = object::parse_first(&text)
-        .ok_or_else(|| Error::Format("Not a PVObject .MET file".into()))?;
+    let root = leer_raiz(&path, "MET")?;
 
     let mut out = Map::new();
     out.insert("file".into(), json!(path.to_string_lossy()));
@@ -184,10 +191,7 @@ pub(crate) fn leer_sitio(paths: &Paths, args: &Value) -> Result<Value> {
         claves: &["sitio"],
     };
     let path = resolve_in(paths, args, &dest)?;
-    let bytes = leer_bytes_acotado(&path, MAX_BYTES_LECTURA)?;
-    let text = String::from_utf8_lossy(&bytes);
-    let root = object::parse_first(&text)
-        .ok_or_else(|| Error::Format("Not a PVObject .SIT file".into()))?;
+    let root = leer_raiz(&path, "SIT")?;
 
     let mut out = Map::new();
     out.insert("file".into(), json!(path.to_string_lossy()));

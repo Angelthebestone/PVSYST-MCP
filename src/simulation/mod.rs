@@ -105,14 +105,17 @@ pub(crate) fn lanzar_simulacion_seguida(
     let args_con_salidas =
         preparacion::con_salidas_por_defecto(args, &workspace, &stem, &variante_up);
     let cli_args = preparacion::argumentos_cli(&args_con_salidas, &workspace, &stem, &variante_up);
+    // The reported files are the same resolved values that built `-ocf` / `-rpf`.
+    let output_csv = opt_str(&args_con_salidas, &["output_csv"]);
+    let report_pdf = opt_str(&args_con_salidas, &["report_pdf"]);
     let modo_gui = ModoGui::de_bool(flag(args, &["abrir_gui"]));
     if flag(args, &["dry_run"]) {
-        return Ok(respuesta_dry_run(
-            &cli_args,
-            &prj_path,
-            &variant_file,
-            &workspace,
-        ));
+        let mut respuesta = respuesta_dry_run(&cli_args, &prj_path, &variant_file, &workspace);
+        if let Some(obj) = respuesta.as_object_mut() {
+            obj.insert("output_csv".into(), json!(output_csv));
+            obj.insert("report_pdf".into(), json!(report_pdf));
+        }
+        return Ok(respuesta);
     }
     if !cli::cli_available(paths) {
         return gui::sin_cli(paths, &prj_path, &stem, modo_gui);
@@ -122,8 +125,8 @@ pub(crate) fn lanzar_simulacion_seguida(
         "project": stem,
         "variant": variante_up,
         "workspace": workspace.to_string_lossy(),
-        "output_csv": opt_str(args, &["output_csv"]),
-        "report_pdf": opt_str(args, &["report_pdf"]),
+        "output_csv": output_csv,
+        "report_pdf": report_pdf,
     });
     if flag(args, &["segundo_plano"]) {
         return ejecucion::lanzar_en_segundo_plano(paths, args, &workspace, &cli_args, contexto);

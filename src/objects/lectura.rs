@@ -10,17 +10,20 @@ use crate::format::object;
 use crate::objects::resolucion::resolve_file;
 use serde_json::{json, Value};
 use std::fs;
+use std::path::Path;
 
-/// Root nodes to return: the whole tree, or just the object named by `objeto`
-/// (same selector as editar_objeto; a .VCi is ~1.5 MB, so the full tree is ~15k tokens).
-fn raices_a_leer(args: &Value, bytes: &[u8], text: &str) -> Result<Vec<object::PvNode>> {
+/// Root nodes to return: the whole tree (which must be complete), or just the object
+/// named by `objeto` (same selector as editar; a .VCi is ~1.5 MB, so the full tree is ~15k tokens).
+fn raices_a_leer(args: &Value, text: &str, origen: &Path) -> Result<Vec<object::PvNode>> {
     let Some(sel) = opt_str(args, &["objeto"]) else {
-        return Ok(object::parse(text));
+        return object::parse_completo(text, origen);
     };
-    let spans = edit::spans_of(bytes);
+    let spans = edit::spans_of(text.as_bytes());
     let sp = edit::find_span(&spans, sel)
         .map(|i| &spans[i])
-        .ok_or_else(|| Error::NotFound(format!("Object '{sel}' not found; see listar_objetos")))?;
+        .ok_or_else(|| {
+            Error::NotFound(format!("Object '{sel}' not found; see listar que:objetos"))
+        })?;
     let slice: Vec<&str> = text
         .lines()
         .skip(sp.open)
@@ -55,6 +58,7 @@ pub(crate) fn leer_objeto(paths: &Paths, args: &Value) -> Result<Value> {
     let bytes =
         fs::read(&path).map_err(|e| Error::io(format!("Cannot read {}", path.display()), e))?;
     let text = String::from_utf8_lossy(&bytes);
+    object::exigir_no_vacio(&text, &path)?;
     let is_text = object::is_pvobject(&text);
 
     let mut out = json!({
@@ -63,7 +67,7 @@ pub(crate) fn leer_objeto(paths: &Paths, args: &Value) -> Result<Value> {
         "is_pvobject": is_text,
     });
     if is_text {
-        let roots = raices_a_leer(args, &bytes, &text)?;
+        let roots = raices_a_leer(args, &text, &path)?;
         if flag(args, &["plano"]) {
             let mut flat = serde_json::Map::new();
             for r in &roots {
@@ -74,7 +78,7 @@ pub(crate) fn leer_objeto(paths: &Paths, args: &Value) -> Result<Value> {
             out["objects"] = Value::Array(roots.iter().map(object::PvNode::to_json).collect());
         }
     } else {
-        out["note"] = json!("Binary file; use leer_archivo for base64.");
+        out["note"] = json!("Binary file; use leer with base64:true for its bytes.");
     }
     Ok(out)
 }

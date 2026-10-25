@@ -110,7 +110,7 @@ pub(crate) fn crear_batch(paths: &Paths, args: &Value) -> Result<Value> {
     let prj = crate::projects::resolve_project_file(&workspace, proyecto)?;
     if !prj.with_extension(variante).exists() {
         return Err(Error::NotFound(format!(
-            "Variant {variante} of '{proyecto}' does not exist; pass an existing 'variante' (see listar_proyectos)"
+            "Variant {variante} of '{proyecto}' does not exist; pass an existing 'variante' (see listar que:proyectos)"
         )));
     }
     let filas = args

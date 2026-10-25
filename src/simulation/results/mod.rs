@@ -50,7 +50,7 @@ pub(crate) fn resumen_de_csv(p: &Path, include_text: IncluirTexto) -> Result<Val
     if include_text == IncluirTexto::Si {
         let body = if text.len() > TOPE_TEXTO_CSV {
             format!(
-                "{}\n...[truncated at {} of {} bytes; use leer_archivo with offset]",
+                "{}\n...[truncated at {} of {} bytes; use leer with offset]",
                 recorte_seguro(&text, TOPE_TEXTO_CSV),
                 TOPE_TEXTO_CSV,
                 text.len()

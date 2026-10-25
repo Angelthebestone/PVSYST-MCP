@@ -10,7 +10,7 @@ mod tests;
 pub(crate) use posicion::geometria_solar;
 pub(crate) use produccion::produccion;
 
-use crate::args::missing;
+use crate::args::req_numero;
 use crate::error::{Error, Result};
 use crate::sites::nasa::climatology;
 use serde_json::Value;
@@ -140,30 +140,13 @@ pub(crate) fn numero_argumento(args: &Value, clave: &str) -> Option<f64> {
         .or_else(|| valor.as_str()?.trim().parse().ok())
 }
 
-/// Required numeric argument; the error names the missing key.
-pub(crate) fn requerido(args: &Value, clave: &str) -> Result<f64> {
-    let valor = args
-        .get(clave)
-        .ok_or_else(|| missing(clave, "número para el cálculo solar"))?;
-    let num = valor
-        .as_f64()
-        .or_else(|| valor.as_str().and_then(|s| s.trim().parse().ok()))
-        .filter(|n| n.is_finite())
-        .ok_or_else(|| {
-            Error::Invalid(format!(
-                "'{clave}' debe ser un número finito válido para el cálculo solar"
-            ))
-        })?;
-    Ok(num)
-}
+pub(crate) const PISTA_NUMERO_SOLAR: &str = "número para el cálculo solar";
 
 /// Site from `latitud`, `longitud` and optional `timezone` (default: round(longitud/15)).
 pub(crate) fn sitio_de(args: &Value) -> Result<Sitio> {
-    let latitud = requerido(args, "latitud")?;
-    let longitud = requerido(args, "longitud")?;
-    if !latitud.is_finite()
-        || !(LATITUD_MINIMA..=LATITUD_MAXIMA).contains(&latitud)
-        || !longitud.is_finite()
+    let latitud = req_numero(args, "latitud", PISTA_NUMERO_SOLAR)?;
+    let longitud = req_numero(args, "longitud", PISTA_NUMERO_SOLAR)?;
+    if !(LATITUD_MINIMA..=LATITUD_MAXIMA).contains(&latitud)
         || !(LONGITUD_MINIMA..=LONGITUD_MAXIMA).contains(&longitud)
     {
         return Err(Error::Invalid(format!(

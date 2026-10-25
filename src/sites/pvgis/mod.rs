@@ -17,7 +17,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{json, Value};
 
-use crate::args::{missing, opt_str, req_str, workspace_of};
+use crate::args::{opt_str, req_numero, req_str, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::object;
@@ -202,8 +202,8 @@ fn construir_respuesta_meteo(p: RespuestaMeteoParams<'_>) -> Result<Value> {
 /// Hourly TMY from PVGIS → CSV + MEF → `.MET` via the CLI with transactional staging.
 pub(crate) fn meteo_pvgis(paths: &Paths, args: &Value) -> Result<Value> {
     let ws = workspace_of(paths, args);
-    let lat = numero(args, "latitud")?;
-    let lon = numero(args, "longitud")?;
+    let lat = req_numero(args, "latitud", "número")?;
+    let lon = req_numero(args, "longitud", "número")?;
     let nombre = req_str(args, &["nombre_sitio"], "")?;
     validar_nombre(nombre)?;
 
@@ -313,11 +313,4 @@ pub(crate) fn zona_horaria(args: &Value, sit: &Path, lon: f64) -> Result<i64> {
     }
     // Finite and within ±14, so rounding to whole hours fits i64 exactly.
     Ok(tz.round() as i64)
-}
-
-/// Numeric argument given as a JSON number or a numeric string.
-fn numero(args: &Value, clave: &str) -> Result<f64> {
-    args.get(clave)
-        .and_then(|v| v.as_f64().or_else(|| v.as_str()?.trim().parse().ok()))
-        .ok_or_else(|| missing(clave, "número"))
 }

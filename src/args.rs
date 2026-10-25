@@ -68,6 +68,35 @@ pub(crate) fn req_str<'a>(args: &'a Value, keys: &[&str], hint: &str) -> Result<
     opt_str(args, keys).ok_or_else(|| missing(keys[0], hint))
 }
 
+/// Required string argument where an empty string is a valid value (e.g. file
+/// content); only an absent, null or non-string argument counts as missing.
+pub(crate) fn req_texto<'a>(args: &'a Value, keys: &[&str], hint: &str) -> Result<&'a str> {
+    keys.iter()
+        .find_map(|k| args.get(*k)?.as_str())
+        .ok_or_else(|| missing(keys[0], hint))
+}
+
+/// Required finite number given as a JSON number or a numeric string. Absent or
+/// null is `missing`; present but not numeric is an `Invalid` that names the value.
+pub(crate) fn req_numero(args: &Value, key: &str, hint: &str) -> Result<f64> {
+    let valor = match args.get(key) {
+        None | Some(Value::Null) => return Err(missing(key, hint)),
+        Some(v) => v,
+    };
+    let numero = valor
+        .as_f64()
+        .or_else(|| valor.as_str()?.trim().parse().ok())
+        .filter(|n| n.is_finite());
+    numero.ok_or_else(|| {
+        let recibido = valor
+            .as_str()
+            .map_or_else(|| valor.to_string(), String::from);
+        Error::Invalid(format!(
+            "'{key}' debe ser un número finito (recibido '{recibido}')"
+        ))
+    })
+}
+
 /// Uniform "missing argument" error, also used for non-string arguments.
 pub(crate) fn missing(key: &str, hint: &str) -> Error {
     Error::MissingArg {

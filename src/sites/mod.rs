@@ -8,7 +8,7 @@ pub(crate) mod reuse;
 pub(crate) mod solar;
 
 use crate::adapters::{cli, ledger};
-use crate::args::{flag, missing, workspace_of};
+use crate::args::{flag, missing, req_numero, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::value_text;
@@ -205,8 +205,8 @@ fn sitio_reutilizado(ws: &std::path::Path, args: &Value, (lat, lon): (f64, f64))
 /// NASA SSE 1°×1° grids shipped with PVsyst (`DataRO\*_World.*`), so no weather
 /// file is needed. This is the easy path for "design X kWp at these coordinates".
 pub(crate) fn crear_sitio_coordenadas(paths: &Paths, args: &Value) -> Result<Value> {
-    let lat = num(args, "latitud").ok_or_else(|| missing("latitud", ""))?;
-    let lon = num(args, "longitud").ok_or_else(|| missing("longitud", ""))?;
+    let lat = req_numero(args, "latitud", "")?;
+    let lon = req_numero(args, "longitud", "")?;
     let name = args
         .get("nombre_sitio")
         .and_then(|v| v.as_str())

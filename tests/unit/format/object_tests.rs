@@ -1,6 +1,21 @@
 use super::*;
 use proptest::prelude::*;
 
+#[test]
+fn should_refuse_empty_and_truncated_files_when_reading() {
+    let origen = Path::new("Demo.PRJ");
+    assert!(matches!(parse_completo(" \n", origen), Err(Error::Format(m)) if m.contains("vacío")));
+    let cortado = "PVObject_=pvSite\n  Site=Geneva\n";
+    assert!(
+        matches!(parse_completo(cortado, origen), Err(Error::Format(m)) if m.contains("truncado") && m.contains("pvSite"))
+    );
+    let completo = format!("{cortado}End of PVObject pvSite\n");
+    assert_eq!(parse_completo(&completo, origen).unwrap().len(), 1);
+    assert!(parse_completo("not a pvobject\n", origen)
+        .unwrap()
+        .is_empty());
+}
+
 const SAMPLE: &str = "PVObject_=pvProject\n  Comment=Hello\n  \
 PVObject_SitePrj=pvSite\n    Site=Geneva\n  End of PVObject pvSite\n\
 End of PVObject pvProject\n";

@@ -172,7 +172,7 @@ pub(crate) fn leer_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     let text = fs::read_to_string(&path)
         .map_err(|e| Error::io(format!("Cannot read {}", path.display()), e))?;
 
-    let roots = object::parse(&text);
+    let roots = object::parse_completo(&text, &path)?;
 
     let mut summary = json!({});
     if let Some(root) = roots.first() {
@@ -198,9 +198,8 @@ pub(crate) fn leer_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     if flag(args, &["completo"]) {
         out["tree"] = Value::Array(roots.iter().map(object::PvNode::to_json).collect());
     } else {
-        out["hint"] = json!(
-            "Pass completo:true for the full tree, or leer_objeto with 'objeto' for one object."
-        );
+        out["hint"] =
+            json!("Pass completo:true for the full tree, or leer with 'objeto' for one object.");
     }
     Ok(out)
 }

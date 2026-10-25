@@ -62,7 +62,7 @@ pub(super) fn ejecutar_leer(paths: &Paths, args: &Value) -> Result<Value> {
         .unwrap_or_default();
     let ext = extension_mayuscula(archivo);
 
-    if es_proyecto(paths, archivo, &ext) {
+    if es_proyecto(&workspace_of(paths, args), archivo, &ext) {
         let completo = args.get("detalle").and_then(Value::as_str) == Some("completo");
         let con_proyecto = con(args, "proyecto", json!(archivo));
         return projects::leer_proyecto(paths, &con(&con_proyecto, "completo", json!(completo)));
@@ -128,9 +128,13 @@ fn despachar_por_extension(paths: &Paths, args: &Value, archivo: &str) -> Result
     }
 }
 
-fn es_proyecto(paths: &Paths, archivo: &str, ext: &str) -> bool {
+fn es_proyecto(workspace: &Path, archivo: &str, ext: &str) -> bool {
     let variante = ext.len() == 3 && (ext.starts_with("VC") || ext.starts_with("CM"));
-    let nombre = ext.is_empty() && paths.projects_dir().join(format!("{archivo}.PRJ")).exists();
+    let nombre = ext.is_empty()
+        && workspace
+            .join("Projects")
+            .join(format!("{archivo}.PRJ"))
+            .exists();
     ext == "PRJ" || variante || nombre
 }
 

@@ -1,6 +1,6 @@
 //! Atomic file writes with automatic history snapshots.
 
-use crate::args::{flag, req_str, workspace_of};
+use crate::args::{flag, req_str, req_texto, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::history;
@@ -40,7 +40,7 @@ pub(crate) fn escribir_archivo(paths: &Paths, args: &Value) -> Result<Value> {
 }
 
 fn extraer_bytes_acotados(args: &Value) -> Result<Vec<u8>> {
-    let content = req_str(args, &["contenido"], "")?;
+    let content = req_texto(args, &["contenido"], "")?;
     let es_base64 = flag(args, &["base64"]);
     let limite_texto = if es_base64 {
         crate::workspace::MAX_BYTES_MAXIMO.saturating_mul(4) / 3 + 16

@@ -6,13 +6,13 @@
 use super::batch;
 use super::lanzar_simulacion_seguida;
 use crate::adapters::ledger;
-use crate::args::{opt_str, req_str, workspace_of};
+use crate::args::{opt_str, req_numero, req_str, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::progreso::SeguimientoTarea;
 use crate::sites::solar::{
-    numero_argumento, orientacion_de, produccion, redondear, requerido, sitio_de, Clima,
-    Orientacion, Produccion, Sitio, ALBEDO, GAMMA_POTENCIA, NOCT, PERDIDAS_SISTEMA,
+    numero_argumento, orientacion_de, produccion, redondear, sitio_de, Clima, Orientacion,
+    Produccion, Sitio, ALBEDO, GAMMA_POTENCIA, NOCT, PERDIDAS_SISTEMA, PISTA_NUMERO_SOLAR,
 };
 use serde_json::{json, Value};
 
@@ -49,7 +49,7 @@ fn ranking(sitio: &Sitio, clima: &Clima, kwp: f64, n: usize) -> Vec<(Orientacion
 
 /// Positive plant size in kWp from the `kwp` argument.
 fn kwp_de(args: &Value) -> Result<f64> {
-    let kwp = requerido(args, "kwp")?;
+    let kwp = req_numero(args, "kwp", PISTA_NUMERO_SOLAR)?;
     if kwp > 0.0 {
         Ok(kwp)
     } else {

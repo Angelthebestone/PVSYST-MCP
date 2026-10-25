@@ -127,7 +127,9 @@ pub(crate) fn leer_componente(paths: &Paths, args: &Value) -> Result<Value> {
         let roots = object::parse(&text);
         out["objects"] = Value::Array(roots.iter().map(object::PvNode::to_json).collect());
     } else {
-        out["note"] = json!("Binary or legacy component; use leer_modulo for .PAN, or editar_objeto for text files.");
+        out["note"] = json!(
+            "Binary or legacy component; use leer on the .PAN module, or editar for text files."
+        );
     }
     Ok(out)
 }

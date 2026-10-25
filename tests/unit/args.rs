@@ -9,6 +9,32 @@ fn aliases_are_tried_in_order_and_empty_counts_as_missing() {
 }
 
 #[test]
+fn should_keep_an_empty_string_when_the_text_is_required_but_may_be_empty() {
+    assert_eq!(req_texto(&json!({ "c": "" }), &["c"], "").unwrap(), "");
+    for ausente in [json!({}), json!({ "c": null }), json!({ "c": 5 })] {
+        assert!(matches!(
+            req_texto(&ausente, &["c"], ""),
+            Err(Error::MissingArg { .. })
+        ));
+    }
+}
+
+#[test]
+fn should_tell_a_missing_number_from_a_non_numeric_one() {
+    assert_eq!(req_numero(&json!({ "x": " 4.5 " }), "x", "").unwrap(), 4.5);
+    assert!(matches!(
+        req_numero(&json!({}), "x", ""),
+        Err(Error::MissingArg { .. })
+    ));
+    let err = req_numero(&json!({ "x": "abc" }), "x", "").unwrap_err();
+    assert!(matches!(&err, Error::Invalid(m) if m.contains("'x'") && m.contains("abc")));
+    assert!(matches!(
+        req_numero(&json!({ "x": "inf" }), "x", ""),
+        Err(Error::Invalid(_))
+    ));
+}
+
+#[test]
 fn should_read_optional_numbers_and_reject_bad_types() {
     assert_eq!(opt_f64(&json!({"x": 1.5}), "x").unwrap(), Some(1.5));
     assert_eq!(opt_f64(&json!({"x": null}), "x").unwrap(), None);

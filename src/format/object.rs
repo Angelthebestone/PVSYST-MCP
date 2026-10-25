@@ -6,6 +6,7 @@
 
 use crate::error::{Error, Result};
 use serde_json::{json, Map, Value};
+use std::path::Path;
 
 use super::cierre::{coincide_tipo_cierre, extraer_tipo_cierre};
 
@@ -227,6 +228,34 @@ pub(crate) fn parse(text: &str) -> Vec<PvNode> {
 
 pub(crate) fn parse_first(text: &str) -> Option<PvNode> {
     parse(text).into_iter().next()
+}
+
+/// Rejects an empty file: a reader must not report it as a valid, empty object.
+pub(crate) fn exigir_no_vacio(text: &str, origen: &Path) -> Result<()> {
+    if text.trim().is_empty() {
+        return Err(Error::Format(format!(
+            "Archivo vacío: {}",
+            origen.display()
+        )));
+    }
+    Ok(())
+}
+
+/// `parse` for readers: an empty file, or one cut off mid-structure (objects still
+/// open at the end), is an error instead of a silently partial tree.
+pub(crate) fn parse_completo(text: &str, origen: &Path) -> Result<Vec<PvNode>> {
+    exigir_no_vacio(text, origen)?;
+    let (roots, estructura) = parse_con_diagnostico(text);
+    let abiertos = &estructura.abiertos_sin_cerrar;
+    if abiertos.is_empty() {
+        return Ok(roots);
+    }
+    Err(Error::Format(format!(
+        "Archivo truncado: {} objeto(s) PVObject sin cerrar [{}]: {}",
+        abiertos.len(),
+        abiertos.join(", "),
+        origen.display()
+    )))
 }
 
 pub(crate) fn diagnosticar_estructura(text: &str) -> Estructura {
