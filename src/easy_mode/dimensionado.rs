@@ -114,7 +114,10 @@ fn leer_modulo(
     refs: &Referencias,
 ) -> Result<ModuloResuelto> {
     let explicito = params.dimensionado.modulo.is_some();
-    let sin_modulo = ModuloResuelto { datos: None, sustituto: None };
+    let sin_modulo = ModuloResuelto {
+        datos: None,
+        sustituto: None,
+    };
     let Some(m) = params
         .dimensionado
         .modulo
@@ -124,7 +127,10 @@ fn leer_modulo(
         return Ok(sin_modulo);
     };
     match pan::leer_modulo(paths, &json!({ "modulo": m })) {
-        Ok(val) => Ok(ModuloResuelto { datos: DatosModulo::de_lectura(&val), sustituto: None }),
+        Ok(val) => Ok(ModuloResuelto {
+            datos: DatosModulo::de_lectura(&val),
+            sustituto: None,
+        }),
         Err(Error::NotFound(_)) if !explicito => sustituir_modulo(paths, params, m),
         Err(e) => Err(Error::Invalid(format!(
             "Error al leer el módulo '{m}': {e}"
@@ -134,9 +140,16 @@ fn leer_modulo(
 
 /// The template's module is missing: size with the first module available in the
 /// workspace or DataRO (stand-alone designs keep their own sizing path).
-fn sustituir_modulo(paths: &Paths, params: &DisenoParametros, faltante: &str) -> Result<ModuloResuelto> {
+fn sustituir_modulo(
+    paths: &Paths,
+    params: &DisenoParametros,
+    faltante: &str,
+) -> Result<ModuloResuelto> {
     if params.tipo_sistema == TipoDiseno::Aislado {
-        return Ok(ModuloResuelto { datos: None, sustituto: None });
+        return Ok(ModuloResuelto {
+            datos: None,
+            sustituto: None,
+        });
     }
     let ws = crate::args::workspace_of(paths, &Value::Null);
     let nombre = pan::primer_modulo_disponible(&ws).ok_or_else(|| {
@@ -145,7 +158,10 @@ fn sustituir_modulo(paths: &Paths, params: &DisenoParametros, faltante: &str) ->
         ))
     })?;
     let val = pan::leer_modulo(paths, &json!({ "modulo": nombre }))?;
-    Ok(ModuloResuelto { datos: DatosModulo::de_lectura(&val), sustituto: Some(nombre) })
+    Ok(ModuloResuelto {
+        datos: DatosModulo::de_lectura(&val),
+        sustituto: Some(nombre),
+    })
 }
 
 struct ResolucionDiseno {

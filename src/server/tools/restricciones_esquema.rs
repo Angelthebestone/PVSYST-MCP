@@ -74,7 +74,7 @@ fn anotar_estructuras(obj: &mut serde_json::Map<String, Value>, clave: &str) -> 
             obj.insert("maxItems".to_string(), json!(12));
             true
         }
-        "filas" | "ediciones" | "puntos" => {
+        "filas" | "ediciones" | "puntos" | "pasos" => {
             obj.insert("items".to_string(), json!({ "type": "object" }));
             true
         }

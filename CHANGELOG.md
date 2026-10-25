@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **`proyecto configurar` chains variant changes in one call** (`pasos:[{accion:…}]`: dimensionar,
+  anadir, seguidor, limite_inyeccion, almacenamiento, perdidas, bombeo, economia). Every step is
+  validated before the first runs; `proyecto`, `variante` and `workspace` fill what a step omits.
+- **`disenar_sistema` sizes with the first available module** (workspace, then DataRO) when the
+  template's own module is not in any database, and says so in `avisos`. A failed run restores the
+  project files it had overwritten, not just deletes the new ones.
+- **GUI `secuencia` schema declares its steps as objects** so validating clients accept them.
 - **`listar objetos` keeps every object with `todos:true`;** by default the list is trimmed
   and `truncado`, `total` and the `detalle:completo` hint say so.
 - **One name per output magnitude:** `pr_pct` and `produccion_especifica_kwh_kwp` replace

@@ -350,8 +350,14 @@ fn deshacer_nuevos_removes_created_files_and_restores_overwritten_ones() {
     std::fs::write(projects.join("Mio.PRJ"), b"a medias").unwrap();
     std::fs::write(projects.join("Mio.VC0"), b"x").unwrap();
     proyecto::deshacer_nuevos(&paths, &antes, &originales);
-    assert_eq!(std::fs::read(projects.join("Previo.PRJ")).unwrap(), b"antes");
-    assert_eq!(std::fs::read(projects.join("Mio.PRJ")).unwrap(), b"original");
+    assert_eq!(
+        std::fs::read(projects.join("Previo.PRJ")).unwrap(),
+        b"antes"
+    );
+    assert_eq!(
+        std::fs::read(projects.join("Mio.PRJ")).unwrap(),
+        b"original"
+    );
     assert!(!projects.join("Mio.VC0").exists());
 }
 
