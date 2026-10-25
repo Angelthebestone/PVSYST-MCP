@@ -18,3 +18,6 @@ mod ejecucion;
 
 #[path = "cli_fake/resultados.rs"]
 mod resultados;
+
+#[path = "cli_fake/entorno.rs"]
+mod entorno;

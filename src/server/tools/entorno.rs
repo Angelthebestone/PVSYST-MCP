@@ -155,7 +155,7 @@ fn ejecutar_entorno(paths: &Paths, args: &Value) -> Result<Value> {
         "exportar_logs" => admin::exportar_logs(paths, args),
         "logs_cli" => prefs::logs_cli(paths, args),
         "preferencias" => prefs::preferencias(paths, args),
-        "preferencias_editar" => prefs::preferencias_editar(paths, args),
+        "preferencias_editar" => prefs::preferencias_editar(args),
         _ => Err(Error::Invalid(format!(
             "Valor '{valor}' no soportado para entorno"
         ))),

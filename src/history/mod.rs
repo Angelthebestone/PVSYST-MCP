@@ -22,4 +22,4 @@ mod tests_restauracion;
 
 pub(crate) use escritura_atomica::{escribir_atomico, reemplazar};
 pub(crate) use restauracion::restaurar;
-pub(crate) use snapshot::{listar, sello_compacto, snapshot};
+pub(crate) use snapshot::{listar, raiz_usuario, sello_compacto, snapshot, snapshot_usuario};

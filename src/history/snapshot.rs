@@ -74,17 +74,55 @@ fn es_fuera_del_workspace(ws: &Path, original: &Path) -> bool {
     }
 }
 
+/// Where a snapshot is stored: under a workspace, or in the per-user MCP state
+/// directory for files outside every workspace (such as `PVsyst.ini`).
+enum Ambito<'a> {
+    Workspace(&'a Path),
+    Usuario,
+}
+
 /// Copy `archivos` into a new snapshot directory and return its id.
 ///
 /// Missing files are recorded with `existia:false` so a restore can delete
 /// them again. Any copy failure aborts the snapshot with an error, so callers
 /// never write over a file that could not be preserved.
 pub(crate) fn snapshot(ws: &Path, archivos: &[PathBuf], motivo: &str) -> Result<String> {
+    crear_snapshot(&Ambito::Workspace(ws), archivos, motivo)
+}
+
+/// Snapshot files outside every workspace, stored under [`raiz_usuario`].
+pub(crate) fn snapshot_usuario(archivos: &[PathBuf], motivo: &str) -> Result<String> {
+    crear_snapshot(&Ambito::Usuario, archivos, motivo)
+}
+
+/// Directory holding snapshots of files outside every workspace.
+pub(crate) fn raiz_usuario() -> Result<PathBuf> {
+    Ok(crate::config::local_app_data()?
+        .join("pvsyst-mcp")
+        .join("historial"))
+}
+
+fn raiz_de(ambito: &Ambito) -> Result<PathBuf> {
+    match ambito {
+        Ambito::Workspace(ws) => Ok(history_root(ws)),
+        Ambito::Usuario => raiz_usuario(),
+    }
+}
+
+fn fuera_del_workspace(ambito: &Ambito, original: &Path) -> bool {
+    match ambito {
+        Ambito::Workspace(ws) => es_fuera_del_workspace(ws, original),
+        Ambito::Usuario => true,
+    }
+}
+
+fn crear_snapshot(ambito: &Ambito, archivos: &[PathBuf], motivo: &str) -> Result<String> {
     tracing::debug!(motivo, files = archivos.len(), "taking history snapshot");
     let (ts, fecha) = stamp(SystemTime::now());
     let n = CONTADOR_SNAPSHOT.fetch_add(1, Ordering::Relaxed);
     let id = format!("{ts}_{n:04}");
-    let dir = history_root(ws).join(&id);
+    let raiz = raiz_de(ambito)?;
+    let dir = raiz.join(&id);
     fs::create_dir_all(&dir)
         .map_err(|e| Error::io(format!("No se pudo crear {}", dir.display()), e))?;
 
@@ -92,7 +130,7 @@ pub(crate) fn snapshot(ws: &Path, archivos: &[PathBuf], motivo: &str) -> Result<
     for (i, original) in archivos.iter().enumerate() {
         let existia = original.is_file();
         let copia = format!("{i:03}.bin");
-        let fuera = es_fuera_del_workspace(ws, original);
+        let fuera = fuera_del_workspace(ambito, original);
         if existia {
             fs::copy(original, dir.join(&copia)).map_err(|e| {
                 Error::io(
@@ -119,7 +157,7 @@ pub(crate) fn snapshot(ws: &Path, archivos: &[PathBuf], motivo: &str) -> Result<
         &dir.join("manifest.json"),
         manifest_bytes.as_bytes(),
     )?;
-    prune(&history_root(ws));
+    prune(&raiz);
     Ok(id)
 }
 

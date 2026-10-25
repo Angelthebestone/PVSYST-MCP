@@ -6,7 +6,7 @@ use crate::adapters::gui::gui_running;
 use crate::args::{opt_str, req_str};
 use crate::config::Paths;
 use crate::error::{Error, Result};
-use crate::history::{escribir_atomico, snapshot};
+use crate::history::{escribir_atomico, raiz_usuario, snapshot_usuario};
 use serde_json::{json, Map, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -185,8 +185,9 @@ pub(crate) fn preferencias(_paths: &Paths, args: &Value) -> Result<Value> {
     }))
 }
 
-/// Set one key in the GUI preferences (snapshot first, then atomic write).
-pub(crate) fn preferencias_editar(paths: &Paths, args: &Value) -> Result<Value> {
+/// Set one key in the GUI preferences. The previous file is snapshotted under
+/// the per-user MCP state directory (never the workspace), then written atomically.
+pub(crate) fn preferencias_editar(args: &Value) -> Result<Value> {
     let seccion = req_str(args, &["seccion"], "seccion")?;
     let clave = req_str(args, &["clave"], "clave")?;
     let valor = req_str(args, &["valor"], "valor")?;
@@ -208,11 +209,8 @@ pub(crate) fn preferencias_editar(paths: &Paths, args: &Value) -> Result<Value> 
     let ruta = ini_path()?;
     let (texto, cod) = decodificar(&leer(&ruta)?);
     let nuevo = reemplazar_clave(&texto, seccion, clave, valor)?;
-    let historial_id = snapshot(
-        &paths.workspace,
-        std::slice::from_ref(&ruta),
-        "preferencias_editar",
-    )?;
+    let historial_id = snapshot_usuario(std::slice::from_ref(&ruta), "preferencias_editar")?;
+    let historial_dir = raiz_usuario()?.join(&historial_id);
     escribir_atomico(&ruta, &codificar(&nuevo, cod))?;
     Ok(json!({
         "ok": true,
@@ -220,6 +218,7 @@ pub(crate) fn preferencias_editar(paths: &Paths, args: &Value) -> Result<Value> 
         "seccion": seccion,
         "clave": clave,
         "historial_id": historial_id,
+        "historial_dir": historial_dir.display().to_string(),
     }))
 }
 
