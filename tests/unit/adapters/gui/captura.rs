@@ -1,5 +1,4 @@
 use super::*;
-use std::sync::Arc;
 
 #[test]
 fn bgrx_is_converted_to_rgb() {
@@ -72,13 +71,7 @@ fn should_fail_gracefully_when_crop_result_is_zero_dimension_for_png() {
 #[test]
 fn should_reject_capture_output_path_outside_workspace_by_default() {
     let ws = std::env::temp_dir().join("test_pvsyst_ws_confined");
-    let paths = crate::config::Paths {
-        workspace: ws,
-        cli_exe: PathBuf::new(),
-        gui_exe: PathBuf::new(),
-        aproximaciones: false,
-        estado: Arc::default(),
-    };
+    let paths = crate::config::Paths::para_test(ws);
     let args = json!({
         "ruta": "../../escaped_capture.png"
     });
@@ -89,13 +82,7 @@ fn should_reject_capture_output_path_outside_workspace_by_default() {
 #[test]
 fn should_allow_capture_output_path_outside_workspace_when_explicitly_permitted() {
     let ws = std::env::temp_dir().join("test_pvsyst_ws_confined");
-    let paths = crate::config::Paths {
-        workspace: ws,
-        cli_exe: PathBuf::new(),
-        gui_exe: PathBuf::new(),
-        aproximaciones: false,
-        estado: Arc::default(),
-    };
+    let paths = crate::config::Paths::para_test(ws);
     let outside = std::env::temp_dir().join("safe_capture_outside.png");
     let args = json!({
         "ruta": outside.to_string_lossy(),

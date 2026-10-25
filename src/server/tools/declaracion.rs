@@ -59,10 +59,15 @@ impl TipoDato {
             Self::Integer => json!({ "type": "integer" }),
             Self::Boolean => json!({ "type": "boolean" }),
             Self::Object => json!({ "type": "object" }),
-            Self::Array => json!({ "type": "array" }),
+            Self::Array => json!({ "type": "array", "items": { "type": "string" } }),
             Self::IntegerOrString => json!({ "type": ["integer", "string"] }),
             Self::NumberOrString => json!({ "type": ["number", "string"] }),
-            Self::ArrayOrObject => json!({ "type": ["array", "object"] }),
+            Self::ArrayOrObject => json!({
+                "anyOf": [
+                    { "type": "array", "items": { "type": "string" } },
+                    { "type": "object" }
+                ]
+            }),
         }
     }
 }
@@ -85,6 +90,16 @@ pub(crate) struct Discriminador {
     pub(crate) campo: &'static str,
     pub(crate) defecto: Option<&'static str>,
     pub(crate) valores: &'static [&'static str],
+}
+
+impl Discriminador {
+    /// Extrae el valor del campo discriminador o devuelve su valor por defecto.
+    pub(crate) fn extraer<'a>(&self, args: &'a Value) -> &'a str {
+        args.get(self.campo)
+            .and_then(Value::as_str)
+            .or(self.defecto)
+            .unwrap_or("")
+    }
 }
 
 /// How a tool runs: plain, or receiving progress and cancellation.
@@ -129,6 +144,11 @@ pub(crate) struct Herramienta {
 }
 
 impl Herramienta {
+    /// Devuelve el valor del discriminador resuelto para los argumentos recibidos.
+    pub(crate) fn accion<'a>(&self, args: &'a Value) -> &'a str {
+        self.discriminador.as_ref().map_or("", |d| d.extraer(args))
+    }
+
     /// Builds the MCP tool schema exposed to clients in `tools/list`.
     pub(crate) fn esquema(&self) -> Value {
         let mut props = Map::new();
@@ -173,13 +193,7 @@ impl Herramienta {
     }
 
     fn anotar_alias_propiedad(&self, prop_val: &mut Value, clave: &str) {
-        let aliases: Vec<&str> = self
-            .sinonimos
-            .argumentos
-            .iter()
-            .filter(|(_, can)| *can == clave)
-            .map(|(ali, _)| *ali)
-            .collect();
+        let aliases = extraer_aliases(self.sinonimos.argumentos, clave);
         if aliases.is_empty() {
             return;
         }
@@ -194,24 +208,28 @@ impl Herramienta {
         obj.insert("description".to_string(), json!(desc));
     }
 
-    fn anotar_alias_discriminador(&self, prop: &mut Value, disc: &Discriminador) {
+    pub(crate) fn anotar_alias_discriminador(&self, prop: &mut Value, disc: &Discriminador) {
         let Some(obj) = prop.as_object_mut() else {
             return;
         };
-        let valores_desc: Vec<String> = disc
-            .valores
-            .iter()
-            .map(|val| formatear_valor_con_aliases(val, &self.sinonimos))
-            .collect();
+        let valores_desc: Vec<String> = obj
+            .get("enum")
+            .and_then(Value::as_array)
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(Value::as_str)
+                    .map(|val| formatear_valor_con_aliases(val, &self.sinonimos))
+                    .collect()
+            })
+            .unwrap_or_else(|| {
+                disc.valores
+                    .iter()
+                    .map(|val| formatear_valor_con_aliases(val, &self.sinonimos))
+                    .collect()
+            });
         let valores_texto = valores_desc.join(", ");
 
-        let arg_aliases: Vec<&str> = self
-            .sinonimos
-            .argumentos
-            .iter()
-            .filter(|(_, can)| *can == disc.campo)
-            .map(|(ali, _)| *ali)
-            .collect();
+        let arg_aliases = extraer_aliases(self.sinonimos.argumentos, disc.campo);
 
         let desc = if arg_aliases.is_empty() {
             format!("Valores: {valores_texto}")
@@ -264,15 +282,18 @@ fn construir_prop_discriminador(disc: &Discriminador, req: &mut Vec<&str>) -> Va
 }
 
 fn formatear_valor_con_aliases(val: &str, sinonimos: &Sinonimos) -> String {
-    let aliases: Vec<&str> = sinonimos
-        .valores
-        .iter()
-        .filter(|(_, can)| *can == val)
-        .map(|(ali, _)| *ali)
-        .collect();
+    let aliases = extraer_aliases(sinonimos.valores, val);
     if aliases.is_empty() {
         val.to_string()
     } else {
         format!("{val} (alias: {})", aliases.join(", "))
     }
+}
+
+fn extraer_aliases<'a>(tabla: &[(&'a str, &'a str)], canonico: &str) -> Vec<&'a str> {
+    tabla
+        .iter()
+        .filter(|(_, can)| *can == canonico)
+        .map(|(ali, _)| *ali)
+        .collect()
 }

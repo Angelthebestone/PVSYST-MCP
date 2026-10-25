@@ -72,6 +72,10 @@ pub(crate) fn list(paths: &Paths) -> Vec<Value> {
 fn filtrar_aproximaciones(h: &Herramienta, esquema: &mut Value) {
     if let Some(disc) = &h.discriminador {
         aproximadas::ocultar(h.nombre, disc.campo, esquema);
+        if let Some(prop) = esquema.pointer_mut(&format!("/inputSchema/properties/{}", disc.campo))
+        {
+            h.anotar_alias_discriminador(prop, disc);
+        }
     }
     aproximadas::ocultar_via(esquema);
 }
@@ -170,31 +174,8 @@ pub(crate) fn generar_bloque_alias_markdown() -> String {
         if h.sinonimos.argumentos.is_empty() && h.sinonimos.valores.is_empty() {
             continue;
         }
-        let args_str = if h.sinonimos.argumentos.is_empty() {
-            "—".to_string()
-        } else {
-            let mut items: Vec<String> = h
-                .sinonimos
-                .argumentos
-                .iter()
-                .map(|(a, c)| format!("`{a}` → `{c}`"))
-                .collect();
-            items.sort();
-            items.join(", ")
-        };
-
-        let vals_str = if h.sinonimos.valores.is_empty() {
-            "—".to_string()
-        } else {
-            let mut items: Vec<String> = h
-                .sinonimos
-                .valores
-                .iter()
-                .map(|(a, c)| format!("`{a}` → `{c}`"))
-                .collect();
-            items.sort();
-            items.join(", ")
-        };
+        let args_str = formatear_pares_markdown(h.sinonimos.argumentos);
+        let vals_str = formatear_pares_markdown(h.sinonimos.valores);
 
         out.push_str(&format!(
             "| `{}` | {} | {} |\n",
@@ -203,4 +184,18 @@ pub(crate) fn generar_bloque_alias_markdown() -> String {
     }
     out.push_str("<!-- alias:fin -->");
     out
+}
+
+#[cfg(test)]
+fn formatear_pares_markdown(pares: &[(&str, &str)]) -> String {
+    if pares.is_empty() {
+        "—".to_string()
+    } else {
+        let mut items: Vec<String> = pares
+            .iter()
+            .map(|(a, c)| format!("`{a}` → `{c}`"))
+            .collect();
+        items.sort();
+        items.join(", ")
+    }
 }

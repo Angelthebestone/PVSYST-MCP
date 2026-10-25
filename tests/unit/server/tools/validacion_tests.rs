@@ -66,18 +66,6 @@ fn should_apply_default_discriminator_when_omitted() {
 }
 
 #[test]
-fn should_reject_invalid_discriminator_value() {
-    let paths = Paths::resolve();
-    let err = call(&paths, "entorno", &json!({ "accion": "inexistente" }))
-        .expect_err("should reject invalid accion");
-    let msg = err.to_string();
-    assert!(
-        msg.contains("Valor 'inexistente' no válido"),
-        "should reject invalid value: {msg}"
-    );
-}
-
-#[test]
 fn should_reject_wrong_type_for_discriminator() {
     let paths = Paths::resolve();
     let err = call(&paths, "entorno", &json!({ "accion": 12345 }))

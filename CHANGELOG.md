@@ -9,21 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **GUI message timeouts are no longer ignored silently.** Synchronous window messages
-  via `SendMessageTimeoutW` now return errors on timeout instead of pretending success
-  or returning a default 0. `esta_marcado` returns `Option<bool>` to distinguish unchecked
-  from timed-out/destroyed controls, actions propagate timeouts as explicit errors, and
-  safety comments document cross-process Windows buffer marshalling and TOCTOU characteristics.
-- **GUI capture with zero dimensions returns an explicit error instead of panicking in PNG encoding.**
-  When `recortar_rgb` yielded empty/0-sized dimensions, `capturar` passed 0 to `png_rgb`, triggering
-  a panic in `rgb.chunks(0)`. `capturar` now checks for empty capture areas and `png_rgb` returns a
-  typed `Result<Vec<u8>>` requiring non-zero dimensions.
-- **GUI capture crop no longer panics on a zero-sized window.** `recortar_rgb`
-  called `clamp(0, ancho - 1)` with `ancho == 0` (`min > max` panics).
-- **GUI messages can no longer hang the server.** `SendMessageW` waited without
-  limit when PVsyst stopped pumping messages; every synchronous message now uses
-  `SendMessageTimeoutW` (3 s, `SMTO_ABORTIFHUNG`) and window handles are checked
-  with `IsWindow` before use.
+- **Tool schemas load in Gemini and OpenAI strict mode.** Array properties
+  (`variantes`, `filas`, `paginas_reporte`, `extra_options`, `variables`,
+  `ediciones`, `puntos`, `opciones`, `valores`) had no `items`, and Gemini
+  rejected the whole tool list (`400 INVALID_ARGUMENT: properties[…].items:
+  missing field`). Every array now declares its element type.
+- **`source` in `sitio` reaches PVsystCLI again.** The new alias table mapped it to
+  the `origen` selector, so `sitio crear {source: …}` failed with "Origen … no
+  válido". No alias may now shadow a declared property.
+- **`simular` no longer passes a CLI flag twice.** With both `csv` and `output_csv`
+  the command got two `-ocf` options and the cache tracked the other file; the
+  short names (`csv`, `pdf`, `bpf`, `sitio`, `cof`…) are now aliases of the
+  canonical argument, and `simular {csv: …}` reports it as `output_csv`.
+- **The remaining loose aliases of `sitio` and `disenar_sistema`** (`fuente`,
+  `zona_horaria`, `pais`, `inclinacion`, `azimuth`, `potencia_kwp`…) live in the
+  same synonym tables, so they are validated and announced like the rest.
+- **Hidden approximation actions stay hidden.** Without `PVSYST_MCP_APROXIMACIONES`
+  the `accion`/`que` descriptions and `pvsyst://cobertura` still listed
+  `preestimar`, `barrido`, `medido_vs_simulado`, `geometria_solar` and their aliases.
+- **GUI capture of a zero-sized window or control returns an error instead of
+  panicking.** `recortar_rgb` called `clamp(0, ancho - 1)` with `ancho == 0`, and
+  an empty crop then reached `png_rgb`, whose `chunks(0)` panicked.
+- **GUI messages can no longer hang the server, and a timeout is reported.**
+  `SendMessageW` waited without limit when PVsyst stopped pumping messages; every
+  synchronous message now uses `SendMessageTimeoutW` (3 s, `SMTO_ABORTIFHUNG`)
+  and checks the handle with `IsWindow`. A timeout is an error for actions and
+  typing, and an unknown (`null`) checked state, never a silent success or `0`.
 - **Creating a site in another workspace no longer writes into the default one.**
   `sitio crear` by coordinates and `disenar_sistema` dropped the `workspace`
   argument on the inner call, so the ledger cost and `UserData/mcp_cache/` went to

@@ -152,7 +152,7 @@ const SINONIMOS_PROYECTO: Sinonimos = Sinonimos {
 };
 
 fn ejecutar_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
-    let valor = args.get("accion").and_then(Value::as_str).unwrap_or("");
+    let valor = TOOL_PROYECTO.accion(args);
     match valor {
         "crear" => lifecycle::crear_proyecto(paths, args),
         "eliminar" => lifecycle::eliminar_proyecto(paths, args),

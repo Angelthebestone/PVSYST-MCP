@@ -81,11 +81,21 @@ pub(crate) const TOOL_SITIO: Herramienta = Herramienta {
 const SINONIMOS_SITIO: Sinonimos = Sinonimos {
     argumentos: &[
         ("action", "accion"),
-        ("source", "origen"),
         ("site_name", "nombre_sitio"),
         ("latitude", "latitud"),
         ("longitude", "longitud"),
         ("altitude", "altitud"),
+        ("fuente", "source"),
+        ("zona_horaria", "timezone"),
+        ("pais", "country_code"),
+        ("archivo_meteo", "weather_data_file"),
+        ("sit_salida", "output_sit_file"),
+        ("cof", "cmd_options_file"),
+        ("csv", "input_csv_file"),
+        ("mef", "input_mef_file"),
+        ("sit", "input_sit_file"),
+        ("met", "output_met_file"),
+        ("timeshift", "input_mef_timeshift"),
         ("project", "proyecto"),
         ("variant", "variante"),
         ("date", "fecha"),
@@ -105,10 +115,7 @@ const SINONIMOS_SITIO: Sinonimos = Sinonimos {
 };
 
 fn ejecutar_sitio(paths: &Paths, args: &Value) -> Result<Value> {
-    let valor = args
-        .get("accion")
-        .and_then(Value::as_str)
-        .unwrap_or("crear");
+    let valor = TOOL_SITIO.accion(args);
     match valor {
         "crear" => {
             let origen = args

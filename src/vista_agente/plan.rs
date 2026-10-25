@@ -26,23 +26,31 @@ fn texto_de(campo: &CampoEsquema, valor: &Value) -> std::result::Result<String, 
         TipoValor::Numero { minimo, maximo } => {
             let n = numero_de(valor).filter(|n| n.is_finite());
             let n = n.ok_or("debe ser un número")?;
-            if n < minimo || n > maximo {
-                return Err(format!("{n} fuera de rango [{minimo}, {maximo}]"));
-            }
+            validar_rango(n, minimo, maximo)?;
             Ok(n.to_string())
         }
         TipoValor::Entero { minimo, maximo } => {
             let n = numero_de(valor).filter(|n| n.fract() == 0.0);
             let n = n.ok_or("debe ser un entero")? as i64;
-            if n < minimo || n > maximo {
-                return Err(format!("{n} fuera de rango [{minimo}, {maximo}]"));
-            }
+            validar_rango(n, minimo, maximo)?;
             Ok(n.to_string())
         }
         TipoValor::Texto | TipoValor::Lista => match valor.as_str().map(str::trim) {
             Some(t) if !t.is_empty() => Ok(t.to_string()),
             _ => Err("debe ser un texto no vacío".into()),
         },
+    }
+}
+
+fn validar_rango<T: Copy + PartialOrd + std::fmt::Display>(
+    n: T,
+    minimo: T,
+    maximo: T,
+) -> std::result::Result<(), String> {
+    if n < minimo || n > maximo {
+        Err(format!("{n} fuera de rango [{minimo}, {maximo}]"))
+    } else {
+        Ok(())
     }
 }
 

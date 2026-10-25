@@ -46,6 +46,19 @@ impl Paths {
         }
     }
 
+    /// Construye una instancia para pruebas con rutas aisladas sin acceder al entorno.
+    #[cfg(test)]
+    #[must_use]
+    pub fn para_test(workspace: impl Into<PathBuf>) -> Paths {
+        Paths {
+            workspace: workspace.into(),
+            cli_exe: PathBuf::new(),
+            gui_exe: PathBuf::new(),
+            aproximaciones: false,
+            estado: Arc::default(),
+        }
+    }
+
     /// Sub-directory helpers relative to the workspace.
     pub(crate) fn projects_dir(&self) -> PathBuf {
         self.workspace.join("Projects")

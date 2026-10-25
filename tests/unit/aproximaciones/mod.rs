@@ -1,6 +1,5 @@
 use super::*;
 use std::path::PathBuf;
-use std::sync::Arc;
 
 const PREESTIMAR: Aproximacion = Aproximacion {
     funcion: "simular preestimar",
@@ -8,13 +7,9 @@ const PREESTIMAR: Aproximacion = Aproximacion {
 };
 
 fn paths(aproximaciones: bool) -> Paths {
-    Paths {
-        workspace: PathBuf::new(),
-        cli_exe: PathBuf::new(),
-        gui_exe: PathBuf::new(),
-        aproximaciones,
-        estado: Arc::default(),
-    }
+    let mut p = Paths::para_test(PathBuf::new());
+    p.aproximaciones = aproximaciones;
+    p
 }
 
 #[test]

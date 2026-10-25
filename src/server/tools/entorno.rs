@@ -135,15 +135,15 @@ const SINONIMOS_DISENAR_SISTEMA: Sinonimos = Sinonimos {
         ("altitude", "altitud"),
         ("simulate", "simular"),
         ("overwrite", "sobrescribir"),
+        ("inclinacion", "tilt"),
+        ("azimuth", "azimut"),
+        ("potencia_kwp", "kwp"),
     ],
     valores: &[],
 };
 
 fn ejecutar_entorno(paths: &Paths, args: &Value) -> Result<Value> {
-    let valor = args
-        .get("accion")
-        .and_then(Value::as_str)
-        .unwrap_or("diagnostico");
+    let valor = TOOL_ENTORNO.accion(args);
     match valor {
         "diagnostico" => {
             Ok(json!({ "preflight": easy_mode::preflight(paths), "entorno": info_entorno(paths) }))

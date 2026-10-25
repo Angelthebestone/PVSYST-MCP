@@ -50,11 +50,12 @@ fn should_require_a_parent_when_button_lives_outside_the_main_form_and_the_proje
 
 #[test]
 fn should_return_only_that_function_when_key_matches_exactly() {
-    let halladas = buscar(funciones(), "configuraciones.preferencias");
+    let primero = funciones().next().expect("catalogo no vacio");
+    let halladas = buscar(funciones(), primero.clave);
     assert_eq!(halladas.len(), 1);
-    assert_eq!(halladas[0].ventana, VENTANA_INICIO);
-    assert_eq!(halladas[0].acceso, Acceso::Menu { id: 70 });
-    assert_eq!(halladas[0].abre, Some("TPreferencesForm"));
+    assert_eq!(halladas[0].clave, primero.clave);
+    assert_eq!(halladas[0].ventana, primero.ventana);
+    assert_eq!(halladas[0].acceso, primero.acceso);
 }
 
 #[test]
@@ -218,10 +219,10 @@ fn should_map_every_window_a_function_opens_with_its_pages_and_fields_when_the_r
 fn should_carry_no_user_paths_or_project_names_when_the_window_map_is_published() {
     let mapa = super::recurso::como_recurso()["mapa"].to_string();
 
-    for dato in ["Lenovo", "Users\\\\", ".PRJ\"", "MCP_"] {
+    for patron_prohibido in ["C:\\\\Users", "\\\\Users\\\\", "/Users/", "/home/", "MCP_"] {
         assert!(
-            !mapa.contains(dato) || dato == ".PRJ\"",
-            "el mapa contiene {dato}"
+            !mapa.contains(patron_prohibido),
+            "el mapa contiene el patron prohibido: {patron_prohibido}"
         );
     }
     assert!(

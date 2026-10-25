@@ -79,7 +79,7 @@ const SINONIMOS_COMPONENTE: Sinonimos = Sinonimos {
 };
 
 fn ejecutar_componente(paths: &Paths, args: &Value) -> Result<Value> {
-    let valor = args.get("accion").and_then(Value::as_str).unwrap_or("");
+    let valor = TOOL_COMPONENTE.accion(args);
     match valor {
         "crear" => components::crear_componente(paths, args),
         "editar" => components::editar_componente(paths, args),

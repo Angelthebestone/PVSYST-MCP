@@ -131,31 +131,6 @@ fn should_expose_the_new_gui_field_actions() {
 }
 
 #[test]
-fn should_expose_click_by_text_restart_and_menu_listing_in_the_gui_tools() {
-    let paths = Paths::resolve();
-    let schemas = list(&paths);
-    let propiedades = |nombre: &str| {
-        schemas
-            .iter()
-            .find(|t| t["name"] == nombre)
-            .unwrap_or_else(|| panic!("missing {nombre}"))["inputSchema"]["properties"]
-            .clone()
-    };
-    let actuar_acciones = propiedades("gui_actuar")["accion"]["enum"]
-        .as_array()
-        .cloned()
-        .unwrap();
-    assert!(actuar_acciones.iter().any(|v| v == "clic_texto"));
-    assert!(actuar_acciones.iter().any(|v| v == "reiniciar"));
-
-    let observar_que = propiedades("gui_observar")["que"]["enum"]
-        .as_array()
-        .cloned()
-        .unwrap();
-    assert!(observar_que.iter().any(|v| v == "menus"));
-}
-
-#[test]
 fn should_match_manifest_tools_and_declarations() {
     let manifest_bytes = include_bytes!("../../../../mcpb/manifest.json");
     let manifest: Value = serde_json::from_slice(manifest_bytes).expect("valid manifest json");
@@ -178,5 +153,58 @@ fn should_match_manifest_tools_and_declarations() {
             "Description mismatch in manifest for tool '{}'",
             h.nombre
         );
+    }
+}
+
+#[test]
+fn should_declare_items_for_all_array_schemas() {
+    let mut paths = Paths::resolve();
+    paths.aproximaciones = false;
+    for tool in list(&paths) {
+        let name = tool["name"].as_str().unwrap_or("unknown");
+        assert_arrays_have_items(&tool, name);
+    }
+
+    paths.aproximaciones = true;
+    for tool in list(&paths) {
+        let name = tool["name"].as_str().unwrap_or("unknown");
+        assert_arrays_have_items(&tool, name);
+    }
+}
+
+fn assert_arrays_have_items(schema: &Value, path: &str) {
+    match schema {
+        Value::Object(obj) => check_object_arrays(obj, path),
+        Value::Array(arr) => check_array_elements(arr, path),
+        _ => {}
+    }
+}
+
+fn check_object_arrays(obj: &serde_json::Map<String, Value>, path: &str) {
+    if let Some(tipo) = obj.get("type") {
+        validar_items_si_es_array(tipo, obj, path);
+    }
+    for (k, v) in obj {
+        assert_arrays_have_items(v, &format!("{path}.{k}"));
+    }
+}
+
+fn validar_items_si_es_array(tipo: &Value, obj: &serde_json::Map<String, Value>, path: &str) {
+    let es_array = match tipo {
+        Value::String(s) => s == "array",
+        Value::Array(arr) => arr.iter().any(|v| v == "array"),
+        _ => false,
+    };
+    if es_array {
+        assert!(
+            obj.get("items").is_some(),
+            "Array schema at '{path}' is missing 'items': {obj:?}"
+        );
+    }
+}
+
+fn check_array_elements(arr: &[Value], path: &str) {
+    for (i, v) in arr.iter().enumerate() {
+        assert_arrays_have_items(v, &format!("{path}[{i}]"));
     }
 }

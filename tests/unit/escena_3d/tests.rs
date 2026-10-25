@@ -2,6 +2,7 @@ use super::aplicacion::leer_escena;
 use super::codec::parse_escena_3d;
 use super::dominio::TipoArchivoEscena;
 use crate::config::Paths;
+use crate::error::Error;
 use serde_json::json;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -10,13 +11,7 @@ const FIXTURE_ESCENA_SINTETICA: &[u8] =
     b"pvShdBuilding;Synthetic Test;\r\nVersion 4.21; Calcul=$0001;\r\npvShdElemObject;Box;\r\nVersion 4.21; Calcul=$0005;\r\n";
 
 fn paths_de_test(ws: &Path) -> Paths {
-    Paths {
-        workspace: ws.to_path_buf(),
-        cli_exe: PathBuf::new(),
-        gui_exe: PathBuf::new(),
-        aproximaciones: Default::default(),
-        estado: Default::default(),
-    }
+    Paths::para_test(ws)
 }
 
 #[test]
@@ -144,16 +139,16 @@ fn should_reject_external_absolute_path_without_permission() {
 }
 
 #[test]
-fn should_reject_truncated_3d_file_without_panicking() {
-    assert!(parse_escena_3d(b"", TipoArchivoEscena::Shd).is_err());
-    assert!(parse_escena_3d(b"pvShading", TipoArchivoEscena::Shd).is_err());
-    assert!(parse_escena_3d(b"pvShading;Desc;\r\n", TipoArchivoEscena::Shd).is_err());
-    let cortado = b"pvShading;Desc;\r\nVersion 4.0; Calcul=$0000;\r\npvShdElemObject;Box;\r\n";
-    let res = parse_escena_3d(cortado, TipoArchivoEscena::Shd);
-    assert!(res.is_ok());
-    let mut con_bloque_incompleto = cortado.to_vec();
-    con_bloque_incompleto.extend_from_slice(&[0u8; 10]);
-    assert!(parse_escena_3d(&con_bloque_incompleto, TipoArchivoEscena::Shd).is_ok());
+fn should_reject_truncated_3d_file() {
+    let err_vacio = parse_escena_3d(b"", TipoArchivoEscena::Shd).unwrap_err();
+    assert!(matches!(&err_vacio, Error::Invalid(msg) if msg.contains("vacío")));
+
+    let err_sin_crlf = parse_escena_3d(b"pvShading", TipoArchivoEscena::Shd).unwrap_err();
+    assert!(matches!(&err_sin_crlf, Error::Invalid(msg) if msg.contains("insuficiente")));
+
+    let err_una_linea =
+        parse_escena_3d(b"pvShading;Desc;\r\n", TipoArchivoEscena::Shd).unwrap_err();
+    assert!(matches!(&err_una_linea, Error::Invalid(msg) if msg.contains("insuficiente")));
 }
 
 #[test]

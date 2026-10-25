@@ -71,38 +71,37 @@ fn ejecutar<F: FnOnce(Value) -> Value>(
 
 /// Optional `create-site` flags present in `args`.
 fn opciones_sitio(args: &Value) -> Vec<String> {
-    const OPCIONALES: [(&[&str], &str); 8] = [
-        (&["altitud", "altitude"], "-alt"),
-        (&["timezone", "zona_horaria"], "-tz"),
-        (&["country_code", "pais"], "-cc"),
-        (&["region"], "-r"),
-        (&["albedo"], "-alb"),
-        (&["source", "fuente"], "-s"),
-        (&["output_sit_file", "sit_salida"], "-osf"),
-        (&["cmd_options_file", "cof"], "-cof"),
+    const OPCIONALES: [(&str, &str); 8] = [
+        ("altitud", "-alt"),
+        ("timezone", "-tz"),
+        ("country_code", "-cc"),
+        ("region", "-r"),
+        ("albedo", "-alb"),
+        ("source", "-s"),
+        ("output_sit_file", "-osf"),
+        ("cmd_options_file", "-cof"),
     ];
     OPCIONALES
         .iter()
-        .filter_map(|(keys, flag)| {
-            let s = keys.iter().find_map(|k| {
-                args.get(*k)
-                    .map(value_text)
-                    .filter(|s| !s.is_empty() && s != "null")
-            })?;
+        .filter_map(|(key, flag)| {
+            let s = args
+                .get(*key)
+                .map(value_text)
+                .filter(|s| !s.is_empty() && s != "null")?;
             Some(format!("{flag}:{s}"))
         })
         .collect()
 }
 
 pub(crate) fn crear_sitio(paths: &Paths, args: &Value) -> Result<Value> {
-    let req = |keys: &[&str]| texto(args, keys).ok_or_else(|| missing(keys[0], ""));
-    let name = req(&["nombre_sitio", "site_name"])?;
+    let req = |key: &str| texto(args, &[key]).ok_or_else(|| missing(key, ""));
+    let name = req("nombre_sitio")?;
     crate::workspace::validar_nombre(&name)?;
     let mut opciones = vec![
         format!("-sn:{name}"),
-        format!("-lat:{}", req(&["latitud", "latitude"])?),
-        format!("-lon:{}", req(&["longitud", "longitude"])?),
-        format!("-wdf:{}", req(&["weather_data_file", "archivo_meteo"])?),
+        format!("-lat:{}", req("latitud")?),
+        format!("-lon:{}", req("longitud")?),
+        format!("-wdf:{}", req("weather_data_file")?),
     ];
     opciones.extend(opciones_sitio(args));
     ejecutar(
@@ -117,11 +116,11 @@ pub(crate) fn crear_sitio(paths: &Paths, args: &Value) -> Result<Value> {
 }
 
 pub(crate) fn convertir_meteo(paths: &Paths, args: &Value) -> Result<Value> {
-    let req = |keys: &[&str]| texto(args, keys).ok_or_else(|| missing(keys[0], ""));
-    let icf_raw = req(&["input_csv_file", "csv"])?;
-    let imf_raw = req(&["input_mef_file", "mef"])?;
-    let isf_raw = req(&["input_sit_file", "sit"])?;
-    let omf_raw = req(&["output_met_file", "met"])?;
+    let req = |key: &str| texto(args, &[key]).ok_or_else(|| missing(key, ""));
+    let icf_raw = req("input_csv_file")?;
+    let imf_raw = req("input_mef_file")?;
+    let isf_raw = req("input_sit_file")?;
+    let omf_raw = req("output_met_file")?;
     let ws = workspace_of(paths, args);
     let alcance = crate::workspace::Alcance::de_args(args);
     let icf = crate::workspace::resolver_ruta(&ws, &icf_raw, alcance)?;
@@ -134,7 +133,7 @@ pub(crate) fn convertir_meteo(paths: &Paths, args: &Value) -> Result<Value> {
         format!("-isf:{}", isf.display()),
         format!("-omf:{}", omf.display()),
     ];
-    if let Some(t) = texto(args, &["input_mef_timeshift", "timeshift"]) {
+    if let Some(t) = texto(args, &["input_mef_timeshift"]) {
         opciones.push(format!("-imt:{t}"));
     }
     ejecutar(
@@ -147,13 +146,11 @@ pub(crate) fn convertir_meteo(paths: &Paths, args: &Value) -> Result<Value> {
         },
     )
 }
-fn num(args: &Value, keys: &[&str]) -> Option<f64> {
-    keys.iter().find_map(|k| {
-        args.get(*k).and_then(|v| match v {
-            Value::Number(n) => n.as_f64(),
-            Value::String(s) => s.trim().parse::<f64>().ok(),
-            _ => None,
-        })
+fn num(args: &Value, key: &str) -> Option<f64> {
+    args.get(key).and_then(|v| match v {
+        Value::Number(n) => n.as_f64(),
+        Value::String(s) => s.trim().parse::<f64>().ok(),
+        _ => None,
     })
 }
 
@@ -198,7 +195,7 @@ fn sitio_reutilizado(ws: &std::path::Path, args: &Value, (lat, lon): (f64, f64))
     if flag(args, &["forzar"]) || args.get("output_sit_file").is_some() {
         return None;
     }
-    let mut existente = reuse::buscar_existente(ws, lat, lon, num(args, &["altitud", "altitude"]))?;
+    let mut existente = reuse::buscar_existente(ws, lat, lon, num(args, "altitud"))?;
     existente["create_site"] = json!({ "success": true, "reutilizado": true });
     existente["costo"] = json!({ "ejecuciones": 0 });
     Some(existente)
@@ -208,8 +205,8 @@ fn sitio_reutilizado(ws: &std::path::Path, args: &Value, (lat, lon): (f64, f64))
 /// NASA SSE 1°×1° grids shipped with PVsyst (`DataRO\*_World.*`), so no weather
 /// file is needed. This is the easy path for "design X kWp at these coordinates".
 pub(crate) fn crear_sitio_coordenadas(paths: &Paths, args: &Value) -> Result<Value> {
-    let lat = num(args, &["latitud", "latitude"]).ok_or_else(|| missing("latitud", ""))?;
-    let lon = num(args, &["longitud", "longitude"]).ok_or_else(|| missing("longitud", ""))?;
+    let lat = num(args, "latitud").ok_or_else(|| missing("latitud", ""))?;
+    let lon = num(args, "longitud").ok_or_else(|| missing("longitud", ""))?;
     let name = args
         .get("nombre_sitio")
         .and_then(|v| v.as_str())
@@ -262,7 +259,7 @@ fn construir_peticion_crear(
         "latitud": lat,
         "longitud": lon,
         "altitud": args.get("altitud").cloned().unwrap_or(json!(0)),
-        "timezone": num(args, &["timezone", "zona_horaria"]).unwrap_or_else(|| (lon / 15.0).round()),
+        "timezone": num(args, "timezone").unwrap_or_else(|| (lon / 15.0).round()),
         "weather_data_file": csv_path.to_string_lossy(),
         "output_sit_file": out_sit,
         "country_code": args.get("country_code").cloned().unwrap_or(json!("")),

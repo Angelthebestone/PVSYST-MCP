@@ -2,6 +2,7 @@ use super::campos_vivos::{localizar, CampoVivo};
 use super::dominio::{Ancla, TOLERANCIA_ANCLA_PX};
 use super::esquemas::{de_formulario, entidad, todas};
 use super::plan::{coincide, es_valido, planificar};
+use crate::error::Error;
 use serde_json::{json, Map, Value};
 
 fn valores(v: &Value) -> Map<String, Value> {
@@ -65,7 +66,11 @@ fn should_reject_fractional_values_for_integer_fields() {
 
 #[test]
 fn should_reject_an_empty_request() {
-    assert!(planificar(panel(), &Map::new()).is_err());
+    let err = planificar(panel(), &Map::new()).unwrap_err();
+    assert!(
+        matches!(&err, Error::Invalid(msg) if msg.contains("no hay ningún valor")),
+        "error inesperado para petición vacía: {err}"
+    );
 }
 
 #[test]

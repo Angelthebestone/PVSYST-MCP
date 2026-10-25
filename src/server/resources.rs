@@ -51,15 +51,34 @@ fn cobertura(aproximaciones: bool) -> Value {
 /// Drops `"<tool> <accion>"` entries that are MCP approximations, and areas
 /// left with no tool.
 fn quitar_aproximaciones(mapa: &mut Value) {
-    let Some(areas) = mapa.get_mut("areas").and_then(Value::as_array_mut) else {
+    if let Some(areas) = mapa.get_mut("areas").and_then(Value::as_array_mut) {
+        for area in areas.iter_mut() {
+            quitar_aproximaciones_area(area);
+        }
+        areas.retain(|a| a["tools"].as_array().is_some_and(|t| !t.is_empty()));
+    }
+    if let Some(sinonimos) = mapa.get_mut("sinonimos").and_then(Value::as_object_mut) {
+        quitar_aproximaciones_sinonimos(sinonimos);
+    }
+}
+
+fn quitar_aproximaciones_area(area: &mut Value) {
+    let Some(tools) = area.get_mut("tools").and_then(Value::as_array_mut) else {
         return;
     };
-    for area in areas.iter_mut() {
-        if let Some(tools) = area.get_mut("tools").and_then(Value::as_array_mut) {
-            tools.retain(|t| t.as_str().is_none_or(|e| !es_aproximacion(e)));
-        }
+    tools.retain(|t| t.as_str().is_none_or(|e| !es_aproximacion(e)));
+}
+
+fn quitar_aproximaciones_sinonimos(sinonimos: &mut serde_json::Map<String, Value>) {
+    for (tool, data) in sinonimos.iter_mut() {
+        let Some(valores) = data.get_mut("valores").and_then(Value::as_object_mut) else {
+            continue;
+        };
+        valores.retain(|_, can| {
+            can.as_str()
+                .is_none_or(|acc| !super::tools::es_aproximacion(tool, acc))
+        });
     }
-    areas.retain(|a| a["tools"].as_array().is_some_and(|t| !t.is_empty()));
 }
 
 fn es_aproximacion(entrada: &str) -> bool {

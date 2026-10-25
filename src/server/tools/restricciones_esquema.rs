@@ -7,6 +7,9 @@ pub(crate) fn anotar_restricciones(prop_val: &mut Value, clave: &str) {
     let Some(obj) = prop_val.as_object_mut() else {
         return;
     };
+    if anotar_estructuras(obj, clave) {
+        return;
+    }
     match clave {
         "potencia_kw" => {
             obj.insert(
@@ -27,11 +30,6 @@ pub(crate) fn anotar_restricciones(prop_val: &mut Value, clave: &str) {
                 json!("pvsyst (defecto): la ruta de PVsyst. aproximacion: cálculo propio del MCP, oculto salvo con PVSYST_MCP_APROXIMACIONES=1."),
             );
         }
-        "medido_kwh" => {
-            obj.insert("items".to_string(), json!({ "type": "number" }));
-            obj.insert("minItems".to_string(), json!(12));
-            obj.insert("maxItems".to_string(), json!(12));
-        }
         "n_baterias_serie" | "n_baterias_paralelo" => {
             obj.insert("minimum".to_string(), json!(1));
             obj.insert(
@@ -40,6 +38,39 @@ pub(crate) fn anotar_restricciones(prop_val: &mut Value, clave: &str) {
             );
         }
         _ => anotar_gui(obj, clave),
+    }
+}
+
+fn anotar_estructuras(obj: &mut serde_json::Map<String, Value>, clave: &str) -> bool {
+    match clave {
+        "medido_kwh" => {
+            obj.insert("items".to_string(), json!({ "type": "number" }));
+            obj.insert("minItems".to_string(), json!(12));
+            obj.insert("maxItems".to_string(), json!(12));
+            true
+        }
+        "filas" | "ediciones" | "puntos" => {
+            obj.insert("items".to_string(), json!({ "type": "object" }));
+            true
+        }
+        "valores" => {
+            obj.insert(
+                "anyOf".to_string(),
+                json!([
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "array",
+                            "items": { "type": "number" }
+                        }
+                    },
+                    { "type": "object" }
+                ]),
+            );
+            obj.remove("type");
+            true
+        }
+        _ => false,
     }
 }
 

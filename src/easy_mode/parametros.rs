@@ -134,13 +134,13 @@ pub(crate) struct DisenoParametros {
 
 impl UbicacionParametros {
     pub(crate) fn parse(args: &Value) -> Result<Self> {
-        let latitud = parsear_f64_requerido(args, &["latitud", "latitude"], "grados decimales")?;
+        let latitud = parsear_f64_requerido(args, &["latitud"], "grados decimales")?;
         if !latitud.is_finite() || !(MIN_LATITUD..=MAX_LATITUD).contains(&latitud) {
             return Err(Error::Invalid(format!(
                 "Latitud fuera de rango ({MIN_LATITUD} a {MAX_LATITUD}) o no finita: {latitud}"
             )));
         }
-        let longitud = parsear_f64_requerido(args, &["longitud", "longitude"], "grados decimales")?;
+        let longitud = parsear_f64_requerido(args, &["longitud"], "grados decimales")?;
         if !longitud.is_finite() || !(MIN_LONGITUD..=MAX_LONGITUD).contains(&longitud) {
             return Err(Error::Invalid(format!(
                 "Longitud fuera de rango ({MIN_LONGITUD} a {MAX_LONGITUD}): {longitud}"
@@ -176,13 +176,13 @@ impl ProyectoParametros {
 
 impl OrientacionParametros {
     pub(crate) fn parse(args: &Value) -> Result<Self> {
-        let tilt = parsear_f64_opcional(args, &["tilt", "inclinacion"], DEFAULT_TILT)?;
+        let tilt = parsear_f64_opcional(args, &["tilt"], DEFAULT_TILT)?;
         if !tilt.is_finite() || !(MIN_TILT..=MAX_TILT).contains(&tilt) {
             return Err(Error::Invalid(format!(
                 "Inclinación (tilt) fuera de rango ({MIN_TILT} a {MAX_TILT}) o no finita: {tilt}"
             )));
         }
-        let azimut = parsear_f64_opcional(args, &["azimut", "azimuth"], DEFAULT_AZIMUT)?;
+        let azimut = parsear_f64_opcional(args, &["azimut"], DEFAULT_AZIMUT)?;
         if !azimut.is_finite() || !(MIN_AZIMUT..=MAX_AZIMUT).contains(&azimut) {
             return Err(Error::Invalid(format!(
                 "Azimut fuera de rango ({MIN_AZIMUT} a {MAX_AZIMUT}) o no finito: {azimut}"
@@ -234,7 +234,7 @@ impl DisenoParametros {
     /// Validates and parses untyped JSON arguments into structured design parameters.
     pub(crate) fn parse(args: &Value) -> Result<Self> {
         let ubicacion = UbicacionParametros::parse(args)?;
-        let kwp = parsear_f64_requerido(args, &["kwp", "potencia_kwp"], "potencia en kWp")?;
+        let kwp = parsear_f64_requerido(args, &["kwp"], "potencia en kWp")?;
         if !kwp.is_finite() || kwp <= MIN_KWP {
             return Err(Error::Invalid(format!(
                 "kwp debe ser un número finito mayor que cero: {kwp}"

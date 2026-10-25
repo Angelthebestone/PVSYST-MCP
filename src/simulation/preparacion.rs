@@ -15,27 +15,17 @@ pub(crate) enum Previo {
     Ejecutar(Plan),
 }
 
-const FILE_OPTIONS: [(&[&str], &str); 20] = [
+const FILE_OPTIONS: [(&[&str], &str); 10] = [
     (&["output_csv"], "-ocf"),
-    (&["csv"], "-ocf"),
     (&["report_pdf"], "-rpf"),
-    (&["pdf"], "-rpf"),
     (&["batch_params_file"], "-bpf"),
-    (&["bpf"], "-bpf"),
     (&["batch_rvt_file"], "-brf"),
-    (&["brf"], "-brf"),
     (&["input_met_file"], "-imf"),
-    (&["imf"], "-imf"),
     (&["input_sfi_file"], "-isf"),
-    (&["isf"], "-isf"),
     (&["input_param_file"], "-ipf"),
-    (&["ipf"], "-ipf"),
     (&["site"], "-s"),
-    (&["sitio"], "-s"),
     (&["input_rvt_file"], "-irf"),
-    (&["irf"], "-irf"),
     (&["cmd_options_file"], "-cof"),
-    (&["cof"], "-cof"),
 ];
 const DATE_OPTIONS: [(&[&str], &str); 3] = [
     (&["time_step"], "-ts"),
@@ -125,12 +115,8 @@ pub(crate) fn con_salidas_por_defecto(
 }
 
 pub(crate) fn preparar(args: &Value, workspace: &Path, cli_args: &[String]) -> Result<Previo> {
-    let ocf = opt_str(args, &["output_csv"])
-        .or_else(|| opt_str(args, &["csv"]))
-        .map(str::to_string);
-    let rpf = opt_str(args, &["report_pdf"])
-        .or_else(|| opt_str(args, &["pdf"]))
-        .map(str::to_string);
+    let ocf = opt_str(args, &["output_csv"]).map(str::to_string);
+    let rpf = opt_str(args, &["report_pdf"]).map(str::to_string);
     let lote = cli_args.iter().any(|a| a.starts_with("-bpf:"));
     let ejecuciones: u32 = if lote { 2 } else { 1 };
     let (clave, advertencia_cache) = if lote || flag(args, &["sin_cache"]) {
