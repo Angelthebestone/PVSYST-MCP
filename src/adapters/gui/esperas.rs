@@ -119,14 +119,19 @@ pub(crate) fn esperar_ventana(args: &Value, params: &EsperarParams) -> Result<Va
     Ok(window_json(h))
 }
 
-pub(crate) fn esperar(args: &Value) -> Result<Value> {
-    let timeout = match args.get("esperar_segundos").and_then(Value::as_u64) {
+/// `esperar_segundos` wins over `timeout_ms`; neither gives the default timeout.
+fn duracion_ms(args: &Value) -> u64 {
+    match args.get("esperar_segundos").and_then(Value::as_u64) {
         Some(segundos) => segundos.saturating_mul(MS_POR_SEGUNDO),
         None => args
             .get("timeout_ms")
             .and_then(Value::as_u64)
             .unwrap_or(DEFAULT_TIMEOUT_MS),
-    };
+    }
+}
+
+pub(crate) fn esperar(args: &Value) -> Result<Value> {
+    let timeout = duracion_ms(args);
     let params = EsperarParams {
         clase: args.get("clase").and_then(Value::as_str),
         titulo: args.get("titulo").and_then(Value::as_str),
@@ -134,3 +139,7 @@ pub(crate) fn esperar(args: &Value) -> Result<Value> {
     };
     esperar_ventana(args, &params)
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/adapters/gui/esperas.rs"]
+mod tests;

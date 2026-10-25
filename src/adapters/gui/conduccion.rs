@@ -260,21 +260,10 @@ impl Formulario {
             .find(|c| class_of(*c) == ffi::CLASE_PESTANAS)
             .ok_or_else(|| Error::Gui(format!("'{}' no tiene pestañas", self.titulo())))?;
         let total = ffi::paginas_de(pc).unwrap_or(usize::MAX);
-        if indice >= total {
-            return Err(Error::Invalid(format!(
-                "'indice' {indice} fuera de rango: '{}' tiene {total} pestañas (0 a {})",
-                self.titulo(),
-                total.saturating_sub(1)
-            )));
-        }
+        ffi::exigir_indice_pagina(indice, total, &self.titulo())?;
         ffi::mostrar_pagina(pc, indice)?;
         std::thread::sleep(PAUSA_ACCION);
-        match ffi::pagina_seleccionada(pc) {
-            Some(actual) if actual != indice => Err(Error::Gui(format!(
-                "PVsyst no cambió a la pestaña {indice}: sigue en la {actual}. El formulario vetó el cambio (validación de los campos de la pestaña actual); el motivo está en gui_observar que:vista ocr:true (textos)"
-            ))),
-            _ => Ok(()),
-        }
+        ffi::exigir_cambio_de_pestana(indice, ffi::pagina_seleccionada(pc))
     }
 
     /// Clicks a point of a toolbar (`TActionToolBar`), the only way to reach

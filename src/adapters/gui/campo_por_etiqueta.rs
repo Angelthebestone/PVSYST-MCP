@@ -11,7 +11,8 @@ use crate::args::req_str;
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
 
-pub(crate) const CLASES_TEXTO: &[&str] = &["TEdit", "TMemo", "TLabeledEdit", "TMaskEdit", "TSpinEdit"];
+pub(crate) const CLASES_TEXTO: &[&str] =
+    &["TEdit", "TMemo", "TLabeledEdit", "TMaskEdit", "TSpinEdit"];
 pub(crate) const CLASES_LISTA: &[&str] = &["TComboBox", "TComboBoxEx", "TListBox"];
 const CLASES_OPCION: &[&str] = &["TCheckBox", "TRadioButton"];
 

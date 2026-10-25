@@ -173,12 +173,7 @@ fn exigir_pestana_cambiada(h: Hwnd, nombre: &str) -> Result<()> {
         return Ok(());
     };
     std::thread::sleep(PAUSA_PESTANA);
-    match ffi::pagina_seleccionada(franja) {
-        Some(actual) if actual != indice => Err(Error::Gui(format!(
-            "PVsyst no cambió a la pestaña {indice}: sigue en la {actual}. El formulario vetó el cambio (validación de los campos de la pestaña actual); el motivo está en gui_observar que:vista ocr:true (textos)"
-        ))),
-        _ => Ok(()),
-    }
+    ffi::exigir_cambio_de_pestana(indice, ffi::pagina_seleccionada(franja))
 }
 
 pub(crate) fn operacion_para(rol: Option<&str>) -> &'static str {

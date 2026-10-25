@@ -126,6 +126,28 @@ pub(crate) fn pagina_seleccionada(h: Hwnd) -> Option<usize> {
     usize::try_from(indice).ok()
 }
 
+/// Rejects a tab index outside `0..total`, naming the form and its tab count.
+pub(crate) fn exigir_indice_pagina(indice: usize, total: usize, titulo: &str) -> Result<()> {
+    if indice < total {
+        return Ok(());
+    }
+    Err(Error::Invalid(format!(
+        "'indice' {indice} fuera de rango: '{titulo}' tiene {total} pestañas (0 a {})",
+        total.saturating_sub(1)
+    )))
+}
+
+/// A tab change PVsyst refused leaves the strip on another page: the requested
+/// page `pedido` must be the one selected (`actual`), else the change was vetoed.
+pub(crate) fn exigir_cambio_de_pestana(pedido: usize, actual: Option<usize>) -> Result<()> {
+    match actual {
+        Some(a) if a != pedido => Err(Error::Gui(format!(
+            "PVsyst no cambió a la pestaña {pedido}: sigue en la {a}. El formulario vetó el cambio (validación de los campos de la pestaña actual); el motivo está en gui_observar que:vista ocr:true (textos)"
+        ))),
+        _ => Ok(()),
+    }
+}
+
 /// Number of tab pages of a page control; `None` when the control does not answer.
 pub(crate) fn paginas_de(h: Hwnd) -> Option<usize> {
     let total = send_message_timeout(

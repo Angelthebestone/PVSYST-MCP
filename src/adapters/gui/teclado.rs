@@ -44,6 +44,29 @@ fn vk_for(key: &str) -> Option<u8> {
     }
 }
 
+/// Splits `CTRL+S` into its modifier codes and its one principal key. An
+/// unknown token or a combo without exactly one principal key is an error.
+fn parsear_combinacion(combo: &str) -> Result<(Vec<u8>, u8)> {
+    let mut mods = Vec::new();
+    let mut principales = Vec::new();
+    for p in combo.split('+').map(str::trim) {
+        match p {
+            "CTRL" | "CONTROL" => mods.push(VK_CONTROL),
+            "SHIFT" => mods.push(VK_SHIFT),
+            "ALT" => mods.push(VK_MENU),
+            other => principales.push(vk_for(other).ok_or_else(|| {
+                Error::Gui(format!("Tecla no reconocida '{other}' en '{combo}'"))
+            })?),
+        }
+    }
+    let &[vk] = principales.as_slice() else {
+        return Err(Error::Gui(format!(
+            "'{combo}' necesita exactamente una tecla principal (p. ej. CTRL+S)"
+        )));
+    };
+    Ok((mods, vk))
+}
+
 pub(crate) fn teclas(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     let _ = paths;
     let scoped = ventanas_de(args)?;
@@ -58,24 +81,7 @@ pub(crate) fn teclas(paths: &crate::config::Paths, args: &Value) -> Result<Value
         return Err(Error::Gui("No hay una ventana en primer plano".into()));
     }
     let combo = req_str(args, &["teclas"], "e.g. \"F1\" or \"CTRL+S\"")?.to_uppercase();
-    let parts: Vec<&str> = combo.split('+').map(str::trim).collect();
-    let mut mods = Vec::new();
-    let mut principales = Vec::new();
-    for p in &parts {
-        match *p {
-            "CTRL" | "CONTROL" => mods.push(VK_CONTROL),
-            "SHIFT" => mods.push(VK_SHIFT),
-            "ALT" => mods.push(VK_MENU),
-            other => principales.push(vk_for(other).ok_or_else(|| {
-                Error::Gui(format!("Tecla no reconocida '{other}' en '{combo}'"))
-            })?),
-        }
-    }
-    let &[vk] = principales.as_slice() else {
-        return Err(Error::Gui(format!(
-            "'{combo}' necesita exactamente una tecla principal (p. ej. CTRL+S)"
-        )));
-    };
+    let (mods, vk) = parsear_combinacion(&combo)?;
     if escritorio::es_aislado() && mods.iter().any(|m| *m != VK_MENU) {
         return Err(Error::Gui(
             "En el escritorio aislado solo se admite Alt como modificador: Ctrl y Mayús no se pueden enviar como mensajes".into(),
@@ -90,3 +96,7 @@ pub(crate) fn teclas(paths: &crate::config::Paths, args: &Value) -> Result<Value
         "via": if escritorio::es_aislado() { "mensajes" } else { "keybd_event" },
     }))
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/adapters/gui/teclado.rs"]
+mod tests;
