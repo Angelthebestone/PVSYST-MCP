@@ -14,6 +14,7 @@ pub(crate) mod results;
 mod ejecucion;
 mod estado;
 mod gui;
+pub(crate) mod opciones;
 pub(crate) mod preparacion;
 
 pub(crate) use avisos_pvsyst::avisos_simulacion;
@@ -102,6 +103,8 @@ pub(crate) fn lanzar_simulacion_seguida(
 ) -> Result<Value> {
     let workspace = workspace_of(paths, args);
     let (prj_path, stem, variante_up, variant_file) = resolver_datos_proyecto(&workspace, args)?;
+    opciones::validar(args)?;
+    opciones::exigir_variante(&variant_file)?;
     let args_con_salidas =
         preparacion::con_salidas_por_defecto(args, &workspace, &stem, &variante_up);
     let cli_args = preparacion::argumentos_cli(&args_con_salidas, &workspace, &stem, &variante_up);

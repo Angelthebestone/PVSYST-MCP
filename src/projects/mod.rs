@@ -46,7 +46,7 @@ fn variant_kind(path: &Path, stem: &str) -> Option<String> {
 }
 
 /// Variant extensions (`VC0`, `CM1`, ...) found next to `prj`, sorted.
-fn variantes_de(prj: &Path, stem: &str) -> Vec<String> {
+pub(crate) fn variantes_de(prj: &Path, stem: &str) -> Vec<String> {
     let Some(parent) = prj.parent() else {
         return Vec::new();
     };

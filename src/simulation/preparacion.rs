@@ -58,8 +58,8 @@ pub(crate) fn push_options(args: &Value, cli_args: &mut Vec<String>) {
         cli_args.push(format!("-rl:{idioma}"));
     }
     valued(&DATE_OPTIONS, cli_args);
-    if let Some(v) = args.get("log_level").and_then(Value::as_u64) {
-        cli_args.push(format!("-ll:{}", v.min(3)));
+    if let Some(v) = args.get("log_level").and_then(Value::as_i64) {
+        cli_args.push(format!("-ll:{v}"));
     }
     if flag(args, &["overwrite_default_csv"]) {
         cli_args.push("-odc".to_string());
@@ -96,19 +96,20 @@ pub(crate) fn con_salidas_por_defecto(
         return salidas;
     };
     let base = format!("{stem}_{variante}");
-    if opt_str(args, &["output_csv"])
-        .or_else(|| opt_str(args, &["csv"]))
-        .is_none()
-    {
-        let ruta = workspace.join("Results").join(format!("{base}.csv"));
-        obj.insert("output_csv".into(), json!(ruta.to_string_lossy()));
-    }
-    if opt_str(args, &["report_pdf"])
-        .or_else(|| opt_str(args, &["pdf"]))
-        .is_none()
-        && !flag(args, &["sin_pdf"])
-    {
-        let ruta = workspace.join("Results").join(format!("{base}.pdf"));
+    // `join` keeps absolute paths as they are and anchors relative ones to the workspace.
+    let csv = opt_str(args, &["output_csv"]).or_else(|| opt_str(args, &["csv"]));
+    let ruta_csv = csv.map_or_else(
+        || workspace.join("Results").join(format!("{base}.csv")),
+        |v| workspace.join(v),
+    );
+    obj.insert("output_csv".into(), json!(ruta_csv.to_string_lossy()));
+    let pdf = opt_str(args, &["report_pdf"]).or_else(|| opt_str(args, &["pdf"]));
+    let ruta_pdf = match (pdf, flag(args, &["sin_pdf"])) {
+        (Some(v), _) => Some(workspace.join(v)),
+        (None, false) => Some(workspace.join("Results").join(format!("{base}.pdf"))),
+        (None, true) => None,
+    };
+    if let Some(ruta) = ruta_pdf {
         obj.insert("report_pdf".into(), json!(ruta.to_string_lossy()));
     }
     salidas

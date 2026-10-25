@@ -128,7 +128,12 @@ fn should_report_the_resolved_csv_once_in_a_dry_run() {
         "simular",
         json!({ "proyecto": "SYNTH_Plant", "csv": "a.csv", "dry_run": true }),
     ));
-    assert_eq!(dado["output_csv"], "a.csv", "data={dado}");
+    let csv = dado["output_csv"].as_str().unwrap();
+    assert!(csv.ends_with("a.csv"), "data={dado}");
+    assert!(
+        std::path::Path::new(csv).starts_with(ws.path()),
+        "data={dado}"
+    );
     let ocf = dado["cli_args"]
         .as_array()
         .unwrap()
@@ -159,4 +164,112 @@ fn should_reject_a_tool_call_without_a_string_name() {
     let mut c = servidor(&ws);
     let resp = c.request(2, "tools/call", json!({ "name": 5, "arguments": {} }));
     assert!(error_text(&resp).contains("'name'"), "resp={resp}");
+}
+
+fn error_de_simular(ws: &tempfile::TempDir, args: Value) -> String {
+    let mut c = servidor(ws);
+    error_text(&c.call(2, "simular", args))
+}
+
+#[test]
+fn should_reject_a_time_step_outside_the_documented_values() {
+    let ws = synthetic_workspace();
+    let msg = error_de_simular(
+        &ws,
+        json!({ "proyecto": "SYNTH_Plant", "time_step": "minute", "dry_run": true }),
+    );
+    assert!(msg.contains("time_step"), "{msg}");
+}
+
+#[test]
+fn should_reject_a_calendar_impossible_start_date() {
+    let ws = synthetic_workspace();
+    let msg = error_de_simular(
+        &ws,
+        json!({ "proyecto": "SYNTH_Plant", "start_date": "2024-02-31", "dry_run": true }),
+    );
+    assert!(msg.contains("start_date"), "{msg}");
+}
+
+#[test]
+fn should_reject_an_end_date_before_the_start_date() {
+    let ws = synthetic_workspace();
+    let msg = error_de_simular(
+        &ws,
+        json!({ "proyecto": "SYNTH_Plant", "start_date": "2024-06-01",
+                "end_date": "2024-05-01", "dry_run": true }),
+    );
+    assert!(msg.contains("end_date"), "{msg}");
+}
+
+#[test]
+fn should_reject_an_unknown_report_page_naming_the_parameter() {
+    let ws = synthetic_workspace();
+    let msg = error_de_simular(
+        &ws,
+        json!({ "proyecto": "SYNTH_Plant", "paginas_reporte": ["zzz"], "dry_run": true }),
+    );
+    assert!(
+        msg.contains("paginas_reporte") && msg.contains("zzz"),
+        "{msg}"
+    );
+}
+
+#[test]
+fn should_reject_a_log_level_outside_zero_to_three() {
+    let ws = synthetic_workspace();
+    let msg = error_de_simular(
+        &ws,
+        json!({ "proyecto": "SYNTH_Plant", "log_level": 9, "dry_run": true }),
+    );
+    assert!(msg.contains("log_level"), "{msg}");
+}
+
+#[test]
+fn should_reject_a_variant_that_is_not_on_disk_and_list_the_existing_ones() {
+    let ws = synthetic_workspace();
+    let msg = error_de_simular(
+        &ws,
+        json!({ "proyecto": "SYNTH_Plant", "variante": "CM1", "dry_run": true }),
+    );
+    assert!(msg.contains("CM1") && msg.contains("VC0"), "{msg}");
+}
+
+#[test]
+fn should_anchor_relative_output_paths_to_the_workspace() {
+    let ws = synthetic_workspace();
+    let mut c = servidor(&ws);
+    let dado = tool_text(&c.call(
+        2,
+        "simular",
+        json!({ "proyecto": "SYNTH_Plant", "output_csv": "salidas/a.csv",
+                "report_pdf": "b.pdf", "dry_run": true }),
+    ));
+    let csv = dado["output_csv"].as_str().unwrap();
+    let pdf = dado["report_pdf"].as_str().unwrap();
+    assert!(
+        std::path::Path::new(csv).starts_with(ws.path()),
+        "data={dado}"
+    );
+    assert!(csv.ends_with("a.csv"), "data={dado}");
+    assert!(
+        std::path::Path::new(pdf).starts_with(ws.path()),
+        "data={dado}"
+    );
+}
+#[test]
+fn should_reject_a_log_level_outside_range_on_convert_meteo() {
+    let ws = synthetic_workspace();
+    for f in ["in.csv", "in.mef", "in.sit"] {
+        std::fs::write(ws.path().join(f), "x").expect("escribir entrada");
+    }
+    let mut c = servidor(&ws);
+    let msg = error_text(&c.call(
+        2,
+        "sitio",
+        json!({ "accion": "convertir_meteo", "input_csv_file": "in.csv",
+                "input_mef_file": "in.mef", "input_sit_file": "in.sit",
+                "output_met_file": "out.met", "log_level": 9, "dry_run": true }),
+    ));
+    assert!(msg.contains("log_level"), "{msg}");
 }

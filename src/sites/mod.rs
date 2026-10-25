@@ -46,8 +46,9 @@ fn ejecutar<F: FnOnce(Value) -> Value>(
 ) -> Result<Value> {
     let mut cli_args = vec![peticion.comando.to_string()];
     cli_args.extend(peticion.opciones);
-    if let Some(v) = args.get("log_level").and_then(serde_json::Value::as_u64) {
-        cli_args.push(format!("-ll:{}", v.min(3)));
+    crate::simulation::opciones::validar_log_level(args)?;
+    if let Some(v) = args.get("log_level").and_then(serde_json::Value::as_i64) {
+        cli_args.push(format!("-ll:{v}"));
     }
     if flag(args, &["dry_run"]) {
         return Ok(json!({

@@ -8,14 +8,14 @@ fn typed_options_are_emitted() {
         "input_rvt_file": "in.RVT",
         "cmd_options_file": "opts.cof",
         "recalcular_sombreado": false,
-        "paginas_reporte": ["a", "b"],
+        "paginas_reporte": ["cover", "summary"],
         "idioma_reporte": "es",
     });
     push_options(&args, &mut v);
     assert!(v.contains(&"-irf:in.RVT".to_string()));
     assert!(v.contains(&"-cof:opts.cof".to_string()));
     assert!(v.contains(&"-rst:0".to_string()));
-    assert!(v.contains(&"-rp:a,b".to_string()));
+    assert!(v.contains(&"-rp:cover,summary".to_string()));
     assert!(v.contains(&"-rl:es".to_string()));
 }
 
