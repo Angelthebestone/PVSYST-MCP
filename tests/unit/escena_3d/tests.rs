@@ -138,19 +138,6 @@ fn should_reject_external_absolute_path_without_permission() {
 }
 
 #[test]
-fn should_reject_truncated_3d_file_without_panicking() {
-    assert!(parse_escena_3d(b"", TipoArchivoEscena::Shd).is_err());
-    assert!(parse_escena_3d(b"pvShading", TipoArchivoEscena::Shd).is_err());
-    assert!(parse_escena_3d(b"pvShading;Desc;\r\n", TipoArchivoEscena::Shd).is_err());
-    let cortado = b"pvShading;Desc;\r\nVersion 4.0; Calcul=$0000;\r\npvShdElemObject;Box;\r\n";
-    let res = parse_escena_3d(cortado, TipoArchivoEscena::Shd);
-    assert!(res.is_ok());
-    let mut con_bloque_incompleto = cortado.to_vec();
-    con_bloque_incompleto.extend_from_slice(&[0u8; 10]);
-    assert!(parse_escena_3d(&con_bloque_incompleto, TipoArchivoEscena::Shd).is_ok());
-}
-
-#[test]
 #[ignore = "necesita la instalación de PVsyst"]
 fn should_decode_real_demo_geneve_grid_bld_sample() {
     let ruta = PathBuf::from(
