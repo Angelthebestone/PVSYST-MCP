@@ -21,6 +21,7 @@ pub(crate) mod esperas;
 pub(crate) mod ffi;
 pub(crate) mod gdi;
 pub(crate) mod menu_por_posicion;
+pub(crate) mod modal;
 pub(crate) mod ocr;
 pub(crate) mod png;
 pub(crate) mod proceso;

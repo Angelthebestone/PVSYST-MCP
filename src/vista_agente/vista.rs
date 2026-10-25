@@ -34,6 +34,18 @@ fn campo_json(campo: &CampoEsquema, vivo: Option<&CampoVivo>) -> Value {
     Value::Object(map)
 }
 
+/// Only what changes between calls: key, value, validity and whether it is enabled.
+/// Fields the window does not show are left out.
+fn campo_compacto(campo: &CampoEsquema, vivo: Option<&CampoVivo>) -> Option<Value> {
+    let vivo = vivo?;
+    Some(json!({
+        "clave": campo.clave,
+        "valor": vivo.texto,
+        "valido": es_valido(campo, &vivo.texto),
+        "habilitado": vivo.habilitado,
+    }))
+}
+
 fn sin_mapear(ent: &Entidad, vivos: &[CampoVivo]) -> Vec<Value> {
     vivos
         .iter()
@@ -78,21 +90,34 @@ pub(crate) fn vista(paths: &crate::config::Paths, args: &Value) -> Result<Value>
     };
     let h = ventana_de(args, ent)?;
     let vivos = campos_vivos(h);
-    let campos: Vec<Value> = ent
+    let localizados: Vec<_> = ent
         .campos
         .iter()
-        .map(|c| campo_json(c, localizar(c, &vivos)))
+        .map(|c| (c, localizar(c, &vivos)))
         .collect();
-    let presentes = campos
+    let presentes = localizados
         .iter()
-        .filter(|c| c.get("presente").and_then(Value::as_bool).unwrap_or(false))
+        .filter(|(_, vivo)| vivo.is_some())
         .count();
+    let compacto = flag(args, &["compacto"]);
+    let campos: Vec<Value> = localizados
+        .iter()
+        .filter_map(|&(c, vivo)| {
+            if compacto {
+                campo_compacto(c, vivo)
+            } else {
+                Some(campo_json(c, vivo))
+            }
+        })
+        .collect();
     let mut map = serde_json::Map::new();
     map.insert("entidad".into(), json!(ent.clave));
     map.insert("ventana".into(), json!(format!("0x{h:X}")));
     map.insert("titulo".into(), json!(text_of(h)));
     map.insert("campos".into(), json!(campos));
-    map.insert("sin_mapear".into(), json!(sin_mapear(ent, &vivos)));
+    if !compacto {
+        map.insert("sin_mapear".into(), json!(sin_mapear(ent, &vivos)));
+    }
     if presentes == 0 {
         map.insert(
             "aviso".into(),

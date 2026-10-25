@@ -4,7 +4,7 @@ use super::base64::base64;
 use super::ffi::{self, Hwnd, GA_ROOT};
 use super::gdi::capture_pixels;
 use super::png::png_rgb;
-use super::ventanas::{class_of, hwnd_de, json_identidad_ventana, rect_of};
+use super::ventanas::{class_of, hwnd_de, json_identidad_ventana, rect_of, visible};
 use crate::args::flag;
 use crate::error::{Error, Result};
 use crate::workspace::{resolver_ruta, Alcance};
@@ -140,6 +140,12 @@ fn escribir_png(out: &PathBuf, png: &[u8]) -> Result<()> {
 /// Capture a control (or its root window with `recorte:true`) to a PNG file.
 pub(crate) fn capturar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     let h = hwnd_de(args, "ventana")?;
+    if !visible(h) {
+        return Err(Error::Gui(format!(
+            "0x{h:X} ({}) está oculto: no hay nada que capturar",
+            class_of(h)
+        )));
+    }
     let recorte = flag(args, &["recorte"]);
     let raiz = if recorte {
         ffi::get_ancestor(h, GA_ROOT)

@@ -8,6 +8,7 @@ use crate::adapters::gui::acciones::clic_por_mensajes;
 use crate::adapters::gui::conduccion::Formulario;
 use crate::adapters::gui::ffi::{self, Hwnd, WM_COMMAND};
 use crate::adapters::gui::menu_por_posicion::{contar_menus, id_en_posicion, Posicion};
+use crate::adapters::gui::modal;
 use crate::adapters::gui::ventanas::{
     class_of, hijo_visible_con_texto, hwnd_de, text_of, ventanas_de, visible,
 };
@@ -183,13 +184,7 @@ fn visibles(args: &Value) -> Result<Vec<Hwnd>> {
 /// posted to that form still runs, and PVsyst raises an internal exception
 /// that forces a restart, so commands are refused while the host is disabled.
 fn exigir_anfitrion_habilitado(anfitrion: Hwnd) -> Result<()> {
-    if ffi::estado_ventana(anfitrion).habilitada {
-        return Ok(());
-    }
-    Err(Error::Gui(format!(
-        "{} está deshabilitada: hay un diálogo modal abierto sobre ella. Ciérralo (gui_actuar accion:cerrar) antes de lanzar comandos de menú",
-        class_of(anfitrion)
-    )))
+    modal::exigir_habilitada(anfitrion, "lanzar comandos de menú")
 }
 
 fn enviar_comando(anfitrion: Hwnd, id: u16) -> Result<()> {

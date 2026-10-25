@@ -3,7 +3,8 @@
 //! caption/coordinate vocabulary live in [`super::conduccion`].
 
 use super::conduccion::{esperar_cierre, Campo, Formulario};
-use super::ffi;
+use super::ffi::{self, Hwnd};
+use super::modal;
 use super::ventanas::{class_of, hwnd_de};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
@@ -50,8 +51,15 @@ pub(crate) fn campo_de(args: &Value) -> Result<Campo> {
     })
 }
 
+/// Target window of an input action; refused while a modal dialog disables it.
+fn objetivo_habilitado(args: &Value) -> Result<Hwnd> {
+    let h = hwnd_de(args, "ventana")?;
+    modal::exigir_habilitada(h, modal::PARA_ACTUAR)?;
+    Ok(h)
+}
+
 fn formulario(args: &Value) -> Result<Formulario> {
-    hwnd_de(args, "ventana").map(Formulario::de)
+    objetivo_habilitado(args).map(Formulario::de)
 }
 
 /// Types `texto` into a form field (`campo`) or directly into the target control.
@@ -68,7 +76,7 @@ pub(crate) fn escribir(_paths: &crate::config::Paths, args: &Value) -> Result<Va
             "texto": texto,
         }));
     }
-    let h = hwnd_de(args, "ventana")?;
+    let h = objetivo_habilitado(args)?;
     ffi::teclear_en(h, texto)?;
     Ok(json!({
         "accion": "escribir",
@@ -85,7 +93,7 @@ pub(crate) fn seleccionar(_paths: &crate::config::Paths, args: &Value) -> Result
         f.seleccionar(campo_de(args)?, texto)?;
         true
     } else {
-        let h = hwnd_de(args, "ventana")?;
+        let h = objetivo_habilitado(args)?;
         ffi::elegir_item_por_clase(h, &class_of(h), texto)?
     };
     if !elegido {

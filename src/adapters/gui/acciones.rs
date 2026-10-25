@@ -1,6 +1,8 @@
 //! Window actions: clicks, messages, physical inputs and desktop interactivity.
 
+use super::conduccion::esperar_cierre;
 use super::ffi::{self, Hwnd, BM_CLICK, GA_ROOT, SW_RESTORE, WM_CLOSE};
+use super::modal;
 use super::rotulos::{rotulos_acciones, Idioma, RotulosAcciones};
 use super::ventanas::{class_of, rect_of, resolve, text_of, ventanas_de, visible, window_json};
 use crate::args::{opt_i32, opt_u32, req_str};
@@ -15,8 +17,8 @@ const ROTULOS: RotulosAcciones = rotulos_acciones(Idioma::Es);
 pub(crate) const CLASE_MENSAJE: &str = "TMessageForm";
 /// Class of the madExcept crash dialog.
 pub(crate) const CLASE_EXCEPCION: &str = "madExceptWndClass";
-/// Lets the form process the close before the next tool call.
-const PAUSA_CIERRE: Duration = Duration::from_millis(300);
+/// Longest wait for a form to disappear after asking it to close.
+const ESPERA_CIERRE: Duration = Duration::from_secs(2);
 
 /// How a control is clicked through messages. Exactly one mechanism is used:
 /// a button handles both `BM_CLICK` and mouse messages, so sending both would
@@ -103,7 +105,6 @@ fn cerrar_ventana(h: Hwnd) -> Result<()> {
             ffi::post_message(h, ffi::Mensaje::simple(WM_CLOSE));
         }
     }
-    std::thread::sleep(PAUSA_CIERRE);
     Ok(())
 }
 
@@ -180,20 +181,25 @@ pub(crate) fn invocar(_paths: &crate::config::Paths, args: &Value) -> Result<Val
         &["ventana"],
         "hwnd, class or title of the control to invoke",
     )?;
-    let h = resolve(&scoped, reference)
-        .ok_or_else(|| Error::Gui(format!("Control '{reference}' not found")))?;
-
     let action = args
         .get("accion")
         .and_then(|v| v.as_str())
         .unwrap_or("click");
+    let h = resolve(&scoped, reference).ok_or_else(|| no_encontrado(reference, action))?;
+    if !matches!(action, "activar" | "mensaje") {
+        modal::exigir_habilitada(h, modal::PARA_ACTUAR)?;
+    }
     ffi::traer_al_frente(ffi::get_ancestor(h, GA_ROOT));
     ejecutar_accion(h, action, args)?;
 
+    let cerrar = action == "cerrar";
+    if cerrar {
+        exigir_cerrada(h)?;
+    }
     let mut window = window_json(h);
-    if action == "cerrar" {
+    if cerrar {
         if let Some(map) = window.as_object_mut() {
-            map.insert("closed".into(), json!(!visible(h)));
+            map.insert("closed".into(), json!(true));
         }
     }
     Ok(json!({
@@ -202,6 +208,29 @@ pub(crate) fn invocar(_paths: &crate::config::Paths, args: &Value) -> Result<Val
         "action": action,
         "window": window,
     }))
+}
+
+/// Closing a window that is already gone usually means PVsyst closed it by itself
+/// (the trial dialog); it stays an error so a mistyped name is not taken for success.
+fn no_encontrado(referencia: &str, accion: &str) -> Error {
+    if accion == "cerrar" {
+        return Error::Gui(format!(
+            "Ventana '{referencia}' no encontrada (¿ya cerrada?)"
+        ));
+    }
+    Error::Gui(format!("Control '{referencia}' not found"))
+}
+
+/// A close that left the window open (it asked for a confirmation, or a modal
+/// intercepted it) is a failure the caller must see.
+fn exigir_cerrada(h: Hwnd) -> Result<()> {
+    if esperar_cierre(h, ESPERA_CIERRE) {
+        return Ok(());
+    }
+    Err(Error::Gui(format!(
+        "{} sigue abierta tras pedir el cierre: puede haber abierto una confirmación (gui_observar que:ventanas)",
+        class_of(h)
+    )))
 }
 
 #[cfg(test)]

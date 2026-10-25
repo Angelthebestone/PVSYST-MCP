@@ -148,7 +148,13 @@ fn es_campo(clase: &str) -> bool {
         .any(|clases| clases.contains(&clase))
 }
 
-fn extraer_pestanas(paths: &crate::config::Paths, h: Hwnd) -> Result<Vec<Value>> {
+/// Tab items of the form's page control; `seleccionada` is the page the control
+/// reports as current (`TCM_GETCURSEL`), not a UI Automation capability flag.
+fn extraer_pestanas(
+    paths: &crate::config::Paths,
+    h: Hwnd,
+    seleccionada: Option<usize>,
+) -> Result<Vec<Value>> {
     let arbol = uia::arbol(
         &paths.estado,
         h,
@@ -160,17 +166,23 @@ fn extraer_pestanas(paths: &crate::config::Paths, h: Hwnd) -> Result<Vec<Value>>
     Ok(plano
         .into_iter()
         .filter(|n| n["rol"].as_str() == Some("tab item"))
-        .map(|n| {
-            let seleccionada = n["patrones"]
-                .as_array()
-                .is_some_and(|p| p.iter().any(|v| v.as_str() == Some("SelectionItem")));
+        .enumerate()
+        .map(|(indice, n)| {
             json!({
                 "nombre": n["nombre"],
                 "rect": n["rect"],
-                "seleccionada": seleccionada,
+                "seleccionada": Some(indice) == seleccionada,
             })
         })
         .collect())
+}
+
+/// Selected tab of the form's (first) page control.
+fn pestana_activa(hijos: &[(Hwnd, String)]) -> Option<usize> {
+    let (pestanas, _) = hijos
+        .iter()
+        .find(|(_, clase)| clase == ffi::CLASE_PESTANAS)?;
+    ffi::pagina_seleccionada(*pestanas)
 }
 
 /// OCR lines of the form; none with `ocr:false`, which skips the capture so
@@ -228,7 +240,7 @@ pub(crate) fn formulario(paths: &crate::config::Paths, args: &Value) -> Result<V
         .collect();
     let etiquetas = segmentar_lineas(&lineas, &rects);
     let (campos, botones) = clasificar_controles(&hijos, &lineas, &etiquetas);
-    let (pestanas, pestanas_error) = match extraer_pestanas(paths, h) {
+    let (pestanas, pestanas_error) = match extraer_pestanas(paths, h, pestana_activa(&hijos)) {
         Ok(pestanas) => (pestanas, None),
         Err(e) => (Vec::new(), Some(e.to_string())),
     };

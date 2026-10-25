@@ -251,15 +251,22 @@ impl Formulario {
         Ok(())
     }
 
-    /// Shows tab page `indice` of the form's (first) page control.
+    /// Shows tab page `indice` of the form's (first) page control. PVsyst may veto
+    /// the change while the current page has invalid fields, so the selected tab
+    /// is read back and a refusal is an error.
     pub(crate) fn pagina(&self, indice: usize) -> Result<()> {
         let pc = self
             .hijos_visibles()
-            .find(|c| class_of(*c) == "TPageControl")
+            .find(|c| class_of(*c) == ffi::CLASE_PESTANAS)
             .ok_or_else(|| Error::Gui(format!("'{}' no tiene pestañas", self.titulo())))?;
         ffi::mostrar_pagina(pc, indice)?;
         std::thread::sleep(PAUSA_ACCION);
-        Ok(())
+        match ffi::pagina_seleccionada(pc) {
+            Some(actual) if actual != indice => Err(Error::Gui(format!(
+                "PVsyst no cambió a la pestaña {indice}: sigue en la {actual}. El formulario vetó el cambio (validación de los campos de la pestaña actual); el motivo está en gui_observar que:vista ocr:true (textos)"
+            ))),
+            _ => Ok(()),
+        }
     }
 
     /// Clicks a point of a toolbar (`TActionToolBar`), the only way to reach

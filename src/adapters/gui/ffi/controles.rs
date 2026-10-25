@@ -25,6 +25,9 @@ const CBN_SELCHANGE: usize = 1;
 const CB_ERR: isize = -1;
 /// `CB_FINDSTRING` start index meaning "search the whole list".
 const DESDE_EL_PRINCIPIO: usize = usize::MAX;
+/// VCL class of a page control (the tab strip and its pages).
+pub(crate) const CLASE_PESTANAS: &str = "TPageControl";
+const TCM_GETCURSEL: u32 = 0x130B;
 const TCM_SETCURFOCUS: u32 = 0x1330;
 /// Longest text read back from a PVsyst edit control.
 const LARGO_TEXTO: usize = 1024;
@@ -113,6 +116,13 @@ pub(crate) fn mostrar_pagina(h: Hwnd, indice: usize) -> Result<()> {
     )
     .ok_or_else(|| Error::Gui("PVsyst no respondió en 3 s al cambiar de pestaña".into()))?;
     Ok(())
+}
+
+/// Index of the selected tab page of a page control; `None` without a selection
+/// or when the control does not answer.
+pub(crate) fn pagina_seleccionada(h: Hwnd) -> Option<usize> {
+    let indice = send_message_timeout(h, Mensaje::nuevo(TCM_GETCURSEL, 0, 0), TIMEOUT_MENSAJE_MS)?;
+    usize::try_from(indice).ok()
 }
 
 /// Window messages of a list control: find an item, select it.
