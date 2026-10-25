@@ -153,6 +153,19 @@ pub(crate) fn leer_modulo(paths: &Paths, args: &Value) -> Result<Value> {
     Ok(result)
 }
 
+/// File name of the first `.PAN` (sorted) found in the workspace database, then in the
+/// bundled read-only one; `None` when neither has any module.
+pub(crate) fn primer_modulo_disponible(workspace: &Path) -> Option<String> {
+    [workspace.join("ComposPV"), crate::config::compos_ro()]
+        .iter()
+        .find_map(|carpeta| {
+            let mut pans: Vec<PathBuf> = Vec::new();
+            walk_ext(carpeta, ".pan", &mut pans);
+            pans.sort();
+            pans.first()?.file_name()?.to_str().map(str::to_owned)
+        })
+}
+
 /// List *.PAN files available to the workspace (ComposPV/PVmodules) plus, as a
 /// fallback, the read-only DataRO database shipped with PVsyst. Optional
 /// `pnom_min`, `pnom_max` and `texto` filters apply to each module's metadata.

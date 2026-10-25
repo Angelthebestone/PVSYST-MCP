@@ -101,29 +101,51 @@ pub(crate) fn ajustar_serie(kwp: f64, pmod_w: f64, ns0: u32) -> Option<(u32, u32
     })
 }
 
+/// Module data read for sizing plus the substitute module name when the template's own
+/// module is not in any database.
+struct ModuloResuelto {
+    datos: Option<DatosModulo>,
+    sustituto: Option<String>,
+}
+
 fn leer_modulo(
     paths: &Paths,
     params: &DisenoParametros,
     refs: &Referencias,
-) -> Result<Option<DatosModulo>> {
+) -> Result<ModuloResuelto> {
     let explicito = params.dimensionado.modulo.is_some();
+    let sin_modulo = ModuloResuelto { datos: None, sustituto: None };
     let Some(m) = params
         .dimensionado
         .modulo
         .as_deref()
         .or(refs.modulo.as_deref())
     else {
-        return Ok(None);
+        return Ok(sin_modulo);
     };
     match pan::leer_modulo(paths, &json!({ "modulo": m })) {
-        Ok(val) => Ok(DatosModulo::de_lectura(&val)),
-        Err(Error::NotFound(_)) if !explicito && params.tipo_sistema == TipoDiseno::Aislado => {
-            Ok(None)
-        }
+        Ok(val) => Ok(ModuloResuelto { datos: DatosModulo::de_lectura(&val), sustituto: None }),
+        Err(Error::NotFound(_)) if !explicito => sustituir_modulo(paths, params, m),
         Err(e) => Err(Error::Invalid(format!(
             "Error al leer el módulo '{m}': {e}"
         ))),
     }
+}
+
+/// The template's module is missing: size with the first module available in the
+/// workspace or DataRO (stand-alone designs keep their own sizing path).
+fn sustituir_modulo(paths: &Paths, params: &DisenoParametros, faltante: &str) -> Result<ModuloResuelto> {
+    if params.tipo_sistema == TipoDiseno::Aislado {
+        return Ok(ModuloResuelto { datos: None, sustituto: None });
+    }
+    let ws = crate::args::workspace_of(paths, &Value::Null);
+    let nombre = pan::primer_modulo_disponible(&ws).ok_or_else(|| {
+        Error::Invalid(format!(
+            "El módulo '{faltante}' de la plantilla no existe y no hay ningún .PAN en el workspace ni en DataRO: pasa 'modulo'"
+        ))
+    })?;
+    let val = pan::leer_modulo(paths, &json!({ "modulo": nombre }))?;
+    Ok(ModuloResuelto { datos: DatosModulo::de_lectura(&val), sustituto: Some(nombre) })
 }
 
 struct ResolucionDiseno {
@@ -175,22 +197,50 @@ pub(crate) fn ejecutar_paso_dimensionado(
     params: &DisenoParametros,
 ) -> Result<PasoDimensionadoSalida> {
     let refs = referencias_de_variante(paths, &params.proyecto.nombre, &params.variante);
-    let modulo_info = leer_modulo(paths, params, &refs)?;
+    let modulo = leer_modulo(paths, params, &refs)?;
     let resolucion = ResolucionSerie {
         params: &params.dimensionado,
         refs: &refs,
-        modulo_info: modulo_info.as_ref(),
+        modulo_info: modulo.datos.as_ref(),
     };
-    let disp = determinar_disposicion(paths, &resolucion)?;
+    let mut disp = determinar_disposicion(paths, &resolucion)?;
+    if let Some(nombre) = &modulo.sustituto {
+        disp.avisos.push(format!(
+            "El módulo de la plantilla no existe: se usa '{nombre}' (primer .PAN disponible en el workspace o DataRO)"
+        ));
+    }
+    let da = argumentos_dimensionado(params, &modulo, &disp)?;
+
+    let sizing = lifecycle::dimensionar_variante(paths, &Value::Object(da))?;
+    let realised_kwp = sizing.get("realised_kwp").and_then(Value::as_f64);
+    let detalle = aplicar_baterias_al_resultado(paths, params, sizing)?;
+
+    Ok(PasoDimensionadoSalida {
+        kwp_realizado: realised_kwp,
+        criterio: disp.criterio,
+        avisos: disp.avisos,
+        ok: true,
+        detalle,
+    })
+}
+
+/// Arguments of the `proyecto dimensionar` call that applies the chosen layout.
+fn argumentos_dimensionado(
+    params: &DisenoParametros,
+    modulo: &ModuloResuelto,
+    disp: &ResolucionDiseno,
+) -> Result<Map<String, Value>> {
     let pnom = params
         .dimensionado
         .pnom_modulo
-        .or_else(|| modulo_info.as_ref().map(DatosModulo::pnom_w));
-
+        .or_else(|| modulo.datos.as_ref().map(DatosModulo::pnom_w));
     let mut da = Map::new();
     da.insert("proyecto".into(), json!(params.proyecto.nombre));
     da.insert("variante".into(), json!(params.variante));
     da.insert("kwp".into(), json!(params.dimensionado.kwp));
+    if let Some(nombre) = &modulo.sustituto {
+        da.insert("modulo".into(), json!(nombre));
+    }
     if let Some(p) = pnom {
         da.insert("pnom_modulo".into(), json!(p));
     }
@@ -205,21 +255,12 @@ pub(crate) fn ejecutar_paso_dimensionado(
             aproximaciones::ARGUMENTO_VIA.into(),
             json!(aproximaciones::VIA_APROXIMACION),
         );
-    } else if disp.nc_opt.is_none() && params.tipo_sistema == TipoDiseno::Aislado {
+        return Ok(da);
+    }
+    if disp.nc_opt.is_none() && params.tipo_sistema == TipoDiseno::Aislado {
         return Err(Error::Invalid(
             "En sistemas aislados pasa n_mod_serie y n_strings: el pre-dimensionado de PVsyst automatizado es el de la ventana de sistemas conectados a red".into(),
         ));
     }
-
-    let sizing = lifecycle::dimensionar_variante(paths, &Value::Object(da))?;
-    let realised_kwp = sizing.get("realised_kwp").and_then(Value::as_f64);
-    let detalle = aplicar_baterias_al_resultado(paths, params, sizing)?;
-
-    Ok(PasoDimensionadoSalida {
-        kwp_realizado: realised_kwp,
-        criterio: disp.criterio,
-        avisos: disp.avisos,
-        ok: true,
-        detalle,
-    })
+    Ok(da)
 }

@@ -200,3 +200,13 @@ fn should_have_no_module_figures_when_vmpp_is_missing() {
     let lectura = serde_json::json!({ "pnom": 300.0, "voc": 40.0, "parameters": {} });
     assert_eq!(DatosModulo::de_lectura(&lectura), None);
 }
+
+#[test]
+fn should_pick_the_first_sorted_module_of_the_workspace_before_dataro() {
+    let ws = tempfile::tempdir().unwrap();
+    let carpeta = ws.path().join("ComposPV").join("PVModules");
+    std::fs::create_dir_all(&carpeta).unwrap();
+    std::fs::write(carpeta.join("B_mod.PAN"), b"x").unwrap();
+    std::fs::write(carpeta.join("A_mod.PAN"), b"x").unwrap();
+    assert_eq!(primer_modulo_disponible(ws.path()).as_deref(), Some("A_mod.PAN"));
+}

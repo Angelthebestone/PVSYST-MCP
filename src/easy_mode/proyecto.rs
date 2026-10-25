@@ -174,13 +174,31 @@ pub(crate) fn archivos_de_proyectos(paths: &Paths) -> Vec<PathBuf> {
         .unwrap_or_default()
 }
 
-/// Removes the project files created since `antes`, so a failed design leaves no partial
-/// project behind. Best effort: the step error is what the caller reports.
-pub(crate) fn deshacer_nuevos(paths: &Paths, antes: &[PathBuf]) {
+/// Bytes of the files of project `nombre` present in `antes`, to restore them if a design
+/// run that overwrites the project fails halfway.
+pub(crate) fn originales_del_proyecto(antes: &[PathBuf], nombre: &str) -> Vec<(PathBuf, Vec<u8>)> {
+    antes
+        .iter()
+        .filter(|p| {
+            p.file_stem()
+                .and_then(|s| s.to_str())
+                .is_some_and(|s| s.eq_ignore_ascii_case(nombre))
+        })
+        .filter_map(|p| Some((p.clone(), std::fs::read(p).ok()?)))
+        .collect()
+}
+
+/// Removes the project files created since `antes` and puts back the `originales`, so a
+/// failed design leaves neither partial nor half-overwritten files. Best effort: the
+/// step error is what the caller reports.
+pub(crate) fn deshacer_nuevos(paths: &Paths, antes: &[PathBuf], originales: &[(PathBuf, Vec<u8>)]) {
     for nuevo in archivos_de_proyectos(paths)
         .into_iter()
         .filter(|p| !antes.contains(p))
     {
         let _ = std::fs::remove_file(nuevo);
+    }
+    for (ruta, bytes) in originales {
+        let _ = history::escribir_atomico(ruta, bytes);
     }
 }

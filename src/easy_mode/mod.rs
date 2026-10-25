@@ -159,7 +159,9 @@ fn correr_transaccional(
     origen: OrigenSitioDiseno,
 ) -> Result<Corrida> {
     let antes = proyecto::archivos_de_proyectos(paths);
-    correr_pasos(paths, params, origen).inspect_err(|_| proyecto::deshacer_nuevos(paths, &antes))
+    let originales = proyecto::originales_del_proyecto(&antes, &params.proyecto.nombre);
+    correr_pasos(paths, params, origen)
+        .inspect_err(|_| proyecto::deshacer_nuevos(paths, &antes, &originales))
 }
 
 /// Runs site → project → orientation → sizing → (simulation + KPIs) in order.
