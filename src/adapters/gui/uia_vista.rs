@@ -9,6 +9,9 @@ use crate::adapters::uia;
 use crate::args::{flag, req_str};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
+/// Lets PVsyst finish the tab change (or its veto) before the strip is read back.
+const PAUSA_PESTANA: std::time::Duration = std::time::Duration::from_millis(300);
+
 
 const DEFAULT_UIA_DEPTH: u32 = 4;
 const DEFAULT_UIA_MAX_NODES: u32 = 150;
@@ -148,13 +151,35 @@ pub(crate) fn uia_invocar(args: &Value) -> Result<Value> {
         &["operacion"],
         "invocar|fijar_valor|alternar|seleccionar|expandir|contraer",
     )?;
-    uia::invocar(
+    let nombre = args.get("nombre").and_then(Value::as_str);
+    let resultado = uia::invocar(
         h,
-        args.get("nombre").and_then(Value::as_str),
+        nombre,
         args.get("rol").and_then(Value::as_str),
         operacion,
         args.get("valor").and_then(Value::as_str),
-    )
+    )?;
+    if let (Some(n), "seleccionar", Some("tab item")) =
+        (nombre, operacion, args.get("rol").and_then(Value::as_str))
+    {
+        exigir_pestana_cambiada(h, n)?;
+    }
+    Ok(resultado)
+}
+
+/// PVsyst may veto a tab change while the current page has invalid fields, and
+/// UIA still reports the tab as selected: compare the strip's real selection.
+fn exigir_pestana_cambiada(h: Hwnd, nombre: &str) -> Result<()> {
+    let Some((indice, franja)) = uia::posicion_pestana(h, nombre)? else {
+        return Ok(());
+    };
+    std::thread::sleep(PAUSA_PESTANA);
+    match ffi::pagina_seleccionada(franja) {
+        Some(actual) if actual != indice => Err(Error::Gui(format!(
+            "PVsyst no cambió a la pestaña {indice}: sigue en la {actual}. El formulario vetó el cambio (validación de los campos de la pestaña actual); el motivo está en gui_observar que:vista ocr:true (textos)"
+        ))),
+        _ => Ok(()),
+    }
 }
 
 pub(crate) fn operacion_para(rol: Option<&str>) -> &'static str {
@@ -239,6 +264,11 @@ pub(crate) fn cascada(ctx: &CascadaContext, obj: &Objetivo) -> Result<&'static s
 }
 
 pub(crate) fn paso(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
+    if args.get("operacion").is_some() {
+        return Err(Error::Invalid(
+            "'operacion' no aplica a 'paso': la cascada elige la acción; use uia_invocar operacion:… o gui_actuar accion:campo/seleccionar".into(),
+        ));
+    }
     let objetivo = args
         .get("objetivo")
         .ok_or_else(|| crate::args::missing("objetivo", "nombre, rol, clase o titulo"))?;

@@ -159,6 +159,21 @@ pub(crate) fn hijos(
     (out, None)
 }
 
+/// Parent of `el` in the control view, if any.
+pub(crate) fn padre(
+    walker: &IUIAutomationTreeWalker,
+    el: &IUIAutomationElement,
+) -> Option<IUIAutomationElement> {
+    // SAFETY: Llamada COM sobre interfaces vivas.
+    unsafe { walker.GetParentElement(el).ok() }
+}
+
+/// Native window handle of `el`, 0 when it has none.
+pub(crate) fn hwnd_nativo(el: &IUIAutomationElement) -> isize {
+    // SAFETY: Llamada COM sobre interfaz viva.
+    unsafe { el.CurrentNativeWindowHandle().map_or(0, |h| h.0 as isize) }
+}
+
 const OPERACIONES: &str = "invocar|fijar_valor|alternar|seleccionar|expandir|contraer";
 
 fn desconocida(accion: &str) -> Error {
@@ -176,31 +191,40 @@ pub(crate) fn operar(el: &IUIAutomationElement, accion: &str, valor: Option<&str
     }
 }
 
+/// UIA action calls return `HRESULT`s; `S_OK` (code 0) is success, not an error.
+fn resultado_accion(r: windows::core::Result<()>) -> Result<()> {
+    match r {
+        Ok(()) => Ok(()),
+        Err(e) if e.code().is_ok() => Ok(()),
+        Err(e) => Err(error(e)),
+    }
+}
+
 fn accion_simple(el: &IUIAutomationElement, accion: &str) -> Result<()> {
     // SAFETY: Patrones COM obtenidos y usados sobre una interfaz viva en este hilo.
     unsafe {
         match accion {
-            "invocar" => el
-                .GetCurrentPattern(UIA_InvokePatternId)
-                .map_err(error)?
-                .cast::<IUIAutomationInvokePattern>()
-                .map_err(error)?
-                .Invoke()
-                .map_err(error),
-            "alternar" => el
-                .GetCurrentPattern(UIA_TogglePatternId)
-                .map_err(error)?
-                .cast::<IUIAutomationTogglePattern>()
-                .map_err(error)?
-                .Toggle()
-                .map_err(error),
-            "seleccionar" => el
-                .GetCurrentPattern(UIA_SelectionItemPatternId)
-                .map_err(error)?
-                .cast::<IUIAutomationSelectionItemPattern>()
-                .map_err(error)?
-                .Select()
-                .map_err(error),
+            "invocar" => resultado_accion(
+                el.GetCurrentPattern(UIA_InvokePatternId)
+                    .map_err(error)?
+                    .cast::<IUIAutomationInvokePattern>()
+                    .map_err(error)?
+                    .Invoke(),
+            ),
+            "alternar" => resultado_accion(
+                el.GetCurrentPattern(UIA_TogglePatternId)
+                    .map_err(error)?
+                    .cast::<IUIAutomationTogglePattern>()
+                    .map_err(error)?
+                    .Toggle(),
+            ),
+            "seleccionar" => resultado_accion(
+                el.GetCurrentPattern(UIA_SelectionItemPatternId)
+                    .map_err(error)?
+                    .cast::<IUIAutomationSelectionItemPattern>()
+                    .map_err(error)?
+                    .Select(),
+            ),
             other => Err(desconocida(other)),
         }
     }
@@ -210,30 +234,31 @@ fn accion_estado(el: &IUIAutomationElement, accion: &str, valor: Option<&str>) -
     // SAFETY: Patrones COM obtenidos y usados sobre una interfaz viva en este hilo.
     unsafe {
         match accion {
-            "expandir" => el
-                .GetCurrentPattern(UIA_ExpandCollapsePatternId)
-                .map_err(error)?
-                .cast::<IUIAutomationExpandCollapsePattern>()
-                .map_err(error)?
-                .Expand()
-                .map_err(error),
-            "contraer" => el
-                .GetCurrentPattern(UIA_ExpandCollapsePatternId)
-                .map_err(error)?
-                .cast::<IUIAutomationExpandCollapsePattern>()
-                .map_err(error)?
-                .Collapse()
-                .map_err(error),
+            "expandir" => resultado_accion(
+                el.GetCurrentPattern(UIA_ExpandCollapsePatternId)
+                    .map_err(error)?
+                    .cast::<IUIAutomationExpandCollapsePattern>()
+                    .map_err(error)?
+                    .Expand(),
+            ),
+            "contraer" => resultado_accion(
+                el.GetCurrentPattern(UIA_ExpandCollapsePatternId)
+                    .map_err(error)?
+                    .cast::<IUIAutomationExpandCollapsePattern>()
+                    .map_err(error)?
+                    .Collapse(),
+            ),
             "fijar_valor" => {
                 let v =
                     valor.ok_or_else(|| Error::Gui("Indique 'valor' para fijar_valor".into()))?;
                 let bstr = BSTR::from(v);
-                el.GetCurrentPattern(UIA_ValuePatternId)
-                    .map_err(error)?
-                    .cast::<IUIAutomationValuePattern>()
-                    .map_err(error)?
-                    .SetValue(&bstr)
-                    .map_err(error)
+                resultado_accion(
+                    el.GetCurrentPattern(UIA_ValuePatternId)
+                        .map_err(error)?
+                        .cast::<IUIAutomationValuePattern>()
+                        .map_err(error)?
+                        .SetValue(&bstr),
+                )
             }
             other => Err(desconocida(other)),
         }

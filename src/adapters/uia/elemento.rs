@@ -89,6 +89,33 @@ pub(crate) fn invocar(
     }))
 }
 
+/// Index of the tab item `nombre` among its tab-strip siblings, with the strip's
+/// window handle. `None` when the item has no parent strip.
+pub(crate) fn posicion_pestana(hwnd: isize, nombre: &str) -> Result<Option<(usize, isize)>> {
+    let sesion = Sesion::nueva()?;
+    let criterio = CriterioBusqueda {
+        hwnd,
+        nombre: Some(nombre),
+        rol: Some("tab item"),
+    };
+    let el = buscar(&sesion, &criterio)?;
+    let (_, walker) = com::raiz_y_walker(&sesion, hwnd)?;
+    let Some(padre) = com::padre(&walker, &el) else {
+        return Ok(None);
+    };
+    let (hermanas, _) = com::hijos(&sesion, &walker, &padre);
+    let pestanas: Vec<String> = hermanas
+        .iter()
+        .filter(|h| com::tipo_control(h).is_ok_and(|t| rol_de(t) == "tab item"))
+        .map(|h| com::nombre(h).unwrap_or_default())
+        .collect();
+    let propio = com::nombre(&el).unwrap_or_default();
+    Ok(pestanas
+        .iter()
+        .position(|p| *p == propio)
+        .map(|i| (i, com::hwnd_nativo(&padre))))
+}
+
 /// Screen centre of the element found by name and/or role, for physical clicks.
 pub(crate) fn centro(hwnd: isize, nombre: Option<&str>, rol: Option<&str>) -> Result<(i32, i32)> {
     let sesion = Sesion::nueva()?;

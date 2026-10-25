@@ -7,7 +7,7 @@ pub(crate) mod com;
 pub(crate) mod elemento;
 
 pub(crate) use arbol::{arbol, invalidar as invalidar_cache};
-pub(crate) use elemento::{centro, invocar};
+pub(crate) use elemento::{centro, invocar, posicion_pestana};
 
 use crate::error::{Error, Result};
 use windows::Win32::System::Com::{
