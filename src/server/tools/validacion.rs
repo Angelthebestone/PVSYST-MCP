@@ -80,12 +80,9 @@ impl Herramienta {
     }
 
     fn validar_detalle(&self, args: &Value) -> Result<()> {
-        let Some(v) = args.get("detalle") else {
+        let Some(v) = valor_no_nulo(args, "detalle") else {
             return Ok(());
         };
-        if v.is_null() {
-            return Ok(());
-        }
         let Some(d) = v.as_str() else {
             return Err(Error::Invalid(format!(
                 "Tipo incorrecto para 'detalle' (esperado string, recibido {})",
@@ -132,12 +129,9 @@ impl Herramienta {
     }
 
     fn validar_via(&self, args: &Value) -> Result<()> {
-        let Some(v) = args.get("via") else {
+        let Some(v) = valor_no_nulo(args, "via") else {
             return Ok(());
         };
-        if v.is_null() {
-            return Ok(());
-        }
         let Some(via) = v.as_str() else {
             return Ok(());
         };
@@ -228,4 +222,8 @@ fn validar_tipo_propiedad(
 
 fn esta_vacio_o_nulo(args: &Value, clave: &str) -> bool {
     matches!(args.get(clave), None | Some(Value::Null))
+}
+
+fn valor_no_nulo<'a>(args: &'a Value, clave: &str) -> Option<&'a Value> {
+    args.get(clave).filter(|v| !v.is_null())
 }

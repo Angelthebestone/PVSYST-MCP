@@ -60,11 +60,7 @@ pub(super) fn ejecutar_leer(paths: &Paths, args: &Value) -> Result<Value> {
         .get("archivo")
         .and_then(Value::as_str)
         .unwrap_or_default();
-    let ext = Path::new(archivo)
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("")
-        .to_ascii_uppercase();
+    let ext = extension_mayuscula(archivo);
 
     if es_proyecto(paths, archivo, &ext) {
         let completo = args.get("detalle").and_then(Value::as_str) == Some("completo");
@@ -85,11 +81,7 @@ fn es_archivo_divisas(paths: &Paths, args: &Value, archivo: &str) -> bool {
     if nombre_archivo.eq_ignore_ascii_case("Currency.dat") {
         return true;
     }
-    let ext = Path::new(archivo)
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("");
-    if ext.eq_ignore_ascii_case("DAT") {
+    if extension_mayuscula(archivo) == "DAT" {
         return empieza_con_cabecera_divisas(paths, args, archivo);
     }
     false
@@ -118,11 +110,7 @@ fn empieza_con_cabecera_divisas(paths: &Paths, args: &Value, archivo: &str) -> b
 }
 
 fn despachar_por_extension(paths: &Paths, args: &Value, archivo: &str) -> Result<Value> {
-    let ext = Path::new(archivo)
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("")
-        .to_ascii_uppercase();
+    let ext = extension_mayuscula(archivo);
     match ext.as_str() {
         "PAN" => pan::leer_modulo(paths, &con(args, "modulo", json!(archivo))),
         "SIT" => readers::leer_sitio(paths, &con(args, "sitio", json!(archivo))),
@@ -147,10 +135,7 @@ fn es_proyecto(paths: &Paths, archivo: &str, ext: &str) -> bool {
 }
 
 pub(super) fn ejecutar_editar(paths: &Paths, args: &Value) -> Result<Value> {
-    let valor = args
-        .get("accion")
-        .and_then(Value::as_str)
-        .unwrap_or("campos");
+    let valor = super::workspace::TOOL_EDITAR.accion(args);
     match valor {
         "campos" if args.get("ediciones").is_some() => lifecycle::editar_variante(paths, args),
         "campos" => objects::editar_objeto(paths, args),
@@ -164,10 +149,7 @@ pub(super) fn ejecutar_editar(paths: &Paths, args: &Value) -> Result<Value> {
 }
 
 pub(super) fn ejecutar_listar(paths: &Paths, args: &Value) -> Result<Value> {
-    let valor = args
-        .get("que")
-        .and_then(Value::as_str)
-        .unwrap_or("proyectos");
+    let valor = super::workspace::TOOL_LISTAR.accion(args);
     match valor {
         "proyectos" => projects::listar_proyectos(paths, args),
         "componentes" => components::listar_componentes(paths, args),
@@ -178,4 +160,12 @@ pub(super) fn ejecutar_listar(paths: &Paths, args: &Value) -> Result<Value> {
             "Valor '{valor}' no soportado para listar"
         ))),
     }
+}
+
+fn extension_mayuscula(archivo: &str) -> String {
+    Path::new(archivo)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_ascii_uppercase()
 }

@@ -115,10 +115,7 @@ const SINONIMOS_SITIO: Sinonimos = Sinonimos {
 };
 
 fn ejecutar_sitio(paths: &Paths, args: &Value) -> Result<Value> {
-    let valor = args
-        .get("accion")
-        .and_then(Value::as_str)
-        .unwrap_or("crear");
+    let valor = TOOL_SITIO.accion(args);
     match valor {
         "crear" => {
             let origen = args

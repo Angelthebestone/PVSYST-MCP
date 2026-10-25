@@ -118,10 +118,7 @@ fn ejecutar_simular(
     args: &Value,
     seguimiento: &SeguimientoTarea<'_>,
 ) -> Result<Value> {
-    let valor = args
-        .get("accion")
-        .and_then(Value::as_str)
-        .unwrap_or("ejecutar");
+    let valor = TOOL_SIMULAR.accion(args);
     match valor {
         "ejecutar" => {
             let (vivos, _) = preparar_entrada(paths, args)?;
@@ -154,14 +151,7 @@ fn preparar_entrada(paths: &Paths, args: &Value) -> Result<(Value, Map<String, V
     let mut preparados = Map::new();
     if args.get("filas").is_some() {
         let r = batch::crear_batch(paths, args)?;
-        pasar(
-            &r,
-            &mut DestinosPreparacion {
-                vivos: &mut vivos,
-                preparados: &mut preparados,
-            },
-            &["batch_params_file", "batch_rvt_file"],
-        );
+        incorporar_archivos_batch(&r, &mut vivos, &mut preparados);
     }
     if args.get("parametros").is_some() {
         let r = batch::modificar_parametros(paths, args)?;
@@ -173,18 +163,15 @@ fn preparar_entrada(paths: &Paths, args: &Value) -> Result<(Value, Map<String, V
     Ok((Value::Object(vivos), preparados))
 }
 
-struct DestinosPreparacion<'a> {
-    vivos: &'a mut Map<String, Value>,
-    preparados: &'a mut Map<String, Value>,
-}
-
-fn pasar(origen: &Value, destinos: &mut DestinosPreparacion<'_>, claves: &[&str]) {
-    for clave in claves {
-        if let Some(valor) = origen.get(*clave) {
-            destinos.vivos.insert((*clave).to_string(), valor.clone());
-            destinos
-                .preparados
-                .insert((*clave).to_string(), valor.clone());
+fn incorporar_archivos_batch(
+    r: &Value,
+    vivos: &mut Map<String, Value>,
+    preparados: &mut Map<String, Value>,
+) {
+    for clave in ["batch_params_file", "batch_rvt_file"] {
+        if let Some(valor) = r.get(clave) {
+            vivos.insert(clave.to_string(), valor.clone());
+            preparados.insert(clave.to_string(), valor.clone());
         }
     }
 }

@@ -66,10 +66,7 @@ pub(crate) fn recortar(v: &mut Value, lim: (usize, usize)) {
                 recortar(item, lim);
             }
         }
-        Value::String(s) if s.chars().count() > max_str => {
-            let corto: String = s.chars().take(max_str).collect();
-            *s = format!("{corto}…");
-        }
+        Value::String(s) => truncar_cadena(s, max_str),
         _ => {}
     }
 }
@@ -108,10 +105,14 @@ fn recortar_campo_objeto(k: &str, hijo: &mut Value, ctx: &mut ContextoRecorte<'_
             ctx.totales.push((format!("{k}_total"), items.len()));
             items.truncate(max_arr);
         }
-        Value::String(s) if s.chars().count() > max_str => {
-            let corto: String = s.chars().take(max_str).collect();
-            *s = format!("{corto}…");
-        }
+        Value::String(s) => truncar_cadena(s, max_str),
         _ => recortar(hijo, ctx.lim),
+    }
+}
+
+fn truncar_cadena(s: &mut String, max_str: usize) {
+    if s.chars().count() > max_str {
+        let corto: String = s.chars().take(max_str).collect();
+        *s = format!("{corto}…");
     }
 }
