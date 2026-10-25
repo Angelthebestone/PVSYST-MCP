@@ -102,6 +102,7 @@ const APROXIMACION_P50: crate::aproximaciones::Aproximacion =
 
 /// P50/P90 from PVsyst's report page, or the MCP's approximation with `via`.
 pub(crate) fn p50_p90(paths: &Paths, args: &Value) -> Result<Value> {
+    crate::aproximaciones::exigir_ruta_pvsyst_sin_workspace(paths, args, "El P50/P90")?;
     let c = caso(paths, args)?;
     let v = crate::aproximaciones::segun_via(
         paths,

@@ -8,6 +8,7 @@
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
+use std::path::Path;
 
 /// Environment variable that enables the MCP's own approximations.
 pub(crate) const VARIABLE_ENTORNO: &str = "PVSYST_MCP_APROXIMACIONES";
@@ -24,6 +25,25 @@ pub(crate) const VIA_APROXIMACION: &str = "aproximacion";
 /// rather than the PVsyst route, which is the default.
 pub(crate) fn pide_aproximacion(args: &Value) -> bool {
     args.get(ARGUMENTO_VIA).and_then(Value::as_str) == Some(VIA_APROXIMACION)
+}
+
+/// Rejects an explicit `workspace` other than the configured one on the PVsyst
+/// route, because PVsyst's GUI only works on its own workspace. Approximations
+/// read the given workspace, so they are never rejected here.
+pub(crate) fn exigir_ruta_pvsyst_sin_workspace(
+    paths: &Paths,
+    args: &Value,
+    quien: &str,
+) -> Result<()> {
+    if pide_aproximacion(args) {
+        return Ok(());
+    }
+    match args.get("workspace").and_then(Value::as_str) {
+        Some(w) if Path::new(w) != paths.workspace.as_path() => Err(Error::Invalid(format!(
+            "{quien} lo hace PVsyst en su propio espacio de trabajo: no admite 'workspace'"
+        ))),
+        _ => Ok(()),
+    }
 }
 
 /// Runs `aproximar` only when it was asked for and approximations are enabled,

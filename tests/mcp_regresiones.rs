@@ -21,3 +21,6 @@ mod workspace;
 
 #[path = "mcp_regresiones/archivos.rs"]
 mod archivos;
+
+#[path = "mcp_regresiones/ruta_pvsyst.rs"]
+mod ruta_pvsyst;

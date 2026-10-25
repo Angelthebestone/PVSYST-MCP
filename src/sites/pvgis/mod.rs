@@ -54,6 +54,7 @@ const APROXIMACION_HORIZONTE: crate::aproximaciones::Aproximacion =
 /// PVGIS horizon of the project site: imported by PVsyst's horizon window by
 /// default, or by the MCP with `via: "aproximacion"`.
 pub(crate) fn horizonte(paths: &Paths, args: &Value) -> Result<Value> {
+    crate::aproximaciones::exigir_ruta_pvsyst_sin_workspace(paths, args, "El horizonte PVGIS")?;
     let proyecto = req_str(args, &["proyecto"], "")?;
     let proyecto = proyecto.strip_suffix(".PRJ").unwrap_or(proyecto);
     let variante = opt_str(args, &["variante"]).unwrap_or("VC0");
