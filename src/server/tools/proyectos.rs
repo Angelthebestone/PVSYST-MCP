@@ -89,7 +89,7 @@ pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
         ],
     }),
     requeridos_por_accion: &[
-        ("crear", &["plantilla", "nombre_nuevo"]),
+        ("crear", &["plantilla"]),
         ("eliminar", &["proyecto"]),
         ("renombrar", &["proyecto", "nombre_nuevo"]),
         ("crear_variante", &["proyecto", "variante_nueva"]),
@@ -176,6 +176,11 @@ fn ejecutar_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
 }
 
 fn configurar_p50(paths: &Paths, args: &Value) -> Result<Value> {
+    crate::aproximaciones::exigir_ruta_pvsyst_sin_workspace(
+        paths,
+        args,
+        "La configuración P50/P90",
+    )?;
     let proyecto = crate::args::req_str(args, &["proyecto"], "")?;
     let proyecto = proyecto.strip_suffix(".PRJ").unwrap_or(proyecto);
     let variante = crate::args::opt_str(args, &["variante"]).unwrap_or("VC0");

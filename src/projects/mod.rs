@@ -1,6 +1,7 @@
 //! Project discovery, resolution, and reading (`Projects/` folder, `.PRJ` / `.VCi` files).
 
 pub(crate) mod anadir;
+pub(crate) mod comentario;
 pub(crate) mod doctor;
 pub(crate) mod gui;
 pub(crate) mod lifecycle;
@@ -125,6 +126,16 @@ fn resumen_proyecto(workspace: &Path, prj: &Path, detalle: DetalleProyecto) -> V
     item
 }
 
+/// Whether a project's file stem contains `texto` (case-insensitive); no filter keeps every project.
+fn coincide_texto(prj: &Path, texto: Option<&str>) -> bool {
+    let Some(t) = texto else {
+        return true;
+    };
+    prj.file_stem()
+        .and_then(|s| s.to_str())
+        .is_some_and(|s| s.to_lowercase().contains(t))
+}
+
 pub(crate) fn listar_proyectos(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
     let include_variants = args
@@ -143,6 +154,11 @@ pub(crate) fn listar_proyectos(paths: &Paths, args: &Value) -> Result<Value> {
     let mut prj_files: Vec<PathBuf> = Vec::new();
     let recorrido = walk_ext(&projects_dir, ".prj", &mut prj_files);
     prj_files.sort();
+    let texto = args
+        .get("texto")
+        .and_then(serde_json::Value::as_str)
+        .map(str::to_lowercase);
+    prj_files.retain(|prj| coincide_texto(prj, texto.as_deref()));
 
     let detalle = if include_variants {
         DetalleProyecto::ConVariantes
@@ -204,6 +220,16 @@ pub(crate) fn leer_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     Ok(out)
 }
 
+/// Accepts `Projects\X.VC0`, `Projects/X.PRJ` and `X.PRJ`: returns the name relative to the Projects folder.
+fn relativo_a_projects(name: &str) -> String {
+    let normal = name.replace('\\', "/");
+    let prefijo = "Projects/";
+    match normal.get(..prefijo.len()) {
+        Some(inicio) if inicio.eq_ignore_ascii_case(prefijo) => normal[prefijo.len()..].to_string(),
+        _ => normal,
+    }
+}
+
 /// Resolve a project name (with or without extension) to an existing file within the workspace.
 pub(crate) fn resolve_project_file(workspace: &Path, name: &str) -> Result<PathBuf> {
     resolve_project_file_con_alcance(workspace, name, Alcance::Workspace)
@@ -230,10 +256,11 @@ pub(crate) fn resolve_project_file_con_alcance(
         ));
     }
     let projects_dir = workspace.join("Projects");
+    let relativo = relativo_a_projects(name);
     let candidates = [
-        name.to_string(),
-        format!("{name}.PRJ"),
-        format!("{name}.prj"),
+        relativo.clone(),
+        format!("{relativo}.PRJ"),
+        format!("{relativo}.prj"),
     ];
     for c in &candidates {
         let p = projects_dir.join(c);
@@ -245,7 +272,7 @@ pub(crate) fn resolve_project_file_con_alcance(
     let mut prjs = Vec::new();
     let avisos = walk_ext(&projects_dir, ".prj", &mut prjs).advertencias();
     for p in &prjs {
-        if p.file_stem().and_then(|s| s.to_str()) == Some(name) {
+        if p.file_stem().and_then(|s| s.to_str()) == Some(relativo.as_str()) {
             return Ok(p.clone());
         }
     }

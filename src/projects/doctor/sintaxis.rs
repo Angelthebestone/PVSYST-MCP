@@ -3,6 +3,7 @@
 use crate::error::Result;
 use crate::format::{edit, insert, object};
 use crate::projects::anadir::escribir_con_historial;
+use crate::projects::comentario::sustituir_demo;
 use crate::projects::doctor::{texto, Informe, Modo};
 use crate::workspace::leer_bytes;
 use std::collections::HashMap;
@@ -63,20 +64,15 @@ fn limpiar_comentario_demo(
     etiqueta: &str,
     inf: &mut Informe,
 ) -> Result<Option<Vec<u8>>> {
-    let raiz = object::parse_first(&texto(bytes));
-    let root_ty = edit::spans_of(bytes).first().map(|s| s.ty.clone());
-    if let (Some(root), Some(ty)) = (raiz, root_ty) {
-        let comentario = root.field("Comment").unwrap_or("");
-        if comentario.contains("DEMO") && !nombre.starts_with("_DEMO") {
-            let cambios = [("Comment".to_string(), Some(nombre.to_string()))];
-            let nuevo = edit::edit_fields(bytes, &ty, &cambios)?.0;
+    match sustituir_demo(bytes, nombre)? {
+        Some((nuevo, _)) => {
             inf.reparado.push(format!(
                 "{etiqueta}: Comment de demo sustituido por '{nombre}'"
             ));
-            return Ok(Some(nuevo));
+            Ok(Some(nuevo))
         }
+        None => Ok(None),
     }
-    Ok(None)
 }
 
 /// Removes duplicated keys and repairs demo Comment when `modo` is Reparar.

@@ -1,5 +1,6 @@
 //! Project lifecycle: creation, edition, variant management, and sizing.
 
+pub(crate) mod componentes_variante;
 pub(crate) mod creacion;
 pub(crate) mod dimensionamiento;
 pub(crate) mod edicion;

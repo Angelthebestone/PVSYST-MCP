@@ -4,6 +4,7 @@ use crate::args::{flag, req_str, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::edit;
+use crate::projects::comentario::Comentario;
 use crate::projects::lifecycle::variantes::{
     entero_opcional, ruta_variante, stem_de, variant_files, variante_no_encontrada,
 };
@@ -40,21 +41,42 @@ fn aplicar_sizing(bytes: &[u8], args: &Value) -> Result<(Vec<u8>, Vec<Value>)> {
     ))
 }
 
-/// Project file bytes with the optional `comentario` applied to `pvProject`.
-fn prj_con_comentario(bytes: &[u8], args: &Value) -> Result<Vec<u8>> {
-    match args.get("comentario").and_then(Value::as_str) {
-        Some(c) => {
-            Ok(edit::edit_fields(bytes, "pvProject", &[("Comment".into(), Some(c.into()))])?.0)
-        }
-        None => Ok(bytes.to_vec()),
-    }
+/// Name of the new project: `nombre_nuevo`, or its alias `proyecto`.
+fn nombre_del_nuevo_proyecto(args: &Value) -> Result<&str> {
+    let nombre = req_str(
+        args,
+        &["nombre_nuevo", "proyecto"],
+        "name of the new project",
+    )?;
+    validar_nombre(nombre)?;
+    Ok(nombre)
+}
+
+/// Project and variant bytes of a new project, with `comentario` and sizing applied.
+struct Personalizado {
+    prj: Vec<u8>,
+    var: Vec<u8>,
+    applied: Vec<Value>,
+}
+
+/// Applies `comentario` (or the project name over a DEMO comment) and the sizing overrides.
+fn personalizar(args: &Value, prj_src: &[u8], var_src: &[u8]) -> Result<Personalizado> {
+    let comentario = Comentario {
+        explicito: args.get("comentario").and_then(Value::as_str),
+        nombre: nombre_del_nuevo_proyecto(args)?,
+    };
+    let (prj, mut applied) = comentario.aplicar(prj_src, "pvProject")?;
+    let (sizing, sizing_applied) = aplicar_sizing(var_src, args)?;
+    let (var, var_applied) = comentario.aplicar(&sizing, "pvVCalcul")?;
+    applied.extend(sizing_applied);
+    applied.extend(var_applied);
+    Ok(Personalizado { prj, var, applied })
 }
 
 pub(crate) fn crear_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
     let plantilla = req_str(args, &["plantilla"], "existing project to base on")?;
-    let nombre = req_str(args, &["nombre_nuevo"], "")?;
-    validar_nombre(nombre)?;
+    let nombre = nombre_del_nuevo_proyecto(args)?;
     let variante = args
         .get("variante")
         .and_then(|v| v.as_str())
@@ -83,13 +105,12 @@ pub(crate) fn crear_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     }
 
     let prj_src = fs::read(&src_prj).map_err(|e| Error::io("Read PRJ", e))?;
-    let prj_bytes = prj_con_comentario(&prj_src, args)?;
     let var_src = fs::read(&src_var).map_err(|e| Error::io("Read variant", e))?;
-    let (var_bytes, applied) = aplicar_sizing(&var_src, args)?;
+    let nuevo = personalizar(args, &prj_src, &var_src)?;
 
     let historial_id = escribir_par(
         &workspace,
-        &[(new_prj.clone(), prj_bytes), (new_var.clone(), var_bytes)],
+        &[(new_prj.clone(), nuevo.prj), (new_var.clone(), nuevo.var)],
     )?;
 
     Ok(json!({
@@ -97,7 +118,7 @@ pub(crate) fn crear_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
         "project_file": new_prj.to_string_lossy(),
         "variant_file": new_var.to_string_lossy(),
         "based_on": src_stem,
-        "applied": applied,
+        "applied": nuevo.applied,
         "historial_id": historial_id,
     }))
 }

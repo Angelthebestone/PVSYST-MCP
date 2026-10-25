@@ -1,4 +1,5 @@
 //! Sub-array DC sizing and nominal power deduction.
+use super::componentes_variante::{exigir_sin_pre_dimensionado, Componentes};
 use super::potencia_modulo::{pnom_del_modulo, ConsultaModulo};
 use crate::aproximaciones::{self, Aproximacion};
 use crate::args::missing;
@@ -197,12 +198,9 @@ pub(crate) fn dimensionar_variante(paths: &Paths, args: &Value) -> Result<Value>
         return dimensionar_en_archivo(paths, args);
     }
     let kwp = leer_kwp(args)?;
+    exigir_sin_pre_dimensionado(args)?;
+    aproximaciones::exigir_ruta_pvsyst_sin_workspace(paths, args, "El pre-dimensionado")?;
     let v = abrir_variante(paths, args)?;
-    if v.workspace != paths.workspace {
-        return Err(Error::Invalid(
-            "El pre-dimensionado lo hace PVsyst en su propio espacio de trabajo: no admite 'workspace'".into(),
-        ));
-    }
     crate::projects::gui::dimensionado::dimensionar(paths, &v.stem, &v.variante, kwp)
 }
 
@@ -215,11 +213,15 @@ fn dimensionar_en_archivo(paths: &Paths, args: &Value) -> Result<Value> {
         vpath,
         bytes,
     } = abrir_variante(paths, args)?;
+    let componentes = Componentes::leer(paths, args)?;
     let text = String::from_utf8_lossy(&bytes);
 
     let root = object::parse_first(&text)
         .ok_or_else(|| Error::Format("Variant is not a PVObject file".into()))?;
-    let pan_name = modulo_de_variante(&root)?;
+    let pan_name = match &componentes.modulo {
+        Some(m) => m.clone(),
+        None => modulo_de_variante(&root)?,
+    };
     let consulta = ConsultaModulo {
         paths,
         args,
@@ -234,7 +236,10 @@ fn dimensionar_en_archivo(paths: &Paths, args: &Value) -> Result<Value> {
         realised_kwp: disp.realised_kwp,
         n_inverter: leer_inversores(args, &root),
     };
-    let changes = cambios_de_dimensionado(&res);
+    let changes: Vec<_> = cambios_de_dimensionado(&res)
+        .into_iter()
+        .chain(componentes.cambios())
+        .collect();
     let (new_bytes, outcomes) = edit::edit_fields(&bytes, "pvSubArray", &changes)?;
     let historial_id = history::reemplazar(&workspace, &vpath, &new_bytes, "dimensionar_variante")?;
 

@@ -15,3 +15,4 @@ PVObject_SitePrj=pvSite
   Albedo=0.20
 End of PVObject pvSite
 Albedo=0.200,0.200,0.200,0.200,0.200,0.200,0.200,0.200,0.200,0.200,0.200,0.200,
+End of PVObject pvProject

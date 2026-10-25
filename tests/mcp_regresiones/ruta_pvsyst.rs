@@ -45,3 +45,21 @@ fn should_reject_workspace_override_on_pvgis_horizon_pvsyst_route() {
     let msg = error_text(&resp);
     assert!(msg.contains("no admite 'workspace'"), "msg={msg}");
 }
+
+#[test]
+fn should_reject_workspace_override_on_p50_configuration_pvsyst_route() {
+    let configurado = synthetic_workspace();
+    let otro = synthetic_workspace();
+    let configurado_str = configurado.path().to_string_lossy().to_string();
+    let otro_str = otro.path().to_string_lossy().to_string();
+    let mut c = Client::start(Some(&configurado_str));
+    c.initialize();
+
+    let resp = c.call(
+        31,
+        "proyecto",
+        json!({ "accion": "p50_p90", "proyecto": "SYNTH_Plant", "workspace": otro_str }),
+    );
+    let msg = error_text(&resp);
+    assert!(msg.contains("no admite 'workspace'"), "msg={msg}");
+}
