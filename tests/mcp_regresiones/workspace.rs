@@ -1,14 +1,6 @@
-use super::cliente_mcp::{synthetic_workspace, tool_text, Client};
+use super::cliente_mcp::{error_text, synthetic_workspace, tool_text, Client};
 use serde_json::{json, Value};
 use std::fs;
-
-fn error_text(resp: &Value) -> String {
-    assert_eq!(resp["result"]["isError"], json!(true), "resp={resp}");
-    resp["result"]["content"][0]["text"]
-        .as_str()
-        .unwrap_or_else(|| panic!("sin texto en {resp}"))
-        .to_string()
-}
 
 #[test]
 fn should_reject_a_discordant_closing_type() {

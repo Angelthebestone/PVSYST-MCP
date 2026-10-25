@@ -51,6 +51,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   values is an error.
 - **`mcpb/manifest.json` matched the code again.** The `proyecto` description had
   drifted; a test now fails when manifest and tool declarations diverge.
+- **Aliases work for clients that validate the schema.** `tools/list` listed only
+  the canonical values in each `accion`/`que` enum and the canonical names in
+  `required`, so a validating client rejected `que:"modules"`, `{"file": …}` or
+  `{"action": …}` before the server saw them. The enums now include the aliases
+  and an argument that has an alias is not in `required` (its description says
+  "Requerido."; the server still enforces it after alias normalization).
+- **No hidden action or in-house route is named without
+  `PVSYST_MCP_APROXIMACIONES`.** The tool descriptions of `simular`, `sitio` and
+  `resultados` and the `via` description still spelled them out.
+- **`listar.texto` is no longer described as GUI input.** The GUI argument
+  annotations were keyed by property name only; they now apply to `gui_*` tools.
+- **Integer arguments honour their declared bounds.** `workspace historial n:-1`
+  was accepted and ignored; `n`, `lineas` and `n_baterias_*` are checked against
+  the same table that writes `minimum`/`maximum` into the schema.
+- **`tools/call` without a string `name` says so** instead of "Unknown tool ''".
+- **A non-numeric coordinate is reported as such.** `sitio crear latitud:"abc"`
+  answered "Missing required argument 'latitud'"; the three duplicate number
+  readers of `sites` collapse into `args::req_numero`.
+- **`escribir_archivo` can write an empty file** (`contenido:""` counted as missing).
+- **`leer` refuses empty and truncated PVObject files.** An empty `.PRJ` or a
+  `.PRJ`/`.SIT`/`.MET` cut off mid-structure came back as a success with empty
+  sections; one check in `format::object::parse_completo` now serves every reader.
+  Hints no longer name tools that do not exist (`leer_archivo`, `leer_objeto`,
+  `listar_objetos`, `listar_proyectos`, `leer_modulo`).
+- **`simular` reports the CSV and PDF it passes to PVsystCLI**, in `dry_run` and
+  in the real run, taken from the same values that build `-ocf`/`-rpf`.
+- **GUI: a click on a window a modal disables is an error.** `clic_texto`,
+  `click`, `clic_fisico`, `cerrar`, `escribir`, `seleccionar` and `pagina` returned
+  success while Windows dropped the input; they now fail with the same message
+  `funcion` already gave, naming the dialog that blocks it. `cerrar` also fails
+  when the window is still open after the wait, and a window that is already gone
+  reads "no encontrada (¿ya cerrada?)".
+- **GUI: a refused tab change is visible.** `pagina` reads the selected tab back
+  (`TCM_GETCURSEL`) and fails when PVsyst's field validation vetoed the change;
+  `clic_texto` on a tab strip adds an `advertencias` entry when the tab did not
+  change. `formulario` marked every tab `seleccionada:false` (it reported the UI
+  Automation capability, not the selection).
+- **GUI: `capturar` refuses a hidden control** instead of returning a uniform grey
+  PNG; `vista` honours `compacto`.
 
 ### Changed
 

@@ -10,6 +10,9 @@
 
 mod cliente_mcp;
 
+#[path = "mcp_regresiones/argumentos.rs"]
+mod argumentos;
+
 #[path = "mcp_regresiones/diseno.rs"]
 mod diseno;
 

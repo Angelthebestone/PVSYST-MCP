@@ -175,6 +175,15 @@ pub fn tool_text(resp: &Value) -> Value {
     serde_json::from_str(text).unwrap_or_else(|e| panic!("tool text not json: {e} in {text}"))
 }
 
+/// Text of a tool error: asserts the call failed and returns its message.
+pub fn error_text(resp: &Value) -> String {
+    assert_eq!(resp["result"]["isError"], json!(true), "resp={resp}");
+    resp["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap_or_else(|| panic!("sin texto en {resp}"))
+        .to_string()
+}
+
 /// Path of a file under the repository's `tests/fixtures` folder.
 pub fn fixture(rel: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
