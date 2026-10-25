@@ -24,10 +24,7 @@ pub(crate) fn clic_texto(args: &Value) -> Result<Value> {
     let indice = opt_u32(args, "indice")?.map(|i| i as usize);
     let h = hwnd_de(args, "ventana")?;
     modal::exigir_habilitada(h, modal::PARA_ACTUAR)?;
-    let lineas = lineas_vivas(h)?;
-    let cajas = ubicar_texto(&segmentar_lineas(&lineas, &[]), texto);
-    let caja = elegir_caja(&cajas, indice, texto)?;
-    let punto = ((caja.left + caja.right) / 2, (caja.top + caja.bottom) / 2);
+    let (punto, coincidencias) = punto_de_clic(h, texto, indice)?;
     let objetivo = ffi::control_en_punto(h, punto);
     let pestana_antes = pestana_seleccionada(objetivo);
     ffi::clic_en_pantalla(objetivo, punto).map_err(|fallo| match fallo {
@@ -41,7 +38,7 @@ pub(crate) fn clic_texto(args: &Value) -> Result<Value> {
     let mut resultado = json!({
         "accion": "clic_texto",
         "texto": texto,
-        "coincidencias": cajas.len(),
+        "coincidencias": coincidencias,
         "punto": { "x": punto.0, "y": punto.1 },
         "control": { "hwnd": format!("0x{objetivo:X}"), "clase": class_of(objetivo) },
     });
@@ -50,6 +47,23 @@ pub(crate) fn clic_texto(args: &Value) -> Result<Value> {
         obj.insert("advertencias".into(), json!([aviso]));
     }
     Ok(resultado)
+}
+
+/// Screen point to click for `texto`: the OCR box chosen by `indice`, or, when
+/// OCR does not draw the text (VCL buttons sometimes lack pixels), the centre
+/// of the UIA element with that name. Returns the point and OCR match count.
+fn punto_de_clic(h: Hwnd, texto: &str, indice: Option<usize>) -> Result<((i32, i32), usize)> {
+    let lineas = lineas_vivas(h)?;
+    let cajas = ubicar_texto(&segmentar_lineas(&lineas, &[]), texto);
+    match elegir_caja(&cajas, indice, texto) {
+        Ok(caja) => Ok((
+            ((caja.left + caja.right) / 2, (caja.top + caja.bottom) / 2),
+            cajas.len(),
+        )),
+        Err(ocr) => crate::adapters::uia::centro(h, Some(texto), None)
+            .map(|punto| (punto, cajas.len()))
+            .map_err(|_| ocr),
+    }
 }
 
 /// Tab selected in `control` when it is a page control, which a click may switch.
