@@ -222,20 +222,13 @@ fn transponer_filas(filas: &[Value], num_vars: usize) -> Result<Vec<Vec<f64>>> {
     Ok(cols)
 }
 
-fn actualizar_serie(
+pub(crate) fn actualizar_serie(
     mut serie: SerieHoraria,
     variables: &[String],
     valores_por_var: &[Vec<f64>],
 ) -> Result<SerieHoraria> {
     for (nombre, vals) in variables.iter().zip(valores_por_var.iter()) {
-        let meta_opt = serie.metadatos.iter().find(|m| &m.nombre == nombre);
-        let (factor, tipo) = meta_opt.map_or_else(
-            || {
-                let t = TipoVariable::de_metadatos("", nombre);
-                (t.wr_factor_defecto(), t)
-            },
-            |m| (m.wr_factor, m.tipo),
-        );
+        let (factor, tipo) = factor_y_tipo(&serie, nombre)?;
         let crudos: Vec<i64> = vals
             .iter()
             .map(|&v| fisico_a_crudo(v, factor, tipo))
@@ -253,6 +246,21 @@ fn actualizar_serie(
         }
     }
     Ok(serie)
+}
+
+/// Scale and type of a variable: from the file when it already has the column,
+/// otherwise from the PVsyst catalog. Names outside both are rejected, never added.
+fn factor_y_tipo(serie: &SerieHoraria, nombre: &str) -> Result<(f64, TipoVariable)> {
+    if let Some(m) = serie.metadatos.iter().find(|m| m.nombre == nombre) {
+        return Ok((m.wr_factor, m.tipo));
+    }
+    let tipo = TipoVariable::de_metadatos("", nombre);
+    if tipo == TipoVariable::Otro {
+        return Err(Error::Invalid(format!(
+            "Variable desconocida '{nombre}': no existe en el archivo ni en el catálogo PVsyst"
+        )));
+    }
+    Ok((tipo.wr_factor_defecto(), tipo))
 }
 
 fn ensamblar_archivo(original: &str, nuevo_cuerpo: &str) -> Result<String> {

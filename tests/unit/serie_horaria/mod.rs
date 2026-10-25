@@ -158,3 +158,33 @@ fn should_reencode_entire_met_body_byte_identically() {
     let reencoded = codificar(&serie).expect("encode body");
     assert_eq!(reencoded, body);
 }
+
+#[test]
+fn should_reject_a_variable_that_is_neither_in_the_file_nor_in_the_catalog() {
+    let serie = vacia_serie();
+    let vars = vec!["ZZ_NoExiste".to_string()];
+    let err = super::aplicacion::actualizar_serie(serie, &vars, &[vec![1.0; 8760]])
+        .expect_err("unknown variable must be rejected");
+    assert!(matches!(err, Error::Invalid(_)), "{err:?}");
+    assert!(err.to_string().contains("ZZ_NoExiste"), "{err}");
+}
+
+#[test]
+fn should_accept_a_catalog_variable_missing_from_the_file() {
+    let serie = vacia_serie();
+    let vars = vec!["GlobHor".to_string()];
+    let actualizada = super::aplicacion::actualizar_serie(serie, &vars, &[vec![0.0; 8760]])
+        .expect("catalog variable");
+    assert_eq!(actualizada.variables, vars);
+}
+
+fn vacia_serie() -> SerieHoraria {
+    SerieHoraria {
+        top_line: String::new(),
+        variables: Vec::new(),
+        metadatos: Vec::new(),
+        dias: Vec::new(),
+        horas: Vec::new(),
+        valores_crudos: std::collections::HashMap::new(),
+    }
+}

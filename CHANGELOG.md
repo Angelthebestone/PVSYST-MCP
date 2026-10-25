@@ -25,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   move the whole project (PRJ and every VC/CM file) to the recycle bin. Now only
   the named variant and its `Results/<proyecto>_<VARIANTE>.csv|pdf` are moved; an
   unknown variant is an error that names it.
+- **`sitio escribir_serie` rejects unknown variables.** A name that is neither a
+  column of the file nor in the PVsyst catalog (e.g. `ZZ_NoExiste`) was appended
+  as a new column with unit `u`; it is now an error that names the variable, and
+  the file is left unchanged.
 - **The remaining loose aliases of `sitio` and `disenar_sistema`** (`fuente`,
   `zona_horaria`, `pais`, `inclinacion`, `azimuth`, `potencia_kwp`…) live in the
   same synonym tables, so they are validated and announced like the rest.
