@@ -59,6 +59,12 @@ fn respuesta_dry_run(
     })
 }
 
+/// Trial cost a real run would charge: estimated executions and what the licence has left.
+fn costo_estimado(workspace: &Path, ejecuciones: u32) -> Value {
+    let restantes = crate::adapters::ledger::estado(workspace).and_then(|e| e.restantes);
+    json!({ "ejecuciones": ejecuciones, "restantes": restantes })
+}
+
 fn agregar_aviso_gui(resultado: &mut Value, e: &Error) {
     if let Some(obj) = resultado.as_object_mut() {
         obj.insert("gui_error".to_string(), json!(e.to_string()));
@@ -117,6 +123,12 @@ pub(crate) fn lanzar_simulacion_seguida(
         if let Some(obj) = respuesta.as_object_mut() {
             obj.insert("output_csv".into(), json!(output_csv));
             obj.insert("report_pdf".into(), json!(report_pdf));
+            let ejecuciones = preparacion::ejecuciones_previstas(&cli_args);
+            obj.insert(
+                "costo_estimado".into(),
+                costo_estimado(&workspace, ejecuciones),
+            );
+            obj.insert("max_ejecuciones".into(), json!(ejecuciones));
         }
         return Ok(respuesta);
     }

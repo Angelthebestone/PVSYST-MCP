@@ -151,6 +151,19 @@ fn should_report_the_resolved_csv_once_in_a_dry_run() {
 }
 
 #[test]
+fn should_report_trial_cost_estimate_and_cap_in_a_dry_run() {
+    let ws = synthetic_workspace();
+    let mut c = servidor(&ws);
+    let dado = tool_text(&c.call(
+        1,
+        "simular",
+        json!({ "proyecto": "SYNTH_Plant", "dry_run": true }),
+    ));
+    assert_eq!(dado["costo_estimado"]["ejecuciones"], 1, "data={dado}");
+    assert_eq!(dado["max_ejecuciones"], 1, "data={dado}");
+}
+
+#[test]
 fn should_reject_a_count_below_its_declared_minimum() {
     let ws = synthetic_workspace();
     let mut c = servidor(&ws);
@@ -336,7 +349,11 @@ fn should_list_resumen_as_a_resultados_action() {
     let mut c = servidor(&ws);
     let tools = c.request(2, "tools/list", json!({}));
     let que = &herramienta(&tools, "resultados")["inputSchema"]["properties"]["que"]["enum"];
-    assert!(que.as_array().is_some_and(|v| v.iter().any(|x| x == "resumen")), "{que}");
+    assert!(
+        que.as_array()
+            .is_some_and(|v| v.iter().any(|x| x == "resumen")),
+        "{que}"
+    );
 }
 
 #[test]

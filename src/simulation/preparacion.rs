@@ -119,7 +119,7 @@ pub(crate) fn preparar(args: &Value, workspace: &Path, cli_args: &[String]) -> R
     let ocf = opt_str(args, &["output_csv"]).map(str::to_string);
     let rpf = opt_str(args, &["report_pdf"]).map(str::to_string);
     let lote = cli_args.iter().any(|a| a.starts_with("-bpf:"));
-    let ejecuciones: u32 = if lote { 2 } else { 1 };
+    let ejecuciones = ejecuciones_previstas(cli_args);
     let (clave, advertencia_cache) = if lote || flag(args, &["sin_cache"]) {
         (None, None)
     } else {
@@ -160,4 +160,16 @@ pub(crate) fn preparar(args: &Value, workspace: &Path, cli_args: &[String]) -> R
         ejecuciones,
         inicio: std::time::SystemTime::now(),
     }))
+}
+
+const EJECUCIONES_LOTE: u32 = 2;
+const EJECUCIONES_SIMPLE: u32 = 1;
+
+/// Trial executions one `run-simulation` call is charged: batch runs (`-bpf:`) cost two.
+pub(crate) fn ejecuciones_previstas(cli_args: &[String]) -> u32 {
+    if cli_args.iter().any(|a| a.starts_with("-bpf:")) {
+        EJECUCIONES_LOTE
+    } else {
+        EJECUCIONES_SIMPLE
+    }
 }
