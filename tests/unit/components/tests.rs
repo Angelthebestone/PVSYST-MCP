@@ -241,3 +241,12 @@ fn should_reject_editing_legacy_component_in_read_only_database() {
     let err = editar_componente(&paths, &args).unwrap_err();
     assert!(matches!(err, Error::Invalid(msg) if msg.contains("solo lectura")));
 }
+
+#[test]
+fn should_resolve_component_type_aliases_to_their_pvsyst_codes() {
+    assert_eq!(tipo_canonico("inverters"), Some(("OND", "Inverters")));
+    assert_eq!(tipo_canonico("INVERSOR"), Some(("OND", "Inverters")));
+    assert_eq!(tipo_canonico("modules"), Some(("PAN", "PVModules")));
+    assert_eq!(tipo_canonico("pan"), Some(("PAN", "PVModules")));
+    assert_eq!(tipo_canonico("desconocido"), None);
+}

@@ -40,9 +40,37 @@ pub(crate) const KINDS: &[(&str, &str)] = &[
     ("CLI", "Clients"),
 ];
 
+/// Spanish/English names accepted as `tipo` in addition to the extension codes.
+const ALIAS_TIPO: &[(&str, &str)] = &[
+    ("MODULO", "PAN"),
+    ("MODULOS", "PAN"),
+    ("MODULES", "PAN"),
+    ("INVERSOR", "OND"),
+    ("INVERSORES", "OND"),
+    ("INVERTERS", "OND"),
+    ("BATERIA", "BTR"),
+    ("BATERIAS", "BTR"),
+    ("BATTERIES", "BTR"),
+    ("BOMBA", "PMP"),
+    ("BOMBAS", "PMP"),
+    ("PUMPS", "PMP"),
+];
+
+/// Canonical `(extension, ComposPV folder)` for a `tipo` given as extension, PVsyst folder name or alias.
+pub(crate) fn tipo_canonico(tipo: &str) -> Option<(&'static str, &'static str)> {
+    let up = tipo.trim_start_matches('.').to_uppercase();
+    let directo = KINDS
+        .iter()
+        .copied()
+        .find(|(e, f)| *e == up || f.to_uppercase() == up);
+    directo.or_else(|| {
+        let (_, ext) = ALIAS_TIPO.iter().copied().find(|(a, _)| *a == up)?;
+        KINDS.iter().copied().find(|(e, _)| *e == ext)
+    })
+}
+
 pub(crate) fn folder_for(kind: &str) -> Option<&'static str> {
-    let up = kind.trim_start_matches('.').to_uppercase();
-    KINDS.iter().find(|(e, _)| *e == up).map(|(_, f)| *f)
+    tipo_canonico(kind).map(|(_, f)| f)
 }
 
 /// Resolve the workspace ComposPV sub-folder, honouring PVsyst's casing.
@@ -70,7 +98,7 @@ pub(crate) fn listar_componentes(paths: &Paths, args: &Value) -> Result<Value> {
         .or_else(|| args.get("kind"))
         .and_then(|v| v.as_str())
         .unwrap_or("PAN");
-    let folder = folder_for(kind).ok_or_else(|| {
+    let (canon, folder) = tipo_canonico(kind).ok_or_else(|| {
         Error::Invalid(format!(
             "Unknown component kind '{}'. Known: {}",
             kind,
@@ -82,7 +110,7 @@ pub(crate) fn listar_componentes(paths: &Paths, args: &Value) -> Result<Value> {
     // Fallback to the bundled read-only database.
     dirs.push(crate::config::compos_ro().join(folder));
 
-    let ext = kind.trim_start_matches('.').to_lowercase();
+    let ext = canon.to_lowercase();
     let mut items: Vec<Value> = Vec::new();
     let mut source = String::new();
     for dir in dirs.iter().filter(|d| d.exists()) {
@@ -148,6 +176,7 @@ fn aplicar_cambios(bytes: &mut Vec<u8>, args: &Value) -> Result<Vec<Value>> {
                 return Ok(Vec::new());
             };
             let changes = edit::changes_from_json(cambios);
+            edit::reject_invalid_keys(&changes)?;
             if changes.is_empty() {
                 return Ok(Vec::new());
             }
@@ -174,6 +203,7 @@ fn aplicar_cambios(bytes: &mut Vec<u8>, args: &Value) -> Result<Vec<Value>> {
         return Ok(Vec::new());
     };
     let changes = edit::changes_from_json(cambios);
+    edit::reject_invalid_keys(&changes)?;
     if changes.is_empty() {
         return Ok(Vec::new());
     }
