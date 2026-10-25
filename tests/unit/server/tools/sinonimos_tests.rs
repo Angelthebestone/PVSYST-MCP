@@ -1,6 +1,17 @@
 use super::*;
 
 #[test]
+fn should_accept_file_as_alias_for_archivo_in_leer() {
+    let paths = Paths::resolve();
+    let res = call(&paths, "leer", &json!({ "file": "Currency.dat" }));
+    assert!(
+        res.is_ok(),
+        "alias 'file' should resolve to canonical 'archivo': {:?}",
+        res.err()
+    );
+}
+
+#[test]
 fn should_produce_same_preparar_args_for_alias_and_canonical() {
     let tool_leer = REGISTRO.iter().find(|h| h.nombre == "leer").unwrap();
     let args_can = json!({ "archivo": "Demo.PRJ" });

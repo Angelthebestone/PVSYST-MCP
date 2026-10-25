@@ -2,6 +2,7 @@ use super::aplicacion::leer_escena;
 use super::codec::parse_escena_3d;
 use super::dominio::TipoArchivoEscena;
 use crate::config::Paths;
+use crate::error::Error;
 use serde_json::json;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -135,6 +136,19 @@ fn should_reject_external_absolute_path_without_permission() {
     };
     let err = leer_escena(&paths, &json!({ "archivo": ruta_externa }));
     assert!(err.is_err());
+}
+
+#[test]
+fn should_reject_truncated_3d_file() {
+    let err_vacio = parse_escena_3d(b"", TipoArchivoEscena::Shd).unwrap_err();
+    assert!(matches!(&err_vacio, Error::Invalid(msg) if msg.contains("vacío")));
+
+    let err_sin_crlf = parse_escena_3d(b"pvShading", TipoArchivoEscena::Shd).unwrap_err();
+    assert!(matches!(&err_sin_crlf, Error::Invalid(msg) if msg.contains("insuficiente")));
+
+    let err_una_linea =
+        parse_escena_3d(b"pvShading;Desc;\r\n", TipoArchivoEscena::Shd).unwrap_err();
+    assert!(matches!(&err_una_linea, Error::Invalid(msg) if msg.contains("insuficiente")));
 }
 
 #[test]
