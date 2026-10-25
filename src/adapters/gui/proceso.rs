@@ -19,7 +19,8 @@ pub(crate) fn gui_running() -> bool {
 }
 
 /// `gui_actuar accion:cerrar_todo`: closes every visible top window of the
-/// running PVsyst the way its own close button does (`cancelar` prefers Cancelar).
+/// running PVsyst. It presses Cancelar/No before the default buttons unless the call
+/// passes `cancelar:false`, so a save prompt is never accepted by accident.
 pub(crate) fn cerrar_todo(_paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     let pids = pids_de_ejecutable("PVsyst.exe");
     let ventanas_vivas: Vec<ffi::Hwnd> = pids
@@ -27,8 +28,12 @@ pub(crate) fn cerrar_todo(_paths: &crate::config::Paths, args: &Value) -> Result
         .flat_map(|p| enum_windows_de(*p))
         .filter(|h| visible(*h))
         .collect();
+    let mut con_cancelar = args.clone();
+    if let Some(argumentos) = con_cancelar.as_object_mut() {
+        argumentos.entry("cancelar").or_insert(json!(true));
+    }
     for h in &ventanas_vivas {
-        super::acciones::cerrar_ventana(*h, args)?;
+        super::acciones::cerrar_ventana(*h, &con_cancelar)?;
     }
     Ok(json!({
         "accion": "cerrar_todo",
