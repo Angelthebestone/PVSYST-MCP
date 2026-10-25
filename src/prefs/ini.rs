@@ -158,17 +158,27 @@ pub(crate) fn reemplazar_clave(
 ///
 /// Without `seccion` returns only the key count per section, so routine calls
 /// stay small; pass `seccion` to see its keys and values.
+/// Pass `clave` together with `seccion` to return only that key.
 pub(crate) fn preferencias(_paths: &Paths, args: &Value) -> Result<Value> {
     let ruta = ini_path()?;
     let (texto, _) = decodificar(&leer(&ruta)?);
     let mut secciones = parsear(&texto);
+    let clave_pedida = opt_str(args, &["clave"]);
+    if clave_pedida.is_some() && opt_str(args, &["seccion"]).is_none() {
+        return Err(Error::Invalid(
+            "'clave' requiere 'seccion': PVsyst.ini se consulta por sección".into(),
+        ));
+    }
     if let Some(sel) = opt_str(args, &["seccion"]) {
         let clave = secciones
             .keys()
             .find(|k| k.eq_ignore_ascii_case(sel))
             .cloned()
             .ok_or_else(|| Error::NotFound(format!("Sección '{sel}' no existe en PVsyst.ini")))?;
-        let valor = secciones.remove(&clave).unwrap_or(Value::Null);
+        let mut valor = secciones.remove(&clave).unwrap_or(Value::Null);
+        if let Some(pedida) = clave_pedida {
+            valor = filtrar_clave(&valor, pedida)?;
+        }
         secciones = Map::from_iter([(clave, valor)]);
         return Ok(json!({
             "archivo": ruta.display().to_string(),
@@ -183,6 +193,15 @@ pub(crate) fn preferencias(_paths: &Paths, args: &Value) -> Result<Value> {
         "archivo": ruta.display().to_string(),
         "secciones": conteo,
     }))
+}
+
+/// Keeps only `clave` (case-insensitive) from a section's key/value object.
+fn filtrar_clave(valor: &Value, clave: &str) -> Result<Value> {
+    valor
+        .as_object()
+        .and_then(|o| o.iter().find(|(k, _)| k.eq_ignore_ascii_case(clave)))
+        .map(|(k, v)| Value::Object(Map::from_iter([(k.clone(), v.clone())])))
+        .ok_or_else(|| Error::NotFound(format!("Clave '{clave}' no existe en la sección")))
 }
 
 /// Set one key in the GUI preferences. The previous file is snapshotted under
