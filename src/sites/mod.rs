@@ -1,7 +1,9 @@
 //! Site and weather-data operations, backed by the documented PVsystCLI
 //! (`create-site`, `convert-meteo`). No logic is reimplemented.
 
+pub(crate) mod entrada;
 pub(crate) mod nasa;
+mod peticion;
 pub(crate) mod pvgis;
 pub(crate) mod readers;
 pub(crate) mod reuse;
@@ -12,6 +14,8 @@ use crate::args::{flag, missing, req_numero, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::value_text;
+use entrada::{exigir_archivo, validar_coordenadas, validar_region, validar_timeshift};
+use peticion::construir_peticion_crear;
 use serde_json::{json, Value};
 
 /// Textual form of a JSON scalar (string/number/bool); `None` for the rest.
@@ -98,6 +102,11 @@ pub(crate) fn crear_sitio(paths: &Paths, args: &Value) -> Result<Value> {
     let req = |key: &str| texto(args, &[key]).ok_or_else(|| missing(key, ""));
     let name = req("nombre_sitio")?;
     crate::workspace::validar_nombre(&name)?;
+    validar_region(args)?;
+    validar_coordenadas(
+        req_numero(args, "latitud", "")?,
+        req_numero(args, "longitud", "")?,
+    )?;
     let mut opciones = vec![
         format!("-sn:{name}"),
         format!("-lat:{}", req("latitud")?),
@@ -117,6 +126,7 @@ pub(crate) fn crear_sitio(paths: &Paths, args: &Value) -> Result<Value> {
 }
 
 pub(crate) fn convertir_meteo(paths: &Paths, args: &Value) -> Result<Value> {
+    validar_timeshift(args)?;
     let req = |key: &str| texto(args, &[key]).ok_or_else(|| missing(key, ""));
     let icf_raw = req("input_csv_file")?;
     let imf_raw = req("input_mef_file")?;
@@ -127,6 +137,9 @@ pub(crate) fn convertir_meteo(paths: &Paths, args: &Value) -> Result<Value> {
     let icf = crate::workspace::resolver_ruta(&ws, &icf_raw, alcance)?;
     let imf = crate::workspace::resolver_ruta(&ws, &imf_raw, alcance)?;
     let isf = crate::workspace::resolver_ruta(&ws, &isf_raw, alcance)?;
+    exigir_archivo("input_csv_file", &icf)?;
+    exigir_archivo("input_mef_file", &imf)?;
+    exigir_archivo("input_sit_file", &isf)?;
     let omf = crate::workspace::resolver_ruta(&ws, &omf_raw, alcance)?;
     let mut opciones = vec![
         format!("-icf:{}", icf.display()),
@@ -196,10 +209,26 @@ fn sitio_reutilizado(ws: &std::path::Path, args: &Value, (lat, lon): (f64, f64))
     if flag(args, &["forzar"]) || args.get("output_sit_file").is_some() {
         return None;
     }
-    let mut existente = reuse::buscar_existente(ws, lat, lon, num(args, "altitud"))?;
+    let busqueda = reuse::Busqueda {
+        coordenadas: (lat, lon),
+        altitud: num(args, "altitud"),
+        nombre: args.get("nombre_sitio").and_then(Value::as_str),
+    };
+    let mut existente = reuse::buscar_existente(ws, busqueda)?;
     existente["create_site"] = json!({ "success": true, "reutilizado": true });
     existente["costo"] = json!({ "ejecuciones": 0 });
     Some(existente)
+}
+
+/// An explicit `nombre_sitio` may not overwrite a different site unless `forzar` is set.
+fn exigir_nombre_libre_si_explicito(ws: &std::path::Path, args: &Value, name: &str) -> Result<()> {
+    if args.get("nombre_sitio").is_none()
+        || args.get("output_sit_file").is_some()
+        || flag(args, &["forzar"])
+    {
+        return Ok(());
+    }
+    reuse::exigir_nombre_libre(ws, name)
 }
 
 /// Create a site from **coordinates alone**: monthly weather is derived from the
@@ -208,17 +237,20 @@ fn sitio_reutilizado(ws: &std::path::Path, args: &Value, (lat, lon): (f64, f64))
 pub(crate) fn crear_sitio_coordenadas(paths: &Paths, args: &Value) -> Result<Value> {
     let lat = req_numero(args, "latitud", "")?;
     let lon = req_numero(args, "longitud", "")?;
+    validar_coordenadas(lat, lon)?;
     let name = args
         .get("nombre_sitio")
         .and_then(|v| v.as_str())
         .map_or_else(|| nombre_por_coordenadas(lat, lon), String::from);
     crate::workspace::validar_nombre(&name)?;
+    validar_region(args)?;
 
     let clim = nasa::climatology(lat, lon)?;
     let ws = crate::args::workspace_of(paths, args);
     if let Some(existente) = sitio_reutilizado(&ws, args, (lat, lon)) {
         return Ok(resumen_clima(existente, &clim));
     }
+    exigir_nombre_libre_si_explicito(&ws, args, &name)?;
     let csv_path = escribir_csv_mensual(&ws, &name, &clim)?;
 
     let out_sit = ruta_sit(&ws, args, &name)?;
@@ -245,34 +277,6 @@ pub(crate) fn crear_sitio_coordenadas(paths: &Paths, args: &Value) -> Result<Val
         );
     }
     Ok(out)
-}
-
-fn construir_peticion_crear(
-    name: &str,
-    (lat, lon): (f64, f64),
-    clim: &nasa::Climatology,
-    csv_path: &std::path::Path,
-    out_sit: &str,
-    args: &Value,
-) -> Value {
-    let mut v = json!({
-        "nombre_sitio": name,
-        "latitud": lat,
-        "longitud": lon,
-        "altitud": args.get("altitud").cloned().unwrap_or(json!(0)),
-        "timezone": num(args, "timezone").unwrap_or_else(|| (lon / 15.0).round()),
-        "weather_data_file": csv_path.to_string_lossy(),
-        "output_sit_file": out_sit,
-        "country_code": args.get("country_code").cloned().unwrap_or(json!("")),
-        "region": args.get("region").cloned().unwrap_or(json!("")),
-        "source": format!("NASA SSE grid cell {}/{}", clim.cell_lat, clim.cell_lon),
-        "dry_run": args.get("dry_run").cloned().unwrap_or(json!(false)),
-        "timeout_s": args.get("timeout_s").cloned().unwrap_or(Value::Null),
-    });
-    if let Some(ws_val) = args.get("workspace") {
-        v["workspace"] = ws_val.clone();
-    }
-    v
 }
 
 /// Adds the NASA climatology summary to a site response (fresh or reused).

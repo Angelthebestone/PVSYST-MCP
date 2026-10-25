@@ -2,6 +2,7 @@
 //! for the same coordinates (and altitude, when given) is returned instead of
 //! running PVsystCLI again.
 
+use crate::error::{Error, Result};
 use serde_json::{json, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -37,19 +38,29 @@ fn coincide(texto: &str, (lat, lon): (f64, f64), altitud: Option<f64>) -> bool {
     origen_nasa && cerca(numero("Latitude"), lat) && cerca(numero("Longitude"), lon) && altitud_ok
 }
 
+/// What `buscar_existente` looks for: the coordinates, an optional altitude and,
+/// when the caller named the site, only the site with that name.
+#[derive(Clone, Copy)]
+pub(crate) struct Busqueda<'a> {
+    pub(crate) coordenadas: (f64, f64),
+    pub(crate) altitud: Option<f64>,
+    pub(crate) nombre: Option<&'a str>,
+}
+
 /// Existing site in `<workspace>/Sites` matching the coordinates, as a response value
 /// with `reutilizado:true`, or `None` when the CLI must create one.
-pub(crate) fn buscar_existente(
-    workspace: &Path,
-    lat: f64,
-    lon: f64,
-    altitud: Option<f64>,
-) -> Option<Value> {
+pub(crate) fn buscar_existente(workspace: &Path, busqueda: Busqueda<'_>) -> Option<Value> {
+    let Busqueda {
+        coordenadas: (lat, lon),
+        altitud,
+        nombre,
+    } = busqueda;
     let mut sitios: Vec<PathBuf> = fs::read_dir(workspace.join("Sites"))
         .ok()?
         .filter_map(Result::ok)
         .map(|e| e.path())
         .filter(|p| p.extension().is_some_and(|x| x.eq_ignore_ascii_case("SIT")))
+        .filter(|p| nombre.is_none_or(|n| p.file_stem().is_some_and(|s| s.eq_ignore_ascii_case(n))))
         .collect();
     sitios.sort();
     sitios.into_iter().find_map(|sit| {
@@ -69,6 +80,20 @@ pub(crate) fn buscar_existente(
             "longitud": lon,
         }))
     })
+}
+
+/// An explicit `nombre_sitio` must not overwrite a site that exists with other coordinates.
+pub(crate) fn exigir_nombre_libre(workspace: &Path, nombre: &str) -> Result<()> {
+    if workspace
+        .join("Sites")
+        .join(format!("{nombre}.SIT"))
+        .is_file()
+    {
+        return Err(Error::Invalid(format!(
+            "'nombre_sitio' '{nombre}' ya existe con otras coordenadas: use otro nombre o 'forzar'"
+        )));
+    }
+    Ok(())
 }
 
 #[cfg(test)]

@@ -1,4 +1,5 @@
-use super::coincide;
+use super::{buscar_existente, coincide, exigir_nombre_libre, Busqueda};
+use std::fs;
 
 const SIT: &str = "\u{feff}Source=NASA SSE grid cell 7/-74\r\nLatitude=7.0708\r\nLongitude=-73.8385\r\nAltitude=100\r\n";
 
@@ -22,4 +23,48 @@ fn should_only_compare_altitude_when_provided() {
 fn should_not_reuse_sites_from_other_sources() {
     let otro = SIT.replace("NASA SSE grid cell", "Otro origen");
     assert!(!coincide(&otro, (7.0708, -73.8385), None));
+}
+
+fn workspace_con_sitio(nombre: &str) -> tempfile::TempDir {
+    let ws = tempfile::tempdir().expect("tempdir");
+    let sites = ws.path().join("Sites");
+    fs::create_dir_all(&sites).expect("Sites");
+    fs::write(sites.join(format!("{nombre}.SIT")), SIT).expect("sit");
+    ws
+}
+
+#[test]
+fn should_refuse_an_explicit_site_name_that_already_exists() {
+    let ws = workspace_con_sitio("Mi");
+    let msg = exigir_nombre_libre(ws.path(), "Mi")
+        .expect_err("name in use")
+        .to_string();
+    assert!(
+        msg.contains("nombre_sitio") && msg.contains("forzar"),
+        "msg={msg}"
+    );
+}
+
+#[test]
+fn should_accept_an_explicit_site_name_that_is_free() {
+    let ws = workspace_con_sitio("Mi");
+    assert!(exigir_nombre_libre(ws.path(), "Libre").is_ok());
+}
+
+#[test]
+fn should_only_reuse_the_named_site_when_a_name_is_given() {
+    let ws = workspace_con_sitio("Otro");
+    let coordenadas = (7.0708, -73.8385);
+    let por_nombre = Busqueda {
+        coordenadas,
+        altitud: None,
+        nombre: Some("Mi"),
+    };
+    assert!(buscar_existente(ws.path(), por_nombre).is_none());
+    let sin_nombre = Busqueda {
+        coordenadas,
+        altitud: None,
+        nombre: None,
+    };
+    assert!(buscar_existente(ws.path(), sin_nombre).is_some());
 }
