@@ -5,8 +5,8 @@ use super::*;
 fn typed_options_are_emitted() {
     let mut v = Vec::new();
     let args = json!({
-        "irf": "in.RVT",
-        "cof": "opts.cof",
+        "input_rvt_file": "in.RVT",
+        "cmd_options_file": "opts.cof",
         "recalcular_sombreado": false,
         "paginas_reporte": ["a", "b"],
         "idioma_reporte": "es",
