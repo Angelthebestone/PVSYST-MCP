@@ -41,8 +41,8 @@ pub(crate) fn limites(args: &Value) -> Option<(usize, usize)> {
     }
 }
 
-/// Trims long arrays (adding `<clave>_total`) and long strings in place.
-pub(crate) fn recortar(v: &mut Value, lim: (usize, usize)) {
+/// Trims long arrays (adding `<clave>_total`) and long strings in place; returns whether anything was cut.
+pub(crate) fn recortar(v: &mut Value, lim: (usize, usize)) -> bool {
     let (max_arr, max_str) = lim;
     match v {
         Value::Object(mapa) => {
@@ -51,23 +51,26 @@ pub(crate) fn recortar(v: &mut Value, lim: (usize, usize)) {
                 lim,
                 totales: &mut totales,
             };
+            let mut recortado = false;
             for (k, hijo) in mapa.iter_mut() {
-                recortar_campo_objeto(k, hijo, &mut ctx);
+                recortado |= recortar_campo_objeto(k, hijo, &mut ctx);
             }
+            recortado |= !totales.is_empty();
             for (k, total) in totales {
                 mapa.insert(k, Value::from(total));
             }
+            recortado
         }
         Value::Array(items) => {
-            if items.len() > max_arr {
-                items.truncate(max_arr);
-            }
+            let mut recortado = items.len() > max_arr;
+            items.truncate(max_arr);
             for item in items.iter_mut() {
-                recortar(item, lim);
+                recortado |= recortar(item, lim);
             }
+            recortado
         }
         Value::String(s) => truncar_cadena(s, max_str),
-        _ => {}
+        _ => false,
     }
 }
 
@@ -77,11 +80,11 @@ pub(crate) fn siguiente(tool: &str, valor: &str) -> Option<&'static str> {
         ("entorno", "diagnostico") => "disenar_sistema {latitud,longitud,kwp}",
         ("entorno", "preferencias") => "entorno preferencias {seccion:'Preferences'}",
         ("sitio", "crear") => "proyecto crear {plantilla,nombre_nuevo}",
-        ("proyecto", "crear") => "proyecto dimensionar {proyecto,kwp}",
+        ("proyecto", "crear") => "proyecto dimensionar {proyecto,n_mod_serie,n_strings}",
         ("proyecto", "dimensionar") => "proyecto doctor {proyecto}",
         ("proyecto", "doctor") => "simular {proyecto}",
         ("simular", "ejecutar") | ("disenar_sistema", _) => "resultados que:perdidas",
-        ("resultados", "kpis") => "resultados que:comparar",
+        ("resultados", "kpis") => "resultados que:perdidas",
         ("editar", "campos") => "proyecto doctor",
         ("componente", "crear") | ("componente", "crear_desde_ficha") => {
             "proyecto crear {modulo|inversor}"
@@ -95,24 +98,57 @@ struct ContextoRecorte<'a> {
     totales: &'a mut Vec<(String, usize)>,
 }
 
-fn recortar_campo_objeto(k: &str, hijo: &mut Value, ctx: &mut ContextoRecorte<'_>) {
+fn recortar_campo_objeto(k: &str, hijo: &mut Value, ctx: &mut ContextoRecorte<'_>) -> bool {
     if SIN_RECORTE.contains(&k) {
-        return;
+        return false;
     }
     let (max_arr, max_str) = ctx.lim;
     match hijo {
         Value::Array(items) if items.len() > max_arr => {
             ctx.totales.push((format!("{k}_total"), items.len()));
             items.truncate(max_arr);
+            true
         }
         Value::String(s) => truncar_cadena(s, max_str),
         _ => recortar(hijo, ctx.lim),
     }
 }
 
-fn truncar_cadena(s: &mut String, max_str: usize) {
-    if s.chars().count() > max_str {
+fn truncar_cadena(s: &mut String, max_str: usize) -> bool {
+    let excede = s.chars().count() > max_str;
+    if excede {
         let corto: String = s.chars().take(max_str).collect();
         *s = format!("{corto}…");
+    }
+    excede
+}
+
+/// Marks a trimmed response and tells the caller how to fetch everything.
+const HINT_DETALLE: &str = "detalle:completo";
+
+/// What the response decorator needs to know about a finished call.
+pub(crate) struct Respuesta<'a> {
+    pub(crate) herramienta: &'a str,
+    pub(crate) accion: &'a str,
+    pub(crate) ms: u64,
+    pub(crate) ignorados: Vec<String>,
+}
+
+/// Trims the result to `detalle` and adds `elapsed_ms`, `siguiente`, `ignorados`, and `truncado`/`hint` when cut.
+pub(crate) fn decorar(v: &mut Value, args: &Value, r: Respuesta<'_>) {
+    let truncado = limites(args).is_some_and(|lim| recortar(v, lim));
+    let Some(obj) = v.as_object_mut() else {
+        return;
+    };
+    obj.insert("elapsed_ms".to_string(), Value::from(r.ms));
+    if let Some(sig) = siguiente(r.herramienta, r.accion) {
+        obj.insert("siguiente".to_string(), Value::from(sig));
+    }
+    if !r.ignorados.is_empty() {
+        obj.insert("ignorados".to_string(), Value::from(r.ignorados));
+    }
+    if truncado {
+        obj.insert("truncado".to_string(), Value::Bool(true));
+        obj.insert("hint".to_string(), Value::from(HINT_DETALLE));
     }
 }

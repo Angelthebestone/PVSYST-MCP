@@ -124,17 +124,14 @@ pub(crate) fn call_seguido(solicitud: &Solicitud<'_>) -> Result<Value> {
     };
     aproximadas::marcar(name, &accion, &mut v);
 
-    if let Some(lim) = recorte::limites(args) {
-        recorte::recortar(&mut v, lim);
-    }
-
     let ms = u64::try_from(t0.elapsed().as_millis()).unwrap_or(u64::MAX);
-    if let Some(obj) = v.as_object_mut() {
-        obj.insert("elapsed_ms".to_string(), Value::from(ms));
-        if let Some(sig) = recorte::siguiente(name, &accion) {
-            obj.insert("siguiente".to_string(), Value::from(sig));
-        }
-    }
+    let respuesta = recorte::Respuesta {
+        herramienta: name,
+        accion: &accion,
+        ms,
+        ignorados: h.desconocidos(&args_efectivos),
+    };
+    recorte::decorar(&mut v, args, respuesta);
 
     Ok(v)
 }
