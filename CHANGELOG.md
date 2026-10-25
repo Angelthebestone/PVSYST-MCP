@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **`listar objetos` keeps every object with `todos:true`;** by default the list is trimmed
+  and `truncado`, `total` and the `detalle:completo` hint say so.
+- **One name per output magnitude:** `pr_pct` and `produccion_especifica_kwh_kwp` replace
+  the `pr`/`specific_yield_kwh_per_kwp` aliases in easy-mode KPIs; `simular` dry run returns
+  `cli_args` only, without the duplicate `command_line`.
 - **GUI `pagina` vetoed by the form names the reason.** The error carries the form's
   visible texts; an out-of-range `indice` names the page count.
 - **GUI `cerrar` takes `cancelar:true`** to press Cancelar/No before the default close
