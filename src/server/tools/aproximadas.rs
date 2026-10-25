@@ -3,6 +3,8 @@
 //! They run only with `PVSYST_MCP_APROXIMACIONES=1`; otherwise they are hidden
 //! from `tools/list` and rejected with the PVsyst route that replaces them.
 
+use super::declaracion::Herramienta;
+use super::validacion::canonico_de_alias;
 use crate::aproximaciones::{self, Aproximacion};
 use crate::config::Paths;
 use crate::error::Result;
@@ -64,24 +66,64 @@ pub(crate) fn marcar(tool: &str, accion: &str, resultado: &mut Value) {
     }
 }
 
-/// Removes approximated actions from a tool schema's discriminator enum.
-pub(crate) fn ocultar(tool: &str, campo: &str, esquema: &mut Value) {
+/// Removes approximated actions, and the aliases that resolve to them, from a tool
+/// schema's discriminator enum.
+pub(crate) fn ocultar(h: &Herramienta, campo: &str, esquema: &mut Value) {
     let Some(valores) = esquema
         .pointer_mut(&format!("/inputSchema/properties/{campo}/enum"))
         .and_then(Value::as_array_mut)
     else {
         return;
     };
-    valores.retain(|v| v.as_str().is_none_or(|a| de(tool, a).is_none()));
+    valores.retain(|v| {
+        v.as_str().is_none_or(|a| {
+            let canonico = canonico_de_alias(h.sinonimos.valores, a).unwrap_or(a);
+            de(h.nombre, canonico).is_none()
+        })
+    });
 }
 
-/// Hides the in-house route from every `via` enum when approximations are off.
+/// Hides the in-house route from every `via` enum, and from its description,
+/// when approximations are off.
 pub(crate) fn ocultar_via(esquema: &mut Value) {
-    let Some(valores) = esquema
+    if let Some(valores) = esquema
         .pointer_mut("/inputSchema/properties/via/enum")
         .and_then(Value::as_array_mut)
+    {
+        valores.retain(|v| v.as_str() != Some(crate::aproximaciones::VIA_APROXIMACION));
+    }
+    if let Some(descripcion) = esquema.pointer_mut("/inputSchema/properties/via/description") {
+        *descripcion = Value::from(DESCRIPCION_VIA_SOLO_PVSYST);
+    }
+}
+
+const DESCRIPCION_VIA_SOLO_PVSYST: &str = "pvsyst (defecto): la ruta de PVsyst.";
+
+/// Tool descriptions without the in-house actions, for `tools/list` when they are off.
+static DESCRIPCIONES_SIN_APROXIMACIONES: &[(&str, &str)] = &[
+    (
+        "simular",
+        "Simulacion: ejecutar (con filas/parametros opcionales), preparar entrada y estado. / EN: Simulation: run (optional rows/parameters), prepare input and status.",
+    ),
+    (
+        "sitio",
+        "Sitios y meteo: crear (coordenadas o CSV), convertir, horizonte y TMY de PVGIS. / EN: Sites and weather: create (coordinates or CSV), convert, PVGIS horizon and TMY.",
+    ),
+    (
+        "resultados",
+        "Resultados: KPIs, CSV, perdidas, mensual, comparacion, P50/P90, carbono, economia y entregable. / EN: Results: KPIs, CSV, losses, monthly, comparison, P50/P90, carbon, economics and deliverable.",
+    ),
+];
+
+/// Replaces the tool description by its version without in-house actions, if it has one.
+pub(crate) fn ocultar_descripcion(tool: &str, esquema: &mut Value) {
+    let Some((_, texto)) = DESCRIPCIONES_SIN_APROXIMACIONES
+        .iter()
+        .find(|(nombre, _)| *nombre == tool)
     else {
         return;
     };
-    valores.retain(|v| v.as_str() != Some(crate::aproximaciones::VIA_APROXIMACION));
+    if let Some(descripcion) = esquema.get_mut("description") {
+        *descripcion = Value::from(*texto);
+    }
 }

@@ -3,6 +3,7 @@
 //! file stays small and the validation rules have one home.
 
 use super::declaracion::{nombre_tipo_recibido, Herramienta};
+use super::restricciones_esquema::limites_enteros;
 use crate::args::missing;
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
@@ -190,16 +191,22 @@ fn normalizar_discriminador(
     }
 }
 
+/// Canonical value behind `valor` when it is a (case-insensitive) alias in `tabla`.
+pub(super) fn canonico_de_alias<'a>(
+    tabla: &'a [(&'a str, &'a str)],
+    valor: &str,
+) -> Option<&'a str> {
+    tabla
+        .iter()
+        .find(|(alias, _)| valor.eq_ignore_ascii_case(alias))
+        .map(|&(_, canonico)| canonico)
+}
+
 fn normalizar_valor_discriminador(val: &mut Value, valores: &[(&str, &str)]) {
-    let Some(s) = val.as_str() else {
+    let Some(canonico) = val.as_str().and_then(|s| canonico_de_alias(valores, s)) else {
         return;
     };
-    for &(alias, canonico) in valores {
-        if s.eq_ignore_ascii_case(alias) {
-            *val = Value::String(canonico.to_string());
-            break;
-        }
-    }
+    *val = Value::String(canonico.to_string());
 }
 
 fn validar_tipo_propiedad(
@@ -210,13 +217,33 @@ fn validar_tipo_propiedad(
     let Some(val) = args.get(prop_nombre) else {
         return Ok(());
     };
-    if val.is_null() || prop_tipo.es_compatible(val) {
+    if val.is_null() {
         return Ok(());
     }
+    if !prop_tipo.es_compatible(val) {
+        return Err(Error::Invalid(format!(
+            "Tipo incorrecto para '{prop_nombre}' (esperado {}, recibido {})",
+            prop_tipo.nombre_esperado(),
+            nombre_tipo_recibido(val)
+        )));
+    }
+    validar_limites_enteros(prop_nombre, val)
+}
+
+/// Rejects an integer outside the bounds the schema declares for `prop_nombre`.
+fn validar_limites_enteros(prop_nombre: &str, val: &Value) -> Result<()> {
+    let (Some((minimo, maximo)), Some(n)) = (limites_enteros(prop_nombre), val.as_i64()) else {
+        return Ok(());
+    };
+    if n >= minimo && maximo.is_none_or(|max| n <= max) {
+        return Ok(());
+    }
+    let rango = maximo.map_or_else(
+        || format!("mínimo {minimo}"),
+        |max| format!("entre {minimo} y {max}"),
+    );
     Err(Error::Invalid(format!(
-        "Tipo incorrecto para '{prop_nombre}' (esperado {}, recibido {})",
-        prop_tipo.nombre_esperado(),
-        nombre_tipo_recibido(val)
+        "Valor {n} fuera de rango para '{prop_nombre}' ({rango})"
     )))
 }
 

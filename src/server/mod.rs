@@ -30,6 +30,7 @@ pub(crate) mod salida;
 mod tools;
 
 use crate::config::Paths;
+use crate::error::Error;
 use crate::progreso::SeguimientoTarea;
 use respuesta::{err_response, error_de_herramienta, ok_response, resultado_de_herramienta};
 use serde_json::{json, Value};
@@ -145,7 +146,10 @@ impl Server {
     }
 
     fn ejecutar_herramienta(&self, params: &Value, seguimiento: &SeguimientoTarea<'_>) -> Value {
-        let name = params.get("name").and_then(Value::as_str).unwrap_or("");
+        let Some(name) = params.get("name").and_then(Value::as_str) else {
+            let e = Error::Invalid("Falta 'name' (string) en tools/call".into());
+            return error_de_herramienta(&e, self.formato_resultado());
+        };
         // Missing arguments behave like `{}`: `Value::get` on Null yields None.
         let args = params.get("arguments").unwrap_or(&Value::Null);
         let formato = self.formato_resultado();

@@ -2,11 +2,36 @@
 
 use serde_json::{json, Value};
 
+/// Inclusive integer bounds `(propiedad, mínimo, máximo)`. One table feeds both the
+/// schema (`minimum`/`maximum`) and the runtime check in `validacion`.
+const LIMITES_ENTEROS: &[(&str, i64, Option<i64>)] = &[
+    ("n", 1, None),
+    ("lineas", 1, Some(500)),
+    ("n_baterias_serie", 1, None),
+    ("n_baterias_paralelo", 1, None),
+];
+
+/// Bounds `(mínimo, máximo)` declared for the integer property `clave`, if any.
+pub(crate) fn limites_enteros(clave: &str) -> Option<(i64, Option<i64>)> {
+    LIMITES_ENTEROS
+        .iter()
+        .find(|(nombre, _, _)| *nombre == clave)
+        .map(|&(_, minimo, maximo)| (minimo, maximo))
+}
+
 /// Annotates known domain constraints on specific tool properties in the MCP schema.
-pub(crate) fn anotar_restricciones(prop_val: &mut Value, clave: &str) {
+/// The GUI-specific annotations only apply to the GUI tools: other tools may reuse
+/// the same property names (`texto`) with a different meaning.
+pub(crate) fn anotar_restricciones(prop_val: &mut Value, herramienta: &str, clave: &str) {
     let Some(obj) = prop_val.as_object_mut() else {
         return;
     };
+    if let Some((minimo, maximo)) = limites_enteros(clave) {
+        obj.insert("minimum".to_string(), json!(minimo));
+        if let Some(maximo) = maximo {
+            obj.insert("maximum".to_string(), json!(maximo));
+        }
+    }
     if anotar_estructuras(obj, clave) {
         return;
     }
@@ -31,13 +56,13 @@ pub(crate) fn anotar_restricciones(prop_val: &mut Value, clave: &str) {
             );
         }
         "n_baterias_serie" | "n_baterias_paralelo" => {
-            obj.insert("minimum".to_string(), json!(1));
             obj.insert(
                 "description".to_string(),
                 json!("Solo aplica a tipo_sistema:aislado."),
             );
         }
-        _ => anotar_gui(obj, clave),
+        _ if herramienta.starts_with("gui_") => anotar_gui(obj, clave),
+        _ => {}
     }
 }
 
@@ -108,10 +133,6 @@ fn anotar_gui(obj: &mut serde_json::Map<String, Value>, clave: &str) {
                 "description".to_string(),
                 json!("Procesos objetivo; si se omite, se usa PVsyst.exe."),
             );
-        }
-        "lineas" => {
-            obj.insert("minimum".to_string(), json!(1));
-            obj.insert("maximum".to_string(), json!(500));
         }
         _ => {}
     }

@@ -163,3 +163,26 @@ fn should_reject_unknown_via_route() {
     .expect_err("unknown via must be rejected");
     assert!(err.to_string().contains("no válido para via"), "{err}");
 }
+
+#[test]
+fn should_not_name_in_house_actions_anywhere_in_the_catalogue_without_the_flag() {
+    let mut paths = Paths::resolve();
+    paths.aproximaciones = false;
+    let catalogo = serde_json::to_string(&list(&paths)).expect("catalogue serializes");
+    for palabra in [
+        "preestimar",
+        "barrido",
+        "medido_vs_simulado",
+        "geometria_solar",
+        "pre-estimate",
+        "sweep",
+        "measured vs",
+        "solar geometry",
+        "aproximacion",
+    ] {
+        assert!(
+            !catalogo.contains(palabra),
+            "'{palabra}' leaks into tools/list"
+        );
+    }
+}

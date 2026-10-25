@@ -146,18 +146,17 @@ impl Herramienta {
     /// Builds the MCP tool schema exposed to clients in `tools/list`.
     pub(crate) fn esquema(&self) -> Value {
         let mut props = Map::new();
-        let mut req: Vec<&str> = self.requeridos.to_vec();
 
         for &(clave, tipo) in self.propiedades {
             let mut prop_val = tipo.esquema_json();
             anotar_workspace_si_aplica(&mut prop_val, clave);
-            super::restricciones_esquema::anotar_restricciones(&mut prop_val, clave);
+            super::restricciones_esquema::anotar_restricciones(&mut prop_val, self.nombre, clave);
             self.anotar_alias_propiedad(&mut prop_val, clave);
             props.insert(clave.to_string(), prop_val);
         }
 
         if let Some(disc) = &self.discriminador {
-            let mut prop = construir_prop_discriminador(disc, &mut req);
+            let mut prop = construir_prop_discriminador(disc, &self.sinonimos);
             self.anotar_alias_discriminador(&mut prop, disc);
             props.insert(disc.campo.to_string(), prop);
         }
@@ -181,9 +180,27 @@ impl Herramienta {
             "inputSchema": {
                 "type": "object",
                 "properties": props,
-                "required": req,
+                "required": self.requeridos_en_esquema(),
             }
         })
+    }
+
+    /// Required arguments that clients may validate before sending. A required
+    /// argument that has an alias is left out: a schema-validating client would
+    /// otherwise reject the alias spelling, and `validar` enforces it after alias
+    /// normalization anyway (the description says "Requerido.").
+    fn requeridos_en_esquema(&self) -> Vec<&str> {
+        let discriminador = self
+            .discriminador
+            .as_ref()
+            .filter(|d| d.defecto.is_none())
+            .map(|d| d.campo);
+        self.requeridos
+            .iter()
+            .copied()
+            .chain(discriminador)
+            .filter(|clave| extraer_aliases(self.sinonimos.argumentos, clave).is_empty())
+            .collect()
     }
 
     fn anotar_alias_propiedad(&self, prop_val: &mut Value, clave: &str) {
@@ -195,10 +212,13 @@ impl Herramienta {
             return;
         };
         let alias_str = format!("(alias: {})", aliases.join(", "));
-        let desc = match obj.get("description").and_then(Value::as_str) {
+        let mut desc = match obj.get("description").and_then(Value::as_str) {
             Some(prev) => format!("{prev} {alias_str}"),
             None => format!("{clave} {alias_str}"),
         };
+        if self.requeridos.contains(&clave) {
+            desc.push_str(SUFIJO_REQUERIDO);
+        }
         obj.insert("description".to_string(), json!(desc));
     }
 
@@ -206,26 +226,20 @@ impl Herramienta {
         let Some(obj) = prop.as_object_mut() else {
             return;
         };
-        let valores_desc: Vec<String> = obj
+        let valores_texto = obj
             .get("enum")
             .and_then(Value::as_array)
-            .map(|arr| {
-                arr.iter()
-                    .filter_map(Value::as_str)
-                    .map(|val| formatear_valor_con_aliases(val, &self.sinonimos))
-                    .collect()
-            })
-            .unwrap_or_else(|| {
-                disc.valores
-                    .iter()
-                    .map(|val| formatear_valor_con_aliases(val, &self.sinonimos))
-                    .collect()
-            });
-        let valores_texto = valores_desc.join(", ");
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .filter(|val| disc.valores.contains(val))
+            .map(|val| formatear_valor_con_aliases(val, &self.sinonimos))
+            .collect::<Vec<_>>()
+            .join(", ");
 
         let arg_aliases = extraer_aliases(self.sinonimos.argumentos, disc.campo);
 
-        let desc = if arg_aliases.is_empty() {
+        let mut desc = if arg_aliases.is_empty() {
             format!("Valores: {valores_texto}")
         } else {
             format!(
@@ -234,6 +248,9 @@ impl Herramienta {
                 arg_aliases.join(", ")
             )
         };
+        if disc.defecto.is_none() && !arg_aliases.is_empty() {
+            desc.push_str(SUFIJO_REQUERIDO);
+        }
         obj.insert("description".to_string(), json!(desc));
     }
 }
@@ -262,15 +279,20 @@ fn anotar_workspace_si_aplica(prop_val: &mut Value, clave: &str) {
     }
 }
 
-fn construir_prop_discriminador(disc: &Discriminador, req: &mut Vec<&str>) -> Value {
-    let mut prop = json!({ "type": "string", "enum": disc.valores });
-    match disc.defecto {
-        Some(defecto) => {
-            if let Some(obj) = prop.as_object_mut() {
-                obj.insert("default".to_string(), json!(defecto));
-            }
-        }
-        None => req.push(disc.campo),
+const SUFIJO_REQUERIDO: &str = " Requerido.";
+
+/// Discriminator schema: canonical values plus their aliases, so a client that
+/// validates enums accepts the alias spellings `preparar_args` normalizes.
+fn construir_prop_discriminador(disc: &Discriminador, sinonimos: &Sinonimos) -> Value {
+    let aliases = sinonimos
+        .valores
+        .iter()
+        .filter(|(_, canonico)| disc.valores.contains(canonico))
+        .map(|(alias, _)| *alias);
+    let valores: Vec<&str> = disc.valores.iter().copied().chain(aliases).collect();
+    let mut prop = json!({ "type": "string", "enum": valores });
+    if let (Some(defecto), Some(obj)) = (disc.defecto, prop.as_object_mut()) {
+        obj.insert("default".to_string(), json!(defecto));
     }
     prop
 }
