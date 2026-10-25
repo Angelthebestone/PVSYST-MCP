@@ -9,6 +9,7 @@ mod entrada;
 mod escritorio;
 mod gdi;
 mod menus;
+mod procesos;
 mod puntos;
 mod ventanas;
 
@@ -18,6 +19,7 @@ pub(crate) use entrada::*;
 pub(crate) use escritorio::*;
 pub(crate) use gdi::*;
 pub(crate) use menus::*;
+pub(crate) use procesos::*;
 pub(crate) use puntos::*;
 pub(crate) use ventanas::*;
 

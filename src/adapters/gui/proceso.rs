@@ -1,8 +1,8 @@
 //! PVsyst GUI process execution, probing and project path confinement.
 
 use super::escritorio;
-use super::ffi::enum_windows;
-use super::ventanas::{find_pids, pid_of, ventanas, visible, window_brief};
+use super::ffi::{enum_windows, pids_de_ejecutable};
+use super::ventanas::{pid_of, ventanas, visible, window_brief};
 use crate::error::{Error, Result};
 use crate::workspace::{resolver_ruta, Alcance};
 use serde_json::{json, Value};
@@ -13,7 +13,7 @@ const MAX_LAUNCH_WAIT_SECS: u64 = 120;
 const POLL_INTERVAL_MS: u64 = 250;
 
 pub(crate) fn gui_running() -> bool {
-    !find_pids("PVsyst.exe").is_empty()
+    !pids_de_ejecutable("PVsyst.exe").is_empty()
 }
 
 pub(crate) fn resolver_proyecto(
@@ -71,7 +71,7 @@ fn exigir_sin_otra_instancia() -> Result<()> {
     if !escritorio::es_aislado() {
         return Ok(());
     }
-    match find_pids("PVsyst.exe").first() {
+    match pids_de_ejecutable("PVsyst.exe").first() {
         None => Ok(()),
         Some(pid) => Err(Error::Gui(format!(
             "PVsyst ya está en ejecución (pid {pid}): con PVSYST_MCP_ESCRITORIO=aislado una segunda instancia se detiene en «PVsyst is already running». Ciérralo, o usa el escritorio compartido para manejar esa instancia"

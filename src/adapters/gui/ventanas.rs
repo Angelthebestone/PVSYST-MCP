@@ -1,8 +1,6 @@
 //! Window enumeration, identification and inspection via Win32.
 
-use super::ffi::{
-    self, enum_children, enum_windows, Hwnd, ProcessEntry32W, Rect, TH32CS_SNAPPROCESS,
-};
+use super::ffi::{self, enum_children, enum_windows, pids_de_ejecutable, Hwnd, Rect};
 use crate::args::{flag, req_str};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
@@ -78,38 +76,6 @@ pub(crate) fn enum_windows_de(pid: u32) -> Vec<Hwnd> {
         .collect()
 }
 
-pub(crate) fn find_pids(exe_name: &str) -> Vec<u32> {
-    let mut pids = Vec::new();
-    // SAFETY: `pe` se inicializa a cero con `dw_size` correcto antes de `Process32*`, y el handle `snap` se cierra al terminar.
-    unsafe {
-        let snap = ffi::CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-        if snap == -1 {
-            return pids;
-        }
-        let mut pe: ProcessEntry32W = std::mem::zeroed();
-        pe.dw_size = std::mem::size_of::<ProcessEntry32W>() as u32;
-        if ffi::Process32FirstW(snap, &mut pe) != 0 {
-            loop {
-                let fin = pe
-                    .sz_exe_file
-                    .iter()
-                    .position(|&c| c == 0)
-                    .unwrap_or(pe.sz_exe_file.len());
-                let slice = pe.sz_exe_file.get(..fin).unwrap_or(&[]);
-                let name = String::from_utf16_lossy(slice);
-                if name.eq_ignore_ascii_case(exe_name) {
-                    pids.push(pe.th32_process_id);
-                }
-                if ffi::Process32NextW(snap, &mut pe) == 0 {
-                    break;
-                }
-            }
-        }
-        ffi::CloseHandle(snap);
-    }
-    pids
-}
-
 pub(crate) fn json_identidad_ventana(h: Hwnd) -> serde_json::Map<String, Value> {
     let mut m = serde_json::Map::new();
     m.insert("hwnd".into(), json!(format!("0x{:X}", h)));
@@ -166,7 +132,7 @@ pub(crate) fn target_pids(args: &Value) -> Result<Vec<u32>> {
     } else {
         format!("{name}.exe")
     };
-    let pids = find_pids(&name);
+    let pids = pids_de_ejecutable(&name);
     if pids.is_empty() && args.get("proceso").is_none() {
         return Err(Error::Gui(format!(
             "Process '{name}' is not running. Launch the PVsyst GUI first (or pass 'proceso')."

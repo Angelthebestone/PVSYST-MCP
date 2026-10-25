@@ -4,13 +4,14 @@
 //! can never discard work PVsyst did not already declare at risk.
 
 use super::acciones::{clic_por_mensajes, CLASE_EXCEPCION, CLASE_MENSAJE};
-use super::conduccion::{esperar, esperar_mientras, formularios, sondear_hasta};
-use super::ffi::Hwnd;
+use super::conduccion::{esperar, formularios};
+use super::ffi::{pids_de_ejecutable, Hwnd};
 use super::ocr::captura_ocr::lineas_vivas;
 use super::ocr::ubicacion::plegar;
 use super::proceso::lanzar;
 use super::rotulos::{rotulos_recuperacion, Idioma, RotulosRecuperacion};
-use super::ventanas::{class_of, find_pids, hijo_visible_con_texto, target_pids};
+use super::sondeo::{esperar_mientras, sondear_hasta};
+use super::ventanas::{class_of, hijo_visible_con_texto, target_pids};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
 use std::time::Duration;
@@ -50,7 +51,7 @@ fn fallo_de(pid: u32) -> Option<Fallo> {
 
 fn esperar_salida(pid: u32) -> bool {
     esperar_mientras(ESPERA_SALIDA, SONDEO, || {
-        find_pids(EJECUTABLE).contains(&pid)
+        pids_de_ejecutable(EJECUTABLE).contains(&pid)
     })
 }
 
@@ -67,7 +68,7 @@ enum Reaparicion {
 fn nueva_instancia(anterior: u32) -> Reaparicion {
     let mut nuevo = None;
     sondear_hasta(ESPERA_ARRANQUE, SONDEO, || {
-        let vivos = find_pids(EJECUTABLE);
+        let vivos = pids_de_ejecutable(EJECUTABLE);
         // A process that died before showing its home screen no longer counts.
         nuevo = nuevo
             .filter(|p| vivos.contains(p))

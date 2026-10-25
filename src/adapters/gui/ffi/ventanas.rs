@@ -8,7 +8,6 @@ pub(crate) const WM_LBUTTONUP: u32 = 0x0202;
 pub(crate) const BM_CLICK: u32 = 0x00F5;
 pub(crate) const SW_RESTORE: i32 = 9;
 pub(crate) const GA_ROOT: u32 = 2;
-pub(crate) const TH32CS_SNAPPROCESS: u32 = 0x0000_0002;
 const SMTO_ABORTIFHUNG: u32 = 0x0002;
 pub(crate) const TIMEOUT_MENSAJE_MS: u32 = 3000;
 
@@ -67,20 +66,6 @@ impl Rect {
     }
 }
 
-#[repr(C)]
-pub(crate) struct ProcessEntry32W {
-    pub(crate) dw_size: u32,
-    pub(crate) cnt_usage: u32,
-    pub(crate) th32_process_id: u32,
-    pub(crate) th32_default_heap_id: usize,
-    pub(crate) th32_module_id: u32,
-    pub(crate) cnt_threads: u32,
-    pub(crate) th32_parent_process_id: u32,
-    pub(crate) pc_pri_class_base: i32,
-    pub(crate) dw_flags: u32,
-    pub(crate) sz_exe_file: [u16; 260],
-}
-
 #[link(name = "user32")]
 extern "system" {
     fn EnumWindows(cb: EnumProc, l: isize) -> i32;
@@ -108,14 +93,6 @@ extern "system" {
     fn SetForegroundWindow(h: Hwnd) -> i32;
     fn GetAncestor(h: Hwnd, flags: u32) -> Hwnd;
     fn GetForegroundWindow() -> Hwnd;
-}
-
-#[link(name = "kernel32")]
-extern "system" {
-    pub(crate) fn CreateToolhelp32Snapshot(flags: u32, pid: u32) -> isize;
-    pub(crate) fn Process32FirstW(snap: isize, pe: *mut ProcessEntry32W) -> i32;
-    pub(crate) fn Process32NextW(snap: isize, pe: *mut ProcessEntry32W) -> i32;
-    pub(crate) fn CloseHandle(h: isize) -> i32;
 }
 
 unsafe extern "system" fn collect_enum(h: Hwnd, l: isize) -> i32 {

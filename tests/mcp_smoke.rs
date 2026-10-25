@@ -20,8 +20,11 @@ mod cliente_mcp;
 #[path = "mcp_smoke/protocolo_y_recursos.rs"]
 mod protocolo_y_recursos;
 
-#[path = "mcp_smoke/proyectos_y_gui.rs"]
-mod proyectos_y_gui;
+#[path = "mcp_smoke/proyectos.rs"]
+mod proyectos;
+
+#[path = "mcp_smoke/gui.rs"]
+mod gui;
 
 #[path = "mcp_smoke/workspace_y_diseno.rs"]
 mod workspace_y_diseno;

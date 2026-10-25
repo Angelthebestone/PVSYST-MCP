@@ -5,7 +5,7 @@
 use super::conduccion::{esperar, formularios, Formulario, ESPERA_FORMULARIO};
 use super::registro_pvsyst::{self, Marca};
 use super::rotulos::{rotulos_sesion, Idioma, RotulosSesion};
-use super::ventanas::{class_of, find_pids};
+use super::ventanas::class_of;
 use super::{acciones, ffi};
 use crate::config::Paths;
 use crate::error::{Error, Result};
@@ -32,7 +32,7 @@ pub(crate) struct Sesion {
 }
 
 fn pid_activo() -> Option<u32> {
-    find_pids(EJECUTABLE).into_iter().next()
+    ffi::pids_de_ejecutable(EJECUTABLE).into_iter().next()
 }
 
 fn arrancar(paths: &Paths) -> Result<u32> {

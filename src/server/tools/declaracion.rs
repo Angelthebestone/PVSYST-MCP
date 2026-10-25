@@ -124,12 +124,6 @@ pub(crate) struct Sinonimos {
     pub(crate) valores: &'static [(&'static str, &'static str)],
 }
 
-#[allow(dead_code)]
-pub(crate) const SINONIMOS_VACIOS: Sinonimos = Sinonimos {
-    argumentos: &[],
-    valores: &[],
-};
-
 /// A consolidated MCP tool declaration coupling schema, validation, and handler.
 pub(crate) struct Herramienta {
     pub(crate) nombre: &'static str,

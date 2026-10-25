@@ -7,9 +7,10 @@
 //! scaled to the window's DPI.
 
 use super::ffi::{self, Hwnd};
+use super::sondeo::{esperar_mientras, sondear_hasta};
 use super::ventanas::{class_of, enum_windows_de, pid_of, rect_of, text_of, visible};
 use crate::error::{Error, Result};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 const SONDEO: Duration = Duration::from_millis(200);
 /// Lets the VCL form react (recalculate, open the next form) after an input.
@@ -64,29 +65,6 @@ pub(crate) fn formularios(pid: u32) -> Vec<Hwnd> {
         .into_iter()
         .filter(|h| visible(*h))
         .collect()
-}
-
-pub(crate) fn sondear_hasta<T, F>(plazo: Duration, intervalo: Duration, mut sondeo: F) -> Option<T>
-where
-    F: FnMut() -> Option<T>,
-{
-    let fin = Instant::now() + plazo;
-    loop {
-        if let Some(valor) = sondeo() {
-            return Some(valor);
-        }
-        if Instant::now() >= fin {
-            return None;
-        }
-        std::thread::sleep(intervalo);
-    }
-}
-
-pub(crate) fn esperar_mientras<F>(plazo: Duration, intervalo: Duration, mut condicion: F) -> bool
-where
-    F: FnMut() -> bool,
-{
-    sondear_hasta(plazo, intervalo, || (!condicion()).then_some(())).is_some()
 }
 
 /// Waits until a visible form of class `clase` exists in `pid`.
