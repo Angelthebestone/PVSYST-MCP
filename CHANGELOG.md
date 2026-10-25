@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **All array properties declare `items` to comply with Gemini and OpenAI strict schema validation.**
+  Tools exposed arrays without `items` (`variantes`, `filas`, `paginas_reporte`, `extra_options`,
+  `variables`, `ediciones`, `puntos`, `opciones`, `valores`), which caused Gemini to reject the
+  entire tool catalog with `400 INVALID_ARGUMENT: properties[...].items: missing field`. `TipoDato::Array`
+  and `TipoDato::ArrayOrObject` now declare typed `items` reflecting the consumed element types
+  (string, object, integer, number, or nested numeric array), satisfying strict schema parsers.
 - **Loose argument aliases in `sitio` and `disenar_sistema` are unified in synonym tables.**
   Spanish aliases (`fuente`, `zona_horaria`, `pais`, `archivo_meteo`, `sit_salida`, `cof`,
   `csv`, `mef`, `sit`, `met`, `timeshift`) and design aliases (`inclinacion`, `azimuth`,

@@ -59,10 +59,15 @@ impl TipoDato {
             Self::Integer => json!({ "type": "integer" }),
             Self::Boolean => json!({ "type": "boolean" }),
             Self::Object => json!({ "type": "object" }),
-            Self::Array => json!({ "type": "array" }),
+            Self::Array => json!({ "type": "array", "items": { "type": "string" } }),
             Self::IntegerOrString => json!({ "type": ["integer", "string"] }),
             Self::NumberOrString => json!({ "type": ["number", "string"] }),
-            Self::ArrayOrObject => json!({ "type": ["array", "object"] }),
+            Self::ArrayOrObject => json!({
+                "anyOf": [
+                    { "type": "array", "items": { "type": "string" } },
+                    { "type": "object" }
+                ]
+            }),
         }
     }
 }
