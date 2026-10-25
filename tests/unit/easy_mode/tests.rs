@@ -310,3 +310,54 @@ fn leer_kpis_returns_error_when_pdf_missing() {
         .unwrap_err();
     assert!(err.to_string().contains("Informe PDF"));
 }
+
+#[test]
+fn vincular_sitio_replaces_the_template_site_in_the_project() {
+    let ws = tempfile::tempdir().unwrap();
+    let projects = ws.path().join("Projects");
+    std::fs::create_dir_all(&projects).unwrap();
+    let plantilla = include_bytes!("../../fixtures/workspace/Projects/SYNTH_Plant.PRJ");
+    std::fs::write(projects.join("SYNTH_Plant.PRJ"), plantilla).unwrap();
+    let sit = ws.path().join("Mi.SIT");
+    std::fs::write(
+        &sit,
+        "PVObject_=pvSite\n  Comment=Sitio creado;\nEnd of PVObject pvSite\n",
+    )
+    .unwrap();
+    let paths = Paths {
+        workspace: ws.path().to_path_buf(),
+        ..Paths::resolve()
+    };
+    proyecto::vincular_sitio(&paths, "SYNTH_Plant", &sit.to_string_lossy()).unwrap();
+    let prj = std::fs::read_to_string(projects.join("SYNTH_Plant.PRJ")).unwrap();
+    assert!(prj.contains("Comment=Sitio creado;"), "prj={prj}");
+    assert!(!prj.contains("Comment=Synthetic;Nowhere;"), "prj={prj}");
+}
+
+#[test]
+fn deshacer_nuevos_removes_only_the_project_files_a_failed_run_created() {
+    let ws = tempfile::tempdir().unwrap();
+    let projects = ws.path().join("Projects");
+    std::fs::create_dir_all(&projects).unwrap();
+    std::fs::write(projects.join("Previo.PRJ"), b"antes").unwrap();
+    let paths = Paths {
+        workspace: ws.path().to_path_buf(),
+        ..Paths::resolve()
+    };
+    let antes = proyecto::archivos_de_proyectos(&paths);
+    std::fs::write(projects.join("Nuevo.PRJ"), b"x").unwrap();
+    std::fs::write(projects.join("Nuevo.VC0"), b"x").unwrap();
+    proyecto::deshacer_nuevos(&paths, &antes);
+    assert!(projects.join("Previo.PRJ").exists());
+    assert!(!projects.join("Nuevo.PRJ").exists());
+    assert!(!projects.join("Nuevo.VC0").exists());
+}
+
+#[test]
+fn exigir_tolerancia_kwp_rejects_a_realised_kwp_beyond_the_tolerance() {
+    let err = super::exigir_tolerancia_kwp(10.0, 20.0, Some(7.0)).unwrap_err();
+    let msg = err.to_string();
+    assert!(msg.contains("tolerancia_kwp_pct"), "msg={msg}");
+    assert!(super::exigir_tolerancia_kwp(10.0, 20.0, Some(11.5)).is_ok());
+    assert!(super::exigir_tolerancia_kwp(10.0, 20.0, None).is_ok());
+}

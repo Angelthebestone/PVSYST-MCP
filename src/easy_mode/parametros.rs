@@ -95,6 +95,8 @@ pub(crate) struct OrientacionParametros {
     pub(crate) azimut: f64,
 }
 
+pub(crate) const TOLERANCIA_KWP_PCT: f64 = 20.0;
+
 /// Array sizing and electrical design parameters.
 #[derive(Debug, Clone)]
 pub(crate) struct DimensionadoParametros {
@@ -108,6 +110,8 @@ pub(crate) struct DimensionadoParametros {
     pub(crate) n_baterias_paralelo: Option<u32>,
     /// `via: "aproximacion"`: size with the MCP's own rules instead of PVsyst.
     pub(crate) via_aproximacion: bool,
+    /// Largest accepted deviation (%) of the realised kWp from `kwp`.
+    pub(crate) tolerancia_kwp_pct: f64,
 }
 
 /// Simulation execution and report parameters.
@@ -205,6 +209,13 @@ impl DimensionadoParametros {
                 "n_baterias_serie y n_baterias_paralelo deben ser mayores que cero".into(),
             ));
         }
+        let tolerancia_kwp_pct =
+            parsear_f64_opcional(args, &["tolerancia_kwp_pct"], TOLERANCIA_KWP_PCT)?;
+        if !tolerancia_kwp_pct.is_finite() || tolerancia_kwp_pct <= 0.0 {
+            return Err(Error::Invalid(format!(
+                "tolerancia_kwp_pct debe ser un porcentaje finito mayor que cero: {tolerancia_kwp_pct}"
+            )));
+        }
         Ok(Self {
             kwp,
             modulo: opt_str(args, &["modulo"]).map(String::from),
@@ -215,6 +226,7 @@ impl DimensionadoParametros {
             n_baterias_serie,
             n_baterias_paralelo,
             via_aproximacion: crate::aproximaciones::pide_aproximacion(args),
+            tolerancia_kwp_pct,
         })
     }
 }

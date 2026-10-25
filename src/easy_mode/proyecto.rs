@@ -105,14 +105,8 @@ pub(crate) fn ejecutar_paso_orientacion(
     })
 }
 
-/// Write the created site into the project (replacing its `SitePrj` object)
-/// and point `MeteoFileName` at the weather file the simulation used.
-pub(crate) fn sustituir_sitio(
-    paths: &Paths,
-    nombre: &str,
-    sit_file: &str,
-    csv: &Path,
-) -> Result<Value> {
+/// Reads the `.SIT` and returns the project path with its bytes, `SitePrj` replaced by that site.
+fn prj_con_sitio(paths: &Paths, nombre: &str, sit_file: &str) -> Result<(PathBuf, Vec<u8>)> {
     let sit = std::fs::read(sit_file).map_err(|e| Error::io(format!("leer {sit_file}"), e))?;
     let bloque = insert::extraer_objeto(&sit, "pvSite")?;
     let prj_path = paths
@@ -121,13 +115,38 @@ pub(crate) fn sustituir_sitio(
         .join(format!("{nombre}.PRJ"));
     let prj = std::fs::read(&prj_path)
         .map_err(|e| Error::io(format!("leer {}", prj_path.display()), e))?;
-    let mut nuevo = insert::insertar_objeto(
+    let nuevo = insert::insertar_objeto(
         &prj,
         "pvProject",
         &bloque,
         Some("SitePrj"),
         insert::SiExiste::Reemplazar,
     )?;
+    Ok((prj_path, nuevo))
+}
+
+/// Links the created site to the project (its `SitePrj` object) right after the project step,
+/// so the project never keeps the template's site.
+pub(crate) fn vincular_sitio(paths: &Paths, nombre: &str, sit_file: &str) -> Result<()> {
+    let (prj_path, nuevo) = prj_con_sitio(paths, nombre, sit_file)?;
+    history::snapshot(
+        &paths.workspace,
+        std::slice::from_ref(&prj_path),
+        "disenar_sistema: sitio en proyecto",
+    )?;
+    history::escribir_atomico(&prj_path, &nuevo)?;
+    Ok(())
+}
+
+/// Write the created site into the project (replacing its `SitePrj` object)
+/// and point `MeteoFileName` at the weather file the simulation used.
+pub(crate) fn sustituir_sitio(
+    paths: &Paths,
+    nombre: &str,
+    sit_file: &str,
+    csv: &Path,
+) -> Result<Value> {
+    let (prj_path, mut nuevo) = prj_con_sitio(paths, nombre, sit_file)?;
     let meteo = std::fs::read(csv)
         .ok()
         .and_then(|b| meteo_de_metadatos(&String::from_utf8_lossy(&b)));
@@ -146,4 +165,22 @@ pub(crate) fn sustituir_sitio(
     )?;
     history::escribir_atomico(&prj_path, &nuevo)?;
     Ok(json!({ "meteo_file": meteo }))
+}
+
+/// Files currently in the workspace `Projects` folder (empty when it does not exist).
+pub(crate) fn archivos_de_proyectos(paths: &Paths) -> Vec<PathBuf> {
+    std::fs::read_dir(paths.workspace.join("Projects"))
+        .map(|entradas| entradas.filter_map(|e| e.ok().map(|e| e.path())).collect())
+        .unwrap_or_default()
+}
+
+/// Removes the project files created since `antes`, so a failed design leaves no partial
+/// project behind. Best effort: the step error is what the caller reports.
+pub(crate) fn deshacer_nuevos(paths: &Paths, antes: &[PathBuf]) {
+    for nuevo in archivos_de_proyectos(paths)
+        .into_iter()
+        .filter(|p| !antes.contains(p))
+    {
+        let _ = std::fs::remove_file(nuevo);
+    }
 }

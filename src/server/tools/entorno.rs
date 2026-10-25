@@ -88,6 +88,7 @@ pub(crate) const TOOL_DISENAR_SISTEMA: Herramienta = Herramienta {
         ("latitud", TipoDato::Number),
         ("longitud", TipoDato::Number),
         ("kwp", TipoDato::Number),
+        ("tolerancia_kwp_pct", TipoDato::Number),
         ("tipo_sistema", TipoDato::String),
         ("variante", TipoDato::String),
         ("n_baterias_serie", TipoDato::Integer),
