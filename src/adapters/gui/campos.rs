@@ -81,6 +81,7 @@ fn formulario(args: &Value) -> Result<Formulario> {
 
 /// Types `texto` into a form field (`campo`) or directly into the target control.
 pub(crate) fn escribir(_paths: &crate::config::Paths, args: &Value) -> Result<Value> {
+    exigir_sin_etiqueta(args, "escribir")?;
     let texto = crate::args::req_str(args, &["texto"], "texto a escribir")?;
     if args.get("campo").is_some() {
         let f = formulario(args)?;
@@ -103,8 +104,19 @@ pub(crate) fn escribir(_paths: &crate::config::Paths, args: &Value) -> Result<Va
     }))
 }
 
+/// `etiqueta` names a field for `campo`; a plain write or pick cannot use it.
+fn exigir_sin_etiqueta(args: &Value, accion: &str) -> Result<()> {
+    if args.get("etiqueta").is_none() {
+        return Ok(());
+    }
+    Err(Error::Invalid(format!(
+        "'etiqueta' no aplica a '{accion}': indique 'campo' (clase, x, y) del control"
+    )))
+}
+
 /// Picks the first combo item that starts with `texto`.
 pub(crate) fn seleccionar(_paths: &crate::config::Paths, args: &Value) -> Result<Value> {
+    exigir_sin_etiqueta(args, "seleccionar")?;
     let texto = crate::args::req_str(args, &["texto"], "prefijo del item de la lista")?;
     let elegido = if args.get("campo").is_some() {
         let f = formulario(args)?;

@@ -61,3 +61,16 @@ fn should_refuse_typing_into_a_class_that_is_not_a_text_control() {
 fn should_accept_a_text_control_class_for_typing() {
     assert!(clase_admitida("TEdit", CLASES_TEXTO, "escribir").is_ok());
 }
+
+#[test]
+fn should_refuse_etiqueta_on_a_plain_write_naming_the_parameter() {
+    let err = exigir_sin_etiqueta(&json!({"etiqueta": "Nombre"}), "escribir")
+        .unwrap_err()
+        .to_string();
+    assert!(err.contains("'etiqueta' no aplica a 'escribir'"), "{err}");
+}
+
+#[test]
+fn should_accept_a_write_without_etiqueta() {
+    assert!(exigir_sin_etiqueta(&json!({"texto": "x"}), "escribir").is_ok());
+}
