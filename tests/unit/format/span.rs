@@ -39,6 +39,14 @@ PVObject_=pvSubArray\r\n  NMod=20\r\nEnd of PVObject pvSubArray\r\n";
 }
 
 #[test]
+fn should_close_named_closer_terminated_by_crlf() {
+    let text = "PVObject_Ageing=pvAgeing\r\n  Loss=1\r\nEnd of TAgeing\r\n  Next=2\r\n";
+    let spans = spans_of(text.as_bytes());
+    assert_eq!(spans.len(), 1);
+    assert_eq!(spans[0].close, 2);
+}
+
+#[test]
 fn should_return_none_when_selector_is_invalid() {
     let spans = spans_of(SAMPLE.as_bytes());
     assert!(find_span(&spans, "pvSubArray[abc]").is_none());

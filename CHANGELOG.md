@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`proyecto anadir elemento:envejecimiento` works on CRLF demos.** Named closers
+  such as `End of TAgeing` are matched without their trailing `\r`, so the
+  `pvAgeing` block is no longer left open and the insert no longer fails with
+  `Estructura PVObject desbalanceada`.
 - **`editar` refuses field names with `=` or empty names.** A key such as `A=B`
   was written as `A=B=1` and read back as `A: "B=1"`. The edit now fails with
   an error naming the key, before the file is touched.

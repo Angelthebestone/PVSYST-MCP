@@ -88,3 +88,37 @@ fn should_reject_a_field_key_containing_equals_without_touching_the_file() {
     assert!(msg.contains("A=B"), "{msg}");
     assert_eq!(fs::read(&vc0).expect("VC0 tras el intento"), antes);
 }
+
+#[test]
+fn should_insert_envejecimiento_when_demo_closes_pvageing_with_named_closer_in_crlf() {
+    let ws = synthetic_workspace();
+    let vc0 = ws.path().join("Projects").join("SYNTH_Plant.VC0");
+    let mut destino = fs::read_to_string(&vc0).expect("VC0 del fixture");
+    destino.push_str("PVObject_=pvMainArray\r\nEnd of PVObject pvMainArray\r\n");
+    fs::write(&vc0, destino).expect("padre pvMainArray");
+
+    let data_ro = tempfile::tempdir().expect("DataRO temporal");
+    let demos = data_ro.path().join("PVsyst8.1_Data").join("Projects");
+    fs::create_dir_all(&demos).expect("carpeta de demos");
+    let demo = "PVObject_=pvMainArray\r\n  PVObject_Ageing=pvAgeing\r\n    Mode=3\r\n  End of TAgeing\r\nEnd of PVObject pvMainArray\r\n";
+    fs::write(demos.join("_DEMO_Commercial.VC8"), demo).expect("demo");
+
+    let ws_str = ws.path().to_string_lossy().to_string();
+    let data_str = data_ro.path().to_string_lossy().to_string();
+    let mut c = Client::start_env(Some(&ws_str), &[("PVSYST_DATARO", data_str.as_str())]);
+    c.initialize();
+    let resp = c.call(
+        10,
+        "proyecto",
+        json!({ "accion": "anadir", "proyecto": "SYNTH_Plant", "variante": "VC0", "elemento": "envejecimiento" }),
+    );
+    let out = tool_text(&resp);
+    assert_eq!(
+        out["insertados"][0]["tipo"],
+        json!("pvAgeing"),
+        "resp={out}"
+    );
+    assert!(fs::read_to_string(&vc0)
+        .expect("VC0")
+        .contains("PVObject_Ageing=pvAgeing"));
+}

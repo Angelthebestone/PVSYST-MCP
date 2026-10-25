@@ -19,7 +19,8 @@ pub(super) fn coincide_tipo_cierre(esperado: &str, encontrado: &str) -> bool {
 }
 
 /// The type named by a closing marker; `Some(None)` for a bare `End of PVObject`.
-pub(super) fn extraer_tipo_cierre(trimmed: &str) -> Option<Option<&str>> {
+pub(super) fn extraer_tipo_cierre(linea: &str) -> Option<Option<&str>> {
+    let trimmed = linea.trim_end();
     if let Some(rest) = trimmed.strip_prefix("End of PVObject") {
         let r = rest.trim();
         Some(if r.is_empty() { None } else { Some(r) })
