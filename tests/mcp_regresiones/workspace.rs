@@ -223,6 +223,7 @@ fn should_not_pollute_default_workspace_when_creating_site_with_explicit_workspa
     let args = json!({
         "accion": "crear",
         "origen": "coordenadas",
+        "region": "europe",
         "latitud": 46.2,
         "longitud": 6.1,
         "nombre_sitio": "MCP_Isolated_Site",
