@@ -80,6 +80,20 @@ pub(super) fn reject_line_breaks(changes: &[(String, Option<String>)]) -> Result
     }
 }
 
+/// Field names must be non-empty and cannot contain `=`: the on-disk line
+/// `key=value` would otherwise split at the wrong separator.
+pub(crate) fn reject_invalid_keys(changes: &[(String, Option<String>)]) -> Result<()> {
+    match changes
+        .iter()
+        .find(|(key, _)| key.is_empty() || key.contains('='))
+    {
+        Some((key, _)) => Err(Error::Invalid(format!(
+            "Nombre de campo inválido '{key}': no puede estar vacío ni contener '='"
+        ))),
+        None => Ok(()),
+    }
+}
+
 fn is_marker(trimmed: &str) -> bool {
     trimmed.starts_with("PVObject_")
         || trimmed.starts_with("End of")
@@ -180,6 +194,7 @@ pub(crate) fn edit_fields(
     object::validar_estructura(bytes)?;
     let segs = parse_selector(selector)?;
     reject_line_breaks(changes)?;
+    reject_invalid_keys(changes)?;
 
     let mut doc = Lines::split(bytes);
     let spans = spans_of(bytes);

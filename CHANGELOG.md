@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`editar` refuses field names with `=` or empty names.** A key such as `A=B`
+  was written as `A=B=1` and read back as `A: "B=1"`. The edit now fails with
+  an error naming the key, before the file is touched.
 - **Tool schemas load in Gemini and OpenAI strict mode.** Array properties
   (`variantes`, `filas`, `paginas_reporte`, `extra_options`, `variables`,
   `ediciones`, `puntos`, `opciones`, `valores`) had no `items`, and Gemini

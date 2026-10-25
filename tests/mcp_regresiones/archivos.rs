@@ -65,3 +65,26 @@ fn should_write_an_empty_file_when_escribir_archivo_gets_empty_contenido() {
     let escrito = fs::read(ws.path().join("vacio.txt")).expect("archivo creado");
     assert!(escrito.is_empty());
 }
+
+#[test]
+fn should_reject_a_field_key_containing_equals_without_touching_the_file() {
+    let ws = synthetic_workspace();
+    let vc0 = ws.path().join("Projects").join("SYNTH_Plant.VC0");
+    let antes = fs::read(&vc0).expect("VC0 del fixture");
+    let ws_str = ws.path().to_string_lossy().to_string();
+    let mut c = Client::start(Some(&ws_str));
+    c.initialize();
+    let resp = c.call(
+        13,
+        "editar",
+        json!({
+            "accion": "campos",
+            "archivo": "Projects/SYNTH_Plant.VC0",
+            "objeto": "pvSubArray",
+            "campos": { "A=B": "1" },
+        }),
+    );
+    let msg = error_text(&resp);
+    assert!(msg.contains("A=B"), "{msg}");
+    assert_eq!(fs::read(&vc0).expect("VC0 tras el intento"), antes);
+}
