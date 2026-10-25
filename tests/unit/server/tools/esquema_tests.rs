@@ -76,7 +76,8 @@ fn should_accept_either_spelling_of_leer_archivo_in_the_schema() {
 
 #[test]
 fn should_annotate_phase_three_schema_constraints() {
-    let paths = Paths::resolve();
+    let mut paths = Paths::para_test(std::env::temp_dir());
+    paths.aproximaciones = true;
     let schemas = list(&paths);
     let proyecto = schemas
         .iter()
