@@ -173,5 +173,5 @@ fn dia_valido(anio: Option<u32>, mes: u32, dia: u32) -> bool {
 }
 
 fn es_bisiesto(anio: u32) -> bool {
-    anio % 4 == 0 && (anio % 100 != 0 || anio % 400 == 0)
+    anio.is_multiple_of(4) && (!anio.is_multiple_of(100) || anio.is_multiple_of(400))
 }

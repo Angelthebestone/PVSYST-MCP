@@ -36,6 +36,7 @@ fn respuesta_dry_run(
     workspace: &Path,
 ) -> Value {
     let variant_exists = variant_file.exists();
+    let ejecuciones = preparacion::ejecuciones_previstas(cli_args);
     let command_line = cli_args
         .iter()
         .map(|a| {
@@ -56,6 +57,8 @@ fn respuesta_dry_run(
         "variant_file": variant_file.to_string_lossy(),
         "variant_file_exists": variant_exists,
         "workspace": workspace.to_string_lossy(),
+        "costo_estimado": costo_estimado(workspace, ejecuciones),
+        "max_ejecuciones": ejecuciones,
     })
 }
 
@@ -123,12 +126,6 @@ pub(crate) fn lanzar_simulacion_seguida(
         if let Some(obj) = respuesta.as_object_mut() {
             obj.insert("output_csv".into(), json!(output_csv));
             obj.insert("report_pdf".into(), json!(report_pdf));
-            let ejecuciones = preparacion::ejecuciones_previstas(&cli_args);
-            obj.insert(
-                "costo_estimado".into(),
-                costo_estimado(&workspace, ejecuciones),
-            );
-            obj.insert("max_ejecuciones".into(), json!(ejecuciones));
         }
         return Ok(respuesta);
     }

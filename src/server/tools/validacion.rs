@@ -43,23 +43,22 @@ impl Herramienta {
         let valor = self.extraer_valor_discriminador(disc, args)?;
 
         if disc.valores.contains(&valor.as_str()) {
-            Ok(valor)
-        } else {
-            let visibles: Vec<&str> = disc
-                .valores
-                .iter()
-                .copied()
-                .filter(|accion| {
-                    aproximaciones || super::aproximadas::de(self.nombre, accion).is_none()
-                })
-                .collect();
-            Err(Error::Invalid(format!(
-                "Valor '{valor}' no válido para {} ({}); valores: {}",
-                self.nombre,
-                disc.campo,
-                visibles.join(", ")
-            )))
+            return Ok(valor);
         }
+        let visibles: Vec<&str> = disc
+            .valores
+            .iter()
+            .copied()
+            .filter(|accion| {
+                aproximaciones || super::aproximadas::de(self.nombre, accion).is_none()
+            })
+            .collect();
+        Err(Error::Invalid(format!(
+            "Valor '{valor}' no válido para {} ({}); valores: {}",
+            self.nombre,
+            disc.campo,
+            visibles.join(", ")
+        )))
     }
 
     fn extraer_valor_discriminador(
