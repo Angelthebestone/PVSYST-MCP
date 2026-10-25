@@ -9,6 +9,7 @@ use crate::adapters::gui::conduccion::Formulario;
 use crate::adapters::gui::ffi::{self, Hwnd, WM_COMMAND};
 use crate::adapters::gui::menu_por_posicion::{contar_menus, id_en_posicion, Posicion};
 use crate::adapters::gui::modal;
+use crate::adapters::gui::resumen::resumen_de_ventana;
 use crate::adapters::gui::ventanas::{
     class_of, hijo_visible_con_texto, hwnd_de, text_of, ventanas_de, visible,
 };
@@ -79,6 +80,7 @@ fn abrir_funcion(args: &Value, funcion: &Funcion) -> Result<Value> {
         "ventanas_nuevas": visto.nuevas_json(),
         "ya_abiertas": visto.ya_abiertas_json(),
         "nota": funcion.nota,
+        "resumen": visto.primera_nueva().map(resumen_de_ventana),
     }))
 }
 

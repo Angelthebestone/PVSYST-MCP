@@ -45,6 +45,10 @@ impl Resultado {
         self.nuevas.iter().map(|h| window_json(*h)).collect()
     }
 
+    pub(super) fn primera_nueva(&self) -> Option<Hwnd> {
+        self.nuevas.first().copied()
+    }
+
     pub(super) fn ya_abiertas_json(&self) -> Vec<Value> {
         self.ya_abiertas.iter().map(|h| window_json(*h)).collect()
     }

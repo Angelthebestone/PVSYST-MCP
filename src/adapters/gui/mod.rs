@@ -27,7 +27,9 @@ pub(crate) mod png;
 pub(crate) mod proceso;
 pub(crate) mod recuperacion;
 pub(crate) mod registro_pvsyst;
+pub(crate) mod resumen;
 pub(crate) mod rotulos;
+pub(crate) mod secuencia;
 pub(crate) mod sesion_pvsyst;
 pub(crate) mod sondeo;
 pub(crate) mod teclado;
@@ -77,7 +79,7 @@ pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Val
 
 /// `actuar` dispatcher. `accion`: click | clic_fisico | clic_texto | mensaje |
 /// cerrar | activar | teclas | escribir | seleccionar | pagina | esperar_cierre |
-/// lanzar | reiniciar | uia_invocar | esperar | paso | funcion | menu | campo | rellenar.
+/// lanzar | reiniciar | uia_invocar | esperar | paso | funcion | menu | campo | rellenar | cerrar_todo | secuencia.
 pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     crate::adapters::uia::invalidar_cache(&paths.estado);
     match args.get("accion").and_then(Value::as_str).unwrap_or("click") {
@@ -93,18 +95,20 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         "funcion" => crate::gui_catalogo::abrir(args),
         "menu" => crate::gui_catalogo::menu(args),
         "campo" => campo_por_etiqueta::campo(paths, args),
-        "rellenar" => crate::vista_agente::rellenar(args),
+        "rellenar" => crate::vista_agente::rellenar(paths, args),
         "escribir" => campos::escribir(paths, args),
         "seleccionar" => campos::seleccionar(paths, args),
         "pagina" => campos::pagina(paths, args),
         "esperar_cierre" => campos::esperar_cierre_accion(paths, args),
         "lanzar" => proceso::lanzar(paths, args),
+        "cerrar_todo" => proceso::cerrar_todo(paths, args),
+        "secuencia" => secuencia::secuencia(paths, args),
         "reiniciar" => recuperacion::reiniciar(paths, args),
         "uia_invocar" => uia_vista::uia_invocar(args),
         "esperar" => esperas::esperar(args),
         "paso" => uia_vista::paso(paths, args),
         other => Err(Error::Invalid(format!(
-            "Unknown accion '{other}' (click|clic_fisico|mensaje|cerrar|activar|teclas|escribir|seleccionar|pagina|esperar_cierre|lanzar|uia_invocar|esperar|paso|funcion|menu|campo|rellenar|clic_texto|reiniciar)"
+            "Unknown accion '{other}' (click|clic_fisico|mensaje|cerrar|cerrar_todo|activar|teclas|escribir|seleccionar|pagina|esperar_cierre|lanzar|uia_invocar|esperar|paso|funcion|menu|campo|rellenar|clic_texto|reiniciar|secuencia)"
         ))),
     }
 }

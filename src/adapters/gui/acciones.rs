@@ -12,6 +12,8 @@ use std::time::Duration;
 
 /// Window classes (Win32 and VCL) that implement `BM_CLICK`.
 const CLASES_BOTON: &[&str] = &["Button", "TButton", "TBitBtn", "TCheckBox", "TRadioButton"];
+/// Buttons that abandon a form: tried first when the request says `cancelar:true`.
+const BOTONES_CANCELAR: &[&str] = &["Cancelar", "No"];
 const ROTULOS: RotulosAcciones = rotulos_acciones(Idioma::Es);
 /// Class of PVsyst's message boxes.
 pub(crate) const CLASE_MENSAJE: &str = "TMessageForm";
@@ -85,11 +87,22 @@ fn botones_de_cierre(h: Hwnd) -> &'static [&'static str] {
     }
 }
 
+/// Buttons that close `h`: with `cancelar`, Cancelar/No come first.
+fn botones_para_cerrar(h: Hwnd, cancelar: bool) -> Vec<&'static str> {
+    let base = botones_de_cierre(h);
+    if cancelar {
+        BOTONES_CANCELAR.iter().chain(base).copied().collect()
+    } else {
+        base.to_vec()
+    }
+}
+
 /// Closes a VCL form the way a user does: its own close/cancel button first,
-/// `WM_CLOSE` only when the form has none. A message box with no harmless
-/// button (a Sí/No question) is left open and reported.
-fn cerrar_ventana(h: Hwnd) -> Result<()> {
-    let botones = botones_de_cierre(h);
+/// `WM_CLOSE` only when the form has none. `cancelar:true` tries Cancelar/No
+/// before the default buttons. A message box with no harmless button (a Sí/No
+/// question) is left open and reported.
+pub(crate) fn cerrar_ventana(h: Hwnd, args: &Value) -> Result<()> {
+    let botones = botones_para_cerrar(h, crate::args::flag(args, &["cancelar"]));
     let boton = ffi::enum_children(h)
         .into_iter()
         .filter(|c| visible(*c))
@@ -146,7 +159,7 @@ fn ejecutar_accion(h: Hwnd, action: &str, args: &Value) -> Result<()> {
             Some(_) => return Err(Error::Gui(format!("PostMessage falló para 0x{h:X}"))),
             None => clic_por_mensajes(h)?,
         },
-        "cerrar" => cerrar_ventana(h)?,
+        "cerrar" => cerrar_ventana(h, args)?,
         "activar" => {
             ffi::mostrar_ventana(h, SW_RESTORE);
             ffi::traer_al_frente(h);

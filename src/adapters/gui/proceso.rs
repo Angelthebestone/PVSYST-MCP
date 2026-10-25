@@ -18,6 +18,25 @@ pub(crate) fn gui_running() -> bool {
     !pids_de_ejecutable("PVsyst.exe").is_empty()
 }
 
+/// `gui_actuar accion:cerrar_todo`: closes every visible top window of the
+/// running PVsyst the way its own close button does (`cancelar` prefers Cancelar).
+pub(crate) fn cerrar_todo(_paths: &crate::config::Paths, args: &Value) -> Result<Value> {
+    let pids = pids_de_ejecutable("PVsyst.exe");
+    let ventanas_vivas: Vec<ffi::Hwnd> = pids
+        .iter()
+        .flat_map(|p| enum_windows_de(*p))
+        .filter(|h| visible(*h))
+        .collect();
+    for h in &ventanas_vivas {
+        super::acciones::cerrar_ventana(*h, args)?;
+    }
+    Ok(json!({
+        "accion": "cerrar_todo",
+        "pids": pids,
+        "cerradas": ventanas_vivas.len(),
+    }))
+}
+
 pub(crate) fn resolver_proyecto(
     paths: &crate::config::Paths,
     args: &Value,
@@ -79,15 +98,21 @@ fn cerrar_aviso_demo_si_pedido(pid: u32, args: &Value) {
         });
 }
 
+/// `proyecto` cannot open into a running PVsyst: the request is refused by name.
+fn comprobar_proyecto_libre(args: &Value) -> Result<()> {
+    if args.get("proyecto").is_none() {
+        return Ok(());
+    }
+    Err(Error::Gui(
+        "'proyecto' no se puede abrir: PVsyst ya está en ejecución. Ciérrelo (gui_actuar accion:cerrar_todo) y repita lanzar con proyecto".into(),
+    ))
+}
+
 /// PVsyst allows one instance per session: a second launch stops at the box
 /// "PVsyst is already running." and never opens. So `lanzar` attaches to the
 /// running instance instead of spawning another one.
 fn ya_abierta(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
-    if args.get("proyecto").is_some() {
-        return Err(Error::Gui(
-            "'proyecto' no se puede abrir: PVsyst ya está en ejecución. Ciérrelo (gui_actuar accion:cerrar_todo) y repita lanzar con proyecto".into(),
-        ));
-    }
+    comprobar_proyecto_libre(args)?;
     let pid = pids_de_ejecutable("PVsyst.exe")
         .first()
         .copied()
