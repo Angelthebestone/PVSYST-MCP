@@ -1,8 +1,9 @@
 //! PVsyst GUI process execution, probing and project path confinement.
 
 use super::escritorio;
-use super::ffi::{enum_windows, pids_de_ejecutable};
-use super::ventanas::{pid_of, ventanas, visible, window_brief};
+use super::ffi::{self, enum_windows, pids_de_ejecutable};
+use super::ventanas::{class_of, enum_windows_de, pid_of, ventanas, visible, window_brief};
+use crate::args::flag;
 use crate::error::{Error, Result};
 use crate::workspace::{resolver_ruta, Alcance};
 use serde_json::{json, Value};
@@ -10,6 +11,7 @@ use std::path::{Path, PathBuf};
 
 const DEFAULT_LAUNCH_WAIT_SECS: u64 = 30;
 const MAX_LAUNCH_WAIT_SECS: u64 = 120;
+const AVISO_DEMO: &str = "TDEMOForm";
 const POLL_INTERVAL_MS: u64 = 250;
 
 pub(crate) fn gui_running() -> bool {
@@ -64,6 +66,19 @@ fn iniciar_proceso(exe: &Path, proyecto: Option<&Path>) -> Result<u32> {
         .map_err(|e| Error::Gui(format!("Failed to launch PVsyst GUI: {e}")))
 }
 
+/// Closes the demo-expiry notice of process `pid` when `cerrar_demo:true`.
+fn cerrar_aviso_demo_si_pedido(pid: u32, args: &Value) {
+    if !flag(args, &["cerrar_demo"]) {
+        return;
+    }
+    enum_windows_de(pid)
+        .into_iter()
+        .filter(|h| class_of(*h) == AVISO_DEMO)
+        .for_each(|h| {
+            ffi::post_message(h, ffi::Mensaje::simple(ffi::WM_CLOSE));
+        });
+}
+
 /// PVsyst allows one instance per session: a second launch stops at the box
 /// "PVsyst is already running." and never opens. So `lanzar` attaches to the
 /// running instance instead of spawning another one.
@@ -73,7 +88,11 @@ fn ya_abierta(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
             "'proyecto' no se puede abrir: PVsyst ya está en ejecución. Ciérrelo (gui_actuar accion:cerrar_todo) y repita lanzar con proyecto".into(),
         ));
     }
-    let pid = pids_de_ejecutable("PVsyst.exe").first().copied().unwrap_or(0);
+    let pid = pids_de_ejecutable("PVsyst.exe")
+        .first()
+        .copied()
+        .unwrap_or(0);
+    cerrar_aviso_demo_si_pedido(pid, args);
     let windows = ventanas(paths, &json!({ "visibles": true }))?;
     Ok(json!({
         "pid": pid,
@@ -85,12 +104,12 @@ fn ya_abierta(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
 }
 
 pub(crate) fn lanzar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
-     if !paths.gui_exe.exists() {
-         return Err(Error::Gui(format!(
-             "PVsyst GUI not found at '{}'. Set PVSYST_GUI.",
-             paths.gui_exe.display()
-         )));
-     }
+    if !paths.gui_exe.exists() {
+        return Err(Error::Gui(format!(
+            "PVsyst GUI not found at '{}'. Set PVSYST_GUI.",
+            paths.gui_exe.display()
+        )));
+    }
     if gui_running() {
         return ya_abierta(paths, args);
     }
@@ -105,6 +124,7 @@ pub(crate) fn lanzar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         .unwrap_or(DEFAULT_LAUNCH_WAIT_SECS)
         .min(MAX_LAUNCH_WAIT_SECS);
     let ready = esperar_formulario_principal(pid, wait);
+    cerrar_aviso_demo_si_pedido(pid, args);
     let wins = ventanas(paths, &json!({ "visibles": true }))?;
     Ok(json!({
         "pid": pid,
