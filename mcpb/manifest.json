@@ -398,7 +398,7 @@
       "name": "leer"
     },
     {
-      "description": "Edita campos, inserta o elimina objetos PVObject (byte-preserving, con historial). / EN: Edits fields, inserts or removes PVObject objects (byte-preserving, with history).",
+      "description": "Edita campos, inserta o elimina objetos PVObject (byte-preserving, con historial). accion:campos acepta archivo+objeto+campos (objeto PVObject) o proyecto+variante+ediciones (variante de proyecto). / EN: Edits fields, inserts or removes PVObject objects (byte-preserving, with history). accion:campos takes archivo+objeto+campos (PVObject) or proyecto+variante+ediciones (project variant).",
       "name": "editar"
     },
     {
@@ -410,7 +410,7 @@
       "name": "proyecto"
     },
     {
-      "description": "Base de datos de componentes: crear, borrar, importar, exportar o crear desde ficha tecnica (PVsyst ajusta el modelo en su ventana). / EN: Component database: create, delete, import, export or create from a datasheet (PVsyst fits the model in its own window).",
+      "description": "Base de datos de componentes: crear, borrar, importar, exportar o crear desde ficha tecnica (PVsyst ajusta el modelo en su ventana). importar: origen (archivo), nombre_nuevo opcional; 'destino' no aplica. / EN: Component database: create, delete, import, export or create from a datasheet (PVsyst fits the model in its own window). import: origen (file), optional nombre_nuevo; 'destino' does not apply.",
       "name": "componente"
     },
     {
@@ -422,7 +422,7 @@
       "name": "simular"
     },
     {
-      "description": "Resultados: KPIs, CSV, perdidas, mensual, comparacion, medido_vs_simulado, P50/P90, carbono, economia y entregable. / EN: Results: KPIs, CSV, losses, monthly, comparison, measured vs simulated, P50/P90, carbon, economics and deliverable.",
+      "description": "Resultados: KPIs, resumen, CSV, perdidas, mensual, comparacion, medido_vs_simulado, P50/P90, carbono, economia y entregable. / EN: Results: KPIs, summary, CSV, losses, monthly, comparison, measured vs simulated, P50/P90, carbon, economics and deliverable.",
       "name": "resultados"
     },
     {

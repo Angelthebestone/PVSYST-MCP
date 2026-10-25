@@ -137,7 +137,7 @@ const SINONIMOS_LEER: Sinonimos = Sinonimos {
 
 pub(crate) const TOOL_EDITAR: Herramienta = Herramienta {
     nombre: "editar",
-    descripcion: "Edita campos, inserta o elimina objetos PVObject (byte-preserving, con historial). / EN: Edits fields, inserts or removes PVObject objects (byte-preserving, with history).",
+    descripcion: "Edita campos, inserta o elimina objetos PVObject (byte-preserving, con historial). accion:campos acepta archivo+objeto+campos (objeto PVObject) o proyecto+variante+ediciones (variante de proyecto). / EN: Edits fields, inserts or removes PVObject objects (byte-preserving, with history). accion:campos takes archivo+objeto+campos (PVObject) or proyecto+variante+ediciones (project variant).",
     anotaciones: Anotaciones {
         titulo: "Editar / Edit",
         es_solo_lectura: false,
