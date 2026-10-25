@@ -59,26 +59,25 @@ pub(crate) fn leer_objeto(paths: &Paths, args: &Value) -> Result<Value> {
         fs::read(&path).map_err(|e| Error::io(format!("Cannot read {}", path.display()), e))?;
     let text = String::from_utf8_lossy(&bytes);
     object::exigir_no_vacio(&text, &path)?;
-    let is_text = object::is_pvobject(&text);
-
+    if !object::is_pvobject(&text) {
+        return Err(Error::Invalid(format!(
+            "{} no es un PVObject; sin objeto ni plano se lee como texto o base64",
+            path.display()
+        )));
+    }
     let mut out = json!({
         "file": path.to_string_lossy(),
         "size_bytes": bytes.len(),
-        "is_pvobject": is_text,
     });
-    if is_text {
-        let roots = raices_a_leer(args, &text, &path)?;
-        if flag(args, &["plano"]) {
-            let mut flat = serde_json::Map::new();
-            for r in &roots {
-                aplanar("", r, &mut flat);
-            }
-            out["flat"] = Value::Object(flat);
-        } else {
-            out["objects"] = Value::Array(roots.iter().map(object::PvNode::to_json).collect());
+    let roots = raices_a_leer(args, &text, &path)?;
+    if flag(args, &["plano"]) {
+        let mut flat = serde_json::Map::new();
+        for r in &roots {
+            aplanar("", r, &mut flat);
         }
+        out["flat"] = Value::Object(flat);
     } else {
-        out["note"] = json!("Binary file; use leer with base64:true for its bytes.");
+        out["objects"] = Value::Array(roots.iter().map(object::PvNode::to_json).collect());
     }
     Ok(out)
 }

@@ -122,3 +122,16 @@ fn should_insert_envejecimiento_when_demo_closes_pvageing_with_named_closer_in_c
         .expect("VC0")
         .contains("PVObject_Ageing=pvAgeing"));
 }
+
+#[test]
+fn should_return_text_of_a_csv_when_leer_gets_no_max_bytes() {
+    let ws = synthetic_workspace();
+    fs::write(ws.path().join("notas.csv"), "a;b\n1;2\n").expect("csv de prueba");
+    let ws_str = ws.path().to_string_lossy().to_string();
+    let mut c = Client::start(Some(&ws_str));
+    c.initialize();
+    let resp = c.call(12, "leer", json!({ "archivo": "notas.csv" }));
+    let out = tool_text(&resp);
+    assert_eq!(out["text"], json!("a;b\n1;2\n"), "resp={out}");
+    assert!(out.get("note").is_none(), "resp={out}");
+}

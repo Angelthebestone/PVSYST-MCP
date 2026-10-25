@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`leer` returns the text of `.csv`, `.md`, `.json` and `.txt` files.** Without `max_bytes`, these files are read as UTF-8 text instead of failing with `Binary file; use leer with base64:true`. `leer` with `objeto` or `plano` on a file that is not a PVObject now fails with an error naming the file.
 - **`proyecto anadir elemento:envejecimiento` works on CRLF demos.** Named closers
   such as `End of TAgeing` are matched without their trailing `\r`, so the
   `pvAgeing` block is no longer left open and the insert no longer fails with
