@@ -7,11 +7,11 @@ use crate::easy_mode;
 use crate::error::{Error, Result};
 use crate::projects;
 use crate::simulation::{engineering, results};
-use serde_json::Value;
+use serde_json::{json, Value};
 
 pub(crate) const TOOL_RESULTADOS: Herramienta = Herramienta {
     nombre: "resultados",
-    descripcion: "Resultados: KPIs, CSV, perdidas, mensual, comparacion, medido_vs_simulado, P50/P90, carbono, economia y entregable. / EN: Results: KPIs, CSV, losses, monthly, comparison, measured vs simulated, P50/P90, carbon, economics and deliverable.",
+    descripcion: "Resultados: KPIs, resumen, CSV, perdidas, mensual, comparacion, medido_vs_simulado, P50/P90, carbono, economia y entregable. / EN: Results: KPIs, summary, CSV, losses, monthly, comparison, measured vs simulated, P50/P90, carbon, economics and deliverable.",
     anotaciones: Anotaciones {
         titulo: "Resultados / Results",
         es_solo_lectura: false,
@@ -53,6 +53,7 @@ pub(crate) const TOOL_RESULTADOS: Herramienta = Herramienta {
             "carbono",
             "economia",
             "entregable",
+            "resumen",
         ],
     }),
     requeridos_por_accion: &[
@@ -85,7 +86,7 @@ const SINONIMOS_RESULTADOS: Sinonimos = Sinonimos {
 fn ejecutar_resultados(paths: &Paths, args: &Value) -> Result<Value> {
     let valor = args.get("que").and_then(Value::as_str).unwrap_or("kpis");
     exigir_include_text_solo_csv(valor, args)?;
-    if valor == "kpis" {
+    if matches!(valor, "kpis" | "resumen") {
         exigir_proyecto_de_kpis(paths, args)?;
     }
     match valor {
@@ -99,6 +100,7 @@ fn ejecutar_resultados(paths: &Paths, args: &Value) -> Result<Value> {
         "carbono" => engineering::carbono(paths, args),
         "economia" => engineering::economia(paths, args),
         "entregable" => engineering::entregable(paths, args),
+        "resumen" => resumen(paths, args),
         _ => Err(Error::Invalid(format!(
             "Valor '{valor}' no soportado para resultados"
         ))),
@@ -129,4 +131,42 @@ fn exigir_proyecto_de_kpis(paths: &Paths, args: &Value) -> Result<()> {
     Err(Error::Invalid(
         "'proyecto' es obligatorio para que:kpis (o 'archivo'/'report_pdf' con el PDF)".into(),
     ))
+}
+
+const PERDIDAS_PRINCIPALES: usize = 3;
+
+/// `resumen`: KPIs, monthly energy and the largest losses. A PDF without a loss diagram
+/// leaves `perdidas_principales` empty and says why in `avisos`.
+fn resumen(paths: &Paths, args: &Value) -> Result<Value> {
+    let kpis = easy_mode::leer_kpis(paths, args)?;
+    let mensual = engineering::mensual(paths, args)?;
+    let (perdidas, avisos) = match engineering::perdidas(paths, args) {
+        Ok(p) => (principales_perdidas(&p), Vec::new()),
+        Err(Error::Format(motivo)) => (json!([]), vec![motivo]),
+        Err(otro) => return Err(otro),
+    };
+    Ok(json!({
+        "kpis": kpis,
+        "mensual": mensual,
+        "perdidas_principales": perdidas,
+        "avisos": avisos,
+    }))
+}
+
+/// The `PERDIDAS_PRINCIPALES` most negative loss nodes, largest loss first.
+fn principales_perdidas(perdidas: &Value) -> Value {
+    let mut negativas: Vec<Value> = perdidas["nodos"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|nodo| pct_de(nodo) < 0.0)
+        .cloned()
+        .collect();
+    negativas.sort_by(|a, b| pct_de(a).total_cmp(&pct_de(b)));
+    negativas.truncate(PERDIDAS_PRINCIPALES);
+    Value::Array(negativas)
+}
+
+fn pct_de(nodo: &Value) -> f64 {
+    nodo["pct"].as_f64().unwrap_or(0.0)
 }

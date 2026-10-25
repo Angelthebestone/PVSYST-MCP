@@ -284,6 +284,17 @@ fn should_not_list_approximated_results_actions_when_approximations_are_off() {
 }
 
 #[test]
+fn should_hide_approximation_only_resultados_properties_from_schema() {
+    let ws = synthetic_workspace();
+    let mut c = servidor(&ws);
+    let tools = c.request(2, "tools/list", json!({}));
+    let props = &herramienta(&tools, "resultados")["inputSchema"]["properties"];
+    for clave in ["medido_kwh", "medido_csv", "umbral_pct"] {
+        assert!(props.get(clave).is_none(), "{clave} expuesto: {props}");
+    }
+}
+
+#[test]
 fn should_require_a_project_or_pdf_for_resultados_kpis() {
     let ws = synthetic_workspace();
     let mut c = servidor(&ws);
@@ -317,4 +328,21 @@ fn should_reject_include_text_outside_resultados_csv() {
         json!({ "que": "kpis", "proyecto": "X", "include_text": true }),
     ));
     assert!(msg.contains("include_text"), "{msg}");
+}
+
+#[test]
+fn should_list_resumen_as_a_resultados_action() {
+    let ws = synthetic_workspace();
+    let mut c = servidor(&ws);
+    let tools = c.request(2, "tools/list", json!({}));
+    let que = &herramienta(&tools, "resultados")["inputSchema"]["properties"]["que"]["enum"];
+    assert!(que.as_array().is_some_and(|v| v.iter().any(|x| x == "resumen")), "{que}");
+}
+
+#[test]
+fn should_require_a_project_for_resultados_resumen() {
+    let ws = synthetic_workspace();
+    let mut c = servidor(&ws);
+    let msg = error_text(&c.call(2, "resultados", json!({ "que": "resumen" })));
+    assert!(msg.contains("'proyecto'"), "{msg}");
 }
