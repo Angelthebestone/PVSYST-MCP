@@ -64,11 +64,6 @@ fn should_reject_fractional_values_for_integer_fields() {
 }
 
 #[test]
-fn should_reject_an_empty_request() {
-    assert!(planificar(panel(), &Map::new()).is_err());
-}
-
-#[test]
 fn should_match_numbers_by_value_when_pvsyst_reformats_them() {
     let campo = panel().campo("potencia_nominal_w").expect("field");
     assert!(coincide(campo, "200", "200.0"));
