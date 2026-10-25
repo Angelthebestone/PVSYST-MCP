@@ -1,7 +1,7 @@
 //! Resolution of PVsyst target files by extension, component type, or workspace path.
 
 use crate::args::req_str;
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::workspace::{resolver_ruta, Alcance};
 use serde_json::Value;
 use std::fs;
@@ -82,15 +82,22 @@ fn resolver_por_extension(workspace: &Path, req: &PeticionArchivo) -> Result<Pat
 pub(crate) fn resolve_file(workspace: &Path, args: &Value) -> Result<PathBuf> {
     let name = req_str(args, &["archivo"], "")?;
     let alcance = Alcance::de_args(args);
-    if let Some(kind) = args.get("tipo").and_then(|v| v.as_str()) {
-        if !kind.is_empty() {
-            let consulta = crate::components::ConsultaComponente {
-                kind,
-                name,
-                alcance,
-            };
-            return crate::components::resolve_component(workspace, &consulta);
+    if let Some(kind) = args
+        .get("tipo")
+        .and_then(|v| v.as_str())
+        .filter(|k| !k.is_empty())
+    {
+        if crate::components::folder_for(kind).is_none() {
+            return Err(Error::Invalid(format!(
+                "'tipo' es el tipo de componente que localiza el archivo (PAN, OND, …), no un tipo de objeto: '{kind}'. Para elegir un objeto usa 'objeto'"
+            )));
         }
+        let consulta = crate::components::ConsultaComponente {
+            kind,
+            name,
+            alcance,
+        };
+        return crate::components::resolve_component(workspace, &consulta);
     }
     let p = Path::new(name);
     if p.is_absolute() {

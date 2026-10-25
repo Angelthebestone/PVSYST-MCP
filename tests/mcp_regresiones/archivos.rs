@@ -220,3 +220,21 @@ fn should_name_the_missing_water_use_section_when_bombeo_targets_a_variant_witho
     assert!(msg.contains("WaterUse"), "{msg}");
     assert_eq!(fs::read(&vc0).expect("VC0"), antes);
 }
+
+#[test]
+fn should_explain_that_tipo_is_a_component_kind_when_listing_objects() {
+    let ws = synthetic_workspace();
+    let ws_str = ws.path().to_string_lossy().to_string();
+    let mut c = Client::start(Some(&ws_str));
+    c.initialize();
+    let resp = c.call(
+        1,
+        "listar",
+        json!({ "que": "objetos", "archivo": "SYNTH_Plant", "tipo": "pvProject" }),
+    );
+    assert_eq!(resp["result"]["isError"], json!(true), "resp={resp}");
+    assert!(
+        error_text(&resp).contains("tipo de componente"),
+        "resp={resp}"
+    );
+}
