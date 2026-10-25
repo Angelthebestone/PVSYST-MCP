@@ -37,21 +37,9 @@ fn respuesta_dry_run(
 ) -> Value {
     let variant_exists = variant_file.exists();
     let ejecuciones = preparacion::ejecuciones_previstas(cli_args);
-    let command_line = cli_args
-        .iter()
-        .map(|a| {
-            if a.contains(' ') {
-                format!("\"{a}\"")
-            } else {
-                a.clone()
-            }
-        })
-        .collect::<Vec<_>>()
-        .join(" ");
     json!({
         "command": "run-simulation",
         "cli_args": cli_args,
-        "command_line": command_line,
         "dry_run": true,
         "project_file": prj_path.to_string_lossy(),
         "variant_file": variant_file.to_string_lossy(),

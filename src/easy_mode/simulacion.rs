@@ -92,11 +92,9 @@ pub(crate) fn leer_kpis(paths: &Paths, args: &Value) -> Result<Value> {
         out.insert("energia_anual_kwh".into(), e.clone());
     }
     if let Some(s) = resumen.get("produccion_especifica_kwh_kwp") {
-        out.insert("specific_yield_kwh_per_kwp".into(), s.clone());
         out.insert("produccion_especifica_kwh_kwp".into(), s.clone());
     }
     if let Some(pr) = resumen.get("pr_pct") {
-        out.insert("pr".into(), pr.clone());
         out.insert("pr_pct".into(), pr.clone());
     }
 
@@ -185,10 +183,10 @@ pub(crate) fn extraer_kpis(paths: &Paths, csv_path: &str, pdf_path: &str) -> Res
     Ok(KpisSalida {
         csv: k_val.get("csv").cloned().unwrap_or(json!(csv_path)),
         energia_producida_kwh: k_val.get("energia_anual_kwh").and_then(Value::as_f64),
-        specific_yield_kwh_per_kwp: k_val
-            .get("specific_yield_kwh_per_kwp")
+        produccion_especifica_kwh_kwp: k_val
+            .get("produccion_especifica_kwh_kwp")
             .and_then(Value::as_f64),
-        pr: k_val.get("pr").and_then(Value::as_f64),
+        pr_pct: k_val.get("pr_pct").and_then(Value::as_f64),
         kwp: k_val.get("kwp").and_then(Value::as_f64),
     })
 }

@@ -76,8 +76,8 @@ pub(crate) struct KpisSalida {
     pub(crate) csv: Value,
     /// PVsyst's "Produced Energy" (kWh/year) from the report summary.
     pub(crate) energia_producida_kwh: Option<f64>,
-    pub(crate) specific_yield_kwh_per_kwp: Option<f64>,
-    pub(crate) pr: Option<f64>,
+    pub(crate) produccion_especifica_kwh_kwp: Option<f64>,
+    pub(crate) pr_pct: Option<f64>,
     pub(crate) kwp: Option<f64>,
 }
 

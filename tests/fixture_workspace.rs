@@ -42,14 +42,22 @@ fn simular_dry_run_builds_unquoted_arguments() {
         json!({ "proyecto": "SYNTH_Plant", "variante": "VC0", "dry_run": true }),
     );
     let data = tool_text(&resp);
-    let cmd = data["command_line"].as_str().unwrap();
+    let args: Vec<&str> = data["cli_args"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|a| a.as_str())
+        .collect();
     assert_eq!(data["variant_file_exists"], true, "data={data}");
-    assert!(cmd.contains("-w:"), "cmd was {cmd}");
+    assert!(args.iter().any(|a| a.starts_with("-w:")), "args={args:?}");
     assert!(
-        !cmd.contains("-w:\""),
-        "workspace must not be quoted: {cmd}"
+        !args.iter().any(|a| a.starts_with('"')),
+        "workspace must not be quoted: {args:?}"
     );
-    assert!(cmd.contains("-p:SYNTH_Plant.PRJ"), "cmd was {cmd}");
+    assert!(
+        args.iter().any(|a| a.contains("-p:SYNTH_Plant.PRJ")),
+        "args={args:?}"
+    );
 }
 
 #[test]

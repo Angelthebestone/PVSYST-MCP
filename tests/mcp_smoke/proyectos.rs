@@ -84,13 +84,21 @@ fn simular_builds_unquoted_arguments() {
     assert_eq!(resp["result"]["isError"], false, "resp={resp}");
     let data = tool_text(&resp);
     assert_eq!(data["dry_run"], true);
-    let cmd = data["command_line"].as_str().unwrap();
-    assert!(cmd.contains("-w:"), "cmd was {cmd}");
+    let args: Vec<&str> = data["cli_args"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|a| a.as_str())
+        .collect();
+    assert!(args.iter().any(|a| a.starts_with("-w:")), "args={args:?}");
     assert!(
-        !cmd.contains("-w:\""),
-        "workspace path must not be quoted: {cmd}"
+        !args.iter().any(|a| a.starts_with('"')),
+        "workspace path must not be quoted: {args:?}"
     );
-    assert!(cmd.contains("-p:_DEMO_Residential.PRJ") || cmd.contains("-p:_DEMO_Residential.PRJ "));
+    assert!(
+        args.iter().any(|a| a.contains("-p:_DEMO_Residential.PRJ")),
+        "args={args:?}"
+    );
 }
 
 #[test]

@@ -341,7 +341,7 @@ leer                   { "archivo": "CX-M500_2450Wp_1_00_086.PAN" }
 
 disenar_sistema         { "latitud": 7.07, "longitud": -73.84, "kwp": 10,
                           "n_mod_serie": 10, "n_strings": 3 }
-→ { "kpis": { "energia_producida_kwh": 15517, "specific_yield_kwh_per_kwp": 1567, "pr": 83.0 },
+→ { "kpis": { "energia_producida_kwh": 15517, "produccion_especifica_kwh_kwp": 1567, "pr_pct": 83.0 },
     "site": { "weather_source": "NASA SSE 6.0 grid cell 7/-74 ..." }, "pasos": [ ... ] }
 
 proyecto                { "accion": "crear", "plantilla": "_DEMO_Commercial",
