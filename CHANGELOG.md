@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **GUI `pagina` vetoed by the form names the reason.** The error carries the form's
+  visible texts; an out-of-range `indice` names the page count.
+- **GUI `cerrar` takes `cancelar:true`** to press Cancelar/No before the default close
+  buttons. **`cerrar_todo`** closes every visible PVsyst window.
+- **GUI `secuencia` runs a list of actions and stops at the first failure,** naming the
+  failed step. Partial results are not returned.
+- **GUI `funcion` returns a form summary** (`resumen`: buttons, tabs, fields);
+  **`rellenar` returns the compact view** of the form after filling it.
+- **GUI `teclas` rejects unknown key names** (for example `ZZZ+Q`) instead of typing them.
+- **GUI `esperar` honours `esperar_segundos`** over `timeout_ms`.
+- **GUI `escribir`/`seleccionar` refuse classes that cannot take the value,** naming the
+  class and `campo`; `paso` rejects `operacion` it does not use.
+- **GUI `lanzar` refuses `proyecto` while PVsyst is already running,** instead of
+  reporting a second instance that never opens.
+- **GUI tab selection checks the tab actually changed;** a vetoed tab is an error, not OK.
+- **GUI `clic_texto` falls back to UIA text lookup** when OCR cannot draw the text.
+- **GUI `controles` lists visible controls by default** (`todos:true` for all).
 - **`help` with exit code 0 is success.** `pvsyst_cli help <cmd>` text documents
   markers such as "Required option"; those no longer classify the call as an error.
 - **`resultados que:resumen`.** One call returns KPIs, monthly production and the
