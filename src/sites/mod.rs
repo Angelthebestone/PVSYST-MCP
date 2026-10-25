@@ -205,19 +205,34 @@ fn ruta_sit(ws: &std::path::Path, args: &Value, name: &str) -> Result<String> {
 
 /// An already-created site matching the coordinates, as a zero-cost response.
 /// An explicit output file or `forzar` always creates a new site instead.
-fn sitio_reutilizado(ws: &std::path::Path, args: &Value, (lat, lon): (f64, f64)) -> Option<Value> {
+/// A site cached under another name is copied to the requested `nombre_sitio`.
+fn sitio_reutilizado(
+    ws: &std::path::Path,
+    args: &Value,
+    (lat, lon): (f64, f64),
+) -> Result<Option<Value>> {
     if flag(args, &["forzar"]) || args.get("output_sit_file").is_some() {
-        return None;
+        return Ok(None);
     }
-    let busqueda = reuse::Busqueda {
+    let altitud = num(args, "altitud");
+    let nombre = args.get("nombre_sitio").and_then(Value::as_str);
+    let busqueda = |nombre| reuse::Busqueda {
         coordenadas: (lat, lon),
-        altitud: num(args, "altitud"),
-        nombre: args.get("nombre_sitio").and_then(Value::as_str),
+        altitud,
+        nombre,
     };
-    let mut existente = reuse::buscar_existente(ws, busqueda)?;
+    let encontrado = reuse::buscar_existente(ws, busqueda(nombre))
+        .or_else(|| reuse::buscar_existente(ws, busqueda(None)));
+    let Some(encontrado) = encontrado else {
+        return Ok(None);
+    };
+    let mut existente = match nombre {
+        Some(n) => reuse::copiar_con_nombre(ws, &encontrado, n)?,
+        None => encontrado,
+    };
     existente["create_site"] = json!({ "success": true, "reutilizado": true });
     existente["costo"] = json!({ "ejecuciones": 0 });
-    Some(existente)
+    Ok(Some(existente))
 }
 
 /// An explicit `nombre_sitio` may not overwrite a different site unless `forzar` is set.
@@ -247,7 +262,7 @@ pub(crate) fn crear_sitio_coordenadas(paths: &Paths, args: &Value) -> Result<Val
 
     let clim = nasa::climatology(lat, lon)?;
     let ws = crate::args::workspace_of(paths, args);
-    if let Some(existente) = sitio_reutilizado(&ws, args, (lat, lon)) {
+    if let Some(existente) = sitio_reutilizado(&ws, args, (lat, lon))? {
         return Ok(resumen_clima(existente, &clim));
     }
     exigir_nombre_libre_si_explicito(&ws, args, &name)?;

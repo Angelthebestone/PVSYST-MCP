@@ -25,10 +25,12 @@ const TIMESHIFT_MAXIMO: f64 = 30.0;
 /// Rejects a `region` value that PVsystCLI does not know.
 pub(crate) fn validar_region(args: &Value) -> Result<()> {
     match args.get("region").and_then(Value::as_str) {
-        Some(region) if !REGIONES.contains(&region) => Err(Error::Invalid(format!(
-            "'region' desconocida '{region}': use una de {}",
-            REGIONES.join(", ")
-        ))),
+        Some(region) if !region.is_empty() && !REGIONES.contains(&region) => {
+            Err(Error::Invalid(format!(
+                "'region' desconocida '{region}': use una de {}",
+                REGIONES.join(", ")
+            )))
+        }
         _ => Ok(()),
     }
 }

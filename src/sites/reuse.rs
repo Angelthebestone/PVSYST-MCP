@@ -96,6 +96,29 @@ pub(crate) fn exigir_nombre_libre(workspace: &Path, nombre: &str) -> Result<()> 
     Ok(())
 }
 
+/// Copies the cached `.SIT` `existente` under the explicitly requested `nombre`, refusing to
+/// replace a different site. Returns the response value naming the copy.
+pub(crate) fn copiar_con_nombre(
+    workspace: &Path,
+    existente: &Value,
+    nombre: &str,
+) -> Result<Value> {
+    let ya_tiene_nombre = existente["site"]
+        .as_str()
+        .is_some_and(|s| s.eq_ignore_ascii_case(nombre));
+    if ya_tiene_nombre {
+        return Ok(existente.clone());
+    }
+    exigir_nombre_libre(workspace, nombre)?;
+    let origen = existente["sit_file"].as_str().unwrap_or_default();
+    let destino = workspace.join("Sites").join(format!("{nombre}.SIT"));
+    fs::copy(origen, &destino).map_err(|e| Error::io(format!("copiar {origen}"), e))?;
+    let mut copia = existente.clone();
+    copia["site"] = json!(nombre);
+    copia["sit_file"] = json!(destino.display().to_string());
+    Ok(copia)
+}
+
 #[cfg(test)]
 #[path = "../../tests/unit/sites/reuse.rs"]
 mod tests;
