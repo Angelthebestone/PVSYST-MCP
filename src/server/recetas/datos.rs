@@ -59,9 +59,9 @@ pub(crate) static RECETAS: &[Receta] = &[
         cuando: "El usuario da coordenadas y una potencia (p.ej. '10 kWp en 7.07,-73.84').",
         tools: &["disenar_sistema"],
         ejemplo: Some(
-            r#"{"latitud":7.07,"longitud":-73.84,"kwp":10,"modulo":"Generic_Mono_300W.PAN","inversor":"Generic_7.5kW.OND","n_mod_serie":10,"n_strings":3}"#,
+            r#"{"latitud":7.07,"longitud":-73.84,"kwp":10}"#,
         ),
-        nota: Some("modulo e inversor son nombres de componentes existentes (p. ej. Generic_Mono_300W.PAN y Generic_7.5kW.OND); listar que:componentes con tipo PAN u OND los enumera."),
+        nota: Some("modulo e inversor son opcionales: sin ellos disenar_sistema usa los de la plantilla. Para elegir otros, lista componentes con listar que:componentes (tipo PAN u OND) y pásalos como modulo/inversor."),
         argumentos: &[
             ArgumentoReceta {
                 nombre: "latitud",
@@ -82,7 +82,7 @@ pub(crate) static RECETAS: &[Receta] = &[
                 defecto: "",
             },
         ],
-        plantilla: "Diseña un sistema fotovoltaico de {kwp} kWp en latitud {latitud}, longitud {longitud} con disenar_sistema, con modulo Generic_Mono_300W.PAN e inversor Generic_7.5kW.OND (componentes incluidos en el paquete; si no existen en el workspace, enumera con listar que:componentes (tipo PAN u OND) y elige uno de cada). n_mod_serie y n_strings son opcionales. Después resume energía anual, producción específica y PR del informe de PVsyst, y señala los avisos de PVsyst.",
+        plantilla: "Diseña un sistema fotovoltaico de {kwp} kWp en latitud {latitud}, longitud {longitud} con disenar_sistema (modulo, inversor, n_mod_serie y n_strings son opcionales). Después resume energía anual, producción específica y PR del informe de PVsyst, y señala los avisos de PVsyst.",
     },
     Receta {
         id: "estudio_paso_a_paso",

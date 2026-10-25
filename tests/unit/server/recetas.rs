@@ -119,7 +119,7 @@ fn should_expose_the_phase_three_recipes() {
 }
 
 #[test]
-fn should_give_disenar_desde_coordenadas_component_names_that_the_bundle_ships() {
+fn should_point_disenar_desde_coordenadas_at_disenar_sistema_without_invented_components() {
     let prompt = obtener_prompt(
         &json!({
             "name": "disenar_desde_coordenadas",
@@ -131,7 +131,7 @@ fn should_give_disenar_desde_coordenadas_component_names_that_the_bundle_ships()
     let text = prompt["messages"][0]["content"]["text"]
         .as_str()
         .expect("text");
-    assert!(text.contains("Generic_Mono_300W.PAN"), "{text}");
-    assert!(text.contains("Generic_7.5kW.OND"), "{text}");
+    assert!(text.contains("disenar_sistema"), "{text}");
+    assert!(!text.contains("Generic_"), "{text}");
     assert!(!text.contains("PVSYST_MCP_APROXIMACIONES"), "{text}");
 }
