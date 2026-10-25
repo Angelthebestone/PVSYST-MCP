@@ -64,29 +64,36 @@ fn iniciar_proceso(exe: &Path, proyecto: Option<&Path>) -> Result<u32> {
         .map_err(|e| Error::Gui(format!("Failed to launch PVsyst GUI: {e}")))
 }
 
-/// PVsyst allows one instance per session: a second one, even on the private
-/// desktop, stops at the box "PVsyst is already running." and never opens. So
-/// on the private desktop a running PVsyst (anywhere) is an error up front.
-fn exigir_sin_otra_instancia() -> Result<()> {
-    if !escritorio::es_aislado() {
-        return Ok(());
+/// PVsyst allows one instance per session: a second launch stops at the box
+/// "PVsyst is already running." and never opens. So `lanzar` attaches to the
+/// running instance instead of spawning another one.
+fn ya_abierta(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
+    if args.get("proyecto").is_some() {
+        return Err(Error::Gui(
+            "'proyecto' no se puede abrir: PVsyst ya está en ejecución. Ciérrelo (gui_actuar accion:cerrar_todo) y repita lanzar con proyecto".into(),
+        ));
     }
-    match pids_de_ejecutable("PVsyst.exe").first() {
-        None => Ok(()),
-        Some(pid) => Err(Error::Gui(format!(
-            "PVsyst ya está en ejecución (pid {pid}): con PVSYST_MCP_ESCRITORIO=aislado una segunda instancia se detiene en «PVsyst is already running». Ciérralo, o usa el escritorio compartido para manejar esa instancia"
-        ))),
-    }
+    let pid = pids_de_ejecutable("PVsyst.exe").first().copied().unwrap_or(0);
+    let windows = ventanas(paths, &json!({ "visibles": true }))?;
+    Ok(json!({
+        "pid": pid,
+        "gui": paths.gui_exe.to_string_lossy(),
+        "ready": esperar_formulario_principal(pid, 0),
+        "ya_en_ejecucion": true,
+        "windows": windows,
+    }))
 }
 
 pub(crate) fn lanzar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
-    if !paths.gui_exe.exists() {
-        return Err(Error::Gui(format!(
-            "PVsyst GUI not found at '{}'. Set PVSYST_GUI.",
-            paths.gui_exe.display()
-        )));
+     if !paths.gui_exe.exists() {
+         return Err(Error::Gui(format!(
+             "PVsyst GUI not found at '{}'. Set PVSYST_GUI.",
+             paths.gui_exe.display()
+         )));
+     }
+    if gui_running() {
+        return ya_abierta(paths, args);
     }
-    exigir_sin_otra_instancia()?;
     let proyecto = match args.get("proyecto").and_then(|v| v.as_str()) {
         Some(p) => Some(resolver_proyecto(paths, args, p)?),
         None => None,
