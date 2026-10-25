@@ -33,7 +33,7 @@ pub(crate) struct Receta {
 pub(super) const INTRO: &str =
     "Recetas listas para usar. Cada una indica cuándo usarla y la secuencia de tools.";
 pub(super) const CONSEJO: &str =
-    "Si dudas, llama a 'entorno' y luego a 'disenar_sistema'. Todo lo demás es opcional.";
+    "Empieza con entorno accion:diagnostico si algo falla. Antes de cada llamada revisa en el esquema de la tool los argumentos obligatorios de su acción. Lo demás es opcional.";
 
 static PROYECTO_Y_VARIANTE: [ArgumentoReceta; 2] = [
     ArgumentoReceta {
@@ -59,9 +59,9 @@ pub(crate) static RECETAS: &[Receta] = &[
         cuando: "El usuario da coordenadas y una potencia (p.ej. '10 kWp en 7.07,-73.84').",
         tools: &["disenar_sistema"],
         ejemplo: Some(
-            r#"{"latitud":7.07,"longitud":-73.84,"kwp":10,"n_mod_serie":10,"n_strings":3}"#,
+            r#"{"latitud":7.07,"longitud":-73.84,"kwp":10,"modulo":"Generic_Mono_300W.PAN","inversor":"Generic_7.5kW.OND","n_mod_serie":10,"n_strings":3}"#,
         ),
-        nota: None,
+        nota: Some("modulo e inversor son nombres de componentes existentes (p. ej. Generic_Mono_300W.PAN y Generic_7.5kW.OND); listar que:componentes con tipo PAN u OND los enumera."),
         argumentos: &[
             ArgumentoReceta {
                 nombre: "latitud",
@@ -82,7 +82,7 @@ pub(crate) static RECETAS: &[Receta] = &[
                 defecto: "",
             },
         ],
-        plantilla: "Diseña un sistema fotovoltaico de {kwp} kWp en latitud {latitud}, longitud {longitud} con la tool disenar_sistema. Pide o propón los módulos en serie y el número de strings y pásalos como n_mod_serie y n_strings (el dimensionado automático es una aproximación del MCP y solo existe con PVSYST_MCP_APROXIMACIONES=1). Después resume energía anual, producción específica y PR del informe de PVsyst, y señala los avisos de PVsyst.",
+        plantilla: "Diseña un sistema fotovoltaico de {kwp} kWp en latitud {latitud}, longitud {longitud} con disenar_sistema, con modulo Generic_Mono_300W.PAN e inversor Generic_7.5kW.OND (componentes incluidos en el paquete; si no existen en el workspace, enumera con listar que:componentes (tipo PAN u OND) y elige uno de cada). n_mod_serie y n_strings son opcionales. Después resume energía anual, producción específica y PR del informe de PVsyst, y señala los avisos de PVsyst.",
     },
     Receta {
         id: "estudio_paso_a_paso",
@@ -92,31 +92,31 @@ pub(crate) static RECETAS: &[Receta] = &[
         tools: &[
             "sitio crear",
             "proyecto crear",
-            "editar campos",
+            "leer",
             "proyecto dimensionar",
-            "simular",
+            "simular ejecutar",
             "resultados kpis",
         ],
         ejemplo: None,
-        nota: None,
+        nota: Some("sitio crear, sitio convertir_meteo, sitio meteo_pvgis y simular gastan ejecuciones TRIAL de PVsyst (meteo_pvgis no gasta si las coordenadas ya están en caché). La plantilla debe existir en la carpeta Projects del workspace."),
         argumentos: &[ArgumentoReceta {
             nombre: "proyecto",
             descripcion: "Nombre del proyecto",
             requerido: Requerido::Si,
             defecto: "",
         }],
-        plantilla: "Haz un estudio paso a paso del proyecto {proyecto}: sitio crear, proyecto crear, editar campos, proyecto dimensionar, simular y resultados kpis. Confírmame cada fase antes de simular.",
+        plantilla: "Haz un estudio paso a paso del proyecto {proyecto}: 1) sitio crear con las coordenadas; 2) proyecto crear con plantilla y nombre_nuevo {proyecto}; 3) comprueba con leer que el proyecto usa ese sitio; 4) proyecto dimensionar con n_mod_serie y n_strings; 5) simular ejecutar; 6) resultados kpis. Pasa en cada llamada los argumentos obligatorios que indica su esquema.",
     },
     Receta {
         id: "leer_resultados",
         requiere_aproximaciones: false,
         nombre: "Leer resultados",
         cuando: "Ya hay una simulación hecha.",
-        tools: &["resultados kpis", "resultados csv", "resultados perdidas"],
+        tools: &["resultados kpis", "resultados perdidas", "resultados mensual"],
         ejemplo: None,
         nota: None,
         argumentos: &PROYECTO_Y_VARIANTE,
-        plantilla: "Lee los resultados de {proyecto} variante {variante} con resultados kpis, csv y perdidas, y explica las tres pérdidas mayores.",
+        plantilla: "Lee los resultados de {proyecto} variante {variante} con resultados kpis, perdidas y mensual, y explica las tres pérdidas mayores.",
     },
     Receta {
         id: "optimizar_orientacion",
@@ -132,7 +132,7 @@ pub(crate) static RECETAS: &[Receta] = &[
             requerido: Requerido::Si,
             defecto: "",
         }],
-        plantilla: "Busca la mejor inclinación y azimut para {proyecto} con PVsyst: propone un conjunto de orientaciones, dime cuántas ejecuciones gastará, lánzalas con simular accion:ejecutar y 'filas' (tilt/azim por fila) y compara los casos con resultados kpis.",
+        plantilla: "Busca la mejor inclinación y azimut para {proyecto} con PVsyst: propone las orientaciones, indica cuántas ejecuciones gastará (una por fila de 'filas') y pide confirmación antes de lanzarlas con simular accion:ejecutar; compara los casos con resultados kpis.",
     },
     Receta {
         id: "operar_gui",
@@ -156,7 +156,7 @@ pub(crate) static RECETAS: &[Receta] = &[
         ejemplo: None,
         nota: Some("Para formularios con esquema (que:esquema) rellena con accion:rellenar entidad+valores y lee con que:vista: claves estables, sin OCR ni coordenadas. accion:'clic_fisico' mueve el cursor real; accion:'clic_texto' y accion:'menu' (menu+item) no. Con un dialogo modal abierto no lances comandos de menu; tras un fallo de PVsyst usa accion:'reiniciar'."),
         argumentos: &[],
-        plantilla: "Opera la GUI de PVsyst con gui_actuar y gui_observar: lanza, enumera ventanas y controles, escribe en los campos, actúa y captura el resultado.",
+        plantilla: "Opera la GUI de PVsyst: lanza con gui_actuar accion:lanzar, abre la función con accion:funcion (resuelve sus prerrequisitos), rellena con accion:rellenar y lee el resultado con gui_observar que:vista. Al terminar, cierra las ventanas con accion:cerrar.",
     },
     Receta {
         id: "explorar_archivo",
@@ -172,7 +172,7 @@ pub(crate) static RECETAS: &[Receta] = &[
             requerido: Requerido::Si,
             defecto: "",
         }],
-        plantilla: "Lee {archivo} con leer, lista sus objetos con listar que:objetos y propón los cambios con editar antes de aplicarlos.",
+        plantilla: "Lee {archivo} con leer, lista sus objetos con listar que:objetos (si se trunca, repite con detalle:completo) y propón los cambios con editar antes de aplicarlos.",
     },
     Receta {
         id: "diagnostico_entorno",
@@ -190,11 +190,11 @@ pub(crate) static RECETAS: &[Receta] = &[
         requiere_aproximaciones: false,
         nombre: "Convertir a seguidor de un eje",
         cuando: "Se quiere pasar una variante de plano fijo a seguidor de un eje.",
-        tools: &["proyecto seguidor", "proyecto doctor", "simular ejecutar"],
+        tools: &["proyecto crear_variante", "proyecto seguidor", "proyecto doctor", "simular ejecutar"],
         ejemplo: None,
         nota: Some("La variante debe tener una sola orientación y no usar escena 3D ni bifacial."),
         argumentos: &PROYECTO_Y_VARIANTE,
-        plantilla: "Convierte {proyecto} variante {variante} a seguidor de un eje con proyecto accion:seguidor, ejecuta proyecto doctor y simula para comparar con la variante fija.",
+        plantilla: "Convierte {proyecto} variante {variante} a seguidor de un eje: crea primero una copia con proyecto accion:crear_variante (variante_nueva) para conservar la variante fija, convierte la copia con proyecto accion:seguidor, ejecuta proyecto doctor y simula ambas para comparar.",
     },
     Receta {
         id: "autoconsumo_con_baterias",

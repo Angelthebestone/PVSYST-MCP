@@ -196,14 +196,20 @@ impl Server {
                 "name": "pvsyst-mcp",
                 "version": env!("CARGO_PKG_VERSION"),
             },
-            "instructions": "Operate PVsyst 8.1.7 through its data files, its CLI and its GUI. \
-        Every PVsyst-native tool is available by default: the domain tools (entorno, leer, \
-        editar, listar, proyecto, componente, sitio, simular, resultados, workspace), the raw \
-        PVsystCLI passthrough (pvsyst_cli) and the GUI automation tools (gui_observar, \
-        gui_actuar). Recipes, coverage, format and CLI reference are in the pvsyst:// \
-        resources. Every figure comes from PVsyst; the MCP's own approximations (labelled \
-        origen:aproximacion_mcp) need PVSYST_MCP_APROXIMACIONES=1."
+            "instructions": instrucciones(self.paths.aproximaciones)
         })
+    }
+}
+
+const INSTRUCCIONES_BASE: &str = "Operate PVsyst 8.1.7 through its data files, its CLI and its GUI. Every PVsyst-native tool is available by default: the domain tools (entorno, leer, editar, listar, proyecto, componente, sitio, simular, resultados, workspace), the raw PVsystCLI passthrough (pvsyst_cli) and the GUI automation tools (gui_observar, gui_actuar). Every figure comes from PVsyst. Recipes, coverage, format and CLI reference are in the pvsyst:// resources. Operational notes: (1) the workspace argument is a per-call override and some actions ignore it; (2) sitio crear, sitio convertir_meteo, sitio meteo_pvgis and simular spend PVsyst TRIAL executions (meteo_pvgis is free when its coordinates are cached); (3) lists are truncated to 13 items by default: pass detalle:normal (50 items) or detalle:completo (all); (4) truncated answers carry truncado:true and hint, ignored parameters are listed in ignorados, and siguiente suggests the next call; (5) the GUI is single-instance and gui_actuar accion:funcion resolves its prerequisites itself.";
+const INSTRUCCIONES_APROXIMACIONES: &str = " The MCP's own approximations (labelled origen:aproximacion_mcp) are enabled by PVSYST_MCP_APROXIMACIONES=1.";
+
+/// Instructions sent at initialize; the approximation note appears only when its gate is on.
+fn instrucciones(aproximaciones: bool) -> String {
+    if aproximaciones {
+        format!("{INSTRUCCIONES_BASE}{INSTRUCCIONES_APROXIMACIONES}")
+    } else {
+        INSTRUCCIONES_BASE.to_owned()
     }
 }
 

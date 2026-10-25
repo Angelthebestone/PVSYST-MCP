@@ -117,3 +117,21 @@ fn should_expose_the_phase_three_recipes() {
         assert!(ids.contains(&id), "falta la receta {id}: {ids:?}");
     }
 }
+
+#[test]
+fn should_give_disenar_desde_coordenadas_component_names_that_the_bundle_ships() {
+    let prompt = obtener_prompt(
+        &json!({
+            "name": "disenar_desde_coordenadas",
+            "arguments": { "latitud": "7.07", "longitud": "-73.84", "kwp": "10" },
+        }),
+        false,
+    )
+    .expect("known prompt");
+    let text = prompt["messages"][0]["content"]["text"]
+        .as_str()
+        .expect("text");
+    assert!(text.contains("Generic_Mono_300W.PAN"), "{text}");
+    assert!(text.contains("Generic_7.5kW.OND"), "{text}");
+    assert!(!text.contains("PVSYST_MCP_APROXIMACIONES"), "{text}");
+}

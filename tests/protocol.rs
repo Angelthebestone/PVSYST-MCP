@@ -268,3 +268,14 @@ fn serve_reads_any_reader_and_writes_any_writer() {
     let text = String::from_utf8(output).expect("utf8");
     assert!(text.contains(r#""id":1"#), "text={text}");
 }
+
+#[test]
+fn instructions_describe_detail_and_costs_without_the_approximation_gate() {
+    let v = call(
+        r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{}}}"#,
+    );
+    let texto = v["result"]["instructions"].as_str().expect("instructions");
+    assert!(!texto.contains("PVSYST_MCP_APROXIMACIONES"), "{texto}");
+    assert!(texto.contains("detalle:completo"), "{texto}");
+    assert!(texto.contains("TRIAL"), "{texto}");
+}
