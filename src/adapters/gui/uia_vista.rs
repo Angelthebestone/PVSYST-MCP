@@ -12,7 +12,6 @@ use serde_json::{json, Value};
 /// Lets PVsyst finish the tab change (or its veto) before the strip is read back.
 const PAUSA_PESTANA: std::time::Duration = std::time::Duration::from_millis(300);
 
-
 const DEFAULT_UIA_DEPTH: u32 = 4;
 const DEFAULT_UIA_MAX_NODES: u32 = 150;
 const STEP_VERIFY_TIMEOUT_MS: u64 = 5000;

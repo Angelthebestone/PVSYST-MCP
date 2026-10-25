@@ -126,7 +126,9 @@ pub(crate) fn pagina(_paths: &crate::config::Paths, args: &Value) -> Result<Valu
         Some(v) => v
             .as_u64()
             .and_then(|n| usize::try_from(n).ok())
-            .ok_or_else(|| Error::Invalid("'indice' debe ser un entero mayor o igual que 0".into()))?,
+            .ok_or_else(|| {
+                Error::Invalid("'indice' debe ser un entero mayor o igual que 0".into())
+            })?,
     };
     let f = formulario(args)?;
     f.pagina(indice)?;

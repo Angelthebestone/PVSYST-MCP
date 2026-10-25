@@ -128,7 +128,11 @@ pub(crate) fn pagina_seleccionada(h: Hwnd) -> Option<usize> {
 
 /// Number of tab pages of a page control; `None` when the control does not answer.
 pub(crate) fn paginas_de(h: Hwnd) -> Option<usize> {
-    let total = send_message_timeout(h, Mensaje::nuevo(TCM_GETITEMCOUNT, 0, 0), TIMEOUT_MENSAJE_MS)?;
+    let total = send_message_timeout(
+        h,
+        Mensaje::nuevo(TCM_GETITEMCOUNT, 0, 0),
+        TIMEOUT_MENSAJE_MS,
+    )?;
     usize::try_from(total).ok()
 }
 
