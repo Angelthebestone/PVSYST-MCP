@@ -12,6 +12,11 @@ use std::fs;
 
 /// Import a component file into the workspace component database.
 pub(crate) fn importar_componente(paths: &Paths, args: &Value) -> Result<Value> {
+    if args.get("destino").is_some() {
+        return Err(Error::Invalid(
+            "'destino' no aplica a importar: el componente se copia a la base del workspace (usa 'nombre_nuevo')".into(),
+        ));
+    }
     let workspace = workspace_of(paths, args);
     let origen_str = req_str(args, &["origen"], "component file to import")?;
     let origen = resolver_ruta(&workspace, origen_str, Alcance::de_args(args))?;
@@ -38,6 +43,7 @@ pub(crate) fn importar_componente(paths: &Paths, args: &Value) -> Result<Value> 
     };
     validar_nombre(&name)?;
     let target = dir.join(&name);
+    components::sobrescritura::exigir_sobrescribir(&target, args)?;
     let bytes =
         fs::read(&origen).map_err(|e| Error::io(format!("Cannot read {}", origen.display()), e))?;
     let historial_id = history::reemplazar(&workspace, &target, &bytes, "importar_componente")?;

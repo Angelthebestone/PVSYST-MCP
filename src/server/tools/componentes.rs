@@ -28,6 +28,7 @@ pub(crate) const TOOL_COMPONENTE: Herramienta = Herramienta {
         ("datos", TipoDato::Object),
         ("workspace", TipoDato::String),
         ("permitir_fuera_del_workspace", TipoDato::Boolean),
+        ("sobrescribir", TipoDato::Boolean),
         ("via", TipoDato::String),
     ],
     requeridos: &[],

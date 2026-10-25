@@ -6,6 +6,7 @@ pub(crate) mod buscar;
 pub(crate) mod ficha;
 pub(crate) mod pan;
 mod resolucion;
+pub(crate) mod sobrescritura;
 #[cfg(test)]
 #[path = "../../tests/unit/components/tests.rs"]
 mod tests;
@@ -229,6 +230,7 @@ pub(crate) fn crear_componente(paths: &Paths, args: &Value) -> Result<Value> {
         name = format!("{}.{}", name, kind.to_uppercase());
     }
     let target = out_dir.join(&name);
+    sobrescritura::exigir_sobrescribir(&target, args)?;
     let historial_id = history::reemplazar(&workspace, &target, &bytes, "crear_componente")?;
 
     Ok(json!({
