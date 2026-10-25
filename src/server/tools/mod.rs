@@ -80,6 +80,7 @@ fn filtrar_aproximaciones(h: &Herramienta, esquema: &mut Value) {
     }
     aproximadas::ocultar_via(esquema);
     aproximadas::ocultar_descripcion(h.nombre, esquema);
+    aproximadas::ocultar_propiedades(h.nombre, esquema);
 }
 
 /// One tool invocation: registry lookup, validated arguments and progress channel.

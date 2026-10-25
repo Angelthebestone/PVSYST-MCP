@@ -127,3 +127,35 @@ pub(crate) fn ocultar_descripcion(tool: &str, esquema: &mut Value) {
         *descripcion = Value::from(*texto);
     }
 }
+
+/// Properties read only by approximated actions; removed from the schema when they are off.
+static PROPIEDADES_APROXIMADAS: &[(&str, &[&str])] =
+    &[("resultados", &["medido_kwh", "medido_csv", "umbral_pct"])];
+
+/// Removes the properties that only approximated actions read, from `properties` and `required`.
+pub(crate) fn ocultar_propiedades(tool: &str, esquema: &mut Value) {
+    let Some((_, propiedades)) = PROPIEDADES_APROXIMADAS
+        .iter()
+        .find(|(nombre, _)| *nombre == tool)
+    else {
+        return;
+    };
+    for propiedad in propiedades.iter() {
+        quitar_propiedad(esquema, propiedad);
+    }
+}
+
+fn quitar_propiedad(esquema: &mut Value, clave: &str) {
+    if let Some(props) = esquema
+        .pointer_mut("/inputSchema/properties")
+        .and_then(Value::as_object_mut)
+    {
+        props.remove(clave);
+    }
+    if let Some(req) = esquema
+        .pointer_mut("/inputSchema/required")
+        .and_then(Value::as_array_mut)
+    {
+        req.retain(|v| v.as_str() != Some(clave));
+    }
+}
