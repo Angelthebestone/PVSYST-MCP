@@ -146,3 +146,16 @@ fn should_resolve_an_entity_from_its_window_class() {
     );
     assert!(de_formulario("TNoExiste").is_none());
 }
+
+#[test]
+fn should_reject_an_unknown_schema_entity_instead_of_listing_all() {
+    let r = crate::vista_agente::listar_esquemas(&json!({ "entidad": "zzz" }));
+    assert!(r.is_err());
+}
+
+#[test]
+fn should_return_only_the_requested_schema_entity() {
+    let v = crate::vista_agente::listar_esquemas(&json!({ "entidad": "components.panels" }))
+        .expect("schema");
+    assert_eq!(v["count"], json!(1));
+}

@@ -28,13 +28,16 @@ const ESPERA_MAXIMA_MS: u64 = 60_000;
 
 /// `gui_observar que:funciones`: the catalogue, or the keys under `funcion`.
 pub(crate) fn listar(args: &Value) -> Value {
-    let lista: Vec<Value> = match args.get("funcion").and_then(Value::as_str) {
-        Some(clave) => buscar(funciones(), clave)
-            .iter()
-            .map(|f| f.a_json())
-            .collect(),
-        None => funciones().map(Funcion::a_json).collect(),
+    let base: Vec<&Funcion> = match args.get("funcion").and_then(Value::as_str) {
+        Some(clave) => buscar(funciones(), clave),
+        None => funciones().collect(),
     };
+    let ventana = args.get("ventana").and_then(Value::as_str);
+    let lista: Vec<Value> = base
+        .into_iter()
+        .filter(|f| ventana.is_none_or(|v| f.ventana.eq_ignore_ascii_case(v)))
+        .map(Funcion::a_json)
+        .collect();
     json!({ "count": lista.len(), "funciones": lista })
 }
 

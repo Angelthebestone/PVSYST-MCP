@@ -250,16 +250,21 @@ pub(crate) fn controles(_paths: &crate::config::Paths, args: &Value) -> Result<V
         None => scoped,
     };
     let compact = compact_default(args);
-    let mut out = Vec::new();
-    for c in roots.into_iter().flat_map(enum_children) {
-        let info = if compact {
-            window_brief(c)
-        } else {
-            window_json(c)
-        };
-        out.push(info);
-    }
-    Ok(json!({ "count": out.len(), "controls": out }))
+    let incluir_ocultos =
+        flag(args, &["todos"]) || args.get("visibles").and_then(Value::as_bool) == Some(false);
+    let controls: Vec<Value> = roots
+        .into_iter()
+        .flat_map(enum_children)
+        .filter(|c| incluir_ocultos || visible(*c))
+        .map(|c| {
+            if compact {
+                window_brief(c)
+            } else {
+                window_json(c)
+            }
+        })
+        .collect();
+    Ok(json!({ "count": controls.len(), "controls": controls }))
 }
 
 pub(crate) fn leer(_paths: &crate::config::Paths, args: &Value) -> Result<Value> {

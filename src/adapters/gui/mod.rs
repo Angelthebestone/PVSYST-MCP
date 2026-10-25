@@ -60,7 +60,7 @@ pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Val
         "funciones" => Ok(crate::gui_catalogo::listar(args)),
         "menus" => menu_por_posicion::listar(ventanas::hwnd_de(args, "ventana")?),
         "vista" => crate::vista_agente::vista(paths, args),
-        "esquema" => Ok(crate::vista_agente::listar_esquemas()),
+        "esquema" => crate::vista_agente::listar_esquemas(args),
         "mensajes" => {
             let limite = args
                 .get("lineas")

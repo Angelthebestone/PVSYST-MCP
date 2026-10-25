@@ -184,7 +184,22 @@ pub(crate) fn capturar(paths: &crate::config::Paths, args: &Value) -> Result<Val
     if flag(args, &["imagen"]) {
         obj.insert("_imagen_png_base64".into(), json!(base64(&png)));
     }
+    obj.extend(textos_si_pedidos(paths, args, h)?);
     Ok(Value::Object(obj))
+}
+
+/// The text PVsyst draws in `h` (OCR), only when `ocr:true` was asked for.
+fn textos_si_pedidos(
+    paths: &crate::config::Paths,
+    args: &Value,
+    h: Hwnd,
+) -> Result<serde_json::Map<String, Value>> {
+    if !flag(args, &["ocr"]) {
+        return Ok(serde_json::Map::new());
+    }
+    let ficha = super::ocr::formulario(paths, &json!({"ventana": format!("0x{h:X}")}))?;
+    let textos = ficha.get("textos").cloned().unwrap_or(Value::Null);
+    Ok(serde_json::Map::from_iter([("textos".to_string(), textos)]))
 }
 
 #[cfg(test)]

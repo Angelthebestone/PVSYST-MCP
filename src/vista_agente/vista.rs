@@ -7,9 +7,9 @@ use super::plan::es_valido;
 use super::ventana::ventana_de;
 use crate::adapters::gui::ffi;
 use crate::adapters::gui::ocr;
-use crate::adapters::gui::ventanas::{class_of, hwnd_de, text_of};
+use crate::adapters::gui::ventanas::{class_of, compact_default, hwnd_de, text_of};
 use crate::args::{flag, opt_str};
-use crate::error::Result;
+use crate::error::{Error, Result};
 use serde_json::{json, Value};
 
 fn campo_json(campo: &CampoEsquema, vivo: Option<&CampoVivo>) -> Value {
@@ -82,6 +82,11 @@ fn entidad_pedida(args: &Value) -> Result<Option<&'static Entidad>> {
 /// The form as keyed fields read live from its controls. `ocr:true` also
 /// returns the text PVsyst draws (validation messages, model summary).
 pub(crate) fn vista(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
+    if args.get("incluir_uia").is_some() {
+        return Err(Error::Invalid(
+            "'incluir_uia' no aplica a 'vista': use gui_observar que:controles incluir_uia:true o que:uia".into(),
+        ));
+    }
     let Some(ent) = entidad_pedida(args)? else {
         return Ok(json!({
             "entidad": null,
@@ -99,7 +104,7 @@ pub(crate) fn vista(paths: &crate::config::Paths, args: &Value) -> Result<Value>
         .iter()
         .filter(|(_, vivo)| vivo.is_some())
         .count();
-    let compacto = flag(args, &["compacto"]);
+    let compacto = compact_default(args);
     let campos: Vec<Value> = localizados
         .iter()
         .filter_map(|&(c, vivo)| {
@@ -133,10 +138,15 @@ pub(crate) fn vista(paths: &crate::config::Paths, args: &Value) -> Result<Value>
     Ok(Value::Object(map))
 }
 
-/// `gui_observar que:esquema`: every entity and its fields.
-pub(crate) fn listar_esquemas() -> Value {
-    let entidades: Vec<Value> = todas()
-        .iter()
+/// `gui_observar que:esquema`: every entity and its fields, or only the one
+/// named by `entidad`; an unknown key is an error, not the whole schema.
+pub(crate) fn listar_esquemas(args: &Value) -> Result<Value> {
+    let elegidas: Vec<&Entidad> = match opt_str(args, &["entidad"]) {
+        Some(clave) => vec![entidad(clave)?],
+        None => todas().to_vec(),
+    };
+    let entidades: Vec<Value> = elegidas
+        .into_iter()
         .map(|e| {
             let campos: Vec<Value> = e.campos.iter().map(|c| campo_json(c, None)).collect();
             json!({
@@ -147,5 +157,5 @@ pub(crate) fn listar_esquemas() -> Value {
             })
         })
         .collect();
-    json!({ "count": entidades.len(), "entidades": entidades })
+    Ok(json!({ "count": entidades.len(), "entidades": entidades }))
 }
