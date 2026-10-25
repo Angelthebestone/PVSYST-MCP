@@ -48,3 +48,20 @@ fn should_reject_eliminar_of_a_variant_that_does_not_exist_without_touching_the_
     assert!(projects.join("SYNTH_Plant.PRJ").exists());
     assert!(projects.join("SYNTH_Plant.VC0").exists());
 }
+
+#[test]
+fn should_write_an_empty_file_when_escribir_archivo_gets_empty_contenido() {
+    let ws = synthetic_workspace();
+    let ws_str = ws.path().to_string_lossy().to_string();
+    let mut c = Client::start(Some(&ws_str));
+    c.initialize();
+    let resp = c.call(
+        12,
+        "escribir_archivo",
+        json!({ "archivo": "vacio.txt", "contenido": "" }),
+    );
+    let out = tool_text(&resp);
+    assert_eq!(out["bytes_written"], json!(0), "resp={out}");
+    let escrito = fs::read(ws.path().join("vacio.txt")).expect("archivo creado");
+    assert!(escrito.is_empty());
+}
