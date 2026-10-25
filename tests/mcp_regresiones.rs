@@ -24,3 +24,9 @@ mod archivos;
 
 #[path = "mcp_regresiones/ruta_pvsyst.rs"]
 mod ruta_pvsyst;
+
+#[path = "mcp_regresiones/proyectos.rs"]
+mod proyectos;
+
+#[path = "mcp_regresiones/exportar.rs"]
+mod exportar;

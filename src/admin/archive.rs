@@ -222,6 +222,17 @@ pub(crate) fn zip_into(dest: &Path, dir: &Path, names: &[std::ffi::OsString]) ->
         "-C".as_ref(),
         dir.as_os_str(),
     ];
+    // A destination inside `dir` would otherwise archive the previous copy of itself.
+    let propio: Vec<String> = dest
+        .strip_prefix(dir)
+        .map(|rel| vec![rel.to_string_lossy().replace('\\', "/")])
+        .unwrap_or_default();
+    args.extend(propio.iter().flat_map(|p| {
+        [
+            std::ffi::OsStr::new("--exclude"),
+            std::ffi::OsStr::new(p.as_str()),
+        ]
+    }));
     args.extend(names.iter().map(std::ffi::OsString::as_os_str));
     let resultado = run_tar(&args).and_then(|()| {
         fs::rename(&temporal, dest)

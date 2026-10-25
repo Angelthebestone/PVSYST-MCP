@@ -7,7 +7,7 @@ use crate::error::{Error, Result};
 use crate::workspace::{resolver_ruta, Alcance};
 use serde_json::{json, Value};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 
 /// Standard workspace sub-folders (per PVsyst documentation).
 const WORKSPACE_DIRS: &[&str] = &[
@@ -55,6 +55,11 @@ pub(crate) fn crear_workspace(paths: &Paths, args: &Value) -> Result<Value> {
                 "destination folder, e.g. C:\\\\Users\\\\me\\\\PVsyst8.1_Data",
             )
         })?;
+    if base.components().any(|c| matches!(c, Component::ParentDir)) {
+        return Err(Error::Invalid(
+            "'ruta' no admite '..': indica una ruta explícita".into(),
+        ));
+    }
     let base = if Path::new(&base).is_absolute() {
         base
     } else {
@@ -102,18 +107,13 @@ pub(crate) fn exportar_workspace(paths: &Paths, args: &Value) -> Result<Value> {
             workspace.display()
         )));
     }
-    let destino = if let Some(d) = opt_str(args, &["destino"]) {
-        resolver_ruta(&workspace, d, Alcance::de_args(args))?
-    } else {
-        let nombre = workspace
-            .file_name()
-            .and_then(|n| n.to_str())
-            .unwrap_or("workspace");
-        workspace
-            .parent()
-            .unwrap_or(Path::new("."))
-            .join(format!("{nombre}.zip"))
-    };
+    let destino = destino_zip(&workspace, args)?;
+    if destino.exists() && !flag(args, &["sobrescribir"]) {
+        return Err(Error::Invalid(format!(
+            "El zip ya existe: {} (pasa sobrescribir:true)",
+            destino.display()
+        )));
+    }
     if let Some(parent) = destino.parent() {
         fs::create_dir_all(parent)
             .map_err(|e| Error::io(format!("Cannot create {}", parent.display()), e))?;
@@ -131,4 +131,28 @@ pub(crate) fn exportar_workspace(paths: &Paths, args: &Value) -> Result<Value> {
         json!({ "zip": destino.to_string_lossy(), "size_bytes": size,
         "source_workspace": workspace.to_string_lossy() }),
     )
+}
+
+/// Destination of the export zip. An explicit `destino` goes through the usual
+/// confinement; without it the zip sits next to the workspace, which needs
+/// `permitir_fuera_del_workspace` because that is outside the workspace.
+fn destino_zip(workspace: &Path, args: &Value) -> Result<PathBuf> {
+    if let Some(d) = opt_str(args, &["destino"]) {
+        return resolver_ruta(workspace, d, Alcance::de_args(args));
+    }
+    let nombre = workspace
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("workspace");
+    let junto = workspace
+        .parent()
+        .unwrap_or(Path::new("."))
+        .join(format!("{nombre}.zip"));
+    if matches!(Alcance::de_args(args), Alcance::Libre) {
+        return Ok(junto);
+    }
+    Err(Error::Invalid(format!(
+        "Sin 'destino' el zip se escribiría fuera del workspace ({}): pasa destino o permitir_fuera_del_workspace:true",
+        junto.display()
+    )))
 }
