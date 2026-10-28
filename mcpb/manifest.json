@@ -354,7 +354,7 @@
     "automation"
   ],
   "license": "Apache-2.0",
-  "long_description": "Unofficial MCP server for **PVsyst 8.1.7**: projects, variants, components, sites and weather, simulation and results, operated through PVsyst's own data files and the documented `PVsystCLI` commands. Every write is snapshotted first and can be restored.\n\n**Requirements:** Windows x64 with PVsyst 8.1.7 installed. Headless simulation needs a PVsystCLI licence; without it the CLI runs in TRIAL mode.\n\nNot affiliated with or endorsed by PVsyst SA. No PVsyst code is included or decompiled.",
+  "long_description": "Unofficial MCP server for **PVsyst 8.1.7**: projects, variants, components, sites and weather, simulation and results, operated through PVsyst's own data files and the documented `PVsystCLI` commands. Every write is snapshotted first and can be restored. Every answer, errors included, carries a `vista` block (state, summary, keyed values, warnings, executable next steps, what was trimmed).\n\n**Requirements:** Windows x64 with PVsyst 8.1.7 installed. Headless simulation needs a PVsystCLI licence; without it the CLI runs in TRIAL mode.\n\nNot affiliated with or endorsed by PVsyst SA. No PVsyst code is included or decompiled.",
   "manifest_version": "0.3",
   "name": "pvsyst-mcp",
   "privacy_policies": [

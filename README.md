@@ -142,6 +142,12 @@ model latency plus the size of tool output**. Two mitigations are built in:
 - **`detalle`** on every tool: `resumen` (default) trims arrays to 10 items and long
   strings; `normal` and `completo` return more. Use `completo` only when needed.
 - **`siguiente`** on successful results suggests the next call in the flow.
+- **`vista`** on every answer, success or failure, is the same block for every tool and action:
+  `estado` (`ok`, `parcial`, `error`), `resumen` (one sentence), `campos` (`{clave, valor, unidad, origen, editable}`;
+  `origen` is `pvsyst`, `mcp` or `aproximacion_mcp`), `avisos`, `siguiente` (`[{tool, argumentos, motivo}]`, each
+  executable as written) and `recortado` (`{clave, mostrados, total, pedir_resto}`). A failure adds `error`
+  (`codigo`, `motivo`, `causa_probable`, `que_hacer`, `claves_validas` for input errors). Existing keys do not change.
+  `vista` is the answer's block; `gui_observar que:vista` is the form view by keys — a GUI answer can carry both.
 
 
 Other levers: batch independent calls in one turn, avoid long `esperar_segundos`

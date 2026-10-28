@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`vista` block on every tool answer** (all 15 tools, every `accion`/`que`, errors included):
+  `estado` (`ok|parcial|error`), `resumen`, `campos` with stable keys, unit and origin (`pvsyst`, `mcp`,
+  `aproximacion_mcp`), `avisos`, `siguiente` as `{tool, argumentos}` that the target tool accepts as
+  written, and `recortado` (what `detalle` cut and how to ask for the rest). A failed call carries
+  `error {codigo, motivo, causa_probable, que_hacer, claves_validas}`. Existing keys are unchanged;
+  `structuredContent` of an error gains `vista`. A flow that fails halfway (`ok:false`, `errores`) is
+  `parcial` or `error` and suggests a diagnosis instead of the results of a simulation that never ran.
+  The per-action summaries and next steps live in `src/vista_agente/contrato/catalogo/`; a test fails
+  when a tool declares an action without an entry. The top-level `siguiente` hint now reads from that
+  catalogue.
+- A trial-mode confirmation (`requiere_confirmacion`) is `parcial` and its only `siguiente` is the same
+  call with `confirmar:true`; a dry run (`dry_run`, `simular`) says nothing was applied and offers the
+  real call. Clients without `structuredContent` get the failure's `vista` as a second text item.
+  Contract, size measurements and the tool × action matrix: `docs/vista_agente_salidas.md`.
+
 ### Fixed
 - **`proyecto configurar` chains variant changes in one call** (`pasos:[{accion:…}]`: dimensionar,
   anadir, seguidor, limite_inyeccion, almacenamiento, perdidas, bombeo, economia). Every step is
