@@ -96,11 +96,26 @@ fn algun_paso_ok(salida: &Value) -> bool {
         })
 }
 
-/// `ok:false` or a non-empty `errores` list marks a failure inside a successful reply;
-/// it is partial when a step worked or the reply never said `ok:false`.
+/// A PVsystCLI run that did not succeed: the handlers answer `Ok` with these keys.
+fn falla_la_cli(salida: &Value) -> bool {
+    salida.get("success").and_then(Value::as_bool) == Some(false)
+        || salida.get("timed_out").and_then(Value::as_bool) == Some(true)
+        || !textos_de(salida, "detected_error").is_empty()
+}
+
+/// Keys that say the answer is missing part of what was asked for.
+fn es_incompleta(salida: &Value) -> bool {
+    salida.get("completo").and_then(Value::as_bool) == Some(false)
+        || !textos_de(salida, "errores").is_empty()
+        || !textos_de(salida, "error").is_empty()
+}
+
+/// `ok:false` or a failed CLI run marks a failure inside a successful reply;
+/// an `errores` list, `error` text or `completo:false` mark an incomplete one.
+/// It is partial when a step worked or the reply never said it failed.
 fn estado_de(salida: &Value) -> Estado {
-    let fallo = salida.get("ok").and_then(Value::as_bool) == Some(false);
-    let con_errores = !textos_de(salida, "errores").is_empty();
+    let fallo = salida.get("ok").and_then(Value::as_bool) == Some(false) || falla_la_cli(salida);
+    let con_errores = es_incompleta(salida);
     if !fallo && !con_errores {
         return Estado::Ok;
     }
@@ -114,17 +129,25 @@ fn motivo_de(salida: &Value) -> String {
     let errores = textos_de(salida, "errores");
     let motivo = match errores.is_empty() {
         false => errores.join("; "),
-        true => ["error", "mensaje"]
+        true => ["detected_error", "error", "mensaje"]
             .iter()
             .find_map(|clave| textos_de(salida, clave).into_iter().next())
-            .unwrap_or_else(|| "la acción informó ok:false".to_string()),
+            .unwrap_or_else(|| "la acción informó un fallo".to_string()),
     };
     motivo.chars().take(MAX_CARACTERES_MOTIVO).collect()
 }
 
+fn codigo_de(estado: Estado, salida: &Value) -> &'static str {
+    match estado {
+        Estado::Error if falla_la_cli(salida) => "fallo_cli",
+        Estado::Error => "fallo",
+        _ => "fallo_parcial",
+    }
+}
+
 fn error_de(estado: Estado, salida: &Value) -> Option<ErrorVista> {
     (estado != Estado::Ok).then(|| ErrorVista {
-        codigo: if estado == Estado::Error { "fallo" } else { "fallo_parcial" }.into(),
+        codigo: codigo_de(estado, salida).into(),
         motivo: motivo_de(salida),
         causa_probable: "La acción informó un fallo o problemas en su resultado; algunos pasos pudieron aplicarse.",
         que_hacer: "Corrige la causa indicada en motivo y avisos y repite la acción.",

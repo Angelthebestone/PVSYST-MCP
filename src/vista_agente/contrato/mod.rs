@@ -17,3 +17,7 @@ pub(crate) use tipos::Vista;
 #[cfg(test)]
 #[path = "../../../tests/unit/vista_agente/contrato/mod.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "../../../tests/unit/vista_agente/contrato/estado.rs"]
+mod tests_estado;
