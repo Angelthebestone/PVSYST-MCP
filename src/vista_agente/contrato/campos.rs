@@ -20,6 +20,7 @@ pub(super) const CLAVES_AVISO: &[&str] = &[
     "warnings",
     "aviso",
     "aviso_origen",
+    "detected_error",
 ];
 
 /// Bookkeeping and bulky keys that are not values of the result.

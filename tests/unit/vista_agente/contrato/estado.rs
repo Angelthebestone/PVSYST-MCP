@@ -108,3 +108,19 @@ fn should_keep_the_view_valid_when_two_paths_flatten_to_the_same_key() {
     assert_eq!(vista.campos.len(), 1);
     assert_eq!(vista.validar(&[]), Ok(()));
 }
+
+#[test]
+fn should_warn_and_not_fail_when_the_run_produced_its_output_despite_a_process_error() {
+    let salida = json!({
+        "success": true,
+        "confirmed_by_output_file": true,
+        "detected_error": "exit 1",
+    });
+    let vista = vista_de("simular", "ejecutar", &salida);
+    assert_eq!(vista.estado, Estado::Ok);
+    assert!(
+        vista.avisos.iter().any(|a| a.contains("exit 1")),
+        "{:?}",
+        vista.avisos
+    );
+}

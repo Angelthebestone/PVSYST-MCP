@@ -88,11 +88,19 @@ fn algun_paso_ok(salida: &Value) -> bool {
         })
 }
 
+fn es_verdadero(salida: &Value, clave: &str) -> bool {
+    salida.get(clave).and_then(Value::as_bool) == Some(true)
+}
+
 /// A PVsystCLI run that did not succeed: the handlers answer `Ok` with these keys.
+/// A run that produced its output file succeeded even if the process exited with an
+/// error: its `detected_error` is then a warning, not a failure.
 fn falla_la_cli(salida: &Value) -> bool {
+    let produjo_salida =
+        es_verdadero(salida, "success") || es_verdadero(salida, "confirmed_by_output_file");
     salida.get("success").and_then(Value::as_bool) == Some(false)
-        || salida.get("timed_out").and_then(Value::as_bool) == Some(true)
-        || !textos_de(salida, "detected_error").is_empty()
+        || es_verdadero(salida, "timed_out")
+        || (!produjo_salida && !textos_de(salida, "detected_error").is_empty())
 }
 
 /// Keys that say the answer is missing part of what was asked for.
