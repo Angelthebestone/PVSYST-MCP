@@ -68,3 +68,34 @@ fn should_list_the_cut_when_the_list_is_shorter_than_its_total() {
     assert_eq!(vista.recortado.len(), 1);
     assert_eq!(vista.recortado.first().map(|r| r.total), Some(1770));
 }
+
+fn primer_paso(tool: &str, accion: &str, args: &Value, salida: &Value) -> Option<Value> {
+    let vista = construir(&Contexto { tool, accion, args }, salida);
+    let paso = vista.siguiente.first()?;
+    Some(json!({ "tool": paso.tool, "argumentos": paso.argumentos }))
+}
+
+#[test]
+fn should_list_the_components_of_the_kind_created_when_it_is_an_inverter() {
+    let args = json!({ "accion": "crear_desde_ficha", "tipo": "OND", "nombre_nuevo": "X" });
+    let paso = primer_paso("componente", "crear_desde_ficha", &args, &json!({})).expect("a step");
+    assert_eq!(paso["tool"], "listar");
+    assert_eq!(
+        paso["argumentos"],
+        json!({ "que": "componentes", "tipo": "OND" })
+    );
+}
+
+#[test]
+fn should_take_the_kind_from_the_answer_when_the_request_has_none() {
+    let args = json!({ "accion": "crear", "plantilla": "X.OND" });
+    let paso = primer_paso("componente", "crear", &args, &json!({ "kind": "OND" })).expect("step");
+    assert_eq!(paso["argumentos"]["tipo"], "OND");
+}
+
+#[test]
+fn should_fall_back_to_the_module_list_when_the_kind_is_unknown() {
+    let args = json!({ "accion": "crear" });
+    let paso = primer_paso("componente", "crear", &args, &json!({})).expect("a step");
+    assert_eq!(paso["argumentos"], json!({ "que": "modulos" }));
+}

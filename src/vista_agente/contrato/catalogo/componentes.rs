@@ -1,6 +1,6 @@
 //! `componente`: module and inverter files of the workspace.
 
-use super::{entrada, paso, Entrada, Paso, DE_ARCHIVO, VER_MODULOS};
+use super::{entrada, paso, Entrada, Paso, DE_ARCHIVO, VER_COMPONENTES, VER_MODULOS};
 
 const LEER: Paso = paso("leer", "Leer el componente").tomando(DE_ARCHIVO);
 
@@ -11,7 +11,7 @@ pub(super) const ENTRADAS: &[Entrada] = &[
         "Componente creado a partir de una plantilla.",
     )
     .pista("proyecto crear {modulo|inversor}")
-    .luego(&[VER_MODULOS]),
+    .luego(&[VER_COMPONENTES, VER_MODULOS]),
     entrada("componente", "editar", "Componente editado.").luego(&[LEER, VER_MODULOS]),
     entrada("componente", "borrar", "Componente borrado.").luego(&[VER_MODULOS]),
     entrada(
@@ -32,5 +32,5 @@ pub(super) const ENTRADAS: &[Entrada] = &[
         "Componente creado desde los datos de una ficha técnica.",
     )
     .pista("proyecto crear {modulo|inversor}")
-    .luego(&[VER_MODULOS]),
+    .luego(&[VER_COMPONENTES, VER_MODULOS]),
 ];
