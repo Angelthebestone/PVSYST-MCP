@@ -52,15 +52,33 @@ pub(super) fn anadir_vista(paths: &Paths, contexto: &Contexto<'_>, respuesta: &m
     }
 }
 
-/// Keys the caller can use to fix an input error: what the action requires,
+/// The keys a missing-argument error names: the ones the runtime found absent,
+/// which the static list of required keys of the action does not always include.
+fn claves_que_faltan(error: &Error) -> Vec<String> {
+    match error {
+        Error::MissingArg { key, .. } => vec![key.clone()],
+        Error::MissingArgs { claves, .. } => claves.clone(),
+        _ => Vec::new(),
+    }
+}
+
+/// Keys of a missing-argument error: the absent ones first (the discriminator
+/// included, when that is what is missing), then what the action requires.
+fn claves_de_entrada_incompleta(h: &Herramienta, accion: &str, error: &Error) -> Vec<String> {
+    let mut claves = claves_que_faltan(error);
+    for clave in h.requeridos_de(accion).into_iter().map(str::to_string) {
+        if !claves.contains(&clave) {
+            claves.push(clave);
+        }
+    }
+    claves
+}
+
+/// Keys the caller can use to fix an input error: the ones it lacks,
 /// or every argument the tool declares.
 fn claves_validas(h: &Herramienta, accion: &str, error: &Error) -> Vec<String> {
     if error.kind() == KIND_MISSING_ARG {
-        return h
-            .requeridos_de(accion)
-            .into_iter()
-            .map(str::to_string)
-            .collect();
+        return claves_de_entrada_incompleta(h, accion, error);
     }
     h.propiedades
         .iter()
@@ -92,3 +110,7 @@ mod tests;
 #[cfg(test)]
 #[path = "../../../tests/unit/server/tools/ensayo_tests.rs"]
 mod tests_ensayo;
+
+#[cfg(test)]
+#[path = "../../../tests/unit/server/tools/claves_tests.rs"]
+mod tests_claves;

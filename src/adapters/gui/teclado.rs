@@ -104,6 +104,8 @@ fn dar_foco_al_control(h: ffi::Hwnd) -> Result<()> {
 
 pub(crate) fn teclas(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     let _ = paths;
+    let combo = req_str(args, &["teclas"], "e.g. \"F1\" or \"CTRL+S\"")?.to_uppercase();
+    let (mods, vk) = parsear_combinacion(&combo)?;
     let scoped = ventanas_de(args)?;
     let reference = args.get("ventana").and_then(|v| v.as_str());
     let h = match reference {
@@ -115,8 +117,6 @@ pub(crate) fn teclas(paths: &crate::config::Paths, args: &Value) -> Result<Value
     if h == 0 {
         return Err(Error::Gui("No hay una ventana en primer plano".into()));
     }
-    let combo = req_str(args, &["teclas"], "e.g. \"F1\" or \"CTRL+S\"")?.to_uppercase();
-    let (mods, vk) = parsear_combinacion(&combo)?;
     if escritorio::es_aislado() && mods.iter().any(|m| *m != VK_MENU) {
         return Err(Error::Gui(
             "En el escritorio aislado solo se admite Alt como modificador: Ctrl y Mayús no se pueden enviar como mensajes".into(),
