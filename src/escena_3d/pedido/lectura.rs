@@ -2,6 +2,7 @@
 //! reported at once, with the keys the object accepts.
 
 use super::formas::{forma_de, Forma, Parametro, Valores, FORMAS};
+use super::problema::Problema;
 use crate::error::{Error, Result};
 use serde_json::{Map, Value};
 
@@ -28,36 +29,43 @@ pub(crate) struct ObjetoPedido {
     pub(super) valores: Valores,
 }
 
-fn numero(objeto: &Map<String, Value>, clave: &str, defecto: Option<f64>) -> Result<f64, String> {
+fn numero(
+    objeto: &Map<String, Value>,
+    clave: &'static str,
+    defecto: Option<f64>,
+) -> Result<f64, Problema> {
     match (objeto.get(clave), defecto) {
         (Some(v), _) => v
             .as_f64()
             .filter(|n| n.is_finite())
-            .ok_or_else(|| format!("'{clave}' debe ser un número")),
+            .ok_or(Problema::NoEsNumero { clave }),
         (None, Some(d)) => Ok(d),
-        (None, None) => Err(format!("falta '{clave}'")),
+        (None, None) => Err(Problema::FaltaClave { clave }),
     }
 }
 
-fn dentro(clave: &str, valor: f64, (minimo, maximo): (f64, f64)) -> Result<f64, String> {
+fn dentro(clave: &'static str, valor: f64, (minimo, maximo): (f64, f64)) -> Result<f64, Problema> {
     if (minimo..=maximo).contains(&valor) {
         return Ok(valor);
     }
-    Err(format!(
-        "'{clave}' = {valor} fuera de rango [{minimo}, {maximo}] (límites del MCP; los de PVsyst no están medidos)"
-    ))
+    Err(Problema::FueraDeRango {
+        clave,
+        valor,
+        minimo,
+        maximo,
+    })
 }
 
 fn coordenada(
     objeto: &Map<String, Value>,
-    clave: &str,
+    clave: &'static str,
     defecto: Option<f64>,
-) -> Result<f64, String> {
+) -> Result<f64, Problema> {
     numero(objeto, clave, defecto)
         .and_then(|v| dentro(clave, v, (-MAXIMO_COORDENADA_M, MAXIMO_COORDENADA_M)))
 }
 
-fn leer_posicion(objeto: &Map<String, Value>) -> Result<Posicion, Vec<String>> {
+fn leer_posicion(objeto: &Map<String, Value>) -> Result<Posicion, Vec<Problema>> {
     let giro = numero(objeto, "rotacion_azimut_deg", Some(0.0)).and_then(|v| {
         dentro(
             "rotacion_azimut_deg",
@@ -82,12 +90,12 @@ fn leer_posicion(objeto: &Map<String, Value>) -> Result<Posicion, Vec<String>> {
     }
 }
 
-fn leer_parametro(objeto: &Map<String, Value>, p: &Parametro) -> Result<f64, String> {
+fn leer_parametro(objeto: &Map<String, Value>, p: &Parametro) -> Result<f64, Problema> {
     numero(objeto, p.clave, None).and_then(|v| dentro(p.clave, v, (p.minimo, p.maximo)))
 }
 
-fn claves_ajenas(objeto: &Map<String, Value>, forma: &Forma) -> Vec<String> {
-    let validas: Vec<&str> = CLAVES_DE_POSICION
+fn claves_ajenas(objeto: &Map<String, Value>, forma: &Forma) -> Vec<Problema> {
+    let validas: Vec<&'static str> = CLAVES_DE_POSICION
         .iter()
         .copied()
         .chain(forma.parametros.iter().map(|p| p.clave))
@@ -95,32 +103,35 @@ fn claves_ajenas(objeto: &Map<String, Value>, forma: &Forma) -> Vec<String> {
     objeto
         .keys()
         .filter(|k| !validas.contains(&k.as_str()))
-        .map(|k| format!("'{k}' no existe (claves de {}: {validas:?})", forma.tipo))
+        .map(|k| Problema::ClaveAjena {
+            clave: k.clone(),
+            tipo: forma.tipo,
+            validas: validas.clone(),
+        })
         .collect()
 }
 
 /// A tree's trunk must be thinner than its crown.
-fn coherencia(forma: &Forma, valores: &Valores) -> Option<String> {
+fn coherencia(forma: &Forma, valores: &Valores) -> Option<Problema> {
     let (copa, tronco) = (valores.get("radio_copa")?, valores.get("radio_tronco")?);
-    (forma.tipo == "arbol" && tronco >= copa)
-        .then(|| "'radio_tronco' debe ser menor que 'radio_copa'".to_string())
+    (forma.tipo == "arbol" && tronco >= copa).then_some(Problema::TroncoMayorQueCopa)
 }
 
-fn forma_del_objeto(objeto: &Map<String, Value>) -> Result<&'static Forma, String> {
+fn forma_del_objeto(objeto: &Map<String, Value>) -> Result<&'static Forma, Problema> {
     let tipo = objeto
         .get("tipo")
         .and_then(Value::as_str)
-        .ok_or_else(|| "falta 'tipo' (texto)".to_string())?;
-    forma_de(tipo).ok_or_else(|| {
-        let validos: Vec<&str> = FORMAS.iter().map(|f| f.tipo).collect();
-        format!("tipo '{tipo}' desconocido: usa {validos:?}")
+        .ok_or(Problema::FaltaTipo)?;
+    forma_de(tipo).ok_or_else(|| Problema::TipoDesconocido {
+        tipo: tipo.to_string(),
+        validos: FORMAS.iter().map(|f| f.tipo).collect(),
     })
 }
 
-fn leer_objeto(valor: &Value) -> Result<ObjetoPedido, Vec<String>> {
+fn leer_objeto(valor: &Value) -> Result<ObjetoPedido, Vec<Problema>> {
     let objeto = valor
         .as_object()
-        .ok_or_else(|| vec!["debe ser un objeto".to_string()])?;
+        .ok_or_else(|| vec![Problema::NoEsObjeto])?;
     let forma = forma_del_objeto(objeto).map_err(|e| vec![e])?;
     let parametros: Vec<_> = forma
         .parametros

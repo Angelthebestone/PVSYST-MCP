@@ -6,6 +6,7 @@ mod colision;
 mod formas;
 mod informe;
 mod lectura;
+mod problema;
 
 pub(crate) use informe::describir_escena;
 pub(crate) use lectura::MAX_OBJETOS;
