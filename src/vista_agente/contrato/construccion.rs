@@ -1,6 +1,6 @@
 //! Builds the `vista` block of a finished call from its request and its answer.
 
-use super::campos::campos_de;
+use super::campos::{campos_de, CLAVES_AVISO};
 use super::catalogo::{self, Entrada, Paso};
 use super::pendiente::{pendiente_de, Pendiente};
 use super::tipos::{ErrorVista, Estado, Origen, PasoSiguiente, Recorte, Vista};
@@ -18,14 +18,6 @@ pub(crate) struct Contexto<'a> {
 const TOOLS_DEL_MCP: &[&str] = &["entorno", "workspace", "listar"];
 /// Value of `origen` that marks an approximation computed by the MCP.
 const ORIGEN_APROXIMACION: &str = "aproximacion_mcp";
-/// Keys that carry warnings, as strings or lists of strings.
-const CLAVES_AVISO: &[&str] = &[
-    "avisos",
-    "advertencias",
-    "warnings",
-    "aviso",
-    "aviso_origen",
-];
 const MAX_CARACTERES_MOTIVO: usize = 300;
 /// Warnings listed in `vista`; the answer keeps all of them in full.
 const MAX_AVISOS: usize = 5;

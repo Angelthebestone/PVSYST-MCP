@@ -11,6 +11,16 @@ const MAX_HIJOS: usize = 8;
 /// Longer texts (paths, logs) are not "values"; they stay in the answer.
 const MAX_CARACTERES_VALOR: usize = 40;
 
+/// Keys that carry warnings, as strings or lists of strings. They are not values
+/// of the result either, so `CLAVES_AJENAS` does not repeat them.
+pub(super) const CLAVES_AVISO: &[&str] = &[
+    "avisos",
+    "advertencias",
+    "warnings",
+    "aviso",
+    "aviso_origen",
+];
+
 /// Bookkeeping and bulky keys that are not values of the result.
 const CLAVES_AJENAS: &[&str] = &[
     "elapsed_ms",
@@ -20,11 +30,6 @@ const CLAVES_AJENAS: &[&str] = &[
     "total",
     "ignorados",
     "origen",
-    "aviso_origen",
-    "aviso",
-    "avisos",
-    "advertencias",
-    "warnings",
     "errores",
     "ok",
     "vista",
@@ -68,7 +73,8 @@ pub(super) fn unidad_de(clave: &str) -> Option<String> {
 }
 
 fn es_valor(clave: &str, valor: &Value) -> bool {
-    if CLAVES_AJENAS.contains(&clave) || clave.ends_with("_total") {
+    if CLAVES_AJENAS.contains(&clave) || CLAVES_AVISO.contains(&clave) || clave.ends_with("_total")
+    {
         return false;
     }
     match valor {

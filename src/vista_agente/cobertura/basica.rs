@@ -4,11 +4,10 @@
 use super::dominio::{Cobertura, Ventana};
 use crate::adapters::gui::ffi::{self, Hwnd};
 use crate::adapters::gui::ventanas::{hijos_visibles_con_clase, text_of};
-use crate::vista_agente::campos_vivos::{campos_vivos, CampoVivo};
+use crate::vista_agente::campos_vivos::{campos_vivos, CampoVivo, CLASES_LISTA};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 
-const CLASES_LISTA: &[&str] = &["TComboBox", "TComboBoxEx"];
 const CLASES_BOTON: &[&str] = &["TButton", "TBitBtn", "TPngBitBtn", "TSpeedButton"];
 
 /// `edit_97_120`: control class without its `T`, then row and column.
