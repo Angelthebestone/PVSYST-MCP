@@ -26,7 +26,7 @@ pub(crate) enum ErrorFila {
     #[error("El punto de clic (x {x_px} px) cae fuera del control, que mide {ancho_px} px de ancho a 96 DPI")]
     FueraDelControl { x_px: i32, ancho_px: i32 },
     #[error(
-        "No se pudo traer {clase} al primer plano y darle el foco: el clic iría a otra ventana"
+        "No se pudo traer {clase} al primer plano y darle el foco: el clic iría a otra ventana. Trae la ventana con accion:activar y repite"
     )]
     SinFoco { clase: String },
     #[error("Tras el clic no hay ninguna fila resaltada: la fila {indice} está vacía o el clic no llegó")]

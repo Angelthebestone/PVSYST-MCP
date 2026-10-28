@@ -50,6 +50,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   open it (`accion:funcion` opens them). `herramientas.factor_transposicion` now declares the window it was
   seen to open (`TArrayCharactForm`, not `TTranspositionForm`).
 
+### Fixed
+- `vista.estado` no longer says `ok` for a PVsystCLI run with `success:false`, a timeout or a `detected_error`
+  (error code `fallo_cli`), nor for an answer with `completo:false`, `error` or `errores` (`fallo_parcial`). A run
+  that produced its output file only warns about its process error.
+- A dry run (`dry_run`/`simular`) is read from the answer, not from the request, and is refused up front in the
+  actions that have none (`entorno preferencias_editar`, `sitio escribir_serie`, `simular preparar`, `gui_actuar
+  cerrar_todo`...) and in `simular ejecutar` with `filas`/`parametros`, which write files before running.
+- `gui_actuar accion:escena` is validation only and no longer fails for lack of an undeclared `simular`; the
+  object limit (500) and a minimum of one are enforced at runtime.
+- The trimmer keeps a `<clave>_total` the domain already counted, `vista.recortado` lists real cuts only, and
+  scene collisions are no longer capped by the handler.
+- `vista.claves_validas` names the keys the runtime found missing; `teclas` validates its keys before looking
+  for windows, sends them only to a window of the target process and checks it is in the foreground.
+- `vista.campos` is capped for forms too; component steps list the kind created; duplicate keys are dropped.
+- `herramientas.factor_transposicion` declares `TArrayCharactForm`, the window it was seen to open.
+
 ### Changed
 - `gui_actuar accion:rellenar` returns the form read back under `formulario` (it was `vista`, which now
   belongs to the answer block).
