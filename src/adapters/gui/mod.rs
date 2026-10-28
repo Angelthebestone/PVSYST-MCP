@@ -19,6 +19,7 @@ pub(crate) mod conduccion;
 pub(crate) mod escritorio;
 pub(crate) mod esperas;
 pub(crate) mod ffi;
+pub(crate) mod fila;
 pub(crate) mod gdi;
 pub(crate) mod menu_por_posicion;
 pub(crate) mod modal;
@@ -78,7 +79,7 @@ pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Val
 }
 
 /// `actuar` dispatcher. `accion`: click | clic_fisico | clic_texto | mensaje |
-/// cerrar | activar | teclas | escribir | seleccionar | pagina | esperar_cierre |
+/// cerrar | activar | teclas | fila | escribir | seleccionar | pagina | esperar_cierre |
 /// lanzar | reiniciar | uia_invocar | esperar | paso | funcion | menu | campo | rellenar | cerrar_todo | secuencia.
 pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     crate::adapters::uia::invalidar_cache(&paths.estado);
@@ -92,6 +93,7 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
             acciones::invocar(paths, args)
         }
         "teclas" => teclado::teclas(paths, args),
+        "fila" => fila::fila(paths, args),
         "funcion" => crate::gui_catalogo::abrir(args),
         "menu" => crate::gui_catalogo::menu(args),
         "campo" => campo_por_etiqueta::campo(paths, args),
@@ -109,7 +111,7 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         "esperar" => esperas::esperar(args),
         "paso" => uia_vista::paso(paths, args),
         other => Err(Error::Invalid(format!(
-            "Unknown accion '{other}' (click|clic_fisico|mensaje|cerrar|cerrar_todo|activar|teclas|escribir|seleccionar|pagina|esperar_cierre|lanzar|uia_invocar|esperar|paso|funcion|menu|campo|rellenar|clic_texto|reiniciar|secuencia|escena)"
+            "Unknown accion '{other}' (click|clic_fisico|mensaje|cerrar|cerrar_todo|activar|teclas|fila|escribir|seleccionar|pagina|esperar_cierre|lanzar|uia_invocar|esperar|paso|funcion|menu|campo|rellenar|clic_texto|reiniciar|secuencia|escena)"
         ))),
     }
 }

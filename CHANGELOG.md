@@ -32,6 +32,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   states and listed in `gui_observar que:esquema` (`cobertura`). `que:vista` on a window without a schema
   returns its fields by control class and 96-DPI position (combo items included) or its buttons.
 
+- **`gui_actuar accion:fila`** (`ventana`, `indice`) selects row N of a list or tree that has no window per
+  row, with a physical click on geometry declared per control class (`TVirtualStringTree`: header 21 px, rows
+  19 px; `TListBox`: border 2 px, rows 13 px; px at 96 DPI, scaled by the window DPI). It checks the result
+  without OCR: the highlighted band of a capture must be the requested row, and the click must not have opened
+  or closed anything. A wrong row, an empty slot, an out-of-range index, a click PVsyst took as "open this item"
+  and a control class without measured geometry are errors. It only selects (no Enter, no OK) and it is
+  refused on the isolated desktop (not measured).
+- **`teclas` with a control as `ventana` gives it the keyboard focus first** and fails when it cannot
+  guarantee it, so an arrow no longer lands on a combo by accident. `fila` does the same before its click:
+  with the focus on another control the first click only moved the focus.
+
 ### Changed
 - `gui_actuar accion:rellenar` returns the form read back under `formulario` (it was `vista`, which now
   belongs to the answer block).

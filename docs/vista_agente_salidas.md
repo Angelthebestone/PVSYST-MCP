@@ -141,7 +141,8 @@ ejecutó la acción real (la mayoría escribe o gasta ejecuciones de prueba).
 | `gui_actuar` | `mensaje` | Mensaje de Windows enviado a la ventana. | `gui_observar que=controles*`; `gui_observar que=ventanas` | unitaria (catálogo + validación) |
 | `gui_actuar` | `cerrar` | Ventana cerrada. | `gui_observar que=ventanas` | unitaria (catálogo + validación) |
 | `gui_actuar` | `activar` | Ventana traída al primer plano. | `gui_observar que=vista`; `gui_observar que=ventanas` | unitaria (catálogo + validación) |
-| `gui_actuar` | `teclas` | Teclas enviadas a la ventana en primer plano. | `gui_observar que=capturar*`; `gui_observar que=ventanas` | unitaria (catálogo + validación) |
+| `gui_actuar` | `teclas` | Teclas enviadas a la ventana en primer plano. | `gui_observar que=capturar*`; `gui_observar que=ventanas` | en vivo: ok con control como `ventana` (foco) |
+| `gui_actuar` | `fila` | Fila de la lista o del árbol seleccionada y comprobada por su banda resaltada. | `gui_observar que=vista`; `gui_observar que=ventanas` | en vivo: ok (`TVirtualStringTree`, `TListBox`) |
 | `gui_actuar` | `escribir` | Texto escrito en el control. | `gui_observar que=vista`; `gui_observar que=ventanas` | unitaria (catálogo + validación) |
 | `gui_actuar` | `seleccionar` | Elemento de la lista seleccionado. | `gui_observar que=vista`; `gui_observar que=ventanas` | unitaria (catálogo + validación) |
 | `gui_actuar` | `pagina` | Pestaña del formulario cambiada. | `gui_observar que=vista`; `gui_observar que=ventanas` | unitaria (catálogo + validación) |

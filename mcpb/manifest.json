@@ -438,7 +438,7 @@
       "name": "gui_observar"
     },
     {
-      "description": "Actua sobre la GUI de PVsyst: clic (tambien por texto visible), escribir, seleccionar, pestana, teclas, menus por posicion, cerrar, lanzar, reiniciar, esperas y rellenar un formulario por claves. / EN: Acts on the PVsyst GUI: click (also by on-screen text), type, select, tab page, keys, menus by position, close, launch, restart, waits and fill a form by keys.",
+      "description": "Actua sobre la GUI de PVsyst: clic (tambien por texto visible), escribir, seleccionar, pestana, teclas, fila de una lista o arbol, menus por posicion, cerrar, lanzar, reiniciar, esperas y rellenar un formulario por claves. / EN: Acts on the PVsyst GUI: click (also by on-screen text), type, select, tab page, keys, list or tree row, menus by position, close, launch, restart, waits and fill a form by keys.",
       "name": "gui_actuar"
     }
   ],

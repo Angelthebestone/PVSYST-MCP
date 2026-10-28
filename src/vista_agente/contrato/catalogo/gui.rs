@@ -125,6 +125,12 @@ pub(super) const ENTRADAS: &[Entrada] = &[
         "Clic en el texto visible de la ventana.",
     )
     .luego(&[VER_FORMULARIO, VER_VENTANAS]),
+    entrada(
+        "gui_actuar",
+        "fila",
+        "Fila de la lista o del árbol seleccionada y comprobada por su banda resaltada.",
+    )
+    .luego(&[VER_FORMULARIO, VER_VENTANAS]),
     entrada("gui_actuar", "reiniciar", "PVsyst reiniciado.").luego(&[VER_VENTANAS]),
     entrada("gui_actuar", "cerrar_todo", "Ventanas de PVsyst cerradas.").luego(&[VER_VENTANAS]),
     entrada(

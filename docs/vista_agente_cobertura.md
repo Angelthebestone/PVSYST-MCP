@@ -111,6 +111,22 @@ recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactament
 | `TWiringResistanceForm` | variante | 2 | sí (`variante.perdidas_detalladas.computacion_detallada`) | 9 | 4 | 1 |
 | `TWorkspaceForm` | aplicacion | 3 | sí (`archivo.espacio_de_trabajo`) | 0 | 1 | 2 |
 
+## Filas de listas y árboles (`gui_actuar accion:fila`)
+Medido en vivo con el release (PVsyst 8.1.7, 144 DPI = 150 %, capturas a 96 DPI, 2026-10-28). Sin licencia (PRUEBA); todo se cerró con Cancelar/Cerrar y sin pulsar OK.
+
+| Control | Ventana donde se midió | Geometría a 96 DPI | Filas probadas | Resultado |
+|---|---|---|---|---|
+| `TVirtualStringTree` | `TProjectLoadForm` (19 proyectos) | cabecera 21 px, fila 19 px, 29 huecos visibles | 0, 3, 18; 19 (hueco vacío); 40 | 0, 3 y 18 verificadas por banda; 19 error («PVsyst resaltó la 0»); 40 error de rango |
+| `TListBox` | `TChoixObjetPVForm` de módulos (32 elementos) | borde 2 px, fila 13 px, 33 huecos visibles | 0, 3, 31; 32 (hueco vacío); 33 | 0, 3 y 31 verificadas; 32 error; 33 error de rango |
+
+- La cabecera de la lista de módulos es un `TStringGrid` aparte de una fila: se apunta a la `TListBox`, no a él (sin geometría: error).
+- Solo selecciona. La banda de la fila *n* ocupa y∈[cabecera+alto·*n*, cabecera+alto·*(n+1)*] del control.
+- El índice son huecos **visibles**: no hay desplazamiento. Una lista con más filas que huecos queda fuera de alcance `[INFERENCIA]`: no se probó.
+- Un clic físico puede **activar** el elemento: en la primera medición, un clic sobre la lista de módulos (dy 100, con el foco fuera de la lista) abrió `TPVModuleForm` y cerró el selector; no se supo por qué `[INFERENCIA]`. `fila` comprueba que no apareció ni desapareció ninguna ventana y, antes del clic, da el foco al control: con el foco en un combo el primer clic solo movía el foco y la fila quedaba como estaba (tres de tres aciertos con el foco dado, tras `TAB` en el combo). Repetir el clic no es una salida: dos clics seguidos son un doble clic.
+- Qué fila es no se lee: ni UIA ni MSAA dan texto. En módulos, inversores, baterías, controladores, bombas y fabricantes la fila se identifica solo por índice; el orden alfabético no se infiere.
+- Con `PVSYST_MCP_ESCRITORIO=aislado` la acción se niega: no está medido. Otro DPI distinto de 144: `[INFERENCIA]`.
+- Con otras ventanas que usen estas mismas clases (otros `TChoixObjetPVForm`, 15 instancias) la geometría es la declarada por clase, medida solo en la de módulos `[INFERENCIA]`.
+
 ## No abiertas, solo clasificadas desde el mapa
 `MicrosoftWindowsTooltip`, `TBacktrackingForm`, `TDomesticUseForm`, `TShedElecShadingForm`, `TSystemPumpingForm`, `TSystemeBattForm`, `TSystemegridDCForm`, `TTranspositionForm`, `TVCManageForm`, `TVoltageOptimiseForm`, `TWaterUseForm`.
 Motivos: requieren un sitio elegido o un proyecto con resultados (botones deshabilitados en un proyecto nuevo), o la función del
