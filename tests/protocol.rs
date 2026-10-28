@@ -279,3 +279,40 @@ fn instructions_describe_detail_and_costs_without_the_approximation_gate() {
     assert!(texto.contains("detalle:completo"), "{texto}");
     assert!(texto.contains("TRIAL"), "{texto}");
 }
+
+fn call_tool(server: &pvsyst_mcp::Server, name: &str, arguments: &str) -> Value {
+    let line = format!(
+        r#"{{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{{"name":"{name}","arguments":{arguments}}}}}"#
+    );
+    let out = server.handle_line(&line).expect("response");
+    serde_json::from_str(&out).expect("valid json")
+}
+
+fn server_estructurado() -> pvsyst_mcp::Server {
+    let server = server_with();
+    server.handle_line(
+        r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}"#,
+    );
+    server
+}
+
+#[test]
+fn should_attach_a_vista_with_state_summary_and_next_steps_when_a_tool_succeeds() {
+    let v = call_tool(&server_estructurado(), "entorno", "{}");
+    let vista = &v["result"]["structuredContent"]["vista"];
+    assert_eq!(vista["estado"], "ok", "v={v}");
+    assert!(vista["resumen"].as_str().is_some_and(|r| !r.is_empty()));
+    assert!(vista["siguiente"][0]["tool"].is_string());
+    assert!(vista["siguiente"][0]["argumentos"].is_object());
+}
+
+#[test]
+fn should_attach_a_vista_with_code_and_valid_keys_when_a_tool_fails() {
+    let v = call_tool(&server_estructurado(), "proyecto", r#"{"accion":"doctor"}"#);
+    assert_eq!(v["result"]["isError"], true, "v={v}");
+    let vista = &v["result"]["structuredContent"]["vista"];
+    assert_eq!(vista["estado"], "error");
+    assert_eq!(vista["error"]["codigo"], "missing_arg");
+    assert_eq!(vista["error"]["claves_validas"][0], "proyecto");
+    assert_eq!(vista["siguiente"][0]["tool"], "entorno");
+}

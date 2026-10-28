@@ -5,6 +5,7 @@
 //! `relleno` talk to the live PVsyst through the GUI adapter.
 
 mod campos_vivos;
+pub(crate) mod contrato;
 mod dominio;
 mod esquemas;
 mod plan;

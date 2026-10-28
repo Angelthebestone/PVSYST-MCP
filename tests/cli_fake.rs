@@ -16,6 +16,9 @@ mod cliente_mcp;
 #[path = "cli_fake/ejecucion.rs"]
 mod ejecucion;
 
+#[path = "cli_fake/encadenado.rs"]
+mod encadenado;
+
 #[path = "cli_fake/resultados.rs"]
 mod resultados;
 

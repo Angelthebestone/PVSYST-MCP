@@ -44,14 +44,32 @@ pub(crate) fn resultado_de_herramienta(mut value: Value, formato: FormatoResulta
     resultado
 }
 
-pub(crate) fn error_de_herramienta(e: &Error, formato: FormatoResultado) -> Value {
+/// Tool failure. `vista` is the agent-facing block (code, cause, what to do, next
+/// steps): it goes in `structuredContent`, or as a second text item for clients
+/// that predate structured results.
+pub(crate) fn error_de_herramienta(
+    e: &Error,
+    formato: FormatoResultado,
+    vista: Option<&Value>,
+) -> Value {
     let mensaje = e.to_string();
     let mut resultado = json!({
         "content": [{ "type": "text", "text": mensaje }],
         "isError": true,
     });
-    if matches!(formato, FormatoResultado::ConEstructura) {
-        resultado["structuredContent"] = json!({ "error": mensaje, "tipo": e.kind() });
+    match (formato, vista) {
+        (FormatoResultado::ConEstructura, _) => {
+            resultado["structuredContent"] =
+                json!({ "error": mensaje, "tipo": e.kind(), "vista": vista });
+        }
+        (FormatoResultado::SoloTexto, Some(vista)) => {
+            let texto = json!({ "vista": vista }).to_string();
+            resultado["content"] = json!([
+                { "type": "text", "text": mensaje },
+                { "type": "text", "text": texto },
+            ]);
+        }
+        (FormatoResultado::SoloTexto, None) => {}
     }
     resultado
 }

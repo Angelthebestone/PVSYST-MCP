@@ -148,7 +148,7 @@ impl Server {
     fn ejecutar_herramienta(&self, params: &Value, seguimiento: &SeguimientoTarea<'_>) -> Value {
         let Some(name) = params.get("name").and_then(Value::as_str) else {
             let e = Error::Invalid("Falta 'name' (string) en tools/call".into());
-            return error_de_herramienta(&e, self.formato_resultado());
+            return error_de_herramienta(&e, self.formato_resultado(), None);
         };
         // Missing arguments behave like `{}`: `Value::get` on Null yields None.
         let args = params.get("arguments").unwrap_or(&Value::Null);
@@ -163,7 +163,8 @@ impl Server {
             Ok(value) => resultado_de_herramienta(value, formato),
             Err(e) => {
                 tracing::warn!(tool = name, kind = e.kind(), error = %e, "tool call failed");
-                error_de_herramienta(&e, formato)
+                let vista = tools::vista_de_error(&solicitud, &e);
+                error_de_herramienta(&e, formato, vista.as_ref())
             }
         }
     }

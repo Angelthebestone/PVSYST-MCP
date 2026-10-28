@@ -154,7 +154,7 @@ pub(crate) static RECETAS: &[Receta] = &[
             "gui_actuar accion:rellenar",
         ],
         ejemplo: None,
-        nota: Some("Para formularios con esquema (que:esquema) rellena con accion:rellenar entidad+valores y lee con que:vista: claves estables, sin OCR ni coordenadas. accion:'clic_fisico' mueve el cursor real; accion:'clic_texto' y accion:'menu' (menu+item) no. Con un dialogo modal abierto no lances comandos de menu; tras un fallo de PVsyst usa accion:'reiniciar'."),
+        nota: Some("Para formularios con esquema (que:esquema) rellena con accion:rellenar entidad+valores y lee con que:vista: claves estables, sin OCR ni coordenadas. accion:'clic_fisico' mueve el cursor real; accion:'clic_texto' y accion:'menu' (menu+item) no. Toda respuesta (tambien las de error) trae vista{estado,resumen,siguiente,error}: sigue vista.siguiente tal cual. Con un dialogo modal abierto no lances comandos de menu; tras un fallo de PVsyst usa accion:'reiniciar'."),
         argumentos: &[],
         plantilla: "Opera la GUI de PVsyst: lanza con gui_actuar accion:lanzar, abre la función con accion:funcion (resuelve sus prerrequisitos), rellena con accion:rellenar y lee el resultado con gui_observar que:vista. Al terminar, cierra las ventanas con accion:cerrar.",
     },

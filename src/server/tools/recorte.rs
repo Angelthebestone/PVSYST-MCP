@@ -1,12 +1,13 @@
 //! Result trimming by detail level and next-step recommendations for callers.
 
+use crate::vista_agente::contrato::catalogo;
 use serde_json::Value;
 
 /// Accepted detail levels; `resumen` is the default.
 pub(crate) const DETALLES: &[&str] = &["resumen", "normal", "completo"];
 
 /// Keys whose contents are never trimmed.
-const SIN_RECORTE: &[&str] = &[
+pub(super) const SIN_RECORTE: &[&str] = &[
     "text",
     "contenido",
     "base64",
@@ -76,21 +77,7 @@ pub(crate) fn recortar(v: &mut Value, lim: (usize, usize)) -> bool {
 
 /// Suggested next step after a successful call, as a short hint for the caller.
 pub(crate) fn siguiente(tool: &str, valor: &str) -> Option<&'static str> {
-    Some(match (tool, valor) {
-        ("entorno", "diagnostico") => "disenar_sistema {latitud,longitud,kwp}",
-        ("entorno", "preferencias") => "entorno preferencias {seccion:'Preferences'}",
-        ("sitio", "crear") => "proyecto crear {plantilla,nombre_nuevo}",
-        ("proyecto", "crear") => "proyecto dimensionar {proyecto,n_mod_serie,n_strings}",
-        ("proyecto", "dimensionar") => "proyecto doctor {proyecto}",
-        ("proyecto", "doctor") => "simular {proyecto}",
-        ("simular", "ejecutar") | ("disenar_sistema", _) => "resultados que:perdidas",
-        ("resultados", "kpis") => "resultados que:perdidas",
-        ("editar", "campos") => "proyecto doctor",
-        ("componente", "crear") | ("componente", "crear_desde_ficha") => {
-            "proyecto crear {modulo|inversor}"
-        }
-        _ => return None,
-    })
+    catalogo::buscar(tool, valor)?.pista
 }
 
 struct ContextoRecorte<'a> {

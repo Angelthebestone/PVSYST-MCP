@@ -5,6 +5,7 @@ use crate::config::Paths;
 use crate::error::{Error, Result};
 
 use crate::progreso::SeguimientoTarea;
+use crate::vista_agente::contrato::Contexto;
 use declaracion::Ejecutor;
 use serde_json::{json, Value};
 use std::time::Instant;
@@ -22,6 +23,7 @@ pub(crate) mod resultados;
 pub(crate) mod simulacion;
 pub(crate) mod sitios;
 pub(crate) mod validacion;
+mod vista;
 pub(crate) mod workspace;
 mod workspace_ejecucion;
 
@@ -30,6 +32,7 @@ mod workspace_ejecucion;
 mod tests;
 
 pub(crate) use declaracion::Herramienta;
+pub(crate) use vista::vista_de_error;
 
 /// Whether `tool`/`accion` is an MCP approximation (gated by `PVSYST_MCP_APROXIMACIONES`).
 pub(crate) fn es_aproximacion(tool: &str, accion: &str) -> bool {
@@ -133,6 +136,12 @@ pub(crate) fn call_seguido(solicitud: &Solicitud<'_>) -> Result<Value> {
         ignorados: h.desconocidos(&args_efectivos),
     };
     recorte::decorar(&mut v, args, respuesta);
+    let contexto = Contexto {
+        tool: name,
+        accion: &accion,
+        args: &args_efectivos,
+    };
+    vista::anadir_vista(paths, &contexto, &mut v);
 
     Ok(v)
 }

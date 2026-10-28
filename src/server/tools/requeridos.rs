@@ -89,7 +89,7 @@ impl Herramienta {
     }
 
     /// Every required key of `accion`: the tool-wide ones first, then the action's own.
-    fn requeridos_de(&self, accion: &str) -> Vec<&'static str> {
+    pub(super) fn requeridos_de(&self, accion: &str) -> Vec<&'static str> {
         let propios = self
             .requeridos_por_accion
             .iter()
