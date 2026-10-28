@@ -128,9 +128,15 @@ fn should_describe_the_scene_when_simular_is_true() {
 }
 
 #[test]
-fn should_refuse_to_create_the_scene_when_simular_is_not_set() {
-    let e = crate::escena_3d::pedir_escena(&pedido(false)).expect_err("not implemented");
-    assert!(e.to_string().contains("simular:true"), "{e}");
+fn should_describe_the_scene_and_say_it_was_not_created_when_simular_is_not_set() {
+    let d = crate::escena_3d::pedir_escena(&pedido(false)).expect("validation only");
+    assert_eq!(d["creado"], false);
+    assert!(
+        d["avisos"][0]
+            .as_str()
+            .is_some_and(|a| a.contains("no está implementada")),
+        "{d}"
+    );
 }
 
 #[test]

@@ -458,7 +458,7 @@ The dialog also has a name field, three parameter fields (`Param1Edit`…`Param3
 checkboxes; `TGroundObjectForm` (11 fields), `TTableFieldForm` (7, with an orientation list) and `TBuildingObjectForm`
 (no readable fields) were also opened. Raw measurements: `.scratch/exp/escena_3d_formas.json` (not versioned).
 
-`gui_actuar accion:escena` with `simular:true` validates a request for the four proven shapes (names `paralelepipedo`,
+`gui_actuar accion:escena` validates a request for the four proven shapes (names `paralelepipedo`,
 `tejado_dos_aguas`, `chimenea`, `arbol`) and reports the file slot of each dimension. It never writes a scene; creating one in the
 editor is not implemented. Ranges are the MCP's (PVsyst's were not measured) and collisions assume the position is the lower corner
 (`[INFERENCIA]`).

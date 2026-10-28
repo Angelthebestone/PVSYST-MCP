@@ -24,10 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Contract, size measurements and the tool × action matrix: `docs/vista_agente_salidas.md`.
 
 ### Added
-- **`gui_actuar accion:escena` with `simular:true`** validates a 3D scene request (`escena`, `objetos`:
+- **`gui_actuar accion:escena`** validates a 3D scene request (`escena`, `objetos`:
   `paralelepipedo`, `tejado_dos_aguas`, `chimenea`, `arbol`) without PVsyst: types, ranges, the file slot of
   each dimension and collisions. Ranges are the MCP's, not PVsyst's, and collisions are inferred (anchor not
-  proven). Without `simular` it refuses: the editor creation is not measured and scenes are never written by hand.
+  proven). It is validation only (`creado:false`, with a warning that creation in the editor is not
+  implemented): scenes are never written by hand.
 - **Window coverage:** every one of the 82 window classes of `docs/gui_mapa.json` is registered in one of four
   states and listed in `gui_observar que:esquema` (`cobertura`). `que:vista` on a window without a schema
   returns its fields by control class and 96-DPI position (combo items included) or its buttons.
