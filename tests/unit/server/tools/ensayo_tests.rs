@@ -62,3 +62,12 @@ fn should_not_read_a_request_dry_run_as_one_when_the_answer_does_not_say_so() {
     let resumen = salida["vista"]["resumen"].as_str().unwrap_or_default();
     assert!(!resumen.starts_with("Ensayo"), "{resumen}");
 }
+
+#[test]
+fn should_refuse_a_dry_run_of_a_run_that_carries_rows_because_preparing_them_writes_files() {
+    let args = json!({
+        "accion": "ejecutar", "proyecto": "Casa",
+        "filas": [{ "tilt": 20 }], "dry_run": true,
+    });
+    assert!(rechazo("simular", &args).contains("no admite 'filas'"));
+}
