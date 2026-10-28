@@ -10,7 +10,7 @@ pub(crate) mod reuse;
 pub(crate) mod solar;
 
 use crate::adapters::{cli, ledger};
-use crate::args::{flag, missing, req_numero, workspace_of};
+use crate::args::{flag, missing, req_numero, workspace_of, DRY_RUN};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::value_text;
@@ -54,7 +54,7 @@ fn ejecutar<F: FnOnce(Value) -> Value>(
     if let Some(v) = args.get("log_level").and_then(serde_json::Value::as_i64) {
         cli_args.push(format!("-ll:{v}"));
     }
-    if flag(args, &["dry_run"]) {
+    if flag(args, &[DRY_RUN]) {
         return Ok(json!({
             "dry_run": true,
             "command_line": cli::display_command_line(&paths.cli_exe.to_string_lossy(), &cli_args),

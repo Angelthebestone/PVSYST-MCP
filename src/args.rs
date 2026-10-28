@@ -11,6 +11,13 @@ use crate::error::{Error, Result};
 use serde_json::Value;
 use std::path::PathBuf;
 
+/// Argument asking for a run that changes nothing and reports what it would do.
+pub(crate) const DRY_RUN: &str = "dry_run";
+/// Argument that accepts the trial-mode execution cost.
+pub(crate) const CONFIRMAR: &str = "confirmar";
+/// Answer key a call sets when it needs `CONFIRMAR` before it spends trial runs.
+pub(crate) const REQUIERE_CONFIRMACION: &str = "requiere_confirmacion";
+
 /// First non-empty string among `keys` (canonical name first, then aliases).
 /// Inputs are pre-validated at the MCP boundary against declared schemas.
 pub(crate) fn opt_str<'a>(args: &'a Value, keys: &[&str]) -> Option<&'a str> {

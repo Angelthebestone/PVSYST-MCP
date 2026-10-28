@@ -2,13 +2,13 @@
 
 use super::construccion::{siguiente_de, Contexto};
 use super::tipos::{ErrorVista, Estado, Origen, Vista};
-use crate::error::Error;
+use crate::error::{Error, KIND_MISSING_ARG};
 use serde_json::Value;
 
 /// Probable cause and remedy per `Error::kind()`.
 const CAUSAS: &[(&str, &str, &str)] = &[
     (
-        "missing_arg",
+        KIND_MISSING_ARG,
         "Falta un argumento obligatorio.",
         "Añade las claves que faltan (ver claves_validas) y repite la llamada.",
     ),
@@ -55,7 +55,7 @@ const CAUSA_DESCONOCIDA: (&str, &str) = (
 );
 
 /// Kinds of failure caused by the arguments, for which the valid keys help.
-const FALLOS_DE_ENTRADA: &[&str] = &["missing_arg", "invalid"];
+const FALLOS_DE_ENTRADA: &[&str] = &[KIND_MISSING_ARG, "invalid"];
 
 fn causa_de(kind: &str) -> (&'static str, &'static str) {
     CAUSAS

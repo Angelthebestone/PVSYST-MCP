@@ -5,7 +5,7 @@
 use super::catalogo::buscar;
 use super::construccion::Contexto;
 use super::tipos::{ErrorVista, Estado, PasoSiguiente};
-use crate::args::flag;
+use crate::args::{flag, DRY_RUN, REQUIERE_CONFIRMACION};
 use serde_json::{Map, Value};
 
 const PRUEBA_CONFIRMAR: &str =
@@ -35,7 +35,7 @@ pub(super) enum Pendiente {
 }
 
 fn pide_ensayo(ctx: &Contexto<'_>, salida: &Value) -> bool {
-    flag(salida, &["dry_run"])
+    flag(salida, &[DRY_RUN])
         || clave_de_ensayo(ctx.tool).is_some_and(|clave| flag(ctx.args, &[clave]))
 }
 
@@ -46,7 +46,7 @@ pub(super) fn pendiente_de(
     salida: &Value,
     estado: Estado,
 ) -> Option<Pendiente> {
-    if flag(salida, &["requiere_confirmacion"]) {
+    if flag(salida, &[REQUIERE_CONFIRMACION]) {
         return Some(Pendiente::Confirmacion);
     }
     let sin_version_real = buscar(ctx.tool, ctx.accion).is_some_and(|e| e.solo_ensayo);

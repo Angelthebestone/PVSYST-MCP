@@ -4,7 +4,7 @@
 use super::recorte::SIN_RECORTE;
 use super::{aproximadas, Herramienta, Solicitud, REGISTRO};
 use crate::config::Paths;
-use crate::error::Error;
+use crate::error::{Error, KIND_MISSING_ARG};
 use crate::vista_agente::contrato::{construir, desde_error, Contexto, Vista};
 use serde_json::Value;
 
@@ -55,7 +55,7 @@ pub(super) fn anadir_vista(paths: &Paths, contexto: &Contexto<'_>, respuesta: &m
 /// Keys the caller can use to fix an input error: what the action requires,
 /// or every argument the tool declares.
 fn claves_validas(h: &Herramienta, accion: &str, error: &Error) -> Vec<String> {
-    if error.kind() == "missing_arg" {
+    if error.kind() == KIND_MISSING_ARG {
         return h
             .requeridos_de(accion)
             .into_iter()
