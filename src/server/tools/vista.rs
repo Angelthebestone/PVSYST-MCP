@@ -45,7 +45,7 @@ pub(super) fn anadir_vista(paths: &Paths, contexto: &Contexto<'_>, respuesta: &m
     let mut vista = construir(contexto, respuesta);
     solo_ejecutables(paths, &mut vista);
     if let Err(motivo) = vista.validar(SIN_RECORTE) {
-        tracing::warn!(tool = contexto.tool, motivo, "vista incoherente");
+        tracing::warn!(tool = contexto.tool, %motivo, "vista incoherente");
     }
     if let (Some(obj), Ok(valor)) = (respuesta.as_object_mut(), serde_json::to_value(&vista)) {
         obj.insert("vista".to_string(), valor);

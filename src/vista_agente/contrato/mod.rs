@@ -8,6 +8,7 @@ mod construccion;
 mod errores;
 mod pendiente;
 mod tipos;
+mod violacion;
 
 pub(crate) use construccion::{construir, Contexto};
 pub(crate) use errores::desde_error;
