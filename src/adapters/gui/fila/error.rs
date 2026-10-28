@@ -5,14 +5,30 @@ use crate::error::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub(crate) enum ErrorFila {
-    #[error("{clase} no tiene geometría de filas medida; admite: {admitidas}")]
-    ClaseSinGeometria { clase: String, admitidas: String },
+    #[error("{clase} de {anfitrion} no tiene geometría de filas medida; medida en: {medidas}")]
+    ClaseSinGeometria {
+        clase: String,
+        anfitrion: String,
+        medidas: String,
+    },
+    #[error("El control no muestra ninguna fila: mide {alto_px} px de alto a 96 DPI")]
+    SinFilasVisibles { alto_px: i32 },
+    #[error(
+        "El control muestra {visibles} filas y la banda no se distingue con menos de {minimas}"
+    )]
+    PocasFilas { visibles: usize, minimas: usize },
     #[error("La fila {indice} no existe: el control muestra {visibles} filas (0..={ultima})")]
     FueraDeRango {
         indice: usize,
         visibles: usize,
         ultima: usize,
     },
+    #[error("El punto de clic (x {x_px} px) cae fuera del control, que mide {ancho_px} px de ancho a 96 DPI")]
+    FueraDelControl { x_px: i32, ancho_px: i32 },
+    #[error(
+        "No se pudo traer {clase} al primer plano y darle el foco: el clic iría a otra ventana"
+    )]
+    SinFoco { clase: String },
     #[error("Tras el clic no hay ninguna fila resaltada: la fila {indice} está vacía o el clic no llegó")]
     NingunaResaltada { indice: usize },
     #[error("Se pidió la fila {pedida} y PVsyst resaltó la {leida}")]
@@ -21,6 +37,8 @@ pub(crate) enum ErrorFila {
     Ambigua { filas: Vec<usize> },
     #[error("El clic en la fila {indice} activó el elemento: PVsyst abrió {clases}. Ciérrala con accion:cerrar y cancelar:true")]
     Activada { indice: usize, clases: String },
+    #[error("El clic en la fila {indice} cerró {clases}: PVsyst lo trató como una acción, no como una selección")]
+    VentanaCerrada { indice: usize, clases: String },
     #[error(
         "El clic en la fila {indice} cerró el control: PVsyst activó el elemento y cerró {clase}"
     )]
@@ -32,7 +50,11 @@ impl ErrorFila {
     fn es_de_pedido(&self) -> bool {
         matches!(
             self,
-            Self::ClaseSinGeometria { .. } | Self::FueraDeRango { .. }
+            Self::ClaseSinGeometria { .. }
+                | Self::SinFilasVisibles { .. }
+                | Self::PocasFilas { .. }
+                | Self::FueraDeRango { .. }
+                | Self::FueraDelControl { .. }
         )
     }
 

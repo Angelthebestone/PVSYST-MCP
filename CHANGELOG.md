@@ -38,7 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   19 px; `TListBox`: border 2 px, rows 13 px; px at 96 DPI, scaled by the window DPI). It checks the result
   without OCR: the highlighted band of a capture must be the requested row, and the click must not have opened
   or closed anything. A wrong row, an empty slot, an out-of-range index, a click PVsyst took as "open this item"
-  and a control class without measured geometry are errors. It only selects (no Enter, no OK) and it is
+  and a control without measured geometry (class and hosting window) are errors. The window must be in front and
+  the control focused before the click, the click point must lie inside the control, and the band is read by
+  comparing the capture before and after; a window the click closed is an error too. It only selects (no Enter, no OK) and it is
   refused on the isolated desktop (not measured).
 - **`teclas` with a control as `ventana` gives it the keyboard focus first** and fails when it cannot
   guarantee it, so an arrow no longer lands on a combo by accident. `fila` does the same before its click:

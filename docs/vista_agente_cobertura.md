@@ -125,7 +125,8 @@ Medido en vivo con el release (PVsyst 8.1.7, 144 DPI = 150 %, capturas a 96 DPI,
 - Un clic físico puede **activar** el elemento: en la primera medición, un clic sobre la lista de módulos (dy 100, con el foco fuera de la lista) abrió `TPVModuleForm` y cerró el selector; no se supo por qué `[INFERENCIA]`. `fila` comprueba que no apareció ni desapareció ninguna ventana y, antes del clic, da el foco al control: con el foco en un combo el primer clic solo movía el foco y la fila quedaba como estaba (tres de tres aciertos con el foco dado, tras `TAB` en el combo). Repetir el clic no es una salida: dos clics seguidos son un doble clic.
 - Qué fila es no se lee: ni UIA ni MSAA dan texto. En módulos, inversores, baterías, controladores, bombas y fabricantes la fila se identifica solo por índice; el orden alfabético no se infiere.
 - Con `PVSYST_MCP_ESCRITORIO=aislado` la acción se niega: no está medido. Otro DPI distinto de 144: `[INFERENCIA]`.
-- Con otras ventanas que usen estas mismas clases (otros `TChoixObjetPVForm`, 15 instancias) la geometría es la declarada por clase, medida solo en la de módulos `[INFERENCIA]`.
+- La geometría vale para el control medido: clase y ventana anfitriona (`TVirtualStringTree` de `TProjectLoadForm`; `TListBox` de `TChoixObjetPVForm` titulado «Eligiendo un módulo FV»). Los otros 14 selectores y cualquier otro control se rechazan con un error que lista dónde se midió.
+- Antes del clic `fila` exige que la ventana esté al frente y el control tenga el foco, y que el punto de clic caiga dentro del control; se niega con menos de 3 huecos visibles. La banda se lee comparando la captura de antes y la de después, y se comprueba que ninguna ventana se abrió ni se cerró.
 
 `que:esquema` trae `abierta_con` por clase: las funciones del catálogo que la abren. `herramientas.factor_transposicion` declara `TArrayCharactForm`, la ventana que se vio abrir; `TTranspositionForm` queda sin función que la abra.
 

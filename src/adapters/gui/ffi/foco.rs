@@ -1,7 +1,10 @@
 //! Keyboard focus of another process's controls: read it and move it.
 
-use super::ventanas::GetWindowThreadProcessId;
+use super::ventanas::{
+    get_ancestor, primer_plano, traer_al_frente, GetWindowThreadProcessId, GA_ROOT,
+};
 use super::Hwnd;
+use std::time::Duration;
 
 #[repr(C)]
 #[derive(Default)]
@@ -67,4 +70,14 @@ pub(crate) fn dar_foco(h: Hwnd) -> bool {
         AttachThreadInput(propio, hilo, SEPARAR);
     }
     foco_del_hilo(hilo) == h
+}
+
+/// Brings the top-level window of `h` to the front and gives `h` the focus, and
+/// says whether both really happened: input sent after a `false` would go to
+/// another window. `espera` lets Windows finish the change of foreground.
+pub(crate) fn traer_y_focar(h: Hwnd, espera: Duration) -> bool {
+    let raiz = get_ancestor(h, GA_ROOT);
+    traer_al_frente(raiz);
+    std::thread::sleep(espera);
+    primer_plano() == raiz && dar_foco(h)
 }

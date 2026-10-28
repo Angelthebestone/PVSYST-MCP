@@ -145,6 +145,11 @@ pub(crate) struct ImagenRgb {
 }
 
 impl ImagenRgb {
+    /// Width in px as the `i32` Win32 geometry uses.
+    pub(crate) fn ancho_px(&self) -> i32 {
+        i32::try_from(self.ancho).unwrap_or(i32::MAX)
+    }
+
     /// Height in px as the `i32` Win32 geometry uses.
     pub(crate) fn alto_px(&self) -> i32 {
         i32::try_from(self.alto).unwrap_or(i32::MAX)

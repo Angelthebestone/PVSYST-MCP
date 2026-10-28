@@ -127,7 +127,7 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
             acciones::invocar(paths, args)
         }
         "teclas" => teclado::teclas(args),
-        "fila" => fila::fila(paths, args),
+        "fila" => fila::fila(args),
         "funcion" => crate::gui_catalogo::abrir(args),
         "menu" => crate::gui_catalogo::menu(args),
         "campo" => campo_por_etiqueta::campo(paths, args),
