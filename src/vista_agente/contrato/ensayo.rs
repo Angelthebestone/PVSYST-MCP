@@ -3,21 +3,20 @@
 //! run for real, so the request is refused before anything happens.
 
 use super::pendiente::clave_de_ensayo;
-use crate::args::{flag, opt_str};
+use crate::args::flag;
 use crate::error::{Error, Result};
 use serde_json::Value;
 
 /// Whether `accion` of `tool` reads its dry-run switch.
-fn implementa_ensayo(tool: &str, accion: &str, args: &Value) -> bool {
-    match (tool, accion) {
-        ("pvsyst_cli", _) => true,
-        ("entorno", "licencia" | "licencia_sync" | "exportar_logs") => true,
-        ("simular", "ejecutar") => true,
-        ("sitio", "convertir_meteo") => true,
-        ("sitio", "crear") => opt_str(args, &["origen"]) == Some("csv"),
-        ("gui_actuar", "escena" | "rellenar") => true,
-        _ => false,
-    }
+fn implementa_ensayo(tool: &str, accion: &str) -> bool {
+    matches!(
+        (tool, accion),
+        ("pvsyst_cli", _)
+            | ("entorno", "licencia" | "licencia_sync" | "exportar_logs")
+            | ("simular", "ejecutar")
+            | ("sitio", "convertir_meteo" | "crear")
+            | ("gui_actuar", "escena" | "rellenar")
+    )
 }
 
 /// Fails when the request asks for a dry run of an action that has none.
@@ -25,7 +24,7 @@ pub(crate) fn exigir_ensayo_soportado(tool: &str, accion: &str, args: &Value) ->
     let Some(clave) = clave_de_ensayo(tool) else {
         return Ok(());
     };
-    if !flag(args, &[clave]) || implementa_ensayo(tool, accion, args) {
+    if !flag(args, &[clave]) || implementa_ensayo(tool, accion) {
         return Ok(());
     }
     Err(Error::Invalid(format!(
