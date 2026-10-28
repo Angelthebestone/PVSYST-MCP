@@ -100,3 +100,11 @@ fn should_fall_back_to_the_module_list_when_the_kind_is_unknown() {
     let paso = primer_paso(("componente", "crear"), &args, &json!({})).expect("a step");
     assert_eq!(paso["argumentos"], json!({ "que": "modulos" }));
 }
+
+#[test]
+fn should_keep_the_view_valid_when_two_paths_flatten_to_the_same_key() {
+    let salida = json!({ "a.b": 1, "a": { "b": 2 } });
+    let vista = vista_de("leer", "", &salida);
+    assert_eq!(vista.campos.len(), 1);
+    assert_eq!(vista.validar(&[]), Ok(()));
+}

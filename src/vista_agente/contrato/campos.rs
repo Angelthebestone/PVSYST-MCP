@@ -3,6 +3,7 @@
 use super::tipos::{Campo, Recorte};
 use crate::args::flag;
 use serde_json::{Map, Value};
+use std::collections::HashSet;
 
 /// Most keyed values `vista.campos` lists; the rest stay in the answer itself.
 const MAX_CAMPOS: usize = 12;
@@ -155,6 +156,9 @@ pub(super) fn campos_de(salida: &Value) -> (Vec<Campo>, Option<Recorte>) {
 /// The first [`MAX_CAMPOS`] fields and the cut when there are more: the answer's
 /// own `campos` array keeps all of them.
 fn acotar(mut campos: Vec<Campo>) -> (Vec<Campo>, Option<Recorte>) {
+    // Two paths can flatten to one key (`{"a.b":1,"a":{"b":2}}`): the first one stays.
+    let mut vistas = HashSet::new();
+    campos.retain(|c| vistas.insert(c.clave.clone()));
     let total = campos.len();
     campos.truncate(MAX_CAMPOS);
     let recorte = (total > MAX_CAMPOS).then(|| Recorte {
