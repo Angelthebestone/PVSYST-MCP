@@ -4,7 +4,7 @@ use super::tipos::{Campo, Recorte};
 use crate::args::flag;
 use serde_json::{Map, Value};
 
-/// Most keyed values a non-form answer lists; the rest stay in the answer itself.
+/// Most keyed values `vista.campos` lists; the rest stay in the answer itself.
 const MAX_CAMPOS: usize = 12;
 /// A nested object with more scalars than this is a table, not a group of values.
 const MAX_HIJOS: usize = 8;
@@ -129,16 +129,13 @@ fn campos_de_formulario(salida: &Value) -> Option<Vec<Campo>> {
 /// Keyed values of `salida` and the cut, if more than [`MAX_CAMPOS`] qualify.
 pub(super) fn campos_de(salida: &Value) -> (Vec<Campo>, Option<Recorte>) {
     if let Some(formulario) = campos_de_formulario(salida) {
-        return (formulario, None);
+        return acotar(formulario);
     }
     let Some(mapa) = salida.as_object() else {
         return (Vec::new(), None);
     };
-    let todos = escalares(mapa, "");
-    let total = todos.len();
-    let campos: Vec<Campo> = todos
+    let todos: Vec<Campo> = escalares(mapa, "")
         .into_iter()
-        .take(MAX_CAMPOS)
         .map(|(clave, valor)| Campo {
             unidad: unidad_de(&clave),
             clave,
@@ -146,6 +143,14 @@ pub(super) fn campos_de(salida: &Value) -> (Vec<Campo>, Option<Recorte>) {
             editable: false,
         })
         .collect();
+    acotar(todos)
+}
+
+/// The first [`MAX_CAMPOS`] fields and the cut when there are more: the answer's
+/// own `campos` array keeps all of them.
+fn acotar(mut campos: Vec<Campo>) -> (Vec<Campo>, Option<Recorte>) {
+    let total = campos.len();
+    campos.truncate(MAX_CAMPOS);
     let recorte = (total > MAX_CAMPOS).then(|| Recorte {
         clave: "vista.campos".into(),
         mostrados: MAX_CAMPOS,

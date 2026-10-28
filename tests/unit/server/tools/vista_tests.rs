@@ -184,18 +184,22 @@ fn should_report_what_the_detail_level_cut_and_how_to_ask_for_the_rest() {
 }
 
 #[test]
-fn should_list_the_form_fields_the_gui_already_keys_without_cutting_them() {
+fn should_cap_the_form_fields_of_the_view_and_say_the_answer_keeps_them_all() {
     let campos: Vec<Value> = (0..60)
         .map(|i| json!({ "clave": format!("campo_{i}"), "valor": "1", "unidad": "W", "editable": true }))
         .collect();
-    let vista = con_vista(
-        ("gui_observar", "vista"),
-        &json!({}),
-        json!({ "campos": campos }),
+    let mut respuesta = json!({ "campos": campos });
+    anadir_vista(
+        &Paths::resolve(),
+        &contexto("gui_observar", "vista", &json!({})),
+        &mut respuesta,
     );
-    assert_eq!(vista["campos"].as_array().map(Vec::len), Some(60));
+    let vista = &respuesta["vista"];
+    assert_eq!(vista["campos"].as_array().map(Vec::len), Some(12));
     assert_eq!(vista["campos"][0]["editable"], true);
-    assert!(vista.get("recortado").is_none());
+    assert_eq!(vista["recortado"][0]["clave"], "vista.campos");
+    assert_eq!(vista["recortado"][0]["total"], 60);
+    assert_eq!(respuesta["campos"].as_array().map(Vec::len), Some(60));
 }
 
 #[test]
