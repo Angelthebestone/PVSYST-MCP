@@ -189,6 +189,6 @@ pub(crate) fn rellenar(paths: &crate::config::Paths, args: &Value) -> Result<Val
         "simulado": modo == ModoEjecucion::Simular,
         "resultados": resultados,
         "recalculados": recalculados(ent, &vivos, &pasos),
-        "vista": vista,
+        "formulario": vista,
     }))
 }

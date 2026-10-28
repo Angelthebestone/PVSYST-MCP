@@ -59,8 +59,12 @@ pub(crate) fn error_de_herramienta(
     });
     match (formato, vista) {
         (FormatoResultado::ConEstructura, _) => {
-            resultado["structuredContent"] =
-                json!({ "error": mensaje, "tipo": e.kind(), "vista": vista });
+            resultado["structuredContent"] = json!({ "error": mensaje, "tipo": e.kind() });
+            if let (Some(vista), Some(estructurado)) =
+                (vista, resultado["structuredContent"].as_object_mut())
+            {
+                estructurado.insert("vista".into(), vista.clone());
+            }
         }
         (FormatoResultado::SoloTexto, Some(vista)) => {
             let texto = json!({ "vista": vista }).to_string();

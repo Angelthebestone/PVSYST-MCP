@@ -26,9 +26,15 @@ fn acepta_paso(paths: &Paths, tool: &str, argumentos: &Value) -> bool {
 }
 
 fn solo_ejecutables(paths: &Paths, vista: &mut Vista) {
-    vista
-        .siguiente
-        .retain(|p| acepta_paso(paths, &p.tool, &p.argumentos));
+    vista.siguiente.retain_mut(|p| {
+        let Some(h) = herramienta(&p.tool) else {
+            return false;
+        };
+        if let Some(argumentos) = p.argumentos.as_object_mut() {
+            argumentos.retain(|clave, _| h.declara(clave));
+        }
+        acepta_paso(paths, &p.tool, &p.argumentos)
+    });
 }
 
 /// Adds `vista` to an answer that arrived. Answers that are not objects are left as they are.

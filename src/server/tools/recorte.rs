@@ -22,6 +22,8 @@ pub(super) const SIN_RECORTE: &[&str] = &[
     "sin_mapear",
     "resultados",
     "recalculados",
+    // The window coverage of `gui_observar que:esquema` is a registry, not a list to summarise.
+    "ventanas",
 ];
 
 const LIMITE_ARRAY_NORMAL: usize = 50;

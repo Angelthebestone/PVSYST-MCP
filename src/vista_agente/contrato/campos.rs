@@ -1,6 +1,7 @@
 //! `vista.campos`: the relevant values of an answer, with stable keys.
 
 use super::tipos::{Campo, Recorte};
+use crate::args::flag;
 use serde_json::{Map, Value};
 
 /// Most keyed values a non-form answer lists; the rest stay in the answer itself.
@@ -114,7 +115,7 @@ fn campo_de_formulario(item: &Value) -> Option<Campo> {
             .and_then(Value::as_str)
             .filter(|u| !u.is_empty())
             .map(str::to_string),
-        editable: item.get("editable").and_then(Value::as_bool) == Some(true),
+        editable: flag(item, &["editable"]),
     })
 }
 

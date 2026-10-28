@@ -112,7 +112,7 @@ impl Herramienta {
         Value::Object(mapa).to_string()
     }
 
-    fn declara(&self, clave: &str) -> bool {
+    pub(super) fn declara(&self, clave: &str) -> bool {
         matches!(clave, "detalle" | "via")
             || self
                 .discriminador

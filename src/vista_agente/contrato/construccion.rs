@@ -32,6 +32,9 @@ const MAX_AVISOS: usize = 5;
 const MAX_CARACTERES_AVISO: usize = 160;
 const PEDIR_RESTO: &str = "detalle:completo";
 const PEDIR_AVISOS: &str = "leer avisos completos en la propia respuesta";
+/// Arguments of the request that carry over to every next step; the server drops
+/// the ones the target tool does not declare.
+const PROPAGADOS: &[&str] = &["workspace", "variante", "permitir_fuera_del_workspace"];
 const SUFIJO_TOTAL: &str = "_total";
 
 fn origen_de(ctx: &Contexto<'_>, salida: &Value) -> Origen {
@@ -109,19 +112,21 @@ fn estado_de(salida: &Value) -> Estado {
 
 fn motivo_de(salida: &Value) -> String {
     let errores = textos_de(salida, "errores");
-    let motivo = if errores.is_empty() {
-        "la acción informó ok:false".to_string()
-    } else {
-        errores.join("; ")
+    let motivo = match errores.is_empty() {
+        false => errores.join("; "),
+        true => ["error", "mensaje"]
+            .iter()
+            .find_map(|clave| textos_de(salida, clave).into_iter().next())
+            .unwrap_or_else(|| "la acción informó ok:false".to_string()),
     };
     motivo.chars().take(MAX_CARACTERES_MOTIVO).collect()
 }
 
 fn error_de(estado: Estado, salida: &Value) -> Option<ErrorVista> {
     (estado != Estado::Ok).then(|| ErrorVista {
-        codigo: "fallo_parcial".into(),
+        codigo: if estado == Estado::Error { "fallo" } else { "fallo_parcial" }.into(),
         motivo: motivo_de(salida),
-        causa_probable: "Un paso del flujo falló; los pasos anteriores sí se aplicaron.",
+        causa_probable: "La acción informó un fallo o problemas en su resultado; algunos pasos pudieron aplicarse.",
         que_hacer: "Corrige la causa indicada en motivo y avisos y repite la acción.",
         claves_validas: Vec::new(),
     })
@@ -171,9 +176,10 @@ fn argumentos_de(paso: &Paso, ctx: &Contexto<'_>, salida: &Value) -> Option<Valu
         let texto = texto_de(ctx.args, candidatos).or_else(|| texto_de(salida, candidatos))?;
         argumentos.insert((*destino).to_string(), Value::from(texto));
     }
-    if let Some(workspace) = texto_de(ctx.args, &["workspace"]) {
-        argumentos.insert("workspace".into(), Value::from(workspace));
-    }
+    let heredados = PROPAGADOS
+        .iter()
+        .filter_map(|clave| Some(((*clave).to_string(), ctx.args.get(clave)?.clone())));
+    argumentos.extend(heredados);
     Some(Value::Object(argumentos))
 }
 
@@ -192,7 +198,7 @@ pub(crate) fn siguiente_de(
     estado: Estado,
     salida: &Value,
 ) -> Vec<PasoSiguiente> {
-    if let Some(pendiente) = pendiente_de(ctx, salida) {
+    if let Some(pendiente) = pendiente_de(ctx, salida, estado) {
         return vec![pendiente.siguiente(ctx)];
     }
     let pasos: &[Paso] = match (estado, catalogo::buscar(ctx.tool, ctx.accion)) {
@@ -207,8 +213,12 @@ pub(crate) fn siguiente_de(
 
 /// The `vista` block for an answer that arrived.
 pub(crate) fn construir(ctx: &Contexto<'_>, salida: &Value) -> Vista {
-    let pendiente = pendiente_de(ctx, salida);
-    let estado = pendiente.map_or_else(|| estado_de(salida), Pendiente::estado);
+    let base = estado_de(salida);
+    let pendiente = pendiente_de(ctx, salida, base);
+    let estado = match pendiente {
+        Some(Pendiente::Confirmacion) => Estado::Parcial,
+        _ => base,
+    };
     let (campos, recorte_campos) = campos_de(salida);
     let mut recortado = recortes_de(salida);
     recortado.extend(recorte_campos);

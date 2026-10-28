@@ -2,14 +2,30 @@
 //! confirmation, or the caller asked for a dry run. The next step is the same
 //! call, completed.
 
+use super::catalogo::buscar;
 use super::construccion::Contexto;
 use super::tipos::{ErrorVista, Estado, PasoSiguiente};
+use crate::args::flag;
 use serde_json::{Map, Value};
 
 const PRUEBA_CONFIRMAR: &str =
     "Repite la misma llamada con confirmar:true (primer paso de siguiente).";
-/// Argument that makes a call a dry run, per tool (`gui_actuar` calls it `simular`).
-const CLAVES_DE_ENSAYO: &[&str] = &["dry_run", "simular"];
+/// The argument that makes a call a dry run, per tool. It is not the same name
+/// everywhere: in `disenar_sistema`, `simular` means "run the simulation".
+const CLAVE_DE_ENSAYO: &[(&str, &str)] = &[
+    ("entorno", "dry_run"),
+    ("pvsyst_cli", "dry_run"),
+    ("simular", "dry_run"),
+    ("sitio", "dry_run"),
+    ("gui_actuar", "simular"),
+];
+
+fn clave_de_ensayo(tool: &str) -> Option<&'static str> {
+    CLAVE_DE_ENSAYO
+        .iter()
+        .find(|(nombre, _)| *nombre == tool)
+        .map(|(_, clave)| *clave)
+}
 
 /// Why an answer is not final.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,32 +34,27 @@ pub(super) enum Pendiente {
     Ensayo,
 }
 
-fn es_verdadero(valor: Option<&Value>) -> bool {
-    valor.and_then(Value::as_bool) == Some(true)
-}
-
 fn pide_ensayo(ctx: &Contexto<'_>, salida: &Value) -> bool {
-    es_verdadero(salida.get("dry_run"))
-        || CLAVES_DE_ENSAYO
-            .iter()
-            .any(|clave| es_verdadero(ctx.args.get(clave)))
+    flag(salida, &["dry_run"])
+        || clave_de_ensayo(ctx.tool).is_some_and(|clave| flag(ctx.args, &[clave]))
 }
 
-pub(super) fn pendiente_de(ctx: &Contexto<'_>, salida: &Value) -> Option<Pendiente> {
-    if es_verdadero(salida.get("requiere_confirmacion")) {
+/// Whether the answer is not final. A dry run is only a dry run when it worked: a
+/// failed one has nothing to complete. `estado` is the state the answer would have.
+pub(super) fn pendiente_de(
+    ctx: &Contexto<'_>,
+    salida: &Value,
+    estado: Estado,
+) -> Option<Pendiente> {
+    if flag(salida, &["requiere_confirmacion"]) {
         return Some(Pendiente::Confirmacion);
     }
-    pide_ensayo(ctx, salida).then_some(Pendiente::Ensayo)
+    let sin_version_real = buscar(ctx.tool, ctx.accion).is_some_and(|e| e.solo_ensayo);
+    let es_ensayo = estado == Estado::Ok && pide_ensayo(ctx, salida) && !sin_version_real;
+    es_ensayo.then_some(Pendiente::Ensayo)
 }
 
 impl Pendiente {
-    pub(super) fn estado(self) -> Estado {
-        match self {
-            Self::Confirmacion => Estado::Parcial,
-            Self::Ensayo => Estado::Ok,
-        }
-    }
-
     pub(super) fn resumen(self, hecho: &str, salida: &Value) -> String {
         match self {
             Self::Confirmacion => {
@@ -71,8 +82,9 @@ impl Pendiente {
     /// The same call, completed: confirmed, or without the dry-run switch.
     pub(super) fn siguiente(self, ctx: &Contexto<'_>) -> PasoSiguiente {
         let mut argumentos: Map<String, Value> = ctx.args.as_object().cloned().unwrap_or_default();
-        argumentos
-            .retain(|clave, _| self != Self::Ensayo || !CLAVES_DE_ENSAYO.contains(&clave.as_str()));
+        if let (Self::Ensayo, Some(clave)) = (self, clave_de_ensayo(ctx.tool)) {
+            argumentos.remove(clave);
+        }
         if self == Self::Confirmacion {
             argumentos.insert("confirmar".into(), Value::Bool(true));
         }
