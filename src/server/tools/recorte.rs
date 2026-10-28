@@ -59,8 +59,9 @@ pub(crate) fn recortar(v: &mut Value, lim: (usize, usize)) -> bool {
                 recortado |= recortar_campo_objeto(k, hijo, &mut ctx);
             }
             recortado |= !totales.is_empty();
+            // A `<clave>_total` the answer already carries is the domain's count: keep it.
             for (k, total) in totales {
-                mapa.insert(k, Value::from(total));
+                mapa.entry(k).or_insert(Value::from(total));
             }
             recortado
         }

@@ -172,10 +172,12 @@ fn recortes_de(salida: &Value) -> Vec<Recorte> {
         .filter_map(|(k, total)| Some((k.strip_suffix(SUFIJO_TOTAL)?, total.as_u64()?)))
         .filter_map(|(base, total)| {
             let mostrados = mapa.get(base)?.as_array()?.len();
-            Some(Recorte {
+            let total = usize::try_from(total).ok()?;
+            // Nothing was cut when the list is as long as its total.
+            (mostrados < total).then(|| Recorte {
                 clave: base.to_string(),
                 mostrados,
-                total: usize::try_from(total).ok()?,
+                total,
                 pedir_resto: PEDIR_RESTO,
             })
         })

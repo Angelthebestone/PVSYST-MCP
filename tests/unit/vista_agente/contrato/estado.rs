@@ -53,3 +53,18 @@ fn should_report_ok_when_the_cli_succeeded() {
     let salida = json!({"success": true, "exit_code": 0});
     assert_eq!(vista_de("pvsyst_cli", "", &salida).estado, Estado::Ok);
 }
+
+#[test]
+fn should_not_list_a_cut_when_the_list_is_as_long_as_its_total() {
+    let salida = json!({ "colisiones": [], "colisiones_total": 0 });
+    let vista = vista_de("gui_actuar", "escena", &salida);
+    assert!(vista.recortado.is_empty(), "{:?}", vista.recortado);
+}
+
+#[test]
+fn should_list_the_cut_when_the_list_is_shorter_than_its_total() {
+    let salida = json!({ "colisiones": [1, 2, 3], "colisiones_total": 1770 });
+    let vista = vista_de("gui_actuar", "escena", &salida);
+    assert_eq!(vista.recortado.len(), 1);
+    assert_eq!(vista.recortado.first().map(|r| r.total), Some(1770));
+}

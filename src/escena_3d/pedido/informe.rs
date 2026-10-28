@@ -7,8 +7,6 @@ use serde_json::{json, Value};
 
 const MAX_NOMBRE: usize = 64;
 const AVISO_ANCLA: &str = "[INFERENCIA] colisiones calculadas con la posición como esquina inferior y sin rotación ni inclinación de la chimenea: el ancla de PVsyst no está demostrada.";
-/// Collisions listed in full; `colisiones_total` says how many there are.
-const MAX_COLISIONES_LISTADAS: usize = 50;
 const AVISO_RANGOS: &str = "Los rangos son límites del MCP; los de PVsyst no están medidos.";
 
 fn nombre_valido(nombre: &str) -> Result<&str> {
@@ -61,9 +59,9 @@ pub(crate) fn describir_escena(escena: &str, objetos: &Value) -> Result<Value> {
         .map(|(i, o)| objeto_json(i, o))
         .collect();
     let todas = colisiones(&pedidos);
+    // Every pair: the detail level trims the list and `detalle:completo` returns it whole.
     let choques: Vec<Value> = todas
         .iter()
-        .take(MAX_COLISIONES_LISTADAS)
         .map(|(a, b)| json!({ "a": a, "b": b }))
         .collect();
     Ok(json!({

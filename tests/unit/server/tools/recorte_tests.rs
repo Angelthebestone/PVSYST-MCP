@@ -102,3 +102,26 @@ fn should_point_kpis_to_the_losses_query_instead_of_itself() {
         Some("resultados que:perdidas")
     );
 }
+
+#[test]
+fn should_keep_the_total_the_domain_already_counted_when_it_trims_the_list() {
+    let mut v = json!({ "colisiones": (0..60).collect::<Vec<u32>>(), "colisiones_total": 1770 });
+    decorar(
+        &mut v,
+        &json!({}),
+        respuesta("gui_actuar", "escena", Vec::new()),
+    );
+    assert_eq!(v["colisiones"].as_array().map(Vec::len), Some(13));
+    assert_eq!(v["colisiones_total"], 1770);
+}
+
+#[test]
+fn should_return_the_whole_list_when_the_detail_is_complete() {
+    let mut v = json!({ "colisiones": (0..60).collect::<Vec<u32>>(), "colisiones_total": 60 });
+    decorar(
+        &mut v,
+        &json!({ "detalle": "completo" }),
+        respuesta("gui_actuar", "escena", Vec::new()),
+    );
+    assert_eq!(v["colisiones"].as_array().map(Vec::len), Some(60));
+}
