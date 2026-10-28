@@ -107,13 +107,13 @@ ejecutó la acción real (la mayoría escribe o gasta ejecuciones de prueba).
 
 | Tool | Acción (`accion`/`que`) | `vista.resumen` | `vista.siguiente` (`*` = toma el valor de la petición o la respuesta) | Verificación |
 |---|---|---|---|---|
-| `componente` | `crear` | Componente creado a partir de una plantilla. | `listar que=modulos` | unitaria (catálogo + validación) |
-| `componente` | `editar` | Componente editado. | `leer *`; `listar que=modulos` | unitaria (catálogo + validación) |
-| `componente` | `borrar` | Componente borrado. | `listar que=modulos` | unitaria (catálogo + validación) |
-| `componente` | `importar` | Componente importado al workspace. | `listar que=modulos` | unitaria (catálogo + validación) |
-| `componente` | `exportar` | Componente exportado fuera del workspace. | `listar que=modulos` | unitaria (catálogo + validación) |
-| `componente` | `crear_desde_ficha` | Componente creado desde los datos de una ficha técnica. | `listar que=modulos` | unitaria (catálogo + validación) |
-| `entorno` | `diagnostico` | Diagnóstico del entorno: PVsyst, CLI, workspace y herramientas. | `listar que=proyectos`; `entorno accion=licencia` | en vivo: ok |
+| `componente` | `crear` | Componente creado a partir de una plantilla. | `? ` | unitaria (catálogo + validación) |
+| `componente` | `editar` | Componente editado. | `leer *`; `? ` | unitaria (catálogo + validación) |
+| `componente` | `borrar` | Componente borrado. | `? ` | unitaria (catálogo + validación) |
+| `componente` | `importar` | Componente importado al workspace. | `? ` | unitaria (catálogo + validación) |
+| `componente` | `exportar` | Componente exportado fuera del workspace. | `? ` | unitaria (catálogo + validación) |
+| `componente` | `crear_desde_ficha` | Componente creado desde los datos de una ficha técnica. | `? ` | unitaria (catálogo + validación) |
+| `entorno` | `diagnostico` | Diagnóstico del entorno: PVsyst, CLI, workspace y herramientas. | `? `; `entorno accion=licencia` | en vivo: ok |
 | `entorno` | `licencia` | Estado de la licencia de PVsystCLI. | `entorno accion=diagnostico` | en vivo: ok |
 | `entorno` | `licencia_sync` | Licencia sincronizada con el servidor de PVsyst. | `entorno accion=licencia` | unitaria (catálogo + validación) |
 | `entorno` | `licencia_activar` | Comando de activación preparado; el MCP no activa licencias. | `entorno accion=licencia` | en vivo: ok |
@@ -122,7 +122,7 @@ ejecutó la acción real (la mayoría escribe o gasta ejecuciones de prueba).
 | `entorno` | `logs_cli` | Últimas líneas del registro de PVsystCLI. | `entorno accion=diagnostico` | en vivo: ok |
 | `entorno` | `preferencias` | Preferencias de PVsyst leídas. | `entorno accion=diagnostico` | en vivo: ok |
 | `entorno` | `preferencias_editar` | Preferencia de PVsyst modificada. | `entorno accion=preferencias` | en vivo: error `not_found` |
-| `disenar_sistema` | `—` | Sistema diseñado de extremo a extremo: sitio, proyecto, dimensionado y simulación. | `resultados que=perdidas*`; `resultados que=kpis*`; `entorno accion=diagnostico` | unitaria (catálogo + validación) |
+| `disenar_sistema` | `—` | Sistema diseñado de extremo a extremo: sitio, proyecto, dimensionado y simulación. | `? `; `? `; `entorno accion=diagnostico` | unitaria (catálogo + validación) |
 | `pvsyst_cli` | `—` | Comando de PVsystCLI ejecutado. | `entorno accion=diagnostico` | en vivo: ok |
 | `gui_observar` | `ventanas` | Ventanas de PVsyst listadas. | `gui_observar que=esquema`; `gui_observar que=funciones` | en vivo: error `gui` |
 | `gui_observar` | `controles` | Controles de la ventana listados. | `gui_observar que=esquema`; `gui_observar que=ventanas` | unitaria (catálogo + validación) |
@@ -157,61 +157,62 @@ ejecutó la acción real (la mayoría escribe o gasta ejecuciones de prueba).
 | `gui_actuar` | `clic_texto` | Clic en el texto visible de la ventana. | `gui_observar que=vista`; `gui_observar que=ventanas` | unitaria (catálogo + validación) |
 | `gui_actuar` | `reiniciar` | PVsyst reiniciado. | `gui_observar que=ventanas` | unitaria (catálogo + validación) |
 | `gui_actuar` | `cerrar_todo` | Ventanas de PVsyst cerradas. | `gui_observar que=ventanas` | en vivo: ok |
+| `gui_actuar` | `escena` | Escena 3D validada: objetos, formas y colisiones, sin tocar PVsyst. | `gui_observar que=esquema`; `gui_observar que=ventanas` | unitaria (catálogo + validación) |
 | `gui_actuar` | `secuencia` | Secuencia de pasos de GUI ejecutada. | `gui_observar que=ventanas`; `gui_observar que=esquema` | unitaria (catálogo + validación) |
-| `proyecto` | `crear` | Proyecto creado desde una plantilla. | `proyecto accion=doctor*`; `listar que=proyectos` | unitaria (catálogo + validación) |
-| `proyecto` | `eliminar` | Proyecto eliminado. | `listar que=proyectos` | unitaria (catálogo + validación) |
-| `proyecto` | `renombrar` | Proyecto renombrado. | `proyecto accion=doctor*`; `listar que=proyectos` | unitaria (catálogo + validación) |
-| `proyecto` | `crear_variante` | Variante creada a partir de otra. | `proyecto accion=doctor*`; `listar que=proyectos` | unitaria (catálogo + validación) |
-| `proyecto` | `dimensionar` | Proyecto dimensionado con módulos en serie y strings. | `proyecto accion=doctor*`; `listar que=proyectos` | en vivo: error `io` |
-| `proyecto` | `doctor` | Proyecto revisado: coherencia de la variante y sus archivos. | `simular accion=ejecutar*`; `listar que=proyectos` | en vivo: ok |
-| `proyecto` | `anadir` | Elemento añadido a la variante. | `proyecto accion=doctor*`; `workspace accion=historial` | unitaria (catálogo + validación) |
-| `proyecto` | `seguidor` | Variante convertida a seguidor. | `proyecto accion=doctor*`; `workspace accion=historial` | unitaria (catálogo + validación) |
-| `proyecto` | `limite_inyeccion` | Límite de inyección a red aplicado. | `proyecto accion=doctor*`; `workspace accion=historial` | unitaria (catálogo + validación) |
-| `proyecto` | `almacenamiento` | Almacenamiento con baterías configurado. | `proyecto accion=doctor*`; `workspace accion=historial` | unitaria (catálogo + validación) |
-| `proyecto` | `perdidas` | Pérdidas detalladas configuradas. | `proyecto accion=doctor*`; `workspace accion=historial` | unitaria (catálogo + validación) |
-| `proyecto` | `bombeo` | Sistema de bombeo configurado. | `proyecto accion=doctor*`; `workspace accion=historial` | unitaria (catálogo + validación) |
-| `proyecto` | `economia` | Evaluación económica configurada. | `proyecto accion=doctor*`; `workspace accion=historial` | unitaria (catálogo + validación) |
-| `proyecto` | `configurar` | Cambios de variante aplicados en una sola llamada. | `proyecto accion=doctor*`; `workspace accion=historial` | unitaria (catálogo + validación) |
-| `proyecto` | `p50_p90` | Parámetros de incertidumbre P50/P90 configurados. | `resultados que=p50_p90*`; `workspace accion=historial` | unitaria (catálogo + validación) |
-| `proyecto` | `limpiar_temporales` | Archivos temporales del MCP eliminados. | `listar que=proyectos` | unitaria (catálogo + validación) |
-| `simular` | `ejecutar` | Simulación ejecutada con PVsystCLI. | `resultados que=kpis*`; `resultados que=perdidas*`; `simular accion=estado*`; `listar que=proyectos` | en vivo: ok |
-| `simular` | `preparar` | Simulación preparada sin ejecutarla. | `simular accion=ejecutar*`; `simular accion=estado*`; `listar que=proyectos` | unitaria (catálogo + validación) |
-| `simular` | `estado` | Estado de las simulaciones consultado. | `resultados que=kpis*`; `listar que=proyectos` | en vivo: error `not_found` |
-| `simular` | `preestimar` | Producción estimada antes de simular. | `simular accion=ejecutar*`; `simular accion=estado*`; `listar que=proyectos` | unitaria (catálogo + validación) |
-| `simular` | `barrido` | Barrido de simulaciones ejecutado. | `resultados que=comparar*`; `simular accion=estado*`; `listar que=proyectos` | unitaria (catálogo + validación) |
-| `resultados` | `kpis` | Indicadores de la simulación leídos del informe. | `resultados que=perdidas*`; `listar que=proyectos` | en vivo: error `not_found` |
-| `resultados` | `csv` | Resultados horarios leídos del CSV. | `resultados que=kpis*`; `listar que=proyectos` | en vivo: error `not_found` |
-| `resultados` | `perdidas` | Desglose de pérdidas del sistema leído. | `resultados que=mensual*`; `listar que=proyectos` | en vivo: error `not_found` |
-| `resultados` | `mensual` | Producción mensual leída. | `resultados que=p50_p90*`; `listar que=proyectos` | en vivo: error `not_found` |
-| `resultados` | `comparar` | Variantes del proyecto comparadas. | `resultados que=kpis*`; `listar que=proyectos` | unitaria (catálogo + validación) |
-| `resultados` | `medido_vs_simulado` | Datos medidos comparados con la simulación. | `resultados que=kpis*`; `listar que=proyectos` | unitaria (catálogo + validación) |
-| `resultados` | `p50_p90` | Producción P50/P90 calculada de la simulación. | `resultados que=kpis*`; `listar que=proyectos` | en vivo: error `not_found` |
-| `resultados` | `carbono` | Balance de carbono calculado. | `resultados que=kpis*`; `listar que=proyectos` | unitaria (catálogo + validación) |
-| `resultados` | `economia` | Resultados económicos leídos. | `resultados que=kpis*`; `listar que=proyectos` | unitaria (catálogo + validación) |
-| `resultados` | `entregable` | Entregable del proyecto generado. | `resultados que=kpis*`; `listar que=proyectos` | unitaria (catálogo + validación) |
-| `resultados` | `resumen` | Resumen de resultados del proyecto. | `resultados que=perdidas*`; `listar que=proyectos` | unitaria (catálogo + validación) |
-| `sitio` | `crear` | Sitio creado con la meteorología de la ubicación. | `leer *`; `listar que=archivos` | unitaria (catálogo + validación) |
-| `sitio` | `convertir_meteo` | Archivo meteorológico convertido al formato de PVsyst. | `leer *`; `listar que=archivos` | unitaria (catálogo + validación) |
-| `sitio` | `geometria_solar` | Geometría solar calculada para la ubicación. | `listar que=archivos` | unitaria (catálogo + validación) |
-| `sitio` | `horizonte_pvgis` | Horizonte descargado de PVGIS. | `listar que=archivos` | unitaria (catálogo + validación) |
-| `sitio` | `meteo_pvgis` | Meteorología descargada de PVGIS. | `leer *`; `listar que=archivos` | unitaria (catálogo + validación) |
-| `sitio` | `escribir_horizonte` | Horizonte escrito en el sitio. | `leer *`; `listar que=archivos` | unitaria (catálogo + validación) |
-| `sitio` | `escribir_serie` | Serie meteorológica escrita en el sitio. | `leer *`; `listar que=archivos` | unitaria (catálogo + validación) |
-| `workspace` | `crear` | Workspace creado. | `listar que=proyectos`; `workspace accion=historial` | unitaria (catálogo + validación) |
-| `workspace` | `exportar` | Workspace exportado a un archivo. | `listar que=proyectos`; `workspace accion=historial` | unitaria (catálogo + validación) |
-| `workspace` | `importar` | Workspace importado. | `listar que=proyectos`; `workspace accion=historial` | unitaria (catálogo + validación) |
-| `workspace` | `exportar_proyecto` | Proyecto exportado a un archivo. | `listar que=proyectos`; `workspace accion=historial` | unitaria (catálogo + validación) |
-| `workspace` | `historial` | Historial de cambios del workspace. | `listar que=proyectos` | en vivo: ok |
-| `workspace` | `restaurar` | Cambio restaurado desde el historial. | `workspace accion=historial`; `listar que=proyectos` | unitaria (catálogo + validación) |
-| `listar` | `proyectos` | Proyectos del workspace listados. | `listar que=archivos`; `listar que=modulos` | en vivo: ok |
-| `listar` | `componentes` | Componentes del tipo pedido listados. | `listar que=modulos`; `listar que=proyectos` | en vivo: ok |
-| `listar` | `modulos` | Módulos fotovoltaicos listados. | `listar que=archivos`; `listar que=proyectos` | en vivo: ok |
-| `listar` | `archivos` | Archivos del workspace listados. | `listar que=proyectos`; `listar que=modulos` | en vivo: ok |
-| `listar` | `objetos` | Objetos del archivo PVsyst listados. | `leer *`; `listar que=proyectos` | en vivo: ok |
-| `leer` | `—` | Archivo de PVsyst leído. | `listar que=objetos*`; `listar que=proyectos` | en vivo: ok |
-| `editar` | `campos` | Campos editados con copia en el historial. | `proyecto accion=doctor*`; `leer *`; `workspace accion=historial` | unitaria (catálogo + validación) |
-| `editar` | `insertar_objeto` | Objeto insertado en el archivo. | `leer *`; `workspace accion=historial` | unitaria (catálogo + validación) |
-| `editar` | `eliminar_objeto` | Objeto eliminado del archivo. | `leer *`; `workspace accion=historial` | unitaria (catálogo + validación) |
-| `editar` | `rvt` | Operación sobre el archivo RVT aplicada. | `workspace accion=historial` | unitaria (catálogo + validación) |
-| `editar` | `plantilla_rvt` | Plantilla RVT generada. | `workspace accion=historial` | unitaria (catálogo + validación) |
-| `escribir_archivo` | `—` | Archivo escrito en el workspace con copia en el historial. | `leer *`; `workspace accion=historial` | unitaria (catálogo + validación) |
+| `proyecto` | `crear` | Proyecto creado desde una plantilla. | `? `; `? ` | unitaria (catálogo + validación) |
+| `proyecto` | `eliminar` | Proyecto eliminado. | `? ` | unitaria (catálogo + validación) |
+| `proyecto` | `renombrar` | Proyecto renombrado. | `proyecto accion=doctor*`; `? ` | unitaria (catálogo + validación) |
+| `proyecto` | `crear_variante` | Variante creada a partir de otra. | `? `; `? ` | unitaria (catálogo + validación) |
+| `proyecto` | `dimensionar` | Proyecto dimensionado con módulos en serie y strings. | `? `; `? ` | en vivo: error `io` |
+| `proyecto` | `doctor` | Proyecto revisado: coherencia de la variante y sus archivos. | `? `; `? ` | en vivo: ok |
+| `proyecto` | `anadir` | Elemento añadido a la variante. | `? `; `? ` | unitaria (catálogo + validación) |
+| `proyecto` | `seguidor` | Variante convertida a seguidor. | `? `; `? ` | unitaria (catálogo + validación) |
+| `proyecto` | `limite_inyeccion` | Límite de inyección a red aplicado. | `? `; `? ` | unitaria (catálogo + validación) |
+| `proyecto` | `almacenamiento` | Almacenamiento con baterías configurado. | `? `; `? ` | unitaria (catálogo + validación) |
+| `proyecto` | `perdidas` | Pérdidas detalladas configuradas. | `? `; `? ` | unitaria (catálogo + validación) |
+| `proyecto` | `bombeo` | Sistema de bombeo configurado. | `? `; `? ` | unitaria (catálogo + validación) |
+| `proyecto` | `economia` | Evaluación económica configurada. | `? `; `? ` | unitaria (catálogo + validación) |
+| `proyecto` | `configurar` | Cambios de variante aplicados en una sola llamada. | `? `; `? ` | unitaria (catálogo + validación) |
+| `proyecto` | `p50_p90` | Parámetros de incertidumbre P50/P90 configurados. | `? `; `? ` | unitaria (catálogo + validación) |
+| `proyecto` | `limpiar_temporales` | Archivos temporales del MCP eliminados. | `? ` | unitaria (catálogo + validación) |
+| `simular` | `ejecutar` | Simulación ejecutada con PVsystCLI. | `? `; `? `; `simular accion=estado*`; `? ` | en vivo: ok |
+| `simular` | `preparar` | Simulación preparada sin ejecutarla. | `? `; `simular accion=estado*`; `? ` | unitaria (catálogo + validación) |
+| `simular` | `estado` | Estado de las simulaciones consultado. | `? `; `? ` | en vivo: error `not_found` |
+| `simular` | `preestimar` | Producción estimada antes de simular. | `? `; `simular accion=estado*`; `? ` | unitaria (catálogo + validación) |
+| `simular` | `barrido` | Barrido de simulaciones ejecutado. | `resultados que=comparar*`; `simular accion=estado*`; `? ` | unitaria (catálogo + validación) |
+| `resultados` | `kpis` | Indicadores de la simulación leídos del informe. | `? `; `? ` | en vivo: error `not_found` |
+| `resultados` | `csv` | Resultados horarios leídos del CSV. | `? `; `? ` | en vivo: error `not_found` |
+| `resultados` | `perdidas` | Desglose de pérdidas del sistema leído. | `resultados que=mensual*`; `? ` | en vivo: error `not_found` |
+| `resultados` | `mensual` | Producción mensual leída. | `? `; `? ` | en vivo: error `not_found` |
+| `resultados` | `comparar` | Variantes del proyecto comparadas. | `? `; `? ` | unitaria (catálogo + validación) |
+| `resultados` | `medido_vs_simulado` | Datos medidos comparados con la simulación. | `? `; `? ` | unitaria (catálogo + validación) |
+| `resultados` | `p50_p90` | Producción P50/P90 calculada de la simulación. | `? `; `? ` | en vivo: error `not_found` |
+| `resultados` | `carbono` | Balance de carbono calculado. | `? `; `? ` | unitaria (catálogo + validación) |
+| `resultados` | `economia` | Resultados económicos leídos. | `? `; `? ` | unitaria (catálogo + validación) |
+| `resultados` | `entregable` | Entregable del proyecto generado. | `? `; `? ` | unitaria (catálogo + validación) |
+| `resultados` | `resumen` | Resumen de resultados del proyecto. | `? `; `? ` | unitaria (catálogo + validación) |
+| `sitio` | `crear` | Sitio creado con la meteorología de la ubicación. | `leer *`; `? ` | unitaria (catálogo + validación) |
+| `sitio` | `convertir_meteo` | Archivo meteorológico convertido al formato de PVsyst. | `leer *`; `? ` | unitaria (catálogo + validación) |
+| `sitio` | `geometria_solar` | Geometría solar calculada para la ubicación. | `? ` | unitaria (catálogo + validación) |
+| `sitio` | `horizonte_pvgis` | Horizonte descargado de PVGIS. | `? ` | unitaria (catálogo + validación) |
+| `sitio` | `meteo_pvgis` | Meteorología descargada de PVGIS. | `leer *`; `? ` | unitaria (catálogo + validación) |
+| `sitio` | `escribir_horizonte` | Horizonte escrito en el sitio. | `leer *`; `? ` | unitaria (catálogo + validación) |
+| `sitio` | `escribir_serie` | Serie meteorológica escrita en el sitio. | `leer *`; `? ` | unitaria (catálogo + validación) |
+| `workspace` | `crear` | Workspace creado. | `? `; `? ` | unitaria (catálogo + validación) |
+| `workspace` | `exportar` | Workspace exportado a un archivo. | `? `; `? ` | unitaria (catálogo + validación) |
+| `workspace` | `importar` | Workspace importado. | `? `; `? ` | unitaria (catálogo + validación) |
+| `workspace` | `exportar_proyecto` | Proyecto exportado a un archivo. | `? `; `? ` | unitaria (catálogo + validación) |
+| `workspace` | `historial` | Historial de cambios del workspace. | `? ` | en vivo: ok |
+| `workspace` | `restaurar` | Cambio restaurado desde el historial. | `? `; `? ` | unitaria (catálogo + validación) |
+| `listar` | `proyectos` | Proyectos del workspace listados. | `? `; `? ` | en vivo: ok |
+| `listar` | `componentes` | Componentes del tipo pedido listados. | `? `; `? ` | en vivo: ok |
+| `listar` | `modulos` | Módulos fotovoltaicos listados. | `? `; `? ` | en vivo: ok |
+| `listar` | `archivos` | Archivos del workspace listados. | `? `; `? ` | en vivo: ok |
+| `listar` | `objetos` | Objetos del archivo PVsyst listados. | `leer *`; `? ` | en vivo: ok |
+| `leer` | `—` | Archivo de PVsyst leído. | `listar que=objetos*`; `? ` | en vivo: ok |
+| `editar` | `campos` | Campos editados con copia en el historial. | `? `; `leer *`; `? ` | unitaria (catálogo + validación) |
+| `editar` | `insertar_objeto` | Objeto insertado en el archivo. | `leer *`; `? ` | unitaria (catálogo + validación) |
+| `editar` | `eliminar_objeto` | Objeto eliminado del archivo. | `leer *`; `? ` | unitaria (catálogo + validación) |
+| `editar` | `rvt` | Operación sobre el archivo RVT aplicada. | `? ` | unitaria (catálogo + validación) |
+| `editar` | `plantilla_rvt` | Plantilla RVT generada. | `? ` | unitaria (catálogo + validación) |
+| `escribir_archivo` | `—` | Archivo escrito en el workspace con copia en el historial. | `leer *`; `? ` | unitaria (catálogo + validación) |

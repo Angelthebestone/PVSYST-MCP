@@ -23,7 +23,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   real call. Clients without `structuredContent` get the failure's `vista` as a second text item.
   Contract, size measurements and the tool × action matrix: `docs/vista_agente_salidas.md`.
 
+### Added
+- **`gui_actuar accion:escena` with `simular:true`** validates a 3D scene request (`escena`, `objetos`:
+  `paralelepipedo`, `tejado_dos_aguas`, `chimenea`, `arbol`) without PVsyst: types, ranges, the file slot of
+  each dimension and collisions. Ranges are the MCP's, not PVsyst's, and collisions are inferred (anchor not
+  proven). Without `simular` it refuses: the editor creation is not measured and scenes are never written by hand.
+- **Window coverage:** every one of the 82 window classes of `docs/gui_mapa.json` is registered in one of four
+  states and listed in `gui_observar que:esquema` (`cobertura`). `que:vista` on a window without a schema
+  returns its fields by control class and 96-DPI position (combo items included) or its buttons.
+
 ### Changed
+- `gui_actuar accion:rellenar` returns the form read back under `formulario` (it was `vista`, which now
+  belongs to the answer block).
 - **GUI `teclas` sends HOME, END, PGUP/PAGEUP and PGDN/PAGEDOWN** to move through lists and trees.
   DELETE, DEL, SUPR, INSERT and INS are refused with a message, alone or with a modifier: in PVsyst lists
   they can remove or insert items.
