@@ -11,7 +11,7 @@ pub(super) const VENTANAS: &[Ventana] = &[
     basica("TSAControllerForm"),
     basica("TGeneratorForm"),
     basica("TContactForm"),
-    basica("TGeoSiteForm"),
+    solo_acciones("TGeoSiteForm", "En vivo no muestra campos de texto, listas desplegables ni casillas legibles por handle (cosecha del 2026-10-27): se maneja con sus botones y clic_texto."),
     basica("TChoixObjetPVForm"),
     solo_acciones(
         "TDatabaseForm",

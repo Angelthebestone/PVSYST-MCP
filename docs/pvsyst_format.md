@@ -419,6 +419,50 @@ Elementary objects define their dimensions via a 39-byte block (2 bytes shape ID
 * Scene creation/serialization: mesh structure is not proven. Writing is rejected with `Error::Invalid("escena 3D: solo lectura; el formato de las mallas no está demostrado, créala con la GUI de PVsyst (Construcción / Perspectiva)")`.
 ---
 
+### 7.5 Shape list of the elementary-object dialog (measured live, 2026-10-27)
+
+`TElementaryObjectForm` (`escena_3d.crear.objeto_elemental`, opened with the editor menu and closed with Cancelar; nothing saved)
+offers 27 shapes in a `TComboBox`, grouped as Superficies, Volúmenes, Elementos de construcción and Formas especiales:
+
+  - Triángulo — no demostrada
+  - Triángulo Isósceles — no demostrada
+  - Triángulo Rectángulo — no demostrada
+  - Rectángulo — no demostrada
+  - Trapecio — no demostrada
+  - Polígono regular — no demostrada
+  - Sector seudocircular — no demostrada
+  - Paralelepípedo — **demostrada** (id 11 Parallélépipède)
+  - Pirámide Cuadrada — no demostrada
+  - Prisma Triangular — no demostrada
+  - Prisma Hexagonal — no demostrada
+  - Prisma Octogonal — no demostrada
+  - Porción de Cilindro — no demostrada
+  - Casa + techo de 2 lados — no demostrada
+  - Casa, techo asimétrico — no demostrada
+  - En forma de techo - diedro — no demostrada
+  - Tejado 1 fase + aguilones — no demostrada
+  - Techo de 2 aguas + Hastial — **demostrada** (id 23 Toiture + pignons; la correspondencia del nombre español es [INFERENCIA])
+  - Techo de 4 lados — no demostrada
+  - Buhardilla — no demostrada
+  - Prisma - chimenea — **demostrada** (id 25 Prism - chimney)
+  - Árbol — **demostrada** (id 21 Tree)
+  - Cable — no demostrada
+  - Barandilla un travesaño — no demostrada
+  - Barandilla dos travesaños — no demostrada
+  - Turbina eólica — no demostrada
+  - Pilón eléctrico — no demostrada
+
+Only the four marked *demostrada* were confirmed by reading a file PVsyst saved (§7.3). The rest stay **unproven and
+read-only**: PVsyst in TRIAL mode does not save, so no file exists to compare, and the MCP does not write scenes by hand.
+The dialog also has a name field, three parameter fields (`Param1Edit`…`Param3Edit` placeholders), a colour/size field and two
+checkboxes; `TGroundObjectForm` (11 fields), `TTableFieldForm` (7, with an orientation list) and `TBuildingObjectForm`
+(no readable fields) were also opened. Raw measurements: `.scratch/exp/escena_3d_formas.json` (not versioned).
+
+`gui_actuar accion:escena` with `simular:true` validates a request for the four proven shapes (names `paralelepipedo`,
+`tejado_dos_aguas`, `chimenea`, `arbol`) and reports the file slot of each dimension. It never writes a scene; creating one in the
+editor is not implemented. Ranges are the MCP's (PVsyst's were not measured) and collisions assume the position is the lower corner
+(`[INFERENCIA]`).
+
 ## 8. Weather format specifications: `.MEF`
 
 `.MEF` files define how PVsyst imports external CSV/text weather time series into `.MET` binary files.

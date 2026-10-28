@@ -1,9 +1,9 @@
 //! Coverage of the Application windows.
 
-use super::super::dominio::{basica, no_aplica, solo_acciones, Ventana};
+use super::super::dominio::{no_aplica, solo_acciones, Ventana};
 
 pub(super) const VENTANAS: &[Ventana] = &[
-    basica("TPreferencesForm"),
+    solo_acciones("TPreferencesForm", "En vivo no muestra campos de texto, listas desplegables ni casillas legibles por handle (cosecha del 2026-10-27): se maneja con sus botones y clic_texto."),
     solo_acciones("TToolsForm", "Menú de botones que abren las herramientas."),
     solo_acciones(
         "TWorkspaceForm",

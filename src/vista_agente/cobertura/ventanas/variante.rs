@@ -16,7 +16,7 @@ pub(super) const VENTANAS: &[Ventana] = &[
     basica("TDimensSituationForm"),
     basica("TSummaryForm"),
     basica("TOrientationForm"),
-    basica("TOrientManageForm"),
+    solo_acciones("TOrientManageForm", "En vivo no muestra campos de texto, listas desplegables ni casillas legibles por handle (cosecha del 2026-10-27): se maneja con sus botones y clic_texto."),
     basica("TOrientToolForm"),
     basica("TSystemegridForm"),
     basica("TSystemegridDCForm"),
