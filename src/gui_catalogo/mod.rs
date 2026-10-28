@@ -9,7 +9,7 @@ mod espera;
 mod recurso;
 
 pub(crate) use aplicacion::{abrir, listar, menu};
-pub(crate) use recurso::como_recurso;
+pub(crate) use recurso::{como_recurso, mapa_de_ventanas};
 
 #[cfg(test)]
 #[path = "../../tests/unit/gui_catalogo/mod.rs"]

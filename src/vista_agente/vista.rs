@@ -1,6 +1,7 @@
 //! `gui_observar que:vista` and `que:esquema`: the form as keyed fields.
 
 use super::campos_vivos::{campos_vivos, localizar, CampoVivo};
+use super::cobertura;
 use super::dominio::{CampoEsquema, Entidad, TipoValor};
 use super::esquemas::{de_formulario, entidad, todas};
 use super::plan::es_valido;
@@ -100,6 +101,18 @@ fn entidad_pedida(args: &Value) -> Result<Option<&'static Entidad>> {
         .find(|e| ventana_de(args, e).is_ok()))
 }
 
+/// A registered window without a schema: its fields by position, or why it is capture-only.
+fn vista_de_ventana_registrada(args: &Value) -> Result<Option<Value>> {
+    if args.get("ventana").is_none() {
+        return Ok(None);
+    }
+    let h = hwnd_de(args, "ventana")?;
+    let Some(registro) = cobertura::de_clase(&class_of(h)) else {
+        return Ok(None);
+    };
+    Ok(Some(cobertura::vista_de_ventana(h, registro, &text_of(h))))
+}
+
 /// The form as keyed fields read live from its controls. `ocr:true` also
 /// returns the text PVsyst draws (validation messages, model summary).
 pub(crate) fn vista(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
@@ -109,6 +122,9 @@ pub(crate) fn vista(paths: &crate::config::Paths, args: &Value) -> Result<Value>
         ));
     }
     let Some(ent) = entidad_pedida(args)? else {
+        if let Some(vista) = vista_de_ventana_registrada(args)? {
+            return Ok(vista);
+        }
         return Ok(json!({
             "entidad": null,
             "aviso": "ninguna ventana conocida abierta; esquemas con gui_observar que:esquema",
@@ -160,5 +176,10 @@ pub(crate) fn listar_esquemas(args: &Value) -> Result<Value> {
             })
         })
         .collect();
-    Ok(json!({ "count": entidades.len(), "entidades": entidades }))
+    let mut esquemas = json!({ "count": entidades.len(), "entidades": entidades });
+    let sin_filtro = opt_str(args, &["entidad"]).is_none();
+    if let (true, Some(obj)) = (sin_filtro, esquemas.as_object_mut()) {
+        obj.insert("cobertura".into(), cobertura::listar_ventanas());
+    }
+    Ok(esquemas)
 }
