@@ -212,3 +212,17 @@ fn should_read_the_fields_of_a_complete_window_like_a_basic_one() {
         super::dominio::Cobertura::SoloAcciones
     ));
 }
+
+#[test]
+fn should_not_link_the_transposition_window_to_a_function_that_opens_another_one() {
+    let transposicion = ventana_listada("TTranspositionForm");
+    assert_eq!(transposicion["abierta_con"], serde_json::json!([]));
+    let conjuntos = ventana_listada("TArrayCharactForm");
+    let funciones = conjuntos["abierta_con"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    assert!(funciones
+        .iter()
+        .any(|c| c == "herramientas.factor_transposicion"));
+}

@@ -45,8 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with the focus on another control the first click only moved the focus.
 
 - `gui_observar que:esquema` lists, per window class, `abierta_con`: the keys of the catalogue functions that
-  open it (`accion:funcion` opens them). The catalogue still declares `herramientas.factor_transposicion` as
-  opening `TTranspositionForm`, which live opened `TArrayCharactForm`: the entry is unverified.
+  open it (`accion:funcion` opens them). `herramientas.factor_transposicion` now declares the window it was
+  seen to open (`TArrayCharactForm`, not `TTranspositionForm`).
 
 ### Changed
 - `gui_actuar accion:rellenar` returns the form read back under `formulario` (it was `vista`, which now

@@ -95,7 +95,7 @@ fn should_describe_entry_point_in_json_when_function_is_a_nested_button() {
     assert_eq!(boton["via"], "boton");
     assert_eq!(boton["ventana"], "TToolsForm");
     assert_eq!(boton["requiere"], "inicio.herramientas");
-    assert_eq!(boton["abre"], "TTranspositionForm");
+    assert_eq!(boton["abre"], "TArrayCharactForm");
 }
 
 #[test]
