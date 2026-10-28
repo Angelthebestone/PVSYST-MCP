@@ -78,12 +78,45 @@ pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Val
     }
 }
 
+/// Every `accion` of `actuar`, in the order the tool schema lists them. The
+/// error for an unknown one and the schema of `gui_actuar` both read this.
+pub(crate) const ACCIONES: &[&str] = &[
+    "click",
+    "clic_fisico",
+    "mensaje",
+    "cerrar",
+    "activar",
+    "teclas",
+    "fila",
+    "escribir",
+    "seleccionar",
+    "pagina",
+    "esperar_cierre",
+    "lanzar",
+    "uia_invocar",
+    "esperar",
+    "paso",
+    "funcion",
+    "menu",
+    "campo",
+    "rellenar",
+    "clic_texto",
+    "reiniciar",
+    "cerrar_todo",
+    "secuencia",
+    "escena",
+];
+
 /// `actuar` dispatcher. `accion`: click | clic_fisico | clic_texto | mensaje |
 /// cerrar | activar | teclas | fila | escribir | seleccionar | pagina | esperar_cierre |
 /// lanzar | reiniciar | uia_invocar | esperar | paso | funcion | menu | campo | rellenar | cerrar_todo | secuencia.
 pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     crate::adapters::uia::invalidar_cache(&paths.estado);
-    match args.get("accion").and_then(Value::as_str).unwrap_or("click") {
+    match args
+        .get("accion")
+        .and_then(Value::as_str)
+        .unwrap_or("click")
+    {
         accion @ ("click" | "mensaje" | "cerrar" | "activar") => {
             acciones::invocar(paths, args).map_err(|e| Error::Gui(format!("{e} (accion {accion})")))
         }
@@ -111,7 +144,8 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         "esperar" => esperas::esperar(args),
         "paso" => uia_vista::paso(paths, args),
         other => Err(Error::Invalid(format!(
-            "Unknown accion '{other}' (click|clic_fisico|mensaje|cerrar|cerrar_todo|activar|teclas|fila|escribir|seleccionar|pagina|esperar_cierre|lanzar|uia_invocar|esperar|paso|funcion|menu|campo|rellenar|clic_texto|reiniciar|secuencia|escena)"
+            "Unknown accion '{other}' ({})",
+            ACCIONES.join("|")
         ))),
     }
 }
