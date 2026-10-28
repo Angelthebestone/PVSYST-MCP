@@ -15,6 +15,7 @@ pub(crate) mod campo_por_etiqueta;
 pub(crate) mod campos;
 pub(crate) mod captura;
 pub(crate) mod clic_por_texto;
+pub(crate) mod combinacion;
 pub(crate) mod conduccion;
 pub(crate) mod escritorio;
 pub(crate) mod esperas;
