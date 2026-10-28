@@ -20,7 +20,7 @@ fn vivo(clase: &str, x: i32, y: i32) -> CampoVivo {
 
 #[test]
 fn should_register_every_window_class_of_the_map_in_exactly_one_state() {
-    let del_mapa: BTreeSet<String> = clases_del_mapa().into_keys().collect();
+    let del_mapa: BTreeSet<String> = clases_del_mapa().keys().cloned().collect();
     let registradas: Vec<&str> = todas().map(|v| v.clase).collect();
     let unicas: BTreeSet<String> = registradas.iter().map(|c| (*c).to_string()).collect();
     assert_eq!(

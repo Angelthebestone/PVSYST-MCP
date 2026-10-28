@@ -3,6 +3,7 @@
 use crate::gui_catalogo::mapa_de_ventanas;
 use serde_json::Value;
 use std::collections::{BTreeMap, HashMap};
+use std::sync::OnceLock;
 
 /// Counts for one class, taken from its richest instance.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -55,13 +56,17 @@ fn resumir(ventana: &Value) -> ResumenMapa {
     }
 }
 
-/// Every window class of `docs/gui_mapa.json`, by class name.
-pub(crate) fn clases_del_mapa() -> BTreeMap<String, ResumenMapa> {
-    mapa_de_ventanas()
-        .get("ventanas")
-        .and_then(Value::as_object)
-        .into_iter()
-        .flatten()
-        .map(|(clase, ventana)| (clase.clone(), resumir(ventana)))
-        .collect()
+/// Every window class of `docs/gui_mapa.json`, by class name. The map never
+/// changes while the server runs, so it is summarised once.
+pub(crate) fn clases_del_mapa() -> &'static BTreeMap<String, ResumenMapa> {
+    static CLASES: OnceLock<BTreeMap<String, ResumenMapa>> = OnceLock::new();
+    CLASES.get_or_init(|| {
+        mapa_de_ventanas()
+            .get("ventanas")
+            .and_then(Value::as_object)
+            .into_iter()
+            .flatten()
+            .map(|(clase, ventana)| (clase.clone(), resumir(ventana)))
+            .collect()
+    })
 }
