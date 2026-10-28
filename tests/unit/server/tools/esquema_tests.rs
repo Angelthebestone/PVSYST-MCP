@@ -143,6 +143,7 @@ fn should_expose_the_new_gui_field_actions() {
         "rellenar",
         "clic_texto",
         "reiniciar",
+        "fila",
     ] {
         assert!(
             actuar_acciones.iter().any(|v| v == acc),

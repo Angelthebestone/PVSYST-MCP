@@ -1,7 +1,7 @@
 //! Tool for simulation orchestration: batch setup, execution, status, and sweeps.
 
 use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, Sinonimos, TipoDato};
-use crate::args::missing;
+use crate::args::{flag, missing, DRY_RUN};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::progreso::SeguimientoTarea;
@@ -121,6 +121,7 @@ fn ejecutar_simular(
     let valor = TOOL_SIMULAR.accion(args);
     match valor {
         "ejecutar" => {
+            exigir_ensayo_sin_escritura(args)?;
             let (vivos, _) = preparar_entrada(paths, args)?;
             simulation::lanzar_simulacion_seguida(paths, &vivos, seguimiento)
         }
@@ -144,6 +145,18 @@ fn ejecutar_simular(
             "Valor '{valor}' no soportado para simular"
         ))),
     }
+}
+
+/// `filas` and `parametros` are written to the workspace before the run starts, so
+/// a dry run that carried them would already have changed files.
+fn exigir_ensayo_sin_escritura(args: &Value) -> Result<()> {
+    let escribe = args.get("filas").is_some() || args.get("parametros").is_some();
+    if flag(args, &[DRY_RUN]) && escribe {
+        return Err(Error::Invalid(
+            "dry_run no admite 'filas' ni 'parametros': prepararlos escribe archivos del workspace. Quita dry_run, o prepara antes con accion:preparar".into(),
+        ));
+    }
+    Ok(())
 }
 
 fn preparar_entrada(paths: &Paths, args: &Value) -> Result<(Value, Map<String, Value>)> {

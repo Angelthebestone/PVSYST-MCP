@@ -5,7 +5,10 @@
 use super::catalogo::buscar;
 use super::construccion::Contexto;
 use super::tipos::{ErrorVista, Estado, PasoSiguiente};
-use crate::args::flag;
+use crate::args::{flag, DRY_RUN, REQUIERE_CONFIRMACION};
+
+/// Answer key of the actions that validate without applying (`escena`, `rellenar`).
+const SIMULADO: &str = "simulado";
 use serde_json::{Map, Value};
 
 const PRUEBA_CONFIRMAR: &str =
@@ -20,7 +23,7 @@ const CLAVE_DE_ENSAYO: &[(&str, &str)] = &[
     ("gui_actuar", "simular"),
 ];
 
-fn clave_de_ensayo(tool: &str) -> Option<&'static str> {
+pub(super) fn clave_de_ensayo(tool: &str) -> Option<&'static str> {
     CLAVE_DE_ENSAYO
         .iter()
         .find(|(nombre, _)| *nombre == tool)
@@ -34,9 +37,10 @@ pub(super) enum Pendiente {
     Ensayo,
 }
 
-fn pide_ensayo(ctx: &Contexto<'_>, salida: &Value) -> bool {
-    flag(salida, &["dry_run"])
-        || clave_de_ensayo(ctx.tool).is_some_and(|clave| flag(ctx.args, &[clave]))
+/// Only the answer says it was a dry run: a request that asked for one can still
+/// have been executed for real by an action that never read the switch.
+fn es_ensayo_respondido(salida: &Value) -> bool {
+    flag(salida, &[DRY_RUN]) || flag(salida, &[SIMULADO])
 }
 
 /// Whether the answer is not final. A dry run is only a dry run when it worked: a
@@ -46,11 +50,11 @@ pub(super) fn pendiente_de(
     salida: &Value,
     estado: Estado,
 ) -> Option<Pendiente> {
-    if flag(salida, &["requiere_confirmacion"]) {
+    if flag(salida, &[REQUIERE_CONFIRMACION]) {
         return Some(Pendiente::Confirmacion);
     }
     let sin_version_real = buscar(ctx.tool, ctx.accion).is_some_and(|e| e.solo_ensayo);
-    let es_ensayo = estado == Estado::Ok && pide_ensayo(ctx, salida) && !sin_version_real;
+    let es_ensayo = estado == Estado::Ok && es_ensayo_respondido(salida) && !sin_version_real;
     es_ensayo.then_some(Pendiente::Ensayo)
 }
 

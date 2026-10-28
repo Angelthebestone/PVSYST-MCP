@@ -15,10 +15,12 @@ pub(crate) mod campo_por_etiqueta;
 pub(crate) mod campos;
 pub(crate) mod captura;
 pub(crate) mod clic_por_texto;
+pub(crate) mod combinacion;
 pub(crate) mod conduccion;
 pub(crate) mod escritorio;
 pub(crate) mod esperas;
 pub(crate) mod ffi;
+pub(crate) mod fila;
 pub(crate) mod gdi;
 pub(crate) mod menu_por_posicion;
 pub(crate) mod modal;
@@ -77,12 +79,45 @@ pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Val
     }
 }
 
+/// Every `accion` of `actuar`, in the order the tool schema lists them. The
+/// error for an unknown one and the schema of `gui_actuar` both read this.
+pub(crate) const ACCIONES: &[&str] = &[
+    "click",
+    "clic_fisico",
+    "mensaje",
+    "cerrar",
+    "activar",
+    "teclas",
+    "fila",
+    "escribir",
+    "seleccionar",
+    "pagina",
+    "esperar_cierre",
+    "lanzar",
+    "uia_invocar",
+    "esperar",
+    "paso",
+    "funcion",
+    "menu",
+    "campo",
+    "rellenar",
+    "clic_texto",
+    "reiniciar",
+    "cerrar_todo",
+    "secuencia",
+    "escena",
+];
+
 /// `actuar` dispatcher. `accion`: click | clic_fisico | clic_texto | mensaje |
-/// cerrar | activar | teclas | escribir | seleccionar | pagina | esperar_cierre |
+/// cerrar | activar | teclas | fila | escribir | seleccionar | pagina | esperar_cierre |
 /// lanzar | reiniciar | uia_invocar | esperar | paso | funcion | menu | campo | rellenar | cerrar_todo | secuencia.
 pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     crate::adapters::uia::invalidar_cache(&paths.estado);
-    match args.get("accion").and_then(Value::as_str).unwrap_or("click") {
+    match args
+        .get("accion")
+        .and_then(Value::as_str)
+        .unwrap_or("click")
+    {
         accion @ ("click" | "mensaje" | "cerrar" | "activar") => {
             acciones::invocar(paths, args).map_err(|e| Error::Gui(format!("{e} (accion {accion})")))
         }
@@ -91,7 +126,8 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
             acciones::exigir_escritorio()?;
             acciones::invocar(paths, args)
         }
-        "teclas" => teclado::teclas(paths, args),
+        "teclas" => teclado::teclas(args),
+        "fila" => fila::fila(args),
         "funcion" => crate::gui_catalogo::abrir(args),
         "menu" => crate::gui_catalogo::menu(args),
         "campo" => campo_por_etiqueta::campo(paths, args),
@@ -107,9 +143,10 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         "reiniciar" => recuperacion::reiniciar(paths, args),
         "uia_invocar" => uia_vista::uia_invocar(args),
         "esperar" => esperas::esperar(args),
-        "paso" => uia_vista::paso(paths, args),
+        "paso" => uia_vista::paso(args),
         other => Err(Error::Invalid(format!(
-            "Unknown accion '{other}' (click|clic_fisico|mensaje|cerrar|cerrar_todo|activar|teclas|escribir|seleccionar|pagina|esperar_cierre|lanzar|uia_invocar|esperar|paso|funcion|menu|campo|rellenar|clic_texto|reiniciar|secuencia|escena)"
+            "Unknown accion '{other}' ({})",
+            ACCIONES.join("|")
         ))),
     }
 }

@@ -1,7 +1,7 @@
 use super::basica::{campos_con_clave, clave_de};
 use super::dominio::Cobertura;
 use super::listado::listar_ventanas;
-use super::mapa::clases_del_mapa;
+use super::mapa::{clases_del_mapa, resumir, ResumenMapa};
 use super::ventanas::{de_clase, todas};
 use crate::vista_agente::campos_vivos::CampoVivo;
 use crate::vista_agente::dominio::Ancla;
@@ -20,7 +20,7 @@ fn vivo(clase: &str, x: i32, y: i32) -> CampoVivo {
 
 #[test]
 fn should_register_every_window_class_of_the_map_in_exactly_one_state() {
-    let del_mapa: BTreeSet<String> = clases_del_mapa().into_keys().collect();
+    let del_mapa: BTreeSet<String> = clases_del_mapa().keys().cloned().collect();
     let registradas: Vec<&str> = todas().map(|v| v.clase).collect();
     let unicas: BTreeSet<String> = registradas.iter().map(|c| (*c).to_string()).collect();
     assert_eq!(
@@ -134,4 +134,95 @@ fn should_keep_basic_keys_unique_when_two_controls_share_a_spot() {
         .collect();
     assert_eq!(claves.len(), 2);
     assert!(claves.contains(&clave_de(&vivo("TEdit", 5, 5))));
+}
+
+fn ventana_listada(clase: &str) -> serde_json::Value {
+    let todas = listar_ventanas();
+    todas["ventanas"]
+        .as_array()
+        .and_then(|l| l.iter().find(|v| v["clase"] == clase).cloned())
+        .unwrap_or_default()
+}
+
+#[test]
+fn should_link_a_window_to_the_catalogue_function_that_opens_it() {
+    let sistema = ventana_listada("TSystemegridForm");
+    assert!(
+        sistema["abierta_con"]
+            .as_array()
+            .is_some_and(|l| l.iter().any(|c| c == "variante.sistema")),
+        "{sistema}"
+    );
+}
+
+#[test]
+fn should_list_no_function_when_the_catalogue_never_opens_the_window() {
+    let sin_funcion = ventana_listada("MicrosoftWindowsTooltip");
+    assert_eq!(sin_funcion["abierta_con"], serde_json::json!([]));
+}
+
+fn pagina(campos: usize, botones: usize) -> serde_json::Value {
+    serde_json::json!({
+        "campos": vec![serde_json::json!({}); campos],
+        "botones": vec![serde_json::json!({}); botones],
+    })
+}
+
+#[test]
+fn should_count_fields_and_buttons_of_one_instance_when_instances_differ() {
+    let ventana = serde_json::json!({ "instancias": [
+        { "paginas": [pagina(10, 0)] },
+        { "paginas": [pagina(0, 5)] },
+    ]});
+    let esperado = ResumenMapa {
+        instancias: 2,
+        campos: 10,
+        botones: 0,
+    };
+    assert_eq!(resumir(&ventana), esperado);
+}
+
+#[test]
+fn should_count_fields_and_buttons_of_one_page_when_a_tab_repeats_pages() {
+    let ventana = serde_json::json!({ "instancias": [{ "paginas": [
+        { "pestana": "A", "campos": pagina(6, 0)["campos"], "botones": [] },
+        { "pestana": "A", "campos": [], "botones": pagina(0, 2)["botones"] },
+    ]}]});
+    let resumen = resumir(&ventana);
+    assert_eq!((resumen.campos, resumen.botones), (6, 0));
+}
+
+#[test]
+fn should_resolve_the_schema_every_window_names() {
+    for ventana in todas().filter(|v| v.esquema.is_some()) {
+        let clave = ventana.esquema.unwrap_or_default();
+        assert!(
+            esquemas::entidad(clave).is_ok(),
+            "{} nombra el esquema {clave}, que no existe",
+            ventana.clase
+        );
+    }
+}
+
+#[test]
+fn should_read_the_fields_of_a_complete_window_like_a_basic_one() {
+    let completa = super::dominio::Cobertura::Completa;
+    assert!(super::basica::lee_campos_por_clase(completa));
+    assert!(!super::basica::lee_campos_por_clase(
+        super::dominio::Cobertura::SoloAcciones
+    ));
+}
+
+#[test]
+fn should_not_link_the_transposition_window_to_a_function_that_opens_another_one() {
+    let transposicion = ventana_listada("TTranspositionForm");
+    assert_eq!(transposicion["abierta_con"], serde_json::json!([]));
+    let conjuntos = ventana_listada("TArrayCharactForm");
+    let funciones = conjuntos["abierta_con"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    assert!(funciones
+        .iter()
+        .any(|c| c == "herramientas.factor_transposicion"));
 }

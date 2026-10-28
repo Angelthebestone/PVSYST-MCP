@@ -40,7 +40,7 @@ Everything else is a convenience layer on top. So coverage is bounded by the
 
 **Workspace / admin:** `workspace` (`accion`: `crear`, `exportar`, `importar`, `exportar_proyecto`, `historial`, `restaurar`).
 
-**GUI automation:** `gui_observar` (`que`: `ventanas`, `controles`, `leer`, `capturar`, `uia`, `arbol`, `mensajes`, `funciones`, `formulario`, `vista`, `esquema`, `menus`), `gui_actuar` (`accion`: `click`, `clic_fisico`, `mensaje`, `cerrar`, `activar`, `teclas`, `escribir`, `seleccionar`, `pagina`, `esperar_cierre`, `lanzar`, `uia_invocar`, `esperar`, `paso`, `funcion`, `menu`, `campo`, `rellenar`, `clic_texto`, `reiniciar`). `PVSYST_MCP_ESCRITORIO=aislado` runs PVsyst and these tools on a private hidden desktop.
+**GUI automation:** `gui_observar` (`que`: `ventanas`, `controles`, `leer`, `capturar`, `uia`, `arbol`, `mensajes`, `funciones`, `formulario`, `vista`, `esquema`, `menus`), `gui_actuar` (`accion`: `click`, `clic_fisico`, `mensaje`, `cerrar`, `activar`, `teclas`, `fila`, `escribir`, `seleccionar`, `pagina`, `esperar_cierre`, `lanzar`, `uia_invocar`, `esperar`, `paso`, `funcion`, `menu`, `campo`, `rellenar`, `clic_texto`, `reiniciar`). `PVSYST_MCP_ESCRITORIO=aislado` runs PVsyst and these tools on a private hidden desktop.
 
 **Output contract:** every answer of the 15 tools, errors included, carries `vista` (`estado`, `resumen`, `origen`, `campos`, `avisos`, `siguiente`, `recortado`, `error`). `siguiente` holds calls the target tool accepts as written. Per-action summaries and next steps: `src/vista_agente/contrato/catalogo/`; the tool × action matrix is in `docs/vista_agente_salidas.md`.
 

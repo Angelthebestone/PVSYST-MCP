@@ -10,8 +10,8 @@ type Caja = [(f64, f64); 3];
 
 fn caja(objeto: &ObjetoPedido) -> Caja {
     let p = objeto.posicion;
-    let e = (objeto.forma.extension)(&objeto.valores);
-    [(p.x, p.x + e[0]), (p.y, p.y + e[1]), (p.z, p.z + e[2])]
+    let [dx, dy, dz] = (objeto.forma.extension)(&objeto.valores);
+    [(p.x, p.x + dx), (p.y, p.y + dy), (p.z, p.z + dz)]
 }
 
 fn se_solapan(a: &Caja, b: &Caja) -> bool {

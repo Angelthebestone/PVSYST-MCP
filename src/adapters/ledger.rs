@@ -2,7 +2,7 @@
 //! that PVsystCLI prints, persists them in `UserData/mcp_cache/ledger.json`, and
 //! asks for confirmation before a run that would spend several trial executions.
 
-use crate::args::flag;
+use crate::args::{flag, CONFIRMAR};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
 use std::fs;
@@ -113,7 +113,7 @@ pub(crate) fn requiere_confirmacion(
     let estado = estado(workspace)?;
     if estado.modo != "trial"
         || ejecuciones_estimadas < UMBRAL_CONFIRMACION
-        || flag(args, &["confirmar"])
+        || flag(args, &[CONFIRMAR])
     {
         return None;
     }

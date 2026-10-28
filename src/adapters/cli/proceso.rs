@@ -6,7 +6,7 @@
 use super::captura::{crear_sink, es_truncado, texto_sink, Sink};
 use super::linea_comando::{display_command_line, requerir_cli, timeout_de, TIMEOUT_DEFECTO_S};
 use super::salida_json::output_json;
-use crate::args::{flag, req_str};
+use crate::args::{flag, req_str, DRY_RUN};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::value_text;
@@ -182,7 +182,7 @@ pub(crate) fn ejecutar(paths: &Paths, args: &Value) -> Result<Value> {
         }
     }
 
-    let dry_run = flag(args, &["dry_run"]);
+    let dry_run = flag(args, &[DRY_RUN]);
     let command_line = display_command_line(&paths.cli_exe.to_string_lossy(), &cli_args);
     if dry_run {
         return Ok(json!({ "dry_run": true, "command_line": command_line }));

@@ -4,7 +4,7 @@
 use super::recorte::SIN_RECORTE;
 use super::{aproximadas, Herramienta, Solicitud, REGISTRO};
 use crate::config::Paths;
-use crate::error::Error;
+use crate::error::{Error, KIND_MISSING_ARG};
 use crate::vista_agente::contrato::{construir, desde_error, Contexto, Vista};
 use serde_json::Value;
 
@@ -45,22 +45,40 @@ pub(super) fn anadir_vista(paths: &Paths, contexto: &Contexto<'_>, respuesta: &m
     let mut vista = construir(contexto, respuesta);
     solo_ejecutables(paths, &mut vista);
     if let Err(motivo) = vista.validar(SIN_RECORTE) {
-        tracing::warn!(tool = contexto.tool, motivo, "vista incoherente");
+        tracing::warn!(tool = contexto.tool, %motivo, "vista incoherente");
     }
     if let (Some(obj), Ok(valor)) = (respuesta.as_object_mut(), serde_json::to_value(&vista)) {
         obj.insert("vista".to_string(), valor);
     }
 }
 
-/// Keys the caller can use to fix an input error: what the action requires,
+/// The keys a missing-argument error names: the ones the runtime found absent,
+/// which the static list of required keys of the action does not always include.
+fn claves_que_faltan(error: &Error) -> Vec<String> {
+    match error {
+        Error::MissingArg { key, .. } => vec![key.clone()],
+        Error::MissingArgs { claves, .. } => claves.clone(),
+        _ => Vec::new(),
+    }
+}
+
+/// Keys of a missing-argument error: the absent ones first (the discriminator
+/// included, when that is what is missing), then what the action requires.
+fn claves_de_entrada_incompleta(h: &Herramienta, accion: &str, error: &Error) -> Vec<String> {
+    let mut claves = claves_que_faltan(error);
+    for clave in h.requeridos_de(accion).into_iter().map(str::to_string) {
+        if !claves.contains(&clave) {
+            claves.push(clave);
+        }
+    }
+    claves
+}
+
+/// Keys the caller can use to fix an input error: the ones it lacks,
 /// or every argument the tool declares.
 fn claves_validas(h: &Herramienta, accion: &str, error: &Error) -> Vec<String> {
-    if error.kind() == "missing_arg" {
-        return h
-            .requeridos_de(accion)
-            .into_iter()
-            .map(str::to_string)
-            .collect();
+    if error.kind() == KIND_MISSING_ARG {
+        return claves_de_entrada_incompleta(h, accion, error);
     }
     h.propiedades
         .iter()
@@ -88,3 +106,15 @@ pub(crate) fn vista_de_error(solicitud: &Solicitud<'_>, error: &Error) -> Option
 #[cfg(test)]
 #[path = "../../../tests/unit/server/tools/vista_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "../../../tests/unit/server/tools/ensayo_tests.rs"]
+mod tests_ensayo;
+
+#[cfg(test)]
+#[path = "../../../tests/unit/server/tools/claves_tests.rs"]
+mod tests_claves;
+
+#[cfg(test)]
+#[path = "../../../tests/unit/server/tools/pendiente_tests.rs"]
+mod tests_pendiente;

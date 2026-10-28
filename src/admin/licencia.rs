@@ -1,7 +1,7 @@
 //! Licensing tools: inspect and sync status, generate activation commands.
 
 use crate::adapters::cli;
-use crate::args::flag;
+use crate::args::{flag, DRY_RUN};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
@@ -37,7 +37,7 @@ pub(crate) fn licencia(paths: &Paths, args: &Value) -> Result<Value> {
             )))
         }
     };
-    if flag(args, &["dry_run"]) {
+    if flag(args, &[DRY_RUN]) {
         return Ok(json!({ "dry_run": true, "accion": accion,
             "command_line": cli::display_command_line(&paths.cli_exe.to_string_lossy(), &cli_args) }));
     }

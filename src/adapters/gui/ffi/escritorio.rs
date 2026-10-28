@@ -3,8 +3,9 @@
 //! process on a non-input desktop receives no real input, so everything the
 //! MCP "types" in that mode is posted to the window as messages.
 
+use super::foco::{foco_del_hilo, hilo_de};
 use super::puntos::{clic_en_pantalla, ventana_en};
-use super::ventanas::{post_message, primer_plano, GetWindowThreadProcessId, Mensaje};
+use super::ventanas::{post_message, primer_plano, Mensaje};
 use super::Hwnd;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -43,20 +44,6 @@ pub(crate) enum ModoAislamiento {
 pub(crate) enum ModificadorAlt {
     ConAlt,
     SinAlt,
-}
-
-#[repr(C)]
-#[derive(Default)]
-struct InfoHiloGui {
-    tamano: u32,
-    banderas: u32,
-    activa: isize,
-    foco: isize,
-    captura: isize,
-    duena_del_menu: isize,
-    mover: isize,
-    cursor_texto: isize,
-    rc_cursor: [i32; 4],
 }
 
 #[repr(C)]
@@ -101,7 +88,6 @@ extern "system" {
         atributos: *const u8,
     ) -> isize;
     fn SetThreadDesktop(escritorio: isize) -> i32;
-    fn GetGUIThreadInfo(hilo: u32, info: *mut InfoHiloGui) -> i32;
 }
 
 #[link(name = "kernel32")]
@@ -242,19 +228,10 @@ pub(crate) fn clic_emulado_en(x: i32, y: i32) {
 /// Window of the foreground application that has the keyboard focus.
 fn ventana_con_foco() -> Hwnd {
     let primero = primer_plano();
-    let mut hilo = 0u32;
-    // SAFETY: `hilo` es una local viva; la API solo escribe un u32 en ella.
-    let id = unsafe { GetWindowThreadProcessId(primero, &mut hilo) };
-    let mut info = InfoHiloGui {
-        tamano: std::mem::size_of::<InfoHiloGui>() as u32,
-        ..InfoHiloGui::default()
-    };
-    // SAFETY: `info` es una local con el layout de GUITHREADINFO y su tamaño.
-    let ok = unsafe { GetGUIThreadInfo(id, &mut info) };
-    if ok != 0 && info.foco != 0 {
-        return info.foco;
+    match foco_del_hilo(hilo_de(primero)) {
+        0 => primero,
+        foco => foco,
     }
-    primero
 }
 
 /// Posts a key press (and release) to the focused window. `con_alt` makes it

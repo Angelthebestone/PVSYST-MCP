@@ -137,6 +137,50 @@ fn escribir_png(out: &PathBuf, png: &[u8]) -> Result<()> {
     std::fs::write(out, png).map_err(|e| Error::io(format!("Cannot write {}", out.display()), e))
 }
 
+/// Packed RGB pixels of a capture and their size.
+pub(crate) struct ImagenRgb {
+    pub(crate) rgb: Vec<u8>,
+    pub(crate) ancho: usize,
+    pub(crate) alto: usize,
+}
+
+impl ImagenRgb {
+    /// Width in px as the `i32` Win32 geometry uses.
+    pub(crate) fn ancho_px(&self) -> i32 {
+        i32::try_from(self.ancho).unwrap_or(i32::MAX)
+    }
+
+    /// Height in px as the `i32` Win32 geometry uses.
+    pub(crate) fn alto_px(&self) -> i32 {
+        i32::try_from(self.alto).unwrap_or(i32::MAX)
+    }
+}
+
+/// The pixels of window `h` as PVsyst draws them (no black margin).
+fn rgb_dibujado_de(h: Hwnd) -> Result<(Vec<u8>, Lienzo)> {
+    let rect = rect_of(h);
+    let w = (rect.right - rect.left).max(1);
+    let alto = (rect.bottom - rect.top).max(1);
+    let rgb = rgb_desde_bgrx(&capture_pixels(h, (w, alto))?);
+    if rgb.iter().all(|&b| b == 0) {
+        return Err(Error::Gui(
+            "Captura negra: escritorio no interactivo".into(),
+        ));
+    }
+    let lienzo = Lienzo::dibujado((w, alto), ffi::escala_de_captura(h));
+    Ok((solo_area_dibujada(rgb, w as usize, lienzo), lienzo))
+}
+
+/// Capture of control `h` in memory, at the 96-DPI layout PVsyst draws.
+pub(crate) fn rgb_de_control(h: Hwnd) -> Result<ImagenRgb> {
+    let (rgb, lienzo) = rgb_dibujado_de(h)?;
+    Ok(ImagenRgb {
+        rgb,
+        ancho: lienzo.ancho,
+        alto: lienzo.alto,
+    })
+}
+
 /// Capture a control (or its root window with `recorte:true`) to a PNG file.
 pub(crate) fn capturar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     let h = hwnd_de(args, "ventana")?;
@@ -152,17 +196,7 @@ pub(crate) fn capturar(paths: &crate::config::Paths, args: &Value) -> Result<Val
     } else {
         h
     };
-    let rect_raiz = rect_of(raiz);
-    let w = (rect_raiz.right - rect_raiz.left).max(1);
-    let alto = (rect_raiz.bottom - rect_raiz.top).max(1);
-    let rgb = rgb_desde_bgrx(&capture_pixels(raiz, (w, alto))?);
-    if rgb.iter().all(|&b| b == 0) {
-        return Err(Error::Gui(
-            "Captura negra: escritorio no interactivo".into(),
-        ));
-    }
-    let lienzo = Lienzo::dibujado((w, alto), ffi::escala_de_captura(raiz));
-    let rgb_dibujado = solo_area_dibujada(rgb, w as usize, lienzo);
+    let (rgb_dibujado, lienzo) = rgb_dibujado_de(raiz)?;
     let (rgb_final, ancho, alto_img) = if recorte {
         aplicar_recorte((h, raiz), &rgb_dibujado, lienzo)
     } else {

@@ -29,17 +29,16 @@ pub(crate) fn resultado_de_herramienta(mut value: Value, formato: FormatoResulta
     let imagen = value
         .as_object_mut()
         .and_then(|o| o.remove("_imagen_png_base64"));
-    let estructurado = match formato {
-        FormatoResultado::ConEstructura if value.is_object() => Some(value.clone()),
-        _ => None,
-    };
-    let mut content = vec![json!({ "type": "text", "text": value.to_string() })];
+    // Serialised first so the value can move into `structuredContent` without a clone.
+    let texto = value.to_string();
+    let con_estructura = matches!(formato, FormatoResultado::ConEstructura) && value.is_object();
+    let mut content = vec![json!({ "type": "text", "text": texto })];
     if let Some(data) = imagen {
         content.push(json!({ "type": "image", "data": data, "mimeType": "image/png" }));
     }
     let mut resultado = json!({ "content": content, "isError": false });
-    if let Some(datos) = estructurado {
-        resultado["structuredContent"] = datos;
+    if con_estructura {
+        resultado["structuredContent"] = value;
     }
     resultado
 }

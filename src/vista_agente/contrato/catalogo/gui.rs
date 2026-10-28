@@ -18,6 +18,9 @@ const CAPTURAR: Paso = paso("gui_observar", "Capturar la ventana")
     .con(&[("que", "capturar")])
     .tomando(DE_VENTANA);
 
+/// What follows a read of the GUI: the forms with a schema, or the open windows.
+const TRAS_VISTA: &[Paso] = &[VER_ESQUEMA, VER_VENTANAS];
+
 pub(super) const ENTRADAS: &[Entrada] = &[
     entrada("pvsyst_cli", "", "Comando de PVsystCLI ejecutado.").luego(&[VER_ENTORNO]),
     entrada("gui_observar", "ventanas", "Ventanas de PVsyst listadas.")
@@ -27,35 +30,30 @@ pub(super) const ENTRADAS: &[Entrada] = &[
         "controles",
         "Controles de la ventana listados.",
     )
-    .luego(&[VER_ESQUEMA, VER_VENTANAS]),
-    entrada("gui_observar", "leer", "Texto de la ventana leído.")
-        .luego(&[VER_ESQUEMA, VER_VENTANAS]),
+    .luego(TRAS_VISTA),
+    entrada("gui_observar", "leer", "Texto de la ventana leído.").luego(TRAS_VISTA),
     entrada(
         "gui_observar",
         "capturar",
         "Captura de la ventana obtenida.",
     )
-    .luego(&[VER_ESQUEMA, VER_VENTANAS]),
-    entrada("gui_observar", "uia", "Árbol de UI Automation leído.")
-        .luego(&[VER_ESQUEMA, VER_VENTANAS]),
-    entrada("gui_observar", "arbol", "Árbol de controles leído.")
-        .luego(&[VER_ESQUEMA, VER_VENTANAS]),
-    entrada("gui_observar", "formulario", "Formulario leído por OCR.")
-        .luego(&[VER_ESQUEMA, VER_VENTANAS]),
+    .luego(TRAS_VISTA),
+    entrada("gui_observar", "uia", "Árbol de UI Automation leído.").luego(TRAS_VISTA),
+    entrada("gui_observar", "arbol", "Árbol de controles leído.").luego(TRAS_VISTA),
+    entrada("gui_observar", "formulario", "Formulario leído por OCR.").luego(TRAS_VISTA),
     entrada(
         "gui_observar",
         "vista",
         "Formulario leído por claves estables.",
     )
-    .luego(&[VER_ESQUEMA, VER_VENTANAS]),
+    .luego(TRAS_VISTA),
     entrada(
         "gui_observar",
         "esquema",
         "Esquemas de formulario con sus claves.",
     )
     .luego(&[VER_VENTANAS, VER_FUNCIONES]),
-    entrada("gui_observar", "mensajes", "Mensajes de la ventana leídos.")
-        .luego(&[VER_ESQUEMA, VER_VENTANAS]),
+    entrada("gui_observar", "mensajes", "Mensajes de la ventana leídos.").luego(TRAS_VISTA),
     entrada("gui_observar", "funciones", "Funciones de la GUI listadas.")
         .luego(&[VER_VENTANAS, VER_ESQUEMA]),
     entrada("gui_observar", "menus", "Menús de la ventana listados.")
@@ -125,6 +123,12 @@ pub(super) const ENTRADAS: &[Entrada] = &[
         "Clic en el texto visible de la ventana.",
     )
     .luego(&[VER_FORMULARIO, VER_VENTANAS]),
+    entrada(
+        "gui_actuar",
+        "fila",
+        "Fila de la lista o del árbol seleccionada y comprobada por su banda resaltada.",
+    )
+    .luego(&[VER_FORMULARIO, VER_VENTANAS]),
     entrada("gui_actuar", "reiniciar", "PVsyst reiniciado.").luego(&[VER_VENTANAS]),
     entrada("gui_actuar", "cerrar_todo", "Ventanas de PVsyst cerradas.").luego(&[VER_VENTANAS]),
     entrada(
@@ -133,7 +137,7 @@ pub(super) const ENTRADAS: &[Entrada] = &[
         "Escena 3D validada: objetos, formas y colisiones, sin tocar PVsyst.",
     )
     .solo_ensayo()
-    .luego(&[VER_ESQUEMA, VER_VENTANAS]),
+    .luego(TRAS_VISTA),
     entrada(
         "gui_actuar",
         "secuencia",

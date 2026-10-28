@@ -128,9 +128,15 @@ fn should_describe_the_scene_when_simular_is_true() {
 }
 
 #[test]
-fn should_refuse_to_create_the_scene_when_simular_is_not_set() {
-    let e = crate::escena_3d::pedir_escena(&pedido(false)).expect_err("not implemented");
-    assert!(e.to_string().contains("simular:true"), "{e}");
+fn should_describe_the_scene_and_say_it_was_not_created_when_simular_is_not_set() {
+    let d = crate::escena_3d::pedir_escena(&pedido(false)).expect("validation only");
+    assert_eq!(d["creado"], false);
+    assert!(
+        d["avisos"][0]
+            .as_str()
+            .is_some_and(|a| a.contains("no está implementada")),
+        "{d}"
+    );
 }
 
 #[test]
@@ -138,4 +144,21 @@ fn should_name_the_missing_argument_when_the_request_has_no_objects() {
     let e = crate::escena_3d::pedir_escena(&json!({ "escena": "Casa_A", "simular": true }))
         .expect_err("no objects");
     assert!(e.to_string().contains("objetos"), "{e}");
+}
+
+fn caja_en(x: usize) -> Value {
+    json!({"tipo": "paralelepipedo", "x": x, "y": 0, "largo": 1, "ancho": 1, "alto": 1})
+}
+
+#[test]
+fn should_refuse_a_scene_with_more_objects_than_the_maximum_before_reading_them() {
+    let objetos: Vec<Value> = (0..501).map(caja_en).collect();
+    let texto = error_de(&Value::Array(objetos));
+    assert!(texto.contains("501") && texto.contains("500"), "{texto}");
+}
+
+#[test]
+fn should_accept_a_scene_with_exactly_the_maximum_of_objects() {
+    let objetos: Vec<Value> = (0..500).map(|i| caja_en(i * 2)).collect();
+    assert!(describir_escena("Casa_A", &Value::Array(objetos)).is_ok());
 }

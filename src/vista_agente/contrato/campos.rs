@@ -3,13 +3,25 @@
 use super::tipos::{Campo, Recorte};
 use crate::args::flag;
 use serde_json::{Map, Value};
+use std::collections::HashSet;
 
-/// Most keyed values a non-form answer lists; the rest stay in the answer itself.
+/// Most keyed values `vista.campos` lists; the rest stay in the answer itself.
 const MAX_CAMPOS: usize = 12;
 /// A nested object with more scalars than this is a table, not a group of values.
 const MAX_HIJOS: usize = 8;
 /// Longer texts (paths, logs) are not "values"; they stay in the answer.
 const MAX_CARACTERES_VALOR: usize = 40;
+
+/// Keys that carry warnings, as strings or lists of strings. They are not values
+/// of the result either, so `CLAVES_AJENAS` does not repeat them.
+pub(super) const CLAVES_AVISO: &[&str] = &[
+    "avisos",
+    "advertencias",
+    "warnings",
+    "aviso",
+    "aviso_origen",
+    "detected_error",
+];
 
 /// Bookkeeping and bulky keys that are not values of the result.
 const CLAVES_AJENAS: &[&str] = &[
@@ -20,11 +32,6 @@ const CLAVES_AJENAS: &[&str] = &[
     "total",
     "ignorados",
     "origen",
-    "aviso_origen",
-    "aviso",
-    "avisos",
-    "advertencias",
-    "warnings",
     "errores",
     "ok",
     "vista",
@@ -68,7 +75,8 @@ pub(super) fn unidad_de(clave: &str) -> Option<String> {
 }
 
 fn es_valor(clave: &str, valor: &Value) -> bool {
-    if CLAVES_AJENAS.contains(&clave) || clave.ends_with("_total") {
+    if CLAVES_AJENAS.contains(&clave) || CLAVES_AVISO.contains(&clave) || clave.ends_with("_total")
+    {
         return false;
     }
     match valor {
@@ -129,16 +137,13 @@ fn campos_de_formulario(salida: &Value) -> Option<Vec<Campo>> {
 /// Keyed values of `salida` and the cut, if more than [`MAX_CAMPOS`] qualify.
 pub(super) fn campos_de(salida: &Value) -> (Vec<Campo>, Option<Recorte>) {
     if let Some(formulario) = campos_de_formulario(salida) {
-        return (formulario, None);
+        return acotar(formulario);
     }
     let Some(mapa) = salida.as_object() else {
         return (Vec::new(), None);
     };
-    let todos = escalares(mapa, "");
-    let total = todos.len();
-    let campos: Vec<Campo> = todos
+    let todos: Vec<Campo> = escalares(mapa, "")
         .into_iter()
-        .take(MAX_CAMPOS)
         .map(|(clave, valor)| Campo {
             unidad: unidad_de(&clave),
             clave,
@@ -146,6 +151,17 @@ pub(super) fn campos_de(salida: &Value) -> (Vec<Campo>, Option<Recorte>) {
             editable: false,
         })
         .collect();
+    acotar(todos)
+}
+
+/// The first [`MAX_CAMPOS`] fields and the cut when there are more: the answer's
+/// own `campos` array keeps all of them.
+fn acotar(mut campos: Vec<Campo>) -> (Vec<Campo>, Option<Recorte>) {
+    // Two paths can flatten to one key (`{"a.b":1,"a":{"b":2}}`): the first one stays.
+    let mut vistas = HashSet::new();
+    campos.retain(|c| vistas.insert(c.clave.clone()));
+    let total = campos.len();
+    campos.truncate(MAX_CAMPOS);
     let recorte = (total > MAX_CAMPOS).then(|| Recorte {
         clave: "vista.campos".into(),
         mostrados: MAX_CAMPOS,

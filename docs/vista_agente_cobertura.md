@@ -111,6 +111,56 @@ recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactament
 | `TWiringResistanceForm` | variante | 2 | sí (`variante.perdidas_detalladas.computacion_detallada`) | 9 | 4 | 1 |
 | `TWorkspaceForm` | aplicacion | 3 | sí (`archivo.espacio_de_trabajo`) | 0 | 1 | 2 |
 
+## Filas de listas y árboles (`gui_actuar accion:fila`)
+Medido en vivo con el release (PVsyst 8.1.7, 144 DPI = 150 %, capturas a 96 DPI, 2026-10-28). Sin licencia (PRUEBA); todo se cerró con Cancelar/Cerrar y sin pulsar OK.
+
+| Control | Ventana donde se midió | Geometría a 96 DPI | Filas probadas | Resultado |
+|---|---|---|---|---|
+| `TVirtualStringTree` | `TProjectLoadForm` (19 proyectos) | cabecera 21 px, fila 19 px, 29 huecos visibles | 0, 3, 18; 19 (hueco vacío); 40 | 0, 3 y 18 verificadas por banda; 19 error («PVsyst resaltó la 0»); 40 error de rango |
+| `TListBox` | `TChoixObjetPVForm` de módulos (32 elementos) | borde 2 px, fila 13 px, 33 huecos visibles | 0, 3, 31; 32 (hueco vacío); 33 | 0, 3 y 31 verificadas; 32 error; 33 error de rango |
+
+- La cabecera de la lista de módulos es un `TStringGrid` aparte de una fila: se apunta a la `TListBox`, no a él (sin geometría: error).
+- Solo selecciona. La banda de la fila *n* ocupa y∈[cabecera+alto·*n*, cabecera+alto·*(n+1)*] del control.
+- El índice son huecos **visibles**: no hay desplazamiento. Una lista con más filas que huecos queda fuera de alcance `[INFERENCIA]`: no se probó.
+- Un clic físico puede **activar** el elemento: en la primera medición, un clic sobre la lista de módulos (dy 100, con el foco fuera de la lista) abrió `TPVModuleForm` y cerró el selector; no se supo por qué `[INFERENCIA]`. `fila` comprueba que no apareció ni desapareció ninguna ventana y, antes del clic, da el foco al control: con el foco en un combo el primer clic solo movía el foco y la fila quedaba como estaba (tres de tres aciertos con el foco dado, tras `TAB` en el combo). Repetir el clic no es una salida: dos clics seguidos son un doble clic.
+- Qué fila es no se lee: ni UIA ni MSAA dan texto. En módulos, inversores, baterías, controladores, bombas y fabricantes la fila se identifica solo por índice; el orden alfabético no se infiere.
+- Con `PVSYST_MCP_ESCRITORIO=aislado` la acción se niega: no está medido. Otro DPI distinto de 144: `[INFERENCIA]`.
+- La geometría vale para el control medido: clase y ventana anfitriona (`TVirtualStringTree` de `TProjectLoadForm`; `TListBox` de `TChoixObjetPVForm` titulado «Eligiendo un módulo FV»). Los otros 14 selectores y cualquier otro control se rechazan con un error que lista dónde se midió.
+- Antes del clic `fila` exige que la ventana esté al frente y el control tenga el foco, y que el punto de clic caiga dentro del control; se niega con menos de 3 huecos visibles. La banda se lee comparando la captura de antes y la de después, y se comprueba que ninguna ventana se abrió ni se cerró.
+
+`que:esquema` trae `abierta_con` por clase: las funciones del catálogo que la abren. `herramientas.factor_transposicion` declara `TArrayCharactForm`, la ventana que se vio abrir; `TTranspositionForm` queda sin función que la abra.
+
+## Pestañas (`gui_actuar accion:pagina`)
+Recorridas en vivo con el release (PVsyst 8.1.7, 144 DPI, 2026-10-28, PRUEBA): cada clase se abrió una vez, se pidió `pagina i` hasta «fuera de rango» y tras cada cambio se leyó `que:vista`. Nada se guardó; los diálogos de componentes se abrieron con «Nuevo» y se cerraron con Cancelar/Cerrar.
+
+| Clase | Función | Pestañas | Campos leídos por pestaña (vista genérica) |
+|---|---|---|---|
+| `TArrayCharactForm` | `herramientas.comportamiento_electrico` | 3 | 14/18/13 |
+| `TBatchSimulForm` | `variante.simulacion_avanzada.simulacion_por_lotes` | 3 | 6/9/5 |
+| `TBatteryForm` | `bases_de_datos.baterias.nuevo` | 5 | 19/17/24/5/13 |
+| `TDatamesFusionForm` | `datos_medidos.transformar_archivo` | 3 | 3/3/2 |
+| `TDetailedLossesForm` | `variante.perdidas_detalladas` | 9 | 6/16/8/15/18/6/28/9/11 |
+| `TEcoEvaluationForm` | `variante.evaluacion_economica` | 5 | 1/12/11/1/10 |
+| `TGeneratorForm` | `bases_de_datos.generadores.nuevo` | 2 | 9/11 |
+| `TGridInverterForm` | `bases_de_datos.inversores_red.nuevo` | 6 | 29/12/34/15/11/13 |
+| `TGridStorageForm` | `variante.almacenamiento` | 1 | 1 |
+| `THorizonForm` | `variante.horizonte` | 2 | 9/1 |
+| `TMeteoMensForm` | `herramientas.calculo_mensual_meteo` | 1 | 11 |
+| `TOptimizationToolForm` | `variante.simulacion_avanzada.herramienta_de_optimizacion` | 2 | 13/9 |
+| `TParamSolForm` | `herramientas.parametros_solares` | 3 | 8/10/17 |
+| `TPreferencesForm` | `configuraciones.preferencias` | 9 | 0/0/0/0/0/0/0/0/0 |
+| `TPumpControllerForm` | `bases_de_datos.controladores_bombeo.nuevo` | 2 | 15/15 |
+| `TPumpForm` | `bases_de_datos.bombas.nuevo` | 4 | 20/9/4/11 |
+| `TSAControllerForm` | `bases_de_datos.controladores_independientes.nuevo` | 4 | 23/12/4/13 |
+| `TSystemCircuitForm` | `variante.sistema.diagrama_unifilar` | 2 | 5/9 |
+| `TSystemeAddForm` | `variante.gestion_energia` | 4 | 6/2/20/2 |
+
+- 0 vetos en las 19 clases de la tabla: todas las pestañas cambiaron. Los campos son los visibles de cada pestaña por clase y posición, no una entidad con esquema. `TPreferencesForm` sigue sin campos legibles en ninguna de sus 9 pestañas.
+- `docs/gui_mapa.json` difiere del recorrido en el número de pestañas de `TGeneratorForm` (2; el mapa, 1), `TPumpControllerForm` (2; 1), `TGridInverterForm` (6; 5), `TEcoEvaluationForm` (5; el mapa lista 6 nombres, y no se midió por qué una no aparece), `TSystemeAddForm` (4; 3) y otras: el mapa solo registra las pestañas que se pisaron `[INFERENCIA]`.
+- **`TPVModuleForm` (módulo nuevo, 5 pestañas):** `pagina 1` fue vetada con los campos obligatorios vacíos; tras `rellenar` con valores válidos (modelo, fabricante, potencia, Isc, Voc, Impp, Vmpp, μIsc) pasó la 0→1, y desde la 1 PVsyst vetó **todo** cambio, incluso volver a la 0, mientras la pestaña tuviera campos inválidos. Coincide con la hipótesis «PVsyst impide salir de una página mientras sus campos son inválidos» (observada, no probada contra el código). `rellenar` hoy solo cubre la pestaña 0: tras `pagina`, `que:vista` repite las 16 claves del esquema y el resto cae en `sin_mapear`.
+- `TEcoEvaluationForm`: recorrer sus pestañas marca el formulario como modificado; cerrarlo pregunta «¿Quiere cancelar las modificaciones?» y no hay botón inocuo (No lo deja abierto, Sí está prohibido en la exploración). Se resolvió cerrando el proceso de PVsyst, que no tenía nada guardado.
+- Sin abrir: `TSettingsForm` (la función por menú pierde el primer plano), `TDomesticUseForm`, `TWaterUseForm` (botones no visibles en un proyecto de red), `TSystemeBattForm` y `TSystemPumpingForm` (en un proyecto de red la función abre `TSystemegridForm`: necesitan un proyecto independiente o de bombeo). `TGeoSiteForm` no se recorrió a propósito: una pestaña es un mapa web.
+
 ## No abiertas, solo clasificadas desde el mapa
 `MicrosoftWindowsTooltip`, `TBacktrackingForm`, `TDomesticUseForm`, `TShedElecShadingForm`, `TSystemPumpingForm`, `TSystemeBattForm`, `TSystemegridDCForm`, `TTranspositionForm`, `TVCManageForm`, `TVoltageOptimiseForm`, `TWaterUseForm`.
 Motivos: requieren un sitio elegido o un proyecto con resultados (botones deshabilitados en un proyecto nuevo), o la función del

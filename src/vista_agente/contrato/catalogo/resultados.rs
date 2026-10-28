@@ -18,6 +18,9 @@ const COMPARAR: Paso = paso("resultados", "Comparar variantes del proyecto")
     .con(&[("que", "comparar")])
     .tomando(DE_PROYECTO);
 
+/// What follows a result that changed a project: its indicators, or the project list.
+const TRAS_RESULTADO: &[Paso] = &[VER_KPIS, VER_PROYECTOS];
+
 pub(super) const ENTRADAS: &[Entrada] = &[
     entrada("simular", "ejecutar", "Simulación ejecutada con PVsystCLI.")
         .pista("resultados que:perdidas")
@@ -33,7 +36,7 @@ pub(super) const ENTRADAS: &[Entrada] = &[
         "estado",
         "Estado de las simulaciones consultado.",
     )
-    .luego(&[VER_KPIS, VER_PROYECTOS]),
+    .luego(TRAS_RESULTADO),
     entrada(
         "simular",
         "preestimar",
@@ -52,8 +55,7 @@ pub(super) const ENTRADAS: &[Entrada] = &[
     )
     .pista("resultados que:perdidas")
     .luego(&[VER_PERDIDAS, VER_PROYECTOS]),
-    entrada("resultados", "csv", "Resultados horarios leídos del CSV.")
-        .luego(&[VER_KPIS, VER_PROYECTOS]),
+    entrada("resultados", "csv", "Resultados horarios leídos del CSV.").luego(TRAS_RESULTADO),
     entrada(
         "resultados",
         "perdidas",
@@ -66,29 +68,27 @@ pub(super) const ENTRADAS: &[Entrada] = &[
         "comparar",
         "Variantes del proyecto comparadas.",
     )
-    .luego(&[VER_KPIS, VER_PROYECTOS]),
+    .luego(TRAS_RESULTADO),
     entrada(
         "resultados",
         "medido_vs_simulado",
         "Datos medidos comparados con la simulación.",
     )
-    .luego(&[VER_KPIS, VER_PROYECTOS]),
+    .luego(TRAS_RESULTADO),
     entrada(
         "resultados",
         "p50_p90",
         "Producción P50/P90 calculada de la simulación.",
     )
-    .luego(&[VER_KPIS, VER_PROYECTOS]),
-    entrada("resultados", "carbono", "Balance de carbono calculado.")
-        .luego(&[VER_KPIS, VER_PROYECTOS]),
-    entrada("resultados", "economia", "Resultados económicos leídos.")
-        .luego(&[VER_KPIS, VER_PROYECTOS]),
+    .luego(TRAS_RESULTADO),
+    entrada("resultados", "carbono", "Balance de carbono calculado.").luego(TRAS_RESULTADO),
+    entrada("resultados", "economia", "Resultados económicos leídos.").luego(TRAS_RESULTADO),
     entrada(
         "resultados",
         "entregable",
         "Entregable del proyecto generado.",
     )
-    .luego(&[VER_KPIS, VER_PROYECTOS]),
+    .luego(TRAS_RESULTADO),
     entrada(
         "resultados",
         "resumen",

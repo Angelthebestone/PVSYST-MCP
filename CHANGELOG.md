@@ -24,13 +24,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Contract, size measurements and the tool × action matrix: `docs/vista_agente_salidas.md`.
 
 ### Added
-- **`gui_actuar accion:escena` with `simular:true`** validates a 3D scene request (`escena`, `objetos`:
+- **`gui_actuar accion:escena`** validates a 3D scene request (`escena`, `objetos`:
   `paralelepipedo`, `tejado_dos_aguas`, `chimenea`, `arbol`) without PVsyst: types, ranges, the file slot of
   each dimension and collisions. Ranges are the MCP's, not PVsyst's, and collisions are inferred (anchor not
-  proven). Without `simular` it refuses: the editor creation is not measured and scenes are never written by hand.
+  proven). It is validation only (`creado:false`, with a warning that creation in the editor is not
+  implemented): scenes are never written by hand.
 - **Window coverage:** every one of the 82 window classes of `docs/gui_mapa.json` is registered in one of four
   states and listed in `gui_observar que:esquema` (`cobertura`). `que:vista` on a window without a schema
   returns its fields by control class and 96-DPI position (combo items included) or its buttons.
+
+- **`gui_actuar accion:fila`** (`ventana`, `indice`) selects row N of a list or tree that has no window per
+  row, with a physical click on geometry declared per control class (`TVirtualStringTree`: header 21 px, rows
+  19 px; `TListBox`: border 2 px, rows 13 px; px at 96 DPI, scaled by the window DPI). It checks the result
+  without OCR: the highlighted band of a capture must be the requested row, and the click must not have opened
+  or closed anything. A wrong row, an empty slot, an out-of-range index, a click PVsyst took as "open this item"
+  and a control without measured geometry (class and hosting window) are errors. The window must be in front and
+  the control focused before the click, the click point must lie inside the control, and the band is read by
+  comparing the capture before and after; a window the click closed is an error too. It only selects (no Enter, no OK) and it is
+  refused on the isolated desktop (not measured).
+- **`teclas` with a control as `ventana` gives it the keyboard focus first** and fails when it cannot
+  guarantee it, so an arrow no longer lands on a combo by accident. `fila` does the same before its click:
+  with the focus on another control the first click only moved the focus.
+
+- `gui_observar que:esquema` lists, per window class, `abierta_con`: the keys of the catalogue functions that
+  open it (`accion:funcion` opens them). `herramientas.factor_transposicion` now declares the window it was
+  seen to open (`TArrayCharactForm`, not `TTranspositionForm`).
+
+### Fixed
+- `vista.estado` no longer says `ok` for a PVsystCLI run with `success:false`, a timeout or a `detected_error`
+  (error code `fallo_cli`), nor for an answer with `completo:false`, `error` or `errores` (`fallo_parcial`). A run
+  that produced its output file only warns about its process error.
+- A dry run (`dry_run`/`simular`) is read from the answer, not from the request, and is refused up front in the
+  actions that have none (`entorno preferencias_editar`, `sitio escribir_serie`, `simular preparar`, `gui_actuar
+  cerrar_todo`...) and in `simular ejecutar` with `filas`/`parametros`, which write files before running.
+- `gui_actuar accion:escena` is validation only and no longer fails for lack of an undeclared `simular`; the
+  object limit (500) and a minimum of one are enforced at runtime.
+- The trimmer keeps a `<clave>_total` the domain already counted, `vista.recortado` lists real cuts only, and
+  scene collisions are no longer capped by the handler.
+- `vista.claves_validas` names the keys the runtime found missing; `teclas` validates its keys before looking
+  for windows, sends them only to a window of the target process and checks it is in the foreground.
+- `vista.campos` is capped for forms too; component steps list the kind created; duplicate keys are dropped.
+- `herramientas.factor_transposicion` declares `TArrayCharactForm`, the window it was seen to open.
 
 ### Changed
 - `gui_actuar accion:rellenar` returns the form read back under `formulario` (it was `vista`, which now

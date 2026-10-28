@@ -2,6 +2,7 @@ use super::campos::unidad_de;
 use super::catalogo::todas;
 use super::construccion::{construir, Contexto};
 use super::tipos::{Campo, ErrorVista, Estado, Origen, PasoSiguiente, Recorte, Vista};
+use super::violacion::Violacion;
 use serde_json::{json, Value};
 
 fn vista_vacia() -> Vista {
@@ -43,7 +44,7 @@ fn should_reject_a_view_with_repeated_field_keys() {
     let mut vista = vista_vacia();
     vista.campos = vec![campo("kwp"), campo("kwp")];
     let motivo = vista.validar(&[]).expect_err("repeated key");
-    assert!(motivo.contains("kwp"), "{motivo}");
+    assert_eq!(motivo, Violacion::ClaveRepetida("kwp".into()));
 }
 
 #[test]

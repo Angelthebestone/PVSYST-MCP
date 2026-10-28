@@ -1,7 +1,7 @@
 //! Log administration: export execution logs to zip.
 
 use crate::adapters::cli;
-use crate::args::{flag, opt_str};
+use crate::args::{flag, opt_str, DRY_RUN};
 use crate::config::Paths;
 use crate::error::Result;
 use crate::workspace::{resolver_ruta, Alcance};
@@ -14,7 +14,7 @@ pub(crate) fn exportar_logs(paths: &Paths, args: &Value) -> Result<Value> {
         let dest = resolver_ruta(&paths.workspace, t, Alcance::de_args(args))?;
         cli_args.push(format!("-t:{}", dest.display()));
     }
-    if flag(args, &["dry_run"]) {
+    if flag(args, &[DRY_RUN]) {
         return Ok(json!({ "dry_run": true,
             "command_line": cli::display_command_line(&paths.cli_exe.to_string_lossy(), &cli_args) }));
     }

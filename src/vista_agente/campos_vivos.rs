@@ -7,7 +7,8 @@ use crate::adapters::gui::ocr::esta_marcado;
 use crate::adapters::gui::ventanas::{hijos_visibles_con_clase, rect_of};
 
 const CLASES_TEXTO: &[&str] = &["TEdit", "TMemo", "TLabeledEdit", "TMaskEdit", "TSpinEdit"];
-const CLASES_LISTA: &[&str] = &["TComboBox", "TComboBoxEx"];
+/// Controls that offer a list of items to choose from.
+pub(crate) const CLASES_LISTA: &[&str] = &["TComboBox", "TComboBoxEx"];
 const CLASES_OPCION: &[&str] = &["TCheckBox", "TRadioButton"];
 
 /// A visible field control with its value as text and its 96-DPI position.

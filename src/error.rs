@@ -8,6 +8,9 @@ use std::io;
 /// `Result` defaulting to this crate's [`Error`].
 pub(crate) type Result<T, E = Error> = std::result::Result<T, E>;
 
+/// `Error::kind()` of a missing argument.
+pub(crate) const KIND_MISSING_ARG: &str = "missing_arg";
+
 /// Why a tool call could not be completed.
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum Error {
@@ -67,7 +70,7 @@ impl Error {
     /// Short stable name of the variant, for logs.
     pub(crate) fn kind(&self) -> &'static str {
         match self {
-            Self::MissingArg { .. } | Self::MissingArgs { .. } => "missing_arg",
+            Self::MissingArg { .. } | Self::MissingArgs { .. } => KIND_MISSING_ARG,
             Self::NotFound(_) => "not_found",
             Self::Io { .. } => "io",
             Self::Format(_) => "format",

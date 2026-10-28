@@ -80,6 +80,7 @@ fn anotar_estructuras(obj: &mut serde_json::Map<String, Value>, clave: &str) -> 
         }
         "objetos" => {
             obj.insert("items".to_string(), json!({ "type": "object" }));
+            obj.insert("minItems".to_string(), json!(1));
             obj.insert("maxItems".to_string(), json!(crate::escena_3d::MAX_OBJETOS));
             true
         }

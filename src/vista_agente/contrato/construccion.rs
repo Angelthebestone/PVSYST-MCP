@@ -1,6 +1,6 @@
 //! Builds the `vista` block of a finished call from its request and its answer.
 
-use super::campos::campos_de;
+use super::campos::{campos_de, CLAVES_AVISO};
 use super::catalogo::{self, Entrada, Paso};
 use super::pendiente::{pendiente_de, Pendiente};
 use super::tipos::{ErrorVista, Estado, Origen, PasoSiguiente, Recorte, Vista};
@@ -18,14 +18,6 @@ pub(crate) struct Contexto<'a> {
 const TOOLS_DEL_MCP: &[&str] = &["entorno", "workspace", "listar"];
 /// Value of `origen` that marks an approximation computed by the MCP.
 const ORIGEN_APROXIMACION: &str = "aproximacion_mcp";
-/// Keys that carry warnings, as strings or lists of strings.
-const CLAVES_AVISO: &[&str] = &[
-    "avisos",
-    "advertencias",
-    "warnings",
-    "aviso",
-    "aviso_origen",
-];
 const MAX_CARACTERES_MOTIVO: usize = 300;
 /// Warnings listed in `vista`; the answer keeps all of them in full.
 const MAX_AVISOS: usize = 5;
@@ -96,11 +88,34 @@ fn algun_paso_ok(salida: &Value) -> bool {
         })
 }
 
-/// `ok:false` or a non-empty `errores` list marks a failure inside a successful reply;
-/// it is partial when a step worked or the reply never said `ok:false`.
+fn es_verdadero(salida: &Value, clave: &str) -> bool {
+    salida.get(clave).and_then(Value::as_bool) == Some(true)
+}
+
+/// A PVsystCLI run that did not succeed: the handlers answer `Ok` with these keys.
+/// A run that produced its output file succeeded even if the process exited with an
+/// error: its `detected_error` is then a warning, not a failure.
+fn falla_la_cli(salida: &Value) -> bool {
+    let produjo_salida =
+        es_verdadero(salida, "success") || es_verdadero(salida, "confirmed_by_output_file");
+    salida.get("success").and_then(Value::as_bool) == Some(false)
+        || es_verdadero(salida, "timed_out")
+        || (!produjo_salida && !textos_de(salida, "detected_error").is_empty())
+}
+
+/// Keys that say the answer is missing part of what was asked for.
+fn es_incompleta(salida: &Value) -> bool {
+    salida.get("completo").and_then(Value::as_bool) == Some(false)
+        || !textos_de(salida, "errores").is_empty()
+        || !textos_de(salida, "error").is_empty()
+}
+
+/// `ok:false` or a failed CLI run marks a failure inside a successful reply;
+/// an `errores` list, `error` text or `completo:false` mark an incomplete one.
+/// It is partial when a step worked or the reply never said it failed.
 fn estado_de(salida: &Value) -> Estado {
-    let fallo = salida.get("ok").and_then(Value::as_bool) == Some(false);
-    let con_errores = !textos_de(salida, "errores").is_empty();
+    let fallo = salida.get("ok").and_then(Value::as_bool) == Some(false) || falla_la_cli(salida);
+    let con_errores = es_incompleta(salida);
     if !fallo && !con_errores {
         return Estado::Ok;
     }
@@ -114,17 +129,25 @@ fn motivo_de(salida: &Value) -> String {
     let errores = textos_de(salida, "errores");
     let motivo = match errores.is_empty() {
         false => errores.join("; "),
-        true => ["error", "mensaje"]
+        true => ["detected_error", "error", "mensaje"]
             .iter()
             .find_map(|clave| textos_de(salida, clave).into_iter().next())
-            .unwrap_or_else(|| "la acción informó ok:false".to_string()),
+            .unwrap_or_else(|| "la acción informó un fallo".to_string()),
     };
     motivo.chars().take(MAX_CARACTERES_MOTIVO).collect()
 }
 
+fn codigo_de(estado: Estado, salida: &Value) -> &'static str {
+    match estado {
+        Estado::Error if falla_la_cli(salida) => "fallo_cli",
+        Estado::Error => "fallo",
+        _ => "fallo_parcial",
+    }
+}
+
 fn error_de(estado: Estado, salida: &Value) -> Option<ErrorVista> {
     (estado != Estado::Ok).then(|| ErrorVista {
-        codigo: if estado == Estado::Error { "fallo" } else { "fallo_parcial" }.into(),
+        codigo: codigo_de(estado, salida).into(),
         motivo: motivo_de(salida),
         causa_probable: "La acción informó un fallo o problemas en su resultado; algunos pasos pudieron aplicarse.",
         que_hacer: "Corrige la causa indicada en motivo y avisos y repite la acción.",
@@ -149,10 +172,12 @@ fn recortes_de(salida: &Value) -> Vec<Recorte> {
         .filter_map(|(k, total)| Some((k.strip_suffix(SUFIJO_TOTAL)?, total.as_u64()?)))
         .filter_map(|(base, total)| {
             let mostrados = mapa.get(base)?.as_array()?.len();
-            Some(Recorte {
+            let total = usize::try_from(total).ok()?;
+            // Nothing was cut when the list is as long as its total.
+            (mostrados < total).then(|| Recorte {
                 clave: base.to_string(),
                 mostrados,
-                total: usize::try_from(total).ok()?,
+                total,
                 pedir_resto: PEDIR_RESTO,
             })
         })

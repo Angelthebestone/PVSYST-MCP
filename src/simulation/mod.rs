@@ -22,7 +22,7 @@ pub(crate) use estado::estado_simulacion;
 pub(crate) use gui::ModoGui;
 
 use crate::adapters::cli;
-use crate::args::{flag, opt_str, req_str, workspace_of};
+use crate::args::{flag, opt_str, req_str, workspace_of, DRY_RUN};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::progreso::SeguimientoTarea;
@@ -109,7 +109,7 @@ pub(crate) fn lanzar_simulacion_seguida(
     let output_csv = opt_str(&args_con_salidas, &["output_csv"]);
     let report_pdf = opt_str(&args_con_salidas, &["report_pdf"]);
     let modo_gui = ModoGui::de_bool(flag(args, &["abrir_gui"]));
-    if flag(args, &["dry_run"]) {
+    if flag(args, &[DRY_RUN]) {
         let mut respuesta = respuesta_dry_run(&cli_args, &prj_path, &variant_file, &workspace);
         if let Some(obj) = respuesta.as_object_mut() {
             obj.insert("output_csv".into(), json!(output_csv));

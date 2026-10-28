@@ -133,7 +133,7 @@ fn desplazamiento(args: &Value) -> Result<Option<(i32, i32)>> {
     }
 }
 
-fn clic_fisico_en_control(h: Hwnd, desplazamiento: Option<(i32, i32)>) -> Result<()> {
+pub(crate) fn clic_fisico_en_control(h: Hwnd, desplazamiento: Option<(i32, i32)>) -> Result<()> {
     let r = rect_of(h);
     if r.right <= r.left {
         return Err(Error::Gui(format!("Control 0x{h:X} has no rectangle")));

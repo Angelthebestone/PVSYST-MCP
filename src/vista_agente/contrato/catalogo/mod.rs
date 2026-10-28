@@ -110,6 +110,11 @@ pub(super) const VER_PROYECTOS: Paso =
     paso("listar", "Ver los proyectos del workspace").con(&[("que", "proyectos")]);
 pub(super) const VER_ARCHIVOS: Paso =
     paso("listar", "Ver los archivos del workspace").con(&[("que", "archivos")]);
+/// The components of the kind the request or the answer names (`PAN`, `OND`...).
+pub(super) const TIPO: Fuente = ("tipo", &["tipo", "kind"]);
+pub(super) const VER_COMPONENTES: Paso = paso("listar", "Ver los componentes de ese tipo")
+    .con(&[("que", "componentes")])
+    .tomando(&[TIPO]);
 pub(super) const VER_MODULOS: Paso =
     paso("listar", "Ver los módulos disponibles").con(&[("que", "modulos")]);
 pub(super) const VER_HISTORIAL: Paso = paso(

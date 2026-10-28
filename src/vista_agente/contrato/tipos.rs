@@ -1,5 +1,6 @@
 //! Types of the `vista` block: the same agent-facing answer for every tool.
 
+use super::violacion::Violacion;
 use serde::Serialize;
 use serde_json::Value;
 use std::collections::HashSet;
@@ -83,26 +84,26 @@ pub(crate) struct Vista {
 
 impl Vista {
     /// Checks the invariants of the contract; `sin_recorte` are the keys that must never be cut.
-    pub(crate) fn validar(&self, sin_recorte: &[&str]) -> Result<(), String> {
+    pub(crate) fn validar(&self, sin_recorte: &[&str]) -> Result<(), Violacion> {
         let mut vistas = HashSet::new();
         if let Some(repetida) = self.campos.iter().find(|c| !vistas.insert(&c.clave)) {
-            return Err(format!("clave repetida en campos: {}", repetida.clave));
+            return Err(Violacion::ClaveRepetida(repetida.clave.clone()));
         }
         if let Some(r) = self
             .recortado
             .iter()
             .find(|r| sin_recorte.contains(&r.clave.as_str()))
         {
-            return Err(format!("se recortó una clave protegida: {}", r.clave));
+            return Err(Violacion::ClaveProtegidaRecortada(r.clave.clone()));
         }
         if self.resumen.trim().is_empty() {
-            return Err("resumen vacío".into());
+            return Err(Violacion::ResumenVacio);
         }
         if self.estado == Estado::Error && self.error.is_none() {
-            return Err("estado error sin bloque error".into());
+            return Err(Violacion::ErrorSinBloque);
         }
         match self.siguiente.iter().find(|s| !s.argumentos.is_object()) {
-            Some(s) => Err(format!("siguiente de '{}' sin argumentos objeto", s.tool)),
+            Some(s) => Err(Violacion::SiguienteSinObjeto(s.tool.clone())),
             None => Ok(()),
         }
     }
