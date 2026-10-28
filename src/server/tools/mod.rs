@@ -5,7 +5,7 @@ use crate::config::Paths;
 use crate::error::{Error, Result};
 
 use crate::progreso::SeguimientoTarea;
-use crate::vista_agente::contrato::Contexto;
+use crate::vista_agente::contrato::{exigir_ensayo_soportado, Contexto};
 use declaracion::Ejecutor;
 use serde_json::{json, Value};
 use std::time::Instant;
@@ -121,6 +121,7 @@ pub(crate) fn call_seguido(solicitud: &Solicitud<'_>) -> Result<Value> {
         })
         .unwrap_or_default();
     aproximadas::exigir(paths, name, accion_candidata)?;
+    exigir_ensayo_soportado(name, accion_candidata, &args_efectivos)?;
     let accion = h.validar(&args_efectivos, paths.aproximaciones)?;
     let mut v = match h.ejecutar {
         Ejecutor::Simple(ejecutar) => ejecutar(paths, &args_efectivos)?,

@@ -5,12 +5,14 @@
 mod campos;
 pub(crate) mod catalogo;
 mod construccion;
+mod ensayo;
 mod errores;
 mod pendiente;
 mod tipos;
 mod violacion;
 
 pub(crate) use construccion::{construir, Contexto};
+pub(crate) use ensayo::exigir_ensayo_soportado;
 pub(crate) use errores::desde_error;
 pub(crate) use tipos::Vista;
 

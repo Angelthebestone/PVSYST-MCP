@@ -88,3 +88,7 @@ pub(crate) fn vista_de_error(solicitud: &Solicitud<'_>, error: &Error) -> Option
 #[cfg(test)]
 #[path = "../../../tests/unit/server/tools/vista_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "../../../tests/unit/server/tools/ensayo_tests.rs"]
+mod tests_ensayo;
