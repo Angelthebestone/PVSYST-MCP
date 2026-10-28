@@ -43,6 +43,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   guarantee it, so an arrow no longer lands on a combo by accident. `fila` does the same before its click:
   with the focus on another control the first click only moved the focus.
 
+- `gui_observar que:esquema` lists, per window class, `abierta_con`: the keys of the catalogue functions that
+  open it (`accion:funcion` opens them). The catalogue still declares `herramientas.factor_transposicion` as
+  opening `TTranspositionForm`, which live opened `TArrayCharactForm`: the entry is unverified.
+
 ### Changed
 - `gui_actuar accion:rellenar` returns the form read back under `formulario` (it was `vista`, which now
   belongs to the answer block).

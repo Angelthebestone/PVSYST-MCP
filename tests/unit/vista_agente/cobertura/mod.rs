@@ -135,3 +135,28 @@ fn should_keep_basic_keys_unique_when_two_controls_share_a_spot() {
     assert_eq!(claves.len(), 2);
     assert!(claves.contains(&clave_de(&vivo("TEdit", 5, 5))));
 }
+
+fn ventana_listada(clase: &str) -> serde_json::Value {
+    let todas = listar_ventanas();
+    todas["ventanas"]
+        .as_array()
+        .and_then(|l| l.iter().find(|v| v["clase"] == clase).cloned())
+        .unwrap_or_default()
+}
+
+#[test]
+fn should_link_a_window_to_the_catalogue_function_that_opens_it() {
+    let sistema = ventana_listada("TSystemegridForm");
+    assert!(
+        sistema["abierta_con"]
+            .as_array()
+            .is_some_and(|l| l.iter().any(|c| c == "variante.sistema")),
+        "{sistema}"
+    );
+}
+
+#[test]
+fn should_list_no_function_when_the_catalogue_never_opens_the_window() {
+    let sin_funcion = ventana_listada("MicrosoftWindowsTooltip");
+    assert_eq!(sin_funcion["abierta_con"], serde_json::json!([]));
+}

@@ -3,6 +3,7 @@
 use super::dominio::{Cobertura, Ventana};
 use super::mapa::{clases_del_mapa, ResumenMapa};
 use super::ventanas::todas;
+use crate::gui_catalogo::funciones_que_abren;
 use crate::vista_agente::esquemas;
 use serde_json::{json, Value};
 
@@ -21,6 +22,7 @@ fn ventana_json(ventana: &Ventana, mapa: Option<&ResumenMapa>) -> Value {
         "tipo": ventana.cobertura.nombre(),
         "motivo": ventana.motivo,
         "esquema": ventana.esquema,
+        "abierta_con": funciones_que_abren(ventana.clase),
         "campos_mapeados": campos_mapeados(ventana),
         "campos_en_mapa": mapa.map(|m| m.campos),
         "botones_en_mapa": mapa.map(|m| m.botones),

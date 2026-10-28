@@ -127,6 +127,8 @@ Medido en vivo con el release (PVsyst 8.1.7, 144 DPI = 150 %, capturas a 96 DPI,
 - Con `PVSYST_MCP_ESCRITORIO=aislado` la acción se niega: no está medido. Otro DPI distinto de 144: `[INFERENCIA]`.
 - Con otras ventanas que usen estas mismas clases (otros `TChoixObjetPVForm`, 15 instancias) la geometría es la declarada por clase, medida solo en la de módulos `[INFERENCIA]`.
 
+`que:esquema` trae `abierta_con` por clase: las funciones del catálogo que la abren. El catálogo declara `herramientas.factor_transposicion` como apertura de `TTranspositionForm`, pero en vivo abrió `TArrayCharactForm`: esa entrada no está verificada.
+
 ## Pestañas (`gui_actuar accion:pagina`)
 Recorridas en vivo con el release (PVsyst 8.1.7, 144 DPI, 2026-10-28, PRUEBA): cada clase se abrió una vez, se pidió `pagina i` hasta «fuera de rango» y tras cada cambio se leyó `que:vista`. Nada se guardó; los diálogos de componentes se abrieron con «Nuevo» y se cerraron con Cancelar/Cerrar.
 
