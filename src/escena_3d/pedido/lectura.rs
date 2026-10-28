@@ -165,6 +165,12 @@ pub(crate) fn leer_objetos(objetos: &Value) -> Result<Vec<ObjetoPedido>> {
         .ok_or_else(|| {
             Error::Invalid("'objetos' debe ser una lista con al menos un objeto".into())
         })?;
+    if lista.len() > MAX_OBJETOS {
+        return Err(Error::Invalid(format!(
+            "'objetos' tiene {} objetos y el máximo es {MAX_OBJETOS}",
+            lista.len()
+        )));
+    }
     let leidos: Vec<_> = lista
         .iter()
         .enumerate()

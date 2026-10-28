@@ -139,3 +139,20 @@ fn should_name_the_missing_argument_when_the_request_has_no_objects() {
         .expect_err("no objects");
     assert!(e.to_string().contains("objetos"), "{e}");
 }
+
+fn caja_en(x: usize) -> Value {
+    json!({"tipo": "paralelepipedo", "x": x, "y": 0, "largo": 1, "ancho": 1, "alto": 1})
+}
+
+#[test]
+fn should_refuse_a_scene_with_more_objects_than_the_maximum_before_reading_them() {
+    let objetos: Vec<Value> = (0..501).map(caja_en).collect();
+    let texto = error_de(&Value::Array(objetos));
+    assert!(texto.contains("501") && texto.contains("500"), "{texto}");
+}
+
+#[test]
+fn should_accept_a_scene_with_exactly_the_maximum_of_objects() {
+    let objetos: Vec<Value> = (0..500).map(|i| caja_en(i * 2)).collect();
+    assert!(describir_escena("Casa_A", &Value::Array(objetos)).is_ok());
+}
