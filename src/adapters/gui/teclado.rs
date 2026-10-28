@@ -14,33 +14,51 @@ const VK_MENU: u8 = 0x12;
 /// Lets Windows move the focus to the target window before typing.
 const FOCO: Duration = Duration::from_millis(80);
 
+/// First virtual key of F1..F12; `VK_F1 + n` is F(n+1).
+const VK_F1: u8 = 0x70;
+const TECLAS_DE_FUNCION: u8 = 12;
+
+/// Named keys the tool sends, each with its spellings. HOME/END/PGUP/PGDN move
+/// the selection of lists and trees; nothing here edits or deletes.
+const TECLAS_NOMBRADAS: &[(&[&str], u8)] = &[
+    (&["ENTER", "RETURN"], 0x0D),
+    (&["ESC", "ESCAPE"], 0x1B),
+    (&["TAB"], 0x09),
+    (&["SPACE"], 0x20),
+    (&["PGUP", "PAGEUP"], 0x21),
+    (&["PGDN", "PAGEDOWN"], 0x22),
+    (&["END"], 0x23),
+    (&["HOME"], 0x24),
+    (&["LEFT"], 0x25),
+    (&["UP"], 0x26),
+    (&["RIGHT"], 0x27),
+    (&["DOWN"], 0x28),
+];
+
+/// Keys that are refused: in PVsyst lists they can delete or insert items, and
+/// deleting is outside what this tool does.
+const TECLAS_PROHIBIDAS: &[&str] = &["DELETE", "DEL", "SUPR", "INSERT", "INS"];
+
+/// Number after `F` when `key` is `F1`..`F12`.
+fn numero_de_funcion(key: &str) -> Option<u8> {
+    let n: u8 = key.strip_prefix('F')?.parse().ok()?;
+    (1..=TECLAS_DE_FUNCION).contains(&n).then_some(n)
+}
+
 fn vk_for(key: &str) -> Option<u8> {
     let k = key.trim().to_uppercase();
-    match k.as_str() {
-        "F1" => Some(0x70),
-        "F2" => Some(0x71),
-        "F3" => Some(0x72),
-        "F4" => Some(0x73),
-        "F5" => Some(0x74),
-        "F6" => Some(0x75),
-        "F7" => Some(0x76),
-        "F8" => Some(0x77),
-        "F9" => Some(0x78),
-        "F10" => Some(0x79),
-        "F11" => Some(0x7A),
-        "F12" => Some(0x7B),
-        "ENTER" | "RETURN" => Some(0x0D),
-        "ESC" | "ESCAPE" => Some(0x1B),
-        "TAB" => Some(0x09),
-        "SPACE" => Some(0x20),
-        "LEFT" => Some(0x25),
-        "UP" => Some(0x26),
-        "RIGHT" => Some(0x27),
-        "DOWN" => Some(0x28),
-        _ => match k.as_bytes() {
-            &[c] if c.is_ascii_uppercase() || c.is_ascii_digit() => Some(c),
-            _ => None,
-        },
+    if let Some(n) = numero_de_funcion(&k) {
+        return Some(VK_F1 + n - 1);
+    }
+    if let Some((_, vk)) = TECLAS_NOMBRADAS
+        .iter()
+        .find(|(nombres, _)| nombres.contains(&k.as_str()))
+    {
+        return Some(*vk);
+    }
+    match k.as_bytes() {
+        &[c] if c.is_ascii_uppercase() || c.is_ascii_digit() => Some(c),
+        _ => None,
     }
 }
 
@@ -54,6 +72,11 @@ fn parsear_combinacion(combo: &str) -> Result<(Vec<u8>, u8)> {
             "CTRL" | "CONTROL" => mods.push(VK_CONTROL),
             "SHIFT" => mods.push(VK_SHIFT),
             "ALT" => mods.push(VK_MENU),
+            other if TECLAS_PROHIBIDAS.contains(&other.to_uppercase().as_str()) => {
+                return Err(Error::Gui(format!(
+                    "La tecla '{other}' no se envía: en las listas de PVsyst puede eliminar o insertar elementos"
+                )));
+            }
             other => principales.push(vk_for(other).ok_or_else(|| {
                 Error::Gui(format!("Tecla no reconocida '{other}' en '{combo}'"))
             })?),

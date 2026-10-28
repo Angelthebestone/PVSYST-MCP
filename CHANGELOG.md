@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   real call. Clients without `structuredContent` get the failure's `vista` as a second text item.
   Contract, size measurements and the tool × action matrix: `docs/vista_agente_salidas.md`.
 
+### Changed
+- **GUI `teclas` sends HOME, END, PGUP/PAGEUP and PGDN/PAGEDOWN** to move through lists and trees.
+  DELETE, DEL, SUPR, INSERT and INS are refused with a message, alone or with a modifier: in PVsyst lists
+  they can remove or insert items.
+
 ### Fixed
 - **`proyecto configurar` chains variant changes in one call** (`pasos:[{accion:…}]`: dimensionar,
   anadir, seguidor, limite_inyeccion, almacenamiento, perdidas, bombeo, economia). Every step is
