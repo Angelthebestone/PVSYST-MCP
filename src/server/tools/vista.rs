@@ -114,3 +114,7 @@ mod tests_ensayo;
 #[cfg(test)]
 #[path = "../../../tests/unit/server/tools/claves_tests.rs"]
 mod tests_claves;
+
+#[cfg(test)]
+#[path = "../../../tests/unit/server/tools/pendiente_tests.rs"]
+mod tests_pendiente;
