@@ -96,6 +96,7 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         "menu" => crate::gui_catalogo::menu(args),
         "campo" => campo_por_etiqueta::campo(paths, args),
         "rellenar" => crate::vista_agente::rellenar(paths, args),
+        "escena" => crate::escena_3d::pedir_escena(args),
         "escribir" => campos::escribir(paths, args),
         "seleccionar" => campos::seleccionar(paths, args),
         "pagina" => campos::pagina(paths, args),
@@ -108,7 +109,7 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         "esperar" => esperas::esperar(args),
         "paso" => uia_vista::paso(paths, args),
         other => Err(Error::Invalid(format!(
-            "Unknown accion '{other}' (click|clic_fisico|mensaje|cerrar|cerrar_todo|activar|teclas|escribir|seleccionar|pagina|esperar_cierre|lanzar|uia_invocar|esperar|paso|funcion|menu|campo|rellenar|clic_texto|reiniciar|secuencia)"
+            "Unknown accion '{other}' (click|clic_fisico|mensaje|cerrar|cerrar_todo|activar|teclas|escribir|seleccionar|pagina|esperar_cierre|lanzar|uia_invocar|esperar|paso|funcion|menu|campo|rellenar|clic_texto|reiniciar|secuencia|escena)"
         ))),
     }
 }

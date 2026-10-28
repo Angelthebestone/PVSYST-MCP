@@ -164,6 +164,8 @@ pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
         ("entidad", TipoDato::String),
         ("valores", TipoDato::Object),
         ("simular", TipoDato::Boolean),
+        ("escena", TipoDato::String),
+        ("objetos", TipoDato::Array),
     ],
     requeridos: &[],
     discriminador: Some(Discriminador {
@@ -192,6 +194,7 @@ pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
             "reiniciar",
             "cerrar_todo",
             "secuencia",
+            "escena",
         ],
     }),
     requeridos_por_accion: &[
@@ -205,6 +208,7 @@ pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
         ("rellenar", &["entidad", "valores"]),
         ("clic_texto", &["ventana", "texto"]),
         ("secuencia", &["pasos"]),
+        ("escena", &["escena", "objetos"]),
     ],
     sinonimos: SINONIMOS_GUI_ACTUAR,
     ejecutar: Ejecutor::Simple(ejecutar_actuar),

@@ -51,6 +51,8 @@ pub(crate) struct Entrada {
     pub(crate) resumen: &'static str,
     pub(crate) pista: Option<&'static str>,
     pub(crate) siguiente: &'static [Paso],
+    /// The action only describes what it would do; there is no real run to offer after it.
+    pub(crate) solo_ensayo: bool,
 }
 
 pub(super) const fn entrada(
@@ -64,6 +66,7 @@ pub(super) const fn entrada(
         resumen,
         pista: None,
         siguiente: &[],
+        solo_ensayo: false,
     }
 }
 
@@ -71,6 +74,13 @@ impl Entrada {
     pub(super) const fn pista(self, pista: &'static str) -> Self {
         Entrada {
             pista: Some(pista),
+            ..self
+        }
+    }
+
+    pub(super) const fn solo_ensayo(self) -> Self {
+        Entrada {
+            solo_ensayo: true,
             ..self
         }
     }
@@ -94,6 +104,34 @@ pub(super) const VENTANA: Fuente = ("ventana", &["ventana"]);
 pub(super) const DE_PROYECTO: &[Fuente] = &[PROYECTO];
 pub(super) const DE_ARCHIVO: &[Fuente] = &[ARCHIVO];
 pub(super) const DE_VENTANA: &[Fuente] = &[VENTANA];
+
+// Next steps several features share; one definition each.
+pub(super) const VER_PROYECTOS: Paso =
+    paso("listar", "Ver los proyectos del workspace").con(&[("que", "proyectos")]);
+pub(super) const VER_ARCHIVOS: Paso =
+    paso("listar", "Ver los archivos del workspace").con(&[("que", "archivos")]);
+pub(super) const VER_MODULOS: Paso =
+    paso("listar", "Ver los módulos disponibles").con(&[("que", "modulos")]);
+pub(super) const VER_HISTORIAL: Paso = paso(
+    "workspace",
+    "Ver el historial de cambios para poder revertir",
+)
+.con(&[("accion", "historial")]);
+pub(super) const REVISAR: Paso = paso("proyecto", "Revisar que el proyecto es coherente")
+    .con(&[("accion", "doctor")])
+    .tomando(DE_PROYECTO);
+pub(super) const SIMULAR: Paso = paso("simular", "Simular el proyecto")
+    .con(&[("accion", "ejecutar")])
+    .tomando(DE_PROYECTO);
+pub(super) const VER_KPIS: Paso = paso("resultados", "Ver los indicadores de la simulación")
+    .con(&[("que", "kpis")])
+    .tomando(DE_PROYECTO);
+pub(super) const VER_PERDIDAS: Paso = paso("resultados", "Ver el desglose de pérdidas")
+    .con(&[("que", "perdidas")])
+    .tomando(DE_PROYECTO);
+pub(super) const P50_P90: Paso = paso("resultados", "Ver la producción P50/P90")
+    .con(&[("que", "p50_p90")])
+    .tomando(DE_PROYECTO);
 
 /// Every entry, grouped by feature.
 const GRUPOS: &[&[Entrada]] = &[

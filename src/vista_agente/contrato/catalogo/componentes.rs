@@ -1,8 +1,7 @@
 //! `componente`: module and inverter files of the workspace.
 
-use super::{entrada, paso, Entrada, Paso, DE_ARCHIVO};
+use super::{entrada, paso, Entrada, Paso, DE_ARCHIVO, VER_MODULOS};
 
-const VER_MODULOS: Paso = paso("listar", "Ver los módulos disponibles").con(&[("que", "modulos")]);
 const LEER: Paso = paso("leer", "Leer el componente").tomando(DE_ARCHIVO);
 
 pub(super) const ENTRADAS: &[Entrada] = &[

@@ -1,9 +1,7 @@
 //! `sitio`: sites, weather series and horizons.
 
-use super::{entrada, paso, Entrada, Paso, DE_ARCHIVO};
+use super::{entrada, paso, Entrada, Paso, DE_ARCHIVO, VER_ARCHIVOS};
 
-const VER_ARCHIVOS: Paso =
-    paso("listar", "Ver los archivos del workspace").con(&[("que", "archivos")]);
 const LEER: Paso = paso("leer", "Leer el archivo generado").tomando(DE_ARCHIVO);
 
 pub(super) const ENTRADAS: &[Entrada] = &[

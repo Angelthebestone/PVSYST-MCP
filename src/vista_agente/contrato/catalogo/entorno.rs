@@ -1,19 +1,11 @@
 //! `entorno` and `disenar_sistema`.
 
-use super::{entrada, paso, Entrada, Paso, DE_PROYECTO, DIAGNOSTICO};
+use super::{entrada, paso, Entrada, Paso, DIAGNOSTICO, VER_KPIS, VER_PERDIDAS, VER_PROYECTOS};
 
 const VER_ENTORNO: Paso = DIAGNOSTICO;
 const VER_LICENCIA: Paso = paso("entorno", "Comprobar la licencia").con(&[("accion", "licencia")]);
 const VER_PREFERENCIAS: Paso =
     paso("entorno", "Leer las preferencias").con(&[("accion", "preferencias")]);
-const VER_PROYECTOS: Paso =
-    paso("listar", "Ver los proyectos del workspace").con(&[("que", "proyectos")]);
-const VER_PERDIDAS: Paso = paso("resultados", "Ver el desglose de pérdidas")
-    .con(&[("que", "perdidas")])
-    .tomando(DE_PROYECTO);
-const VER_KPIS: Paso = paso("resultados", "Ver los indicadores de la simulación")
-    .con(&[("que", "kpis")])
-    .tomando(DE_PROYECTO);
 
 pub(super) const ENTRADAS: &[Entrada] = &[
     entrada(

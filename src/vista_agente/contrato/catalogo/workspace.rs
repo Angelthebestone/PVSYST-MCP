@@ -1,21 +1,14 @@
 //! `workspace`, `listar`, `leer`, `editar` and `escribir_archivo`.
 
-use super::{entrada, paso, Entrada, Paso, DE_ARCHIVO, DE_PROYECTO};
+use super::{
+    entrada, paso, Entrada, Paso, DE_ARCHIVO, REVISAR, VER_ARCHIVOS, VER_HISTORIAL, VER_MODULOS,
+    VER_PROYECTOS,
+};
 
-const VER_PROYECTOS: Paso =
-    paso("listar", "Ver los proyectos del workspace").con(&[("que", "proyectos")]);
-const VER_ARCHIVOS: Paso =
-    paso("listar", "Ver los archivos del workspace").con(&[("que", "archivos")]);
-const VER_MODULOS: Paso = paso("listar", "Ver los módulos disponibles").con(&[("que", "modulos")]);
-const VER_HISTORIAL: Paso =
-    paso("workspace", "Ver el historial de cambios").con(&[("accion", "historial")]);
 const LEER: Paso = paso("leer", "Leer el archivo").tomando(DE_ARCHIVO);
 const VER_OBJETOS: Paso = paso("listar", "Ver los objetos del archivo")
     .con(&[("que", "objetos")])
     .tomando(DE_ARCHIVO);
-const REVISAR: Paso = paso("proyecto", "Revisar que el proyecto es coherente")
-    .con(&[("accion", "doctor")])
-    .tomando(DE_PROYECTO);
 
 pub(super) const ENTRADAS: &[Entrada] = &[
     entrada("workspace", "crear", "Workspace creado.").luego(&[VER_PROYECTOS, VER_HISTORIAL]),

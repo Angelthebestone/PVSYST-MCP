@@ -79,3 +79,20 @@ fn objeto_a_json(obj: &ObjetoEscena3d) -> Value {
     }
     Value::Object(map)
 }
+
+/// `gui_actuar accion:escena`: with `simular:true`, what the editor would be asked to create.
+/// Creating it in the editor is not measured yet, so without `simular` it says so and does nothing.
+pub(crate) fn pedir_escena(args: &Value) -> Result<Value> {
+    let nombre = req_str(args, &["escena"], "nombre de la escena, p.ej. 'Casa_A'")?;
+    let objetos = args
+        .get("objetos")
+        .ok_or_else(|| Error::Invalid("Falta 'objetos' (lista de objetos de la escena)".into()))?;
+    let descripcion = super::pedido::describir_escena(nombre, objetos)?;
+    if crate::args::flag(args, &["simular"]) {
+        return Ok(descripcion);
+    }
+    Err(Error::Invalid(
+        "La creación de la escena en el editor 3D de PVsyst no está implementada: valida el pedido con simular:true. PVsyst en modo PRUEBA tampoco guarda, y las escenas no se escriben a mano."
+            .into(),
+    ))
+}

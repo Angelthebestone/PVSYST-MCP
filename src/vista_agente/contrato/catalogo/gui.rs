@@ -129,6 +129,13 @@ pub(super) const ENTRADAS: &[Entrada] = &[
     entrada("gui_actuar", "cerrar_todo", "Ventanas de PVsyst cerradas.").luego(&[VER_VENTANAS]),
     entrada(
         "gui_actuar",
+        "escena",
+        "Escena 3D validada: objetos, formas y colisiones, sin tocar PVsyst.",
+    )
+    .solo_ensayo()
+    .luego(&[VER_ESQUEMA, VER_VENTANAS]),
+    entrada(
+        "gui_actuar",
         "secuencia",
         "Secuencia de pasos de GUI ejecutada.",
     )

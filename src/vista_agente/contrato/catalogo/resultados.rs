@@ -1,29 +1,18 @@
 //! `simular` and `resultados`.
 
-use super::{entrada, paso, Entrada, Paso, DE_PROYECTO};
+use super::{
+    entrada, paso, Entrada, Paso, DE_PROYECTO, P50_P90, SIMULAR, VER_KPIS, VER_PERDIDAS,
+    VER_PROYECTOS,
+};
 
-const VER_PROYECTOS: Paso =
-    paso("listar", "Ver los proyectos del workspace").con(&[("que", "proyectos")]);
 const VER_ESTADO: Paso = paso(
     "simular",
     "Consultar el estado del trabajo en segundo plano",
 )
 .con(&[("accion", "estado")])
 .tomando(&[("trabajo", &["trabajo", "job_id"])]);
-const SIMULAR: Paso = paso("simular", "Simular el proyecto")
-    .con(&[("accion", "ejecutar")])
-    .tomando(DE_PROYECTO);
-const VER_KPIS: Paso = paso("resultados", "Ver los indicadores de la simulación")
-    .con(&[("que", "kpis")])
-    .tomando(DE_PROYECTO);
-const VER_PERDIDAS: Paso = paso("resultados", "Ver el desglose de pérdidas")
-    .con(&[("que", "perdidas")])
-    .tomando(DE_PROYECTO);
 const VER_MENSUAL: Paso = paso("resultados", "Ver la producción mes a mes")
     .con(&[("que", "mensual")])
-    .tomando(DE_PROYECTO);
-const VER_P50_P90: Paso = paso("resultados", "Ver la producción P50/P90")
-    .con(&[("que", "p50_p90")])
     .tomando(DE_PROYECTO);
 const COMPARAR: Paso = paso("resultados", "Comparar variantes del proyecto")
     .con(&[("que", "comparar")])
@@ -71,8 +60,7 @@ pub(super) const ENTRADAS: &[Entrada] = &[
         "Desglose de pérdidas del sistema leído.",
     )
     .luego(&[VER_MENSUAL, VER_PROYECTOS]),
-    entrada("resultados", "mensual", "Producción mensual leída.")
-        .luego(&[VER_P50_P90, VER_PROYECTOS]),
+    entrada("resultados", "mensual", "Producción mensual leída.").luego(&[P50_P90, VER_PROYECTOS]),
     entrada(
         "resultados",
         "comparar",
