@@ -20,21 +20,33 @@ fn longitud(pagina: &Value, clave: &str) -> usize {
         .map_or(0, Vec::len)
 }
 
+/// Fields and buttons of one page, the pair that exists together on screen.
+type Conteo = (usize, usize);
+
+fn mas_lleno(a: Conteo, b: Conteo) -> Conteo {
+    if b.0 + b.1 > a.0 + a.1 {
+        b
+    } else {
+        a
+    }
+}
+
 /// Fields and buttons of one instance: per tab, its fullest page (the map repeats pages
-/// and a tab-less window can have several), summed over tabs.
-fn contar_instancia(instancia: &Value) -> (usize, usize) {
+/// and a tab-less window can have several), summed over tabs. Both numbers come from
+/// the same page, never the best of each.
+fn contar_instancia(instancia: &Value) -> Conteo {
     let paginas = instancia
         .get("paginas")
         .and_then(Value::as_array)
         .into_iter()
         .flatten();
-    let mut por_pestana: HashMap<Option<&str>, (usize, usize)> = HashMap::new();
+    let mut por_pestana: HashMap<Option<&str>, Conteo> = HashMap::new();
     for p in paginas {
         let conteo = (longitud(p, "campos"), longitud(p, "botones"));
         let mejor = por_pestana
             .entry(p.get("pestana").and_then(Value::as_str))
             .or_insert(conteo);
-        *mejor = (mejor.0.max(conteo.0), mejor.1.max(conteo.1));
+        *mejor = mas_lleno(*mejor, conteo);
     }
     por_pestana
         .values()
@@ -43,16 +55,19 @@ fn contar_instancia(instancia: &Value) -> (usize, usize) {
         })
 }
 
-fn resumir(ventana: &Value) -> ResumenMapa {
+pub(super) fn resumir(ventana: &Value) -> ResumenMapa {
     let instancias = ventana
         .get("instancias")
         .and_then(Value::as_array)
         .map_or(&[][..], Vec::as_slice);
-    let conteos = instancias.iter().map(contar_instancia);
+    let (campos, botones) = instancias
+        .iter()
+        .map(contar_instancia)
+        .fold((0, 0), mas_lleno);
     ResumenMapa {
         instancias: instancias.len(),
-        campos: conteos.clone().map(|c| c.0).max().unwrap_or(0),
-        botones: conteos.map(|c| c.1).max().unwrap_or(0),
+        campos,
+        botones,
     }
 }
 

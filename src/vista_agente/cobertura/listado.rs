@@ -9,10 +9,16 @@ use serde_json::{json, Value};
 
 /// Fields of the schema entity that covers `ventana`, if it has one.
 fn campos_mapeados(ventana: &Ventana) -> usize {
-    ventana
-        .esquema
-        .and_then(|clave| esquemas::entidad(clave).ok())
-        .map_or(0, |e| e.campos.len())
+    let Some(clave) = ventana.esquema else {
+        return 0;
+    };
+    match esquemas::entidad(clave) {
+        Ok(entidad) => entidad.campos.len(),
+        Err(error) => {
+            tracing::warn!(clase = ventana.clase, clave, %error, "esquema registrado que no existe");
+            0
+        }
+    }
 }
 
 fn ventana_json(ventana: &Ventana, mapa: Option<&ResumenMapa>) -> Value {

@@ -68,6 +68,11 @@ fn botones(h: Hwnd) -> Vec<Value> {
         .collect()
 }
 
+/// Whether a window of this state shows its fields (by class and position), not only buttons.
+pub(super) fn lee_campos_por_clase(cobertura: Cobertura) -> bool {
+    matches!(cobertura, Cobertura::Basica | Cobertura::Completa)
+}
+
 /// The window as its registration describes it: fields, buttons, or only why it is capture-only.
 pub(crate) fn vista_de_ventana(h: Hwnd, registro: &Ventana, titulo: &str) -> Value {
     let mut mapa = json!({
@@ -84,7 +89,7 @@ pub(crate) fn vista_de_ventana(h: Hwnd, registro: &Ventana, titulo: &str) -> Val
         obj.insert("aviso".into(), json!(registro.motivo));
         return mapa;
     }
-    if registro.cobertura == Cobertura::Basica {
+    if lee_campos_por_clase(registro.cobertura) {
         let campos: Vec<Value> = campos_con_clave(campos_vivos(h))
             .iter()
             .map(campo_json)
