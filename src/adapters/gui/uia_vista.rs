@@ -201,7 +201,6 @@ pub(crate) struct Objetivo<'a> {
 }
 
 pub(crate) struct CascadaContext<'a> {
-    pub(crate) paths: &'a crate::config::Paths,
     pub(crate) args: &'a Value,
     pub(crate) scoped: &'a [Hwnd],
     pub(crate) raiz: Option<Hwnd>,
@@ -249,7 +248,7 @@ pub(crate) fn cascada(ctx: &CascadaContext, obj: &Objetivo) -> Result<&'static s
         if let Some(v) = ctx.args.get("ventana") {
             a.insert("ventana".into(), v.clone());
         }
-        teclas(ctx.paths, &Value::Object(a))?;
+        teclas(&Value::Object(a))?;
         return Ok("teclas");
     }
     Err(Error::Gui(
@@ -257,7 +256,7 @@ pub(crate) fn cascada(ctx: &CascadaContext, obj: &Objetivo) -> Result<&'static s
     ))
 }
 
-pub(crate) fn paso(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
+pub(crate) fn paso(args: &Value) -> Result<Value> {
     if args.get("operacion").is_some() {
         return Err(Error::Invalid(
             "'operacion' no aplica a 'paso': la cascada elige la acción; use uia_invocar operacion:… o gui_actuar accion:campo/seleccionar".into(),
@@ -286,7 +285,6 @@ pub(crate) fn paso(paths: &crate::config::Paths, args: &Value) -> Result<Value> 
         None => raiz_por_defecto(&scoped),
     };
     let ctx = CascadaContext {
-        paths,
         args,
         scoped: &scoped,
         raiz,

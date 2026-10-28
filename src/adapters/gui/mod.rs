@@ -125,7 +125,7 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
             acciones::exigir_escritorio()?;
             acciones::invocar(paths, args)
         }
-        "teclas" => teclado::teclas(paths, args),
+        "teclas" => teclado::teclas(args),
         "fila" => fila::fila(paths, args),
         "funcion" => crate::gui_catalogo::abrir(args),
         "menu" => crate::gui_catalogo::menu(args),
@@ -142,7 +142,7 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         "reiniciar" => recuperacion::reiniciar(paths, args),
         "uia_invocar" => uia_vista::uia_invocar(args),
         "esperar" => esperas::esperar(args),
-        "paso" => uia_vista::paso(paths, args),
+        "paso" => uia_vista::paso(args),
         other => Err(Error::Invalid(format!(
             "Unknown accion '{other}' ({})",
             ACCIONES.join("|")
