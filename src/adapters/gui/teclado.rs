@@ -90,6 +90,18 @@ fn parsear_combinacion(combo: &str) -> Result<(Vec<u8>, u8)> {
     Ok((mods, vk))
 }
 
+/// The keys go to whoever has the focus, so a control target must really have
+/// it: an arrow sent to the wrong control changes a combo instead of a list.
+/// Never sent without that guarantee.
+fn dar_foco_al_control(h: ffi::Hwnd) -> Result<()> {
+    if !escritorio::es_aislado() && ffi::dar_foco(h) {
+        return Ok(());
+    }
+    Err(Error::Gui(format!(
+        "No se pudo dar el foco al control 0x{h:X}: las teclas no se envían sin esa garantía. Usa la ventana contenedora o accion:clic_fisico sobre el control"
+    )))
+}
+
 pub(crate) fn teclas(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     let _ = paths;
     let scoped = ventanas_de(args)?;
@@ -110,12 +122,17 @@ pub(crate) fn teclas(paths: &crate::config::Paths, args: &Value) -> Result<Value
             "En el escritorio aislado solo se admite Alt como modificador: Ctrl y Mayús no se pueden enviar como mensajes".into(),
         ));
     }
-    ffi::traer_al_frente(h);
+    let raiz = ffi::get_ancestor(h, ffi::GA_ROOT);
+    ffi::traer_al_frente(raiz);
     std::thread::sleep(FOCO);
+    if raiz != h {
+        dar_foco_al_control(h)?;
+    }
     ffi::pulsar_combinacion(vk, &mods);
     Ok(json!({
         "sent": combo,
         "hwnd": format!("0x{:X}", h),
+        "foco": raiz != h,
         "via": if escritorio::es_aislado() { "mensajes" } else { "keybd_event" },
     }))
 }
