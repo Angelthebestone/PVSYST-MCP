@@ -127,6 +127,37 @@ Medido en vivo con el release (PVsyst 8.1.7, 144 DPI = 150 %, capturas a 96 DPI,
 - Con `PVSYST_MCP_ESCRITORIO=aislado` la acción se niega: no está medido. Otro DPI distinto de 144: `[INFERENCIA]`.
 - Con otras ventanas que usen estas mismas clases (otros `TChoixObjetPVForm`, 15 instancias) la geometría es la declarada por clase, medida solo en la de módulos `[INFERENCIA]`.
 
+## Pestañas (`gui_actuar accion:pagina`)
+Recorridas en vivo con el release (PVsyst 8.1.7, 144 DPI, 2026-10-28, PRUEBA): cada clase se abrió una vez, se pidió `pagina i` hasta «fuera de rango» y tras cada cambio se leyó `que:vista`. Nada se guardó; los diálogos de componentes se abrieron con «Nuevo» y se cerraron con Cancelar/Cerrar.
+
+| Clase | Función | Pestañas | Campos leídos por pestaña (vista genérica) |
+|---|---|---|---|
+| `TArrayCharactForm` | `herramientas.comportamiento_electrico` | 3 | 14/18/13 |
+| `TBatchSimulForm` | `variante.simulacion_avanzada.simulacion_por_lotes` | 3 | 6/9/5 |
+| `TBatteryForm` | `bases_de_datos.baterias.nuevo` | 5 | 19/17/24/5/13 |
+| `TDatamesFusionForm` | `datos_medidos.transformar_archivo` | 3 | 3/3/2 |
+| `TDetailedLossesForm` | `variante.perdidas_detalladas` | 9 | 6/16/8/15/18/6/28/9/11 |
+| `TEcoEvaluationForm` | `variante.evaluacion_economica` | 5 | 1/12/11/1/10 |
+| `TGeneratorForm` | `bases_de_datos.generadores.nuevo` | 2 | 9/11 |
+| `TGridInverterForm` | `bases_de_datos.inversores_red.nuevo` | 6 | 29/12/34/15/11/13 |
+| `TGridStorageForm` | `variante.almacenamiento` | 1 | 1 |
+| `THorizonForm` | `variante.horizonte` | 2 | 9/1 |
+| `TMeteoMensForm` | `herramientas.calculo_mensual_meteo` | 1 | 11 |
+| `TOptimizationToolForm` | `variante.simulacion_avanzada.herramienta_de_optimizacion` | 2 | 13/9 |
+| `TParamSolForm` | `herramientas.parametros_solares` | 3 | 8/10/17 |
+| `TPreferencesForm` | `configuraciones.preferencias` | 9 | 0/0/0/0/0/0/0/0/0 |
+| `TPumpControllerForm` | `bases_de_datos.controladores_bombeo.nuevo` | 2 | 15/15 |
+| `TPumpForm` | `bases_de_datos.bombas.nuevo` | 4 | 20/9/4/11 |
+| `TSAControllerForm` | `bases_de_datos.controladores_independientes.nuevo` | 4 | 23/12/4/13 |
+| `TSystemCircuitForm` | `variante.sistema.diagrama_unifilar` | 2 | 5/9 |
+| `TSystemeAddForm` | `variante.gestion_energia` | 4 | 6/2/20/2 |
+
+- 0 vetos en las 19 clases de la tabla: todas las pestañas cambiaron. Los campos son los visibles de cada pestaña por clase y posición, no una entidad con esquema. `TPreferencesForm` sigue sin campos legibles en ninguna de sus 9 pestañas.
+- `docs/gui_mapa.json` cuenta menos pestañas que las reales en `TGeneratorForm` (2, no 1), `TPumpControllerForm` (2, no 1), `TGridInverterForm` (6, no 5), `TEcoEvaluationForm` (5, no 6 con una de ellas condicional), `TSystemeAddForm` (4, no 3) y otras: el mapa solo registró las pestañas que alguien pisó.
+- **`TPVModuleForm` (módulo nuevo, 5 pestañas):** `pagina 1` fue vetada con los campos obligatorios vacíos; tras `rellenar` con valores válidos (modelo, fabricante, potencia, Isc, Voc, Impp, Vmpp, μIsc) pasó la 0→1, y desde la 1 PVsyst vetó **todo** cambio, incluso volver a la 0, mientras la pestaña tuviera campos inválidos. Coincide con la hipótesis «PVsyst impide salir de una página mientras sus campos son inválidos» (observada, no probada contra el código). `rellenar` hoy solo cubre la pestaña 0: tras `pagina`, `que:vista` repite las 16 claves del esquema y el resto cae en `sin_mapear`.
+- `TEcoEvaluationForm`: recorrer sus pestañas marca el formulario como modificado; cerrarlo pregunta «¿Quiere cancelar las modificaciones?» y no hay botón inocuo (No lo deja abierto, Sí está prohibido en la exploración). Se resolvió cerrando el proceso de PVsyst, que no tenía nada guardado.
+- Sin abrir: `TSettingsForm` (la función por menú pierde el primer plano), `TDomesticUseForm`, `TWaterUseForm` (botones no visibles en un proyecto de red), `TSystemeBattForm` y `TSystemPumpingForm` (en un proyecto de red la función abre `TSystemegridForm`: necesitan un proyecto independiente o de bombeo). `TGeoSiteForm` no se recorrió a propósito: una pestaña es un mapa web.
+
 ## No abiertas, solo clasificadas desde el mapa
 `MicrosoftWindowsTooltip`, `TBacktrackingForm`, `TDomesticUseForm`, `TShedElecShadingForm`, `TSystemPumpingForm`, `TSystemeBattForm`, `TSystemegridDCForm`, `TTranspositionForm`, `TVCManageForm`, `TVoltageOptimiseForm`, `TWaterUseForm`.
 Motivos: requieren un sitio elegido o un proyecto con resultados (botones deshabilitados en un proyecto nuevo), o la función del
