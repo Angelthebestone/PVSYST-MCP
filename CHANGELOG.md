@@ -50,7 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`gui_actuar accion:fila`** (`ventana`, `indice`) selects row N of a list or tree that has no window per
   row, with a physical click on geometry declared per control class (`TVirtualStringTree`: header 21 px, rows
-  19 px; `TListBox`: border 2 px, rows 13 px; px at 96 DPI, scaled by the window DPI). It checks the result
+  19 px; `TListBox`: border 2 px, rows 13 px; the object table of the 3D editor: header 32 px, rows 26 px, measured on
+  PVsyst 8.1.8; px at 96 DPI, scaled by the window DPI). It checks the result
   without OCR: the highlighted band of a capture must be the requested row, and the click must not have opened
   or closed anything. A wrong row, an empty slot, an out-of-range index, a click PVsyst took as "open this item"
   and a control without measured geometry (class and hosting window) are errors. The window must be in front and

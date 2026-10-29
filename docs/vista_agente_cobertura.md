@@ -112,12 +112,13 @@ recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactament
 | `TWorkspaceForm` | aplicacion | 3 | sí (`archivo.espacio_de_trabajo`) | 0 | 1 | 2 |
 
 ## Filas de listas y árboles (`gui_actuar accion:fila`)
-Medido en vivo con el release (PVsyst 8.1.7, 144 DPI = 150 %, capturas a 96 DPI, 2026-10-28). Sin licencia (PRUEBA); todo se cerró con Cancelar/Cerrar y sin pulsar OK.
+Medido en vivo con el release (PVsyst 8.1.7; la tabla de objetos del editor 3D y `teclas` en 8.1.8, donde `fila` también funcionó en `TProjectLoadForm`, 144 DPI = 150 %, capturas a 96 DPI, 2026-10-28). Sin licencia (PRUEBA); todo se cerró con Cancelar/Cerrar y sin pulsar OK.
 
 | Control | Ventana donde se midió | Geometría a 96 DPI | Filas probadas | Resultado |
 |---|---|---|---|---|
 | `TVirtualStringTree` | `TProjectLoadForm` (19 proyectos) | cabecera 21 px, fila 19 px, 29 huecos visibles | 0, 3, 18; 19 (hueco vacío); 40 | 0, 3 y 18 verificadas por banda; 19 error («PVsyst resaltó la 0»); 40 error de rango |
 | `TListBox` | `TChoixObjetPVForm` de módulos (32 elementos) | borde 2 px, fila 13 px, 33 huecos visibles | 0, 3, 31; 32 (hueco vacío); 33 | 0, 3 y 31 verificadas; 32 error; 33 error de rango |
+| `TVirtualStringTree` | `TShdObjectSelectionForm` («Lista y gestión de objetos» del editor 3D, 4 objetos; PVsyst 8.1.8, 144 DPI, 2026-10-29) | cabecera 32 px, fila 26 px, unos 20 huecos visibles | 0, 1, 3, 2 | las 4 verificadas por banda; no se abrió ninguna ventana |
 
 - La cabecera de la lista de módulos es un `TStringGrid` aparte de una fila: se apunta a la `TListBox`, no a él (sin geometría: error).
 - Solo selecciona. La banda de la fila *n* ocupa y∈[cabecera+alto·*n*, cabecera+alto·*(n+1)*] del control.
@@ -125,7 +126,7 @@ Medido en vivo con el release (PVsyst 8.1.7, 144 DPI = 150 %, capturas a 96 DPI,
 - Un clic físico puede **activar** el elemento: en la primera medición, un clic sobre la lista de módulos (dy 100, con el foco fuera de la lista) abrió `TPVModuleForm` y cerró el selector; no se supo por qué `[INFERENCIA]`. `fila` comprueba que no apareció ni desapareció ninguna ventana y, antes del clic, da el foco al control: con el foco en un combo el primer clic solo movía el foco y la fila quedaba como estaba (tres de tres aciertos con el foco dado, tras `TAB` en el combo). Repetir el clic no es una salida: dos clics seguidos son un doble clic.
 - Qué fila es no se lee: ni UIA ni MSAA dan texto. En módulos, inversores, baterías, controladores, bombas y fabricantes la fila se identifica solo por índice; el orden alfabético no se infiere.
 - Con `PVSYST_MCP_ESCRITORIO=aislado` la acción se niega: no está medido. Otro DPI distinto de 144: `[INFERENCIA]`.
-- La geometría vale para el control medido: clase y ventana anfitriona (`TVirtualStringTree` de `TProjectLoadForm`; `TListBox` de `TChoixObjetPVForm` titulado «Eligiendo un módulo FV»). Los otros 14 selectores y cualquier otro control se rechazan con un error que lista dónde se midió.
+- La geometría vale para el control medido: clase y ventana anfitriona (`TVirtualStringTree` de `TProjectLoadForm`; `TListBox` de `TChoixObjetPVForm` titulado «Eligiendo un módulo FV»; `TVirtualStringTree` de `TShdObjectSelectionForm`). Los otros 14 selectores y cualquier otro control se rechazan con un error que lista dónde se midió.
 - Antes del clic `fila` exige que la ventana esté al frente y el control tenga el foco, y que el punto de clic caiga dentro del control; se niega con menos de 3 huecos visibles. La banda se lee comparando la captura de antes y la de después, y se comprueba que ninguna ventana se abrió ni se cerró.
 
 `que:esquema` trae `abierta_con` por clase: las funciones del catálogo que la abren. `herramientas.factor_transposicion` declara `TArrayCharactForm`, la ventana que se vio abrir; `TTranspositionForm` queda sin función que la abra.

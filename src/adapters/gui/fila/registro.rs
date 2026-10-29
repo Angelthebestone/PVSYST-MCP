@@ -28,7 +28,19 @@ const LISTA_DE_MODULOS: Geometria = Geometria {
     x_px: 100,
 };
 
-const TABLAS: &[Geometria] = &[ARBOL_DE_PROYECTOS, LISTA_DE_MODULOS];
+/// `TVirtualStringTree` of «Lista y gestión de objetos» (`TShdObjectSelectionForm`,
+/// PVsyst 8.1.8): the first row's centre is at 45 px and the pitch is 26 px, so the
+/// header above row 0 is 32 px. About 20 rows fit without scrolling.
+const TABLA_DE_OBJETOS: Geometria = Geometria {
+    clase: "TVirtualStringTree",
+    anfitrion: "TShdObjectSelectionForm",
+    titulo_anfitrion: None,
+    cabecera_px: 32,
+    alto_fila_px: 26,
+    x_px: 100,
+};
+
+const TABLAS: &[Geometria] = &[ARBOL_DE_PROYECTOS, LISTA_DE_MODULOS, TABLA_DE_OBJETOS];
 
 /// A control as found on screen: its class and the window that hosts it.
 #[derive(Debug, Clone, Copy)]
