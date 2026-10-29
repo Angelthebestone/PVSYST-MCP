@@ -139,6 +139,12 @@ pub(super) const ENTRADAS: &[Entrada] = &[
     .luego(TRAS_VISTA),
     entrada(
         "gui_actuar",
+        "escena_leer",
+        "Objetos de la escena abierta en el editor 3D, leídos del archivo que PVsyst exportó.",
+    )
+    .luego(&[VER_VENTANAS]),
+    entrada(
+        "gui_actuar",
         "secuencia",
         "Secuencia de pasos de GUI ejecutada.",
     )

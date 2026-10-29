@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Contract, size measurements and the tool × action matrix: `docs/vista_agente_salidas.md`.
 
 ### Added
+- **`gui_actuar accion:escena_leer`** (`escena`) lists the objects of the scene open in the 3D editor. The table of
+  objects has no controls per row, so PVsyst exports the scene with «Exportar escena (.SHD)» under that name and
+  the file is read back (`origen:pvsyst`); the file stays in `Shadings`.
 - **`gui_actuar accion:escena` builds a 3D scene in PVsyst's editor.** Tried on PVsyst 8.1.8 in PRUEBA, which
   does save scenes (`Archivo > Exportar escena (.SHD)` wrote the file; the project was not touched). With
   `simular:true` it only validates the request (`escena`, `objetos`) without PVsyst: types, ranges and

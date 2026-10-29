@@ -37,14 +37,46 @@ pub(crate) fn crear(paths: &Paths, args: &Value) -> Result<Value> {
     informe(nombre, &guardado, &pedidos)
 }
 
-/// The editor must be open and, since rows are found by position, empty.
-fn exigir_editor_vacio(pedidos: &[ObjetoPedido]) -> Result<()> {
+/// `gui_actuar accion:escena_leer`: the objects of the scene open in the editor. The table
+/// of objects has no controls per row, so PVsyst exports the scene (`Archivo > Exportar
+/// escena (.SHD)`) under `escena` and the file is read back; it stays in `Shadings`.
+pub(crate) fn leer(paths: &Paths, args: &Value) -> Result<Value> {
+    exigir_escritorio()?;
+    let nombre = nombre_valido(req_str(
+        args,
+        &["escena"],
+        "nombre con el que PVsyst exporta la escena, p.ej. 'Lectura_1'",
+    )?)?;
+    exigir_editor_abierto("leer la escena")?;
+    exportar::exigir_libre(paths, nombre)?;
+    let guardado = exportar::guardar(paths, nombre)?;
+    let archivo = format!("{nombre}.SHD");
+    let mut escena = crate::escena_3d::leer_escena(paths, &json!({ "archivo": archivo }))?;
+    if let Some(mapa) = escena.as_object_mut() {
+        mapa.insert("archivo".into(), json!(guardado.display().to_string()));
+        mapa.insert("origen".into(), json!("pvsyst"));
+        mapa.insert(
+            "avisos".into(),
+            json!([format!(
+                "PVsyst guardó {archivo} en Shadings para leerla; bórralo si no lo necesitas."
+            )]),
+        );
+    }
+    Ok(escena)
+}
+
+fn exigir_editor_abierto(para: &str) -> Result<()> {
     let editor = pasos::ventana(EDITOR).map_err(|_| {
         Error::Gui(format!(
             "No hay editor 3D abierto: ábrelo con gui_actuar accion:funcion funcion:{ABRIR_EDITOR} y repite"
         ))
     })?;
-    exigir_habilitada(editor, "crear la escena")?;
+    exigir_habilitada(editor, para)
+}
+
+/// The editor must be open and, since rows are found by position, empty.
+fn exigir_editor_vacio(pedidos: &[ObjetoPedido]) -> Result<()> {
+    exigir_editor_abierto("crear la escena")?;
     if pedidos.len() > lista::MAX_FILAS_VISIBLES {
         return Err(Error::Invalid(format!(
             "Máximo {} objetos por escena creada en el editor",

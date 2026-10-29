@@ -22,7 +22,7 @@ use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 
-pub const DEMO_WS: &str = r"C:\Program Files\PVsyst8.1.7\DataRO\PVsyst8.1_Data";
+pub const DEMO_WS: &str = r"C:\Program Files\PVsyst8.1.8\DataRO\PVsyst8.1_Data";
 
 /// In-process server with the same surface a client gets by default. Like
 /// [`Client::start_env`], it never resolves the installed PVsyst: the workspace
@@ -78,7 +78,7 @@ impl Client {
         let default_cli = Path::new(&ws_str).join("nonexistent_pvsyst_cli.exe");
         cmd.env("PVSYST_GUI", default_gui);
         cmd.env("PVSYST_CLI", default_cli);
-        cmd.env("PVSYST_DATARO", r"C:\Program Files\PVsyst8.1.7\DataRO");
+        cmd.env("PVSYST_DATARO", r"C:\Program Files\PVsyst8.1.8\DataRO");
         for (k, v) in env {
             cmd.env(k, v);
         }

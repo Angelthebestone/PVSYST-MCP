@@ -186,6 +186,7 @@ pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
         ("clic_texto", &["ventana", "texto"]),
         ("secuencia", &["pasos"]),
         ("escena", &["escena", "objetos"]),
+        ("escena_leer", &["escena"]),
     ],
     sinonimos: SINONIMOS_GUI_ACTUAR,
     ejecutar: Ejecutor::Simple(ejecutar_actuar),

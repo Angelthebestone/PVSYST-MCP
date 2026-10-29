@@ -108,6 +108,7 @@ pub(crate) const ACCIONES: &[&str] = &[
     "cerrar_todo",
     "secuencia",
     "escena",
+    "escena_leer",
 ];
 
 /// `actuar` dispatcher. `accion`: click | clic_fisico | clic_texto | mensaje |
@@ -136,6 +137,7 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         "rellenar" => crate::vista_agente::rellenar(paths, args),
         "escena" if flag(args, &["simular"]) => crate::escena_3d::pedir_escena(args),
         "escena" => escena::crear(paths, args),
+        "escena_leer" => escena::leer(paths, args),
         "escribir" => campos::escribir(paths, args),
         "seleccionar" => campos::seleccionar(paths, args),
         "pagina" => campos::pagina(paths, args),

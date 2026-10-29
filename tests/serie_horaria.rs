@@ -20,8 +20,8 @@ use std::fs;
 use tempfile::tempdir;
 
 const DEMO_MET: &str =
-    r"C:\Program Files\PVsyst8.1.7\DataRO\PVsyst8.1_Data\Meteo\Abu Dhabi DEMO Project_MN82_SYN.MET";
-const DEMO_DAM: &str = r"C:\Program Files\PVsyst8.1.7\DataRO\PVsyst8.1_Data\DataMeas\N13GlobH.DAM";
+    r"C:\Program Files\PVsyst8.1.8\DataRO\PVsyst8.1_Data\Meteo\Abu Dhabi DEMO Project_MN82_SYN.MET";
+const DEMO_DAM: &str = r"C:\Program Files\PVsyst8.1.8\DataRO\PVsyst8.1_Data\DataMeas\N13GlobH.DAM";
 
 fn server_con_workspace(ws: &std::path::Path) -> Server {
     let mut paths = pvsyst_mcp::Paths::resolve();
