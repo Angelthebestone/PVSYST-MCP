@@ -4,9 +4,14 @@ Registro: `src/vista_agente/cobertura/ventanas/`. El test `should_register_every
 recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactamente un estado.
 
 ## Estados
-1. **Entidad completa** (clave, etiqueta, unidad, rango, `clave_archivo`, tipo, ancla, acceso): **0 ventanas**. Ni siquiera
-   `TPVModuleForm` (16 campos en «Datos básicos») lo cumple: unidad y rango no se validan contra un archivo guardado y
-   PVsyst en PRUEBA no guarda. Queda «no validado».
+1. **Entidad completa** (clave, etiqueta, unidad, rango, `clave_archivo`, tipo, ancla, acceso): **0 ventanas**. `TPVModuleForm`
+   («Datos básicos», 16 campos) está validada a medias contra un archivo guardado por PVsyst 8.1.8 en PRUEBA, que **sí guarda
+   componentes** (`OK` → `TSaveComponentForm` → «Guardar como» → `TSaveObjPVForm`): con un valor distinto en cada campo, el
+   `.PAN` guardado (`tests/fixtures/vista_agente/Modulo_distintos_8_1_8.PAN`) trae `PNom=410.5`, `Isc=11.200`, `Voc=48.30`,
+   `Imp=10.400`, `Vmp=39.50`, `muISC=4.20` (mA/°C), `TRef=20.0` y `NCelS=72`: las unidades y las `clave_archivo` están
+   comprobadas. Siguen sin validarse los rangos (son los del MCP, no de PVsyst), `tecnologia` (no se aplicó: el valor guardado
+   fue `Technol=mtNotSpec`) y `g_ref_w_m2`: se tecleó 900 y la ventana siguió en 1000 y el archivo trae `GRef=1000`. `mu_isc_pct_c`
+   no se guarda: PVsyst lo calcula desde `muISC`. Por eso no pasa a «completa».
 2. **Entidad básica** (clave por clase y posición a 96 DPI, valor leído por handle): **64**.
 3. **Solo acciones** (se describe por sus botones): **14**.
 4. **No aplica** (dibujado o ajeno, solo captura): **4**.

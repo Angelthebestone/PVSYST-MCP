@@ -159,3 +159,46 @@ fn should_return_only_the_requested_schema_entity() {
         .expect("schema");
     assert_eq!(v["count"], json!(1));
 }
+
+/// A module typed through `rellenar` (a different value in every field) and saved by PVsyst 8.1.8.
+const MODULO_GUARDADO: &str =
+    include_str!("../../fixtures/vista_agente/Modulo_distintos_8_1_8.PAN");
+
+#[test]
+fn should_find_every_file_key_of_the_panel_schema_in_the_module_pvsyst_saved() {
+    let claves: Vec<&str> = MODULO_GUARDADO
+        .lines()
+        .filter_map(|l| l.trim().split_once('=').map(|(k, _)| k))
+        .collect();
+    let con_clave = panel().campos.iter().filter_map(|c| c.clave_archivo);
+    for clave in con_clave {
+        assert!(
+            claves.contains(&clave),
+            "{clave} no está en el archivo guardado"
+        );
+    }
+}
+
+#[test]
+fn should_keep_the_units_the_saved_module_shows_for_the_values_typed() {
+    let valor = |k: &str| {
+        MODULO_GUARDADO
+            .lines()
+            .find_map(|l| l.trim().strip_prefix(&format!("{k}=")).map(str::to_string))
+            .and_then(|v| v.trim().parse::<f64>().ok())
+    };
+    // The values `rellenar` typed: W, A, V, mA/°C, °C and a count.
+    let tecleado = [
+        ("PNom", 410.5),
+        ("Isc", 11.2),
+        ("Voc", 48.3),
+        ("Imp", 10.4),
+        ("Vmp", 39.5),
+    ];
+    for (clave, esperado) in tecleado {
+        assert_eq!(valor(clave), Some(esperado), "{clave}");
+    }
+    assert_eq!(valor("muISC"), Some(4.2));
+    assert_eq!(valor("TRef"), Some(20.0));
+    assert_eq!(valor("NCelS"), Some(72.0));
+}
