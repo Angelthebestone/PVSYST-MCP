@@ -124,15 +124,6 @@ pub(super) const fn giro(clave: &'static str, etiqueta: &'static str) -> Paramet
     }
 }
 
-/// A value whose label was not read (the dialog scrolls and the OCR missed it).
-pub(super) const fn sin_leer(clave: &'static str, defecto: f64) -> Parametro {
-    parametro(
-        (clave, "(etiqueta no leída)"),
-        "",
-        (defecto, -MAXIMO_LONGITUD_M, MAXIMO_LONGITUD_M),
-    )
-}
-
 /// An opening angle goes up to a full turn, unlike an inclination.
 pub(super) const fn apertura(
     clave: &'static str,

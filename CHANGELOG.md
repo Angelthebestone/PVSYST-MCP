@@ -35,7 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The 27 shapes of the elementary-object dialog** (`oeTree`, `oeHouse`, …) with their PVsyst type name, the
   label of each parameter and its position in `Params=`, measured live and proven against a scene PVsyst saved
   (`tests/fixtures/escena_3d/Formas27_8_1_8.SHD`), and again with a different value in every parameter of the 27
-  shapes (0 differences). The `cable` dialog has an extra «Objeto delgado» edit, which is left as is. Ranges are
+  shapes (0 differences); the 11th value of `turbina_eolica` and `pilon_electrico` is `pala_angulo_deg` and
+  `espesor_malla`. The `cable` dialog has an extra «Objeto delgado» edit, which is left as is. Ranges are
   the MCP's, not PVsyst's. Breaking change for the
   unreleased `escena` request: dimensions now use PVsyst's own parameters (`anchura_dx`, `longitud_dy`,
   `altura_dz`, tree `altura_punto_medio`…) and the `tejado_dos_aguas`/`chimenea`/`arbol` keys of the first draft

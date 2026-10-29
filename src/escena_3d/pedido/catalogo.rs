@@ -10,7 +10,7 @@
 //! order is proven for all 27.
 
 use super::formas::{
-    angulo, apertura, caja, cuenta, giro, longitud, sin_leer, Forma, Parametro, PARAMETROS_DE_CAJA,
+    angulo, apertura, caja, cuenta, giro, longitud, Forma, Parametro, PARAMETROS_DE_CAJA,
 };
 
 const ROTACION: Parametro = giro("rotacion_plano_deg", "Rotación en plano");
@@ -299,7 +299,7 @@ pub(crate) const FORMAS: &[Forma] = &[
             longitud("pala_ancho_final", "Ancho final de la pala", 1.0),
             longitud("generador_longitud", "Longitud del generador", 5.0),
             longitud("generador_diametro", "Diámetro del generador", 4.0),
-            sin_leer("parametro_11", 0.0),
+            angulo("pala_angulo_deg", "Ángulo de las palas", 0.0),
         ],
     ),
     Forma::nueva(
@@ -316,7 +316,7 @@ pub(crate) const FORMAS: &[Forma] = &[
             longitud("ancho_brazo", "Ancho del brazo", 2.0),
             longitud("longitud_aislador", "Longitud del aislador", 0.3),
             longitud("altura_aislador", "Altura del aislador", 3.0),
-            sin_leer("parametro_11", 0.4),
+            longitud("espesor_malla", "Espesor de malla", 0.4),
         ],
     ),
 ];

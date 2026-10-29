@@ -473,10 +473,10 @@ PVsyst 8.1.8 in trial mode **does save** scenes. Each shape of `TElementaryObjec
 | 23 | `cable` | `oeCable` | Cable | Longitud = 10; Pendiente = 1; Espesor = 0.2; Núm. de segmentos = 6; Ángulo de la pendiente = 0 |
 | 24 | `barandilla_un_travesano` | `oeHandrail1Crossbar` | Barandilla un travesaño | Longitud = 10; Altura = 1; Espesor = 0.05; Número de peldaños = 5 |
 | 25 | `barandilla_dos_travesanos` | `oeHandrail2Crossbar` | Barandilla dos travesaños | Longitud = 10; Altura = 1; Altura del 2do travesaño = 0.6; Espesor = 0.05; Número de peldaños = 5 |
-| 26 | `turbina_eolica` | `oeWindTurbine` | Turbina eólica | Altura del soporte = 40; Soporte de menor diámetro = 4; Diámetro superior del soporte = 3; Pala de longitud completa = 30; Pala de longitud pequeña = 5; Ancho original de la pala = 3; Ancho mediano de la pala = 3.5; Ancho final de la pala = 1; Longitud del generador = 5; Diámetro del generador = 4; (sin leer) = 0 |
-| 27 | `pilon_electrico` | `oeElectricPylon` | Pilón eléctrico | Altura = 40; Longitud base = 8; Longitud superior = 5; Anchura = 4; Número de brazos = 3; Altura del primer brazo = 20; Longitud del brazo = 12; Ancho del brazo = 2; Longitud del aislador = 0.3; Altura del aislador = 3; (sin leer) = 0.4 |
+| 26 | `turbina_eolica` | `oeWindTurbine` | Turbina eólica | Altura del soporte = 40; Soporte de menor diámetro = 4; Diámetro superior del soporte = 3; Pala de longitud completa = 30; Pala de longitud pequeña = 5; Ancho original de la pala = 3; Ancho mediano de la pala = 3.5; Ancho final de la pala = 1; Longitud del generador = 5; Diámetro del generador = 4; Ángulo de las palas = 0 |
+| 27 | `pilon_electrico` | `oeElectricPylon` | Pilón eléctrico | Altura = 40; Longitud base = 8; Longitud superior = 5; Anchura = 4; Número de brazos = 3; Altura del primer brazo = 20; Longitud del brazo = 12; Ancho del brazo = 2; Longitud del aislador = 0.3; Altura del aislador = 3; Espesor de malla = 0.4 |
 
-`turbina_eolica` and `pilon_electrico` have an 11th value whose label was not read (the dialog scrolls); it is kept at its default. Collisions are only checked between `paralelepipedo` objects, with the position as the lower corner (`[INFERENCIA]`: the anchor is not proven).
+`turbina_eolica` and `pilon_electrico` have an 11th value (`pala_angulo_deg`, `espesor_malla`) that sits below the visible part of the dialog's scroll box; its label was read by scrolling the box (`WM_VSCROLL`, `SB_BOTTOM`). Collisions are only checked between `paralelepipedo` objects, with the position as the lower corner (`[INFERENCIA]`: the anchor is not proven).
 
 ### 7.7 Creating a scene (`gui_actuar accion:escena`)
 

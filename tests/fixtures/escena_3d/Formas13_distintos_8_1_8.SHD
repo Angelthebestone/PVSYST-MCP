@@ -191,7 +191,7 @@
         DAzimut=0.000000
         Source=osPVsyst
         ObjetElemType=oeWindTurbine
-        Params=40.100,4.200,3.300,30.400,5.500,3.600,4.200,1.800,5.900,5.000,0.000,
+        Params=40.100,4.200,3.300,30.400,5.500,3.600,4.200,1.800,5.900,5.000,12.500,
       End of PVObject pvShdElemObject
 
       PVObject_13=pvShdElemObject
@@ -207,7 +207,7 @@
         DAzimut=0.000000
         Source=osPVsyst
         ObjetElemType=oeElectricPylon
-        Params=40.100,8.200,5.300,4.400,4.000,20.600,12.700,2.800,1.200,4.000,0.400,
+        Params=40.100,8.200,5.300,4.400,4.000,20.600,12.700,2.800,1.200,4.000,0.500,
       End of PVObject pvShdElemObject
     End of ListeObjets
 
