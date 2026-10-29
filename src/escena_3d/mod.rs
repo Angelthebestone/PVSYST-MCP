@@ -5,6 +5,7 @@ mod binario;
 mod codec;
 mod dominio;
 mod pedido;
+mod texto;
 pub(crate) use pedido::MAX_OBJETOS;
 
 pub(crate) use aplicacion::{leer_escena, pedir_escena};

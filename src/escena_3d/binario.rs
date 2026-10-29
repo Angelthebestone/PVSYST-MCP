@@ -50,6 +50,7 @@ pub(crate) fn parsear_bloque_geometria(raw: &[u8]) -> Option<GeometriaElemental>
     }
     Some(GeometriaElemental {
         forma: TipoFormaElemental::de_codigo(forma_codigo),
+        tipo_pvsyst: None,
         dimensiones: dims,
     })
 }

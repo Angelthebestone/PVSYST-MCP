@@ -73,6 +73,7 @@ fn objeto_a_json(obj: &ObjetoEscena3d) -> Value {
             "geometria".to_string(),
             json!({
                 "forma": geo.forma.nombre(),
+                "tipo_pvsyst": geo.tipo_pvsyst,
                 "dimensiones": geo.dimensiones
             }),
         );
