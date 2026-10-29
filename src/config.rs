@@ -13,7 +13,7 @@ use std::sync::Arc;
 pub struct Paths {
     /// The PVsyst user workspace, e.g. `C:\Users\<user>\PVsyst8.1_Data`.
     pub workspace: PathBuf,
-    /// The headless CLI, e.g. `C:\Program Files\PVsyst8.1.7\PVsystCLI.exe`.
+    /// The headless CLI, e.g. `C:\Program Files\PVsyst8.1.8\PVsystCLI.exe`.
     pub cli_exe: PathBuf,
     /// The GUI executable, used to drive PVsyst's desktop window.
     pub gui_exe: PathBuf,
@@ -26,7 +26,7 @@ pub struct Paths {
 
 impl Paths {
     /// Resolves every path from the environment, falling back to the default
-    /// PVsyst 8.1.7 install locations.
+    /// newest PVsyst 8.x install found under Program Files.
     ///
     /// Overrides: `PVSYST_WORKSPACE`, `PVSYST_CLI`, `PVSYST_GUI`, `PVSYST_DATARO`
     /// and `PVSYST_MCP_APROXIMACIONES` (`1` or `true`).
@@ -105,7 +105,7 @@ pub(crate) fn data_ro() -> PathBuf {
     resolve_gui()
         .parent()
         .map_or_else(
-            || PathBuf::from(r"C:\Program Files\PVsyst8.1.7"),
+            || PathBuf::from(r"C:\Program Files\PVsyst8.1"),
             std::path::Path::to_path_buf,
         )
         .join("DataRO")
@@ -165,29 +165,53 @@ fn resolve_workspace() -> PathBuf {
     first_existing(candidates).unwrap_or_else(|| home().unwrap_or_default().join("PVsyst8.1_Data"))
 }
 
-fn resolve_cli() -> PathBuf {
-    if let Some(p) = ruta_de_entorno("PVSYST_CLI") {
-        return p;
-    }
-    let mut candidates = vec![
-        PathBuf::from(r"C:\Program Files\PVsyst8.1.7\PVsystCLI.exe"),
-        PathBuf::from(r"C:\Program Files (x86)\PVsyst8.1.7\PVsystCLI.exe"),
+/// Version numbers of an install folder name such as `PVsyst8.1.8` (`[8, 1, 8]`).
+/// `None` for anything else, e.g. the data folder `PVsyst8.1_Data` or another major.
+pub(crate) fn version_de(carpeta: &str) -> Option<Vec<u32>> {
+    let numeros: Vec<u32> = carpeta
+        .strip_prefix("PVsyst")?
+        .split('.')
+        .map(str::parse)
+        .collect::<Result<_, _>>()
+        .ok()?;
+    (numeros.first() == Some(&8)).then_some(numeros)
+}
+
+/// The PVsyst 8.x install folders found on this machine, newest version first,
+/// so an update (8.1.7 → 8.1.8) needs no change here.
+fn instalaciones() -> Vec<PathBuf> {
+    let mut raices = vec![
+        PathBuf::from(r"C:\Program Files"),
+        PathBuf::from(r"C:\Program Files (x86)"),
     ];
     if let Some(h) = home() {
-        candidates.push(h.join(r"AppData\Local\Programs\PVsyst8.1.7\PVsystCLI.exe"));
+        raices.push(h.join(r"AppData\Local\Programs"));
     }
-    first_existing(candidates).unwrap_or_else(|| PathBuf::from("pvsystcli"))
+    let mut halladas: Vec<(Vec<u32>, PathBuf)> = raices
+        .iter()
+        .filter_map(|r| std::fs::read_dir(r).ok())
+        .flatten()
+        .flatten()
+        .filter_map(|e| Some((version_de(e.file_name().to_str()?)?, e.path())))
+        .collect();
+    halladas.sort_by(|a, b| b.0.cmp(&a.0));
+    halladas.into_iter().map(|(_, ruta)| ruta).collect()
+}
+
+fn resolve_exe(variable: &str, exe: &str) -> PathBuf {
+    if let Some(p) = ruta_de_entorno(variable) {
+        return p;
+    }
+    let candidates = instalaciones().into_iter().map(|d| d.join(exe)).collect();
+    first_existing(candidates).unwrap_or_else(|| PathBuf::from(exe))
+}
+
+fn resolve_cli() -> PathBuf {
+    resolve_exe("PVSYST_CLI", "PVsystCLI.exe")
 }
 
 fn resolve_gui() -> PathBuf {
-    if let Some(p) = ruta_de_entorno("PVSYST_GUI") {
-        return p;
-    }
-    let candidates = vec![
-        PathBuf::from(r"C:\Program Files\PVsyst8.1.7\PVsyst.exe"),
-        PathBuf::from(r"C:\Program Files (x86)\PVsyst8.1.7\PVsyst.exe"),
-    ];
-    first_existing(candidates).unwrap_or_else(|| PathBuf::from("PVsyst.exe"))
+    resolve_exe("PVSYST_GUI", "PVsyst.exe")
 }
 
 #[cfg(test)]
