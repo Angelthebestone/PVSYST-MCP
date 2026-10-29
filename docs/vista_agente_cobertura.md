@@ -25,7 +25,7 @@ recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactament
 - Clases que PVsyst abrió y **no están en el mapa**: `TAboutForm`, `TLicenseMainForm` (puede mostrar datos de la licencia) y un
   diálogo de Windows (`#32770`). No se añadieron al mapa.
 
-## Por clase (71 de 82 abiertas en vivo; 11 solo clasificadas)
+## Por clase (75 de 82 abiertas en vivo; 7 solo clasificadas)
 | Clase | Dominio | Estado | Abierta en vivo | Campos vivos | Botones | Instancias en el mapa |
 |---|---|---|---|---|---|---|
 | `MicrosoftWindowsTooltip` | aplicacion | 4 | no | — | — | 1 |
@@ -47,7 +47,7 @@ recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactament
 | `TDetailedLossesForm` | variante | 2 | sí (`variante.perdidas_detalladas`) | 6 | 5 | 4 |
 | `TDimensForm` | variante | 3 | sí (`diseno_preliminar.conectado_a_la_red`) | 0 | 5 | 3 |
 | `TDimensSituationForm` | variante | 2 | sí (`diseno_preliminar.conectado_a_la_red.sitio_y_datos_meteo`) | 3 | 3 | 4 |
-| `TDomesticUseForm` | variante | 2 | no | — | — | 1 |
+| `TDomesticUseForm` | variante | 2 | sí (`variante.necesidades_usuario_independiente`) | 35 | 6 | 1 |
 | `TEcoEvaluationForm` | variante | 2 | sí (`variante.evaluacion_economica`) | 1 | 4 | 3 |
 | `TEcoPriceListForm` | variante | 2 | sí (`bases_de_datos.precios`) | 2 | 3 | 1 |
 | `TElementaryObjectForm` | escena_3d | 2 | sí (`escena_3d.crear.objeto_elemental`) | 8 | 2 | 1 |
@@ -95,9 +95,9 @@ recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactament
 | `TSimulValHorForm` | resultados | 3 | sí (`variante.simulacion_avanzada.almacen_de_datos_por_hora`) | 0 | 2 | 1 |
 | `TSummaryForm` | variante | 2 | sí (`escena_3d.herramientas.resumen_de_escena`) | 1 | 1 | 4 |
 | `TSystemCircuitForm` | variante | 2 | sí (`variante.perdidas_detalladas.diagrama_unifilar`) | 5 | 1 | 2 |
-| `TSystemPumpingForm` | variante | 2 | no | — | — | 1 |
+| `TSystemPumpingForm` | variante | 2 | sí (`variante.sistema_bombeo`) | 18 | 5 | 1 |
 | `TSystemeAddForm` | variante | 2 | sí (`variante.gestion_energia`) | 6 | 3 | 1 |
-| `TSystemeBattForm` | variante | 2 | no | — | — | 1 |
+| `TSystemeBattForm` | variante | 2 | sí (`variante.sistema_independiente`) | 24 | 6 | 1 |
 | `TSystemegridDCForm` | variante | 2 | no | — | — | 1 |
 | `TSystemegridForm` | variante | 2 | sí (`variante.sistema`) | 22 | 10 | 1 |
 | `TTableFieldForm` | meteo | 2 | sí (`escena_3d.crear.generador_fv`) | 7 | 3 | 1 |
@@ -107,7 +107,7 @@ recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactament
 | `TUserNeedsForm` | variante | 2 | sí (`variante.autoconsumo`) | 8 | 6 | 2 |
 | `TVCManageForm` | variante | 2 | no | — | — | 1 |
 | `TVoltageOptimiseForm` | variante | 2 | no | — | — | 1 |
-| `TWaterUseForm` | variante | 2 | no | — | — | 1 |
+| `TWaterUseForm` | variante | 2 | sí (`variante.necesidades_agua`) | 11 | 4 | 1 |
 | `TWiringResistanceForm` | variante | 2 | sí (`variante.perdidas_detalladas.computacion_detallada`) | 9 | 4 | 1 |
 | `TWorkspaceForm` | aplicacion | 3 | sí (`archivo.espacio_de_trabajo`) | 0 | 1 | 2 |
 
@@ -160,10 +160,10 @@ Recorridas en vivo con el release (PVsyst 8.1.7, 144 DPI, 2026-10-28, PRUEBA): c
 - `docs/gui_mapa.json` difiere del recorrido en el número de pestañas de `TGeneratorForm` (2; el mapa, 1), `TPumpControllerForm` (2; 1), `TGridInverterForm` (6; 5), `TEcoEvaluationForm` (5; el mapa lista 6 nombres, y no se midió por qué una no aparece), `TSystemeAddForm` (4; 3) y otras: el mapa solo registra las pestañas que se pisaron `[INFERENCIA]`.
 - **`TPVModuleForm` (módulo nuevo, 5 pestañas):** `pagina 1` fue vetada con los campos obligatorios vacíos; tras `rellenar` con valores válidos (modelo, fabricante, potencia, Isc, Voc, Impp, Vmpp, μIsc) pasó la 0→1, y desde la 1 PVsyst vetó **todo** cambio, incluso volver a la 0, mientras la pestaña tuviera campos inválidos. Coincide con la hipótesis «PVsyst impide salir de una página mientras sus campos son inválidos» (observada, no probada contra el código). `rellenar` hoy solo cubre la pestaña 0: tras `pagina`, `que:vista` repite las 16 claves del esquema y el resto cae en `sin_mapear`.
 - `TEcoEvaluationForm`: recorrer sus pestañas marca el formulario como modificado; cerrarlo pregunta «¿Quiere cancelar las modificaciones?» y no hay botón inocuo (No lo deja abierto, Sí está prohibido en la exploración). Se resolvió cerrando el proceso de PVsyst, que no tenía nada guardado.
-- Sin abrir: `TSettingsForm` (la función por menú pierde el primer plano), `TDomesticUseForm`, `TWaterUseForm` (botones no visibles en un proyecto de red), `TSystemeBattForm` y `TSystemPumpingForm` (en un proyecto de red la función abre `TSystemegridForm`: necesitan un proyecto independiente o de bombeo). `TGeoSiteForm` no se recorrió a propósito: una pestaña es un mapa web.
+- Sin abrir: ninguna de las 5 que faltaban (`TSettingsForm`, `TDomesticUseForm`, `TWaterUseForm`, `TSystemeBattForm`, `TSystemPumpingForm`) sigue sin abrir (PVsyst 8.1.8, 2026-10-29): las cuatro de sistema se abrieron con los proyectos demo `_DEMO_StandAlone` (fila 7 de «Cargar proyecto», `TDomesticUseForm` 35 campos y 2 pestañas, `TSystemeBattForm` 24 y 4) y `_DEMO_Pumping` (fila 4, `TWaterUseForm` 11 y 2, `TSystemPumpingForm` 18 y 3), y `TSettingsForm` (20 campos, 4 pestañas: Albedo, Condiciones de diseño, Otras limitaciones, Preferencias) con el botón «Configuración del proyecto» (`accion:clic_texto`): la función por menú falló porque un intento anterior dejó la barra de menús activada (la ventana mostraba «Proyecto» resaltado) y hubo que salir con `ESC`. `TGeoSiteForm` no se recorrió a propósito: una pestaña es un mapa web.
 
 ## No abiertas, solo clasificadas desde el mapa
-`MicrosoftWindowsTooltip`, `TBacktrackingForm`, `TDomesticUseForm`, `TShedElecShadingForm`, `TSystemPumpingForm`, `TSystemeBattForm`, `TSystemegridDCForm`, `TTranspositionForm`, `TVCManageForm`, `TVoltageOptimiseForm`, `TWaterUseForm`.
+`MicrosoftWindowsTooltip`, `TBacktrackingForm`, `TShedElecShadingForm`, `TSystemegridDCForm`, `TTranspositionForm`, `TVCManageForm`, `TVoltageOptimiseForm`.
 Motivos: requieren un sitio elegido o un proyecto con resultados (botones deshabilitados en un proyecto nuevo), o la función del
 catálogo abre otra ventana (`herramientas.factor_transposicion` abre `TArrayCharactForm`, no `TTranspositionForm`).
 `MicrosoftWindowsTooltip` no es de PVsyst.
