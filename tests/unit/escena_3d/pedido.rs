@@ -13,6 +13,12 @@ const CAJA_POSICIONADA: &[u8] =
 /// A scene of all 27 shapes with the defaults of PVsyst's dialog, saved by PVsyst 8.1.8.
 const FORMAS_GUARDADAS: &[u8] = include_bytes!("../../fixtures/escena_3d/Formas27_8_1_8.SHD");
 
+/// Shapes 15-27 built with a different value in every parameter (13 objects), and the scene PVsyst 8.1.8 saved for them.
+const FORMAS_DISTINTAS_PEDIDO: &str =
+    include_str!("../../fixtures/escena_3d/Formas13_distintos_pedido.json");
+const FORMAS_DISTINTAS_GUARDADAS: &[u8] =
+    include_bytes!("../../fixtures/escena_3d/Formas13_distintos_8_1_8.SHD");
+
 fn escena_de_ejemplo() -> Value {
     json!([
         {"tipo": "paralelepipedo", "x": 0, "y": 0, "z": 0, "anchura_dx": 10, "longitud_dy": 8, "altura_dz": 3},
@@ -242,6 +248,18 @@ fn should_find_every_requested_value_in_the_file_when_the_scene_is_what_was_aske
         "anchura_dx": 10, "longitud_dy": 8, "altura_dz": 3}]));
     assert_eq!(estados.len(), 8);
     assert!(estados.iter().all(|(_, e)| e == "\"ok\""), "{estados:?}");
+}
+
+#[test]
+fn should_find_every_value_of_shapes_15_to_27_in_what_pvsyst_saved() {
+    let pedido: Value = serde_json::from_str(FORMAS_DISTINTAS_PEDIDO).expect("request fixture");
+    let pedidos = leer_objetos(&pedido).expect("valid request");
+    let escena =
+        parse_escena_3d(FORMAS_DISTINTAS_GUARDADAS, TipoArchivoEscena::Shd).expect("saved scene");
+    let filas = comparar(&escena, &pedidos);
+    assert_eq!(pedidos.len(), 13);
+    assert!(!filas.is_empty());
+    assert!(filas.iter().all(|f| f["estado"] == "ok"), "{filas:?}");
 }
 
 #[test]

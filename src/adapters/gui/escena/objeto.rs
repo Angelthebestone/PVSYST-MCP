@@ -41,10 +41,11 @@ fn elegir_forma(dialogo: &Formulario, objeto: &ObjetoPedido) -> Result<()> {
 }
 
 /// The name field is the first edit, the shape's values follow in `Params` order.
+/// Thin shapes (cable) add a last edit, the «Objeto delgado» percentage, which is left as is.
 fn rellenar(dialogo: &Formulario, objeto: &ObjetoPedido) -> Result<()> {
     let campos = campos(dialogo.h);
     let esperados = objeto.forma.parametros.len() + 1;
-    if campos.len() != esperados {
+    if !(esperados..=esperados + 1).contains(&campos.len()) {
         return Err(Error::Gui(format!(
             "'{}' tiene {} campos y se esperaban {esperados}: ¿cambió la versión de PVsyst?",
             objeto.forma.tipo,

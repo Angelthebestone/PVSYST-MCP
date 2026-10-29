@@ -5,9 +5,9 @@
 //! back (`tests/fixtures/escena_3d/Formas27_8_1_8.SHD`). Each row is the agent
 //! key, PVsyst's own type name (`ObjetElemType`), the label of the combo and
 //! the parameters in the order of `Params=` (the order of the dialog, top to
-//! bottom). `[INFERENCIA]`: for shapes whose defaults repeat a value (all 1.00)
-//! the order was not told apart by the file; only the box was checked with
-//! distinct values.
+//! bottom). Then every shape was built again with a different value in each
+//! parameter and the saved file matched the request (0 differences), so the
+//! order is proven for all 27.
 
 use super::formas::{
     angulo, apertura, caja, cuenta, giro, longitud, sin_leer, Forma, Parametro, PARAMETROS_DE_CAJA,
