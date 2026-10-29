@@ -38,7 +38,7 @@ fn should_register_every_window_class_of_the_map_in_exactly_one_state() {
         sobrantes.is_empty(),
         "clases registradas que no están en el mapa: {sobrantes:?}"
     );
-    assert_eq!(del_mapa.len(), 82);
+    assert_eq!(del_mapa.len(), 85);
 }
 
 #[test]
@@ -95,14 +95,14 @@ fn should_link_every_schema_entity_to_its_registered_window() {
 #[test]
 fn should_list_every_window_and_count_the_states_without_losing_any() {
     let listado = listar_ventanas();
-    assert_eq!(listado["total"], 82);
+    assert_eq!(listado["total"], 85);
     let suma: u64 = listado["por_estado"]
         .as_object()
         .expect("states")
         .values()
         .filter_map(serde_json::Value::as_u64)
         .sum();
-    assert_eq!(suma, 82);
+    assert_eq!(suma, 85);
     let panel = listado["ventanas"]
         .as_array()
         .expect("windows")

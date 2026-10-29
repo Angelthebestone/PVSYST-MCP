@@ -3,6 +3,8 @@
 use super::super::dominio::{basica, solo_acciones, Ventana};
 
 pub(super) const VENTANAS: &[Ventana] = &[
+    solo_acciones("TSaveComponentForm", "Confirmación al pulsar OK en un componente: una casilla de compatibilidad y los botones «Guardar como» y «Cancelar»."),
+    basica("TSaveObjPVForm"),
     basica("TPVModuleForm").con_esquema("components.panels"),
     basica("TGridInverterForm").con_esquema("components.inverters"),
     basica("TBatteryForm").con_esquema("components.batteries"),

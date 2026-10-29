@@ -24,8 +24,8 @@ recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactament
    interna en mΩ (3.5) y el archivo la guarda en Ω (`ResInterne=0.0035`); la eficiencia coulómbica se muestra en % (95.5) y se
    guarda como fracción (`EfficI=0.955`). No se probaron los campos de la derecha (energía en DOD, capacidad de la hoja de datos,
    tasa de descarga) ni las pestañas 1 a 4.
-2. **Entidad básica** (clave por clase y posición a 96 DPI, valor leído por handle): **64**.
-3. **Solo acciones** (se describe por sus botones): **14**.
+2. **Entidad básica** (clave por clase y posición a 96 DPI, valor leído por handle): **66** (más 3 con esquema propio: `TPVModuleForm`, `TGridInverterForm`, `TBatteryForm`).
+3. **Solo acciones** (se describe por sus botones): **15**.
 4. **No aplica** (dibujado o ajeno, solo captura): **4**.
 
 ## Cómo se midió
@@ -42,7 +42,7 @@ recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactament
 - Clases que PVsyst abrió y **no están en el mapa**: `TAboutForm`, `TLicenseMainForm` (puede mostrar datos de la licencia) y un
   diálogo de Windows (`#32770`). No se añadieron al mapa.
 
-## Por clase (75 de 82 abiertas en vivo; 7 solo clasificadas)
+## Por clase (78 de 85 abiertas en vivo; 7 solo clasificadas)
 | Clase | Dominio | Estado | Abierta en vivo | Campos vivos | Botones | Instancias en el mapa |
 |---|---|---|---|---|---|---|
 | `MicrosoftWindowsTooltip` | aplicacion | 4 | no | — | — | 1 |
@@ -76,6 +76,7 @@ recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactament
 | `TGroundObjectForm` | escena_3d | 2 | sí (`escena_3d.crear.objeto_de_tierra`) | 11 | 2 | 1 |
 | `THelpForm` | aplicacion | 4 | sí (`escena_3d.ayuda.paginas_de_ayuda`) | 0 | 0 | 1 |
 | `THorizonForm` | variante | 2 | sí (`variante.horizonte`) | 9 | 7 | 4 |
+| `TImportResultForm` | escena 3d | 2 | sí (Archivo ▸ Importar ▸ Importar una escena 3D, PVsyst 8.1.8) | 10 | 2 | 1 |
 | `TImportHorizonForm` | variante | 2 | sí (`variante.horizonte.leer_importar`) | 9 | 3 | 1 |
 | `TMetWizard` | meteo | 3 | sí (`bases_de_datos.importar_archivo_personalizado`) | 0 | 2 | 1 |
 | `TMeteoCompareForm` | meteo | 2 | sí (`bases_de_datos.comparar_meteo`) | 10 | 9 | 1 |
@@ -103,6 +104,8 @@ recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactament
 | `TResultPlotHorForm` | resultados | 2 | sí (`variante.resultados_detallados.graficos_por_hora`) | 27 | 3 | 1 |
 | `TResultTabForm` | resultados | 2 | sí (`variante.resultados_detallados.tablas`) | 3 | 2 | 1 |
 | `TSAControllerForm` | componentes | 2 | sí (`bases_de_datos.controladores_independientes.nuevo`) | 23 | 4 | 1 |
+| `TSaveComponentForm` | componentes | 3 | sí (OK de un componente nuevo, PVsyst 8.1.8) | 1 | 2 | 1 |
+| `TSaveObjPVForm` | componentes | 2 | sí (OK y «Guardar como» de un componente nuevo, o «Exportar escena (.SHD)»; PVsyst 8.1.8) | 2 | 2 | 1 |
 | `TSettingsForm` | variante | 2 | sí (`ventana_proyecto.proyecto.configuracion`) | 20 | 2 | 1 |
 | `TShadingsForm` | variante | 2 | sí (`variante.sombreados_cercanos`) | 6 | 10 | 4 |
 | `TShdObjectSelectionForm` | variante | 2 | sí (`escena_3d.herramientas.lista_de_objetos`) | 1 | 2 | 1 |

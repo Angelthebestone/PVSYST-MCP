@@ -1,6 +1,6 @@
 //! How much of a PVsyst window the agent view covers, window class by class.
 
-/// The four ways a window can be covered; each of the 82 classes in
+/// The four ways a window can be covered; each of the 85 classes in
 /// `docs/gui_mapa.json` ends in exactly one.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Cobertura {
