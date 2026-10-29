@@ -24,6 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Contract, size measurements and the tool × action matrix: `docs/vista_agente_salidas.md`.
 
 ### Added
+- **`rellenar` fills several tabs** (`en_pagina` in the schema: tab 0 first, the others in order, back on tab 0). The inverter's
+  efficiency fields live on tab 1.
+- **`componente crear_desde_ficha` types by schema keys** instead of coordinates (`components.panels`, `components.inverters`; the
+  datasheet key is the field's `clave_archivo`). On PVsyst 8.1.8 the old coordinate flow did not save: the «Guardar» button of the
+  save dialog only answers when the file-name field has the focus, and the file name must not carry the extension. Checked live: a
+  module (`Technol=mtSiMono`, `NCelS=72`) and an inverter (efficiencies on tab 1, `MonoTri=Tri`) saved. PVsyst recalculates
+  `PSeuil` (0.00) when it builds the efficiency profile.
 - **`rellenar`/`vista` entity `components.batteries`** (battery window, «Datos básicos», 10 fields), checked against a `.BTR` PVsyst
   saved. The file keeps the internal resistance in ohm and the coulombic efficiency as a fraction, the window shows mOhm and %.
 - **`rellenar`/`vista` entity `components.inverters`** (grid inverter window, «Parámetros principales»): 15 text and number fields with

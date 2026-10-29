@@ -17,6 +17,16 @@ mod vista;
 pub(crate) use relleno::rellenar;
 pub(crate) use vista::{listar_esquemas, vista};
 
+/// Key of the field of `entidad` that PVsyst stores as `clave_archivo` (`PNom` in a `.PAN`).
+pub(crate) fn clave_para_archivo(entidad: &str, clave_archivo: &str) -> Option<&'static str> {
+    esquemas::entidad(entidad)
+        .ok()?
+        .campos
+        .iter()
+        .find(|c| c.clave_archivo == Some(clave_archivo))
+        .map(|c| c.clave)
+}
+
 #[cfg(test)]
 #[path = "../../tests/unit/vista_agente/mod.rs"]
 mod tests;

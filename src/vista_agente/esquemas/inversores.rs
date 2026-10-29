@@ -1,4 +1,5 @@
-//! Grid inverter window (`TGridInverterForm`, "Parámetros principales" page),
+//! Grid inverter window (`TGridInverterForm`, "Parámetros principales" and "Curva de
+//! eficiencia" pages),
 //! PVsyst 8.1.8. Anchors are the control corners in the form's 96-DPI layout,
 //! measured live; file keys and units come from an `.OND` PVsyst saved.
 
@@ -108,5 +109,23 @@ pub(crate) static INVERSORES: Entidad = Entidad {
         )
         .en_archivo("PSeuil")
         .en("kW"),
+        CampoEsquema::numero(
+            "eficiencia_max_pct",
+            "Eficiencia máx.",
+            en(479, 127),
+            (0.0, 100.0),
+        )
+        .en_archivo("EfficMax")
+        .en("%")
+        .en_pagina(1),
+        CampoEsquema::numero(
+            "eficiencia_euro_pct",
+            "Eficiencia EURO",
+            en(479, 154),
+            (0.0, 100.0),
+        )
+        .en_archivo("EfficEuro")
+        .en("%")
+        .en_pagina(1),
     ],
 };

@@ -9,8 +9,8 @@ recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactament
    componentes** (`OK` → `TSaveComponentForm` → «Guardar como» → `TSaveObjPVForm`): con un valor distinto en cada campo, el
    `.PAN` guardado (`tests/fixtures/vista_agente/Modulo_distintos_8_1_8.PAN`) trae `PNom=410.5`, `Isc=11.200`, `Voc=48.30`,
    `Imp=10.400`, `Vmp=39.50`, `muISC=4.20` (mA/°C), `TRef=20.0` y `NCelS=72`: las unidades y las `clave_archivo` están
-   comprobadas. Siguen sin validarse los rangos (son los del MCP, no de PVsyst), `tecnologia` (no se aplicó: el valor guardado
-   fue `Technol=mtNotSpec`) y `g_ref_w_m2`: se tecleó 900 y la ventana siguió en 1000 y el archivo trae `GRef=1000`. `mu_isc_pct_c`
+   comprobadas. Siguen sin validarse los rangos (son los del MCP, no de PVsyst), `tecnologia` (no se pidió: el archivo trae el valor por
+   defecto `Technol=mtNotSpec`) y `g_ref_w_m2`: se tecleó 900 y la ventana siguió en 1000 y el archivo trae `GRef=1000`. `mu_isc_pct_c`
    no se guarda: PVsyst lo calcula desde `muISC`. Por eso no pasa a «completa».
    `TGridInverterForm` («Parámetros principales») tiene ahora esquema `components.inverters` (15 campos de texto y número) y la
    misma validación contra el `.OND` que guardó PVsyst (`tests/fixtures/vista_agente/Inversor_distintos_8_1_8.OND`): `VMppMin=310`,

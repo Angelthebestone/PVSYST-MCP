@@ -11,6 +11,7 @@ use crate::adapters::gui::ffi::{self, Hwnd};
 use crate::args::{flag, missing, req_str};
 use crate::error::{Error, Result};
 use serde_json::{json, Map, Value};
+use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ModoEjecucion {
@@ -30,10 +31,10 @@ struct Paso<'a> {
     control: &'a CampoVivo,
 }
 
-fn emparejar<'a>(cambios: &'a [Cambio], vivos: &'a [CampoVivo]) -> Result<Vec<Paso<'a>>> {
+fn emparejar<'a>(cambios: &[&'a Cambio], vivos: &'a [CampoVivo]) -> Result<Vec<Paso<'a>>> {
     cambios
         .iter()
-        .map(|cambio| {
+        .map(|&cambio| {
             let control = localizar(cambio.campo, vivos).ok_or_else(|| {
                 Error::Gui(format!(
                     "El formulario no coincide con el esquema: no encuentro '{}' ({}). ¿Otra versión de PVsyst u otra pestaña?",
@@ -153,6 +154,66 @@ fn con_texto_actual(antes: &[CampoVivo]) -> Vec<(&CampoVivo, String)> {
         .collect()
 }
 
+/// What a fill acts on: the form, its schema and whether it types or only reports.
+struct Aplicacion<'a> {
+    formulario: &'a Formulario,
+    ent: &'a Entidad,
+    modo: ModoEjecucion,
+}
+
+/// What a tab of the fill produced: the result of each field and the fields PVsyst recomputed.
+type Producido = (Vec<Value>, Vec<Value>);
+
+impl Aplicacion<'_> {
+    /// The changes of one tab; the form is already showing it.
+    fn aplicar(&self, grupo: &[&Cambio]) -> Result<Producido> {
+        let vivos = campos_vivos(self.formulario.h);
+        let pasos = emparejar(grupo, &vivos)?;
+        verificar_listas(&pasos)?;
+        let resultados = pasos
+            .iter()
+            .map(|p| resultado_del_paso(self.formulario, p, self.modo))
+            .collect::<Result<Vec<_>>>()?;
+        Ok((resultados, recalculados(self.ent, &vivos, &pasos)))
+    }
+
+    /// A simulation does not leave tab 0, so fields of other tabs are only reported.
+    fn simular_otra_pagina(grupo: &[&Cambio]) -> Producido {
+        let resultados = grupo
+            .iter()
+            .map(|c| paso_json(c.campo, (&c.texto, ""), None))
+            .collect();
+        (resultados, Vec::new())
+    }
+}
+
+/// Applies the changes tab by tab, in tab order. The form is assumed to open on
+/// tab 0, and is back on it when done.
+fn por_paginas(app: &Aplicacion<'_>, cambios: &[Cambio]) -> Result<Producido> {
+    let mut grupos: BTreeMap<usize, Vec<&Cambio>> = BTreeMap::new();
+    for c in cambios {
+        grupos.entry(c.campo.pagina).or_default().push(c);
+    }
+    let escribe = app.modo == ModoEjecucion::Aplicar;
+    let (mut resultados, mut recalc) = (Vec::new(), Vec::new());
+    for (pagina, grupo) in &grupos {
+        let (r, rec) = match (*pagina, escribe) {
+            (0, _) => app.aplicar(grupo)?,
+            (_, false) => Aplicacion::simular_otra_pagina(grupo),
+            (n, true) => {
+                app.formulario.pagina(n)?;
+                app.aplicar(grupo)?
+            }
+        };
+        resultados.extend(r);
+        recalc.extend(rec);
+    }
+    if escribe && grupos.keys().any(|p| *p != 0) {
+        app.formulario.pagina(0)?;
+    }
+    Ok((resultados, recalc))
+}
+
 /// Validates, then types (or, with `simular`, only reports) the values.
 pub(crate) fn rellenar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     let ent = entidad(req_str(
@@ -166,19 +227,18 @@ pub(crate) fn rellenar(paths: &crate::config::Paths, args: &Value) -> Result<Val
         .ok_or_else(|| missing("valores", "objeto {clave: valor}"))?;
     let cambios = planificar(ent, valores)?;
     let h = ventana_de(args, ent)?;
-    let vivos = campos_vivos(h);
-    let pasos = emparejar(&cambios, &vivos)?;
-    verificar_listas(&pasos)?;
     let modo = if flag(args, &["simular"]) {
         ModoEjecucion::Simular
     } else {
         ModoEjecucion::Aplicar
     };
     let formulario = Formulario::de(h);
-    let resultados = pasos
-        .iter()
-        .map(|p| resultado_del_paso(&formulario, p, modo))
-        .collect::<Result<Vec<_>>>()?;
+    let aplicacion = Aplicacion {
+        formulario: &formulario,
+        ent,
+        modo,
+    };
+    let (resultados, recalculados) = por_paginas(&aplicacion, &cambios)?;
     let vista = super::vista::vista(
         paths,
         &json!({"entidad": ent.clave, "ventana": format!("0x{h:X}")}),
@@ -188,7 +248,7 @@ pub(crate) fn rellenar(paths: &crate::config::Paths, args: &Value) -> Result<Val
         "ventana": format!("0x{h:X}"),
         "simulado": modo == ModoEjecucion::Simular,
         "resultados": resultados,
-        "recalculados": recalculados(ent, &vivos, &pasos),
+        "recalculados": recalculados,
         "formulario": vista,
     }))
 }

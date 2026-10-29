@@ -52,6 +52,8 @@ pub(crate) struct CampoEsquema {
     pub(crate) tipo: TipoValor,
     pub(crate) acceso: Acceso,
     pub(crate) ancla: Ancla,
+    /// Tab (from 0) of the form's `TPageControl` that shows the control.
+    pub(crate) pagina: usize,
 }
 
 impl CampoEsquema {
@@ -65,6 +67,7 @@ impl CampoEsquema {
             tipo: TipoValor::Texto,
             acceso: Acceso::Escritura,
             ancla,
+            pagina: 0,
         }
     }
 
@@ -122,6 +125,11 @@ impl CampoEsquema {
 
     pub(crate) const fn en(mut self, unidad: &'static str) -> Self {
         self.unidad = unidad;
+        self
+    }
+
+    pub(crate) const fn en_pagina(mut self, pagina: usize) -> Self {
+        self.pagina = pagina;
         self
     }
 

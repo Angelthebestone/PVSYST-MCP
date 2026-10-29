@@ -293,3 +293,16 @@ fn should_keep_the_scale_the_saved_battery_uses_for_the_values_typed() {
         );
     }
 }
+
+#[test]
+fn should_put_only_the_efficiency_fields_of_the_inverter_on_the_second_tab() {
+    let esquema = entidad("components.inverters").expect("inverter schema");
+    let en_pagina_1: Vec<&str> = esquema
+        .campos
+        .iter()
+        .filter(|c| c.pagina == 1)
+        .map(|c| c.clave)
+        .collect();
+    assert_eq!(en_pagina_1, ["eficiencia_max_pct", "eficiencia_euro_pct"]);
+    assert!(panel().campos.iter().all(|c| c.pagina == 0));
+}
