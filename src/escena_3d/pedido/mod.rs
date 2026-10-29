@@ -2,6 +2,7 @@
 //! name and number, never bytes. PVsyst writes its own scene files; the MCP
 //! only describes the scene, checks it and, later, compares what PVsyst saved.
 
+mod catalogo;
 mod colision;
 mod formas;
 mod informe;

@@ -91,7 +91,8 @@ fn leer_posicion(objeto: &Map<String, Value>) -> Result<Posicion, Vec<Problema>>
 }
 
 fn leer_parametro(objeto: &Map<String, Value>, p: &Parametro) -> Result<f64, Problema> {
-    numero(objeto, p.clave, None).and_then(|v| dentro(p.clave, v, (p.minimo, p.maximo)))
+    let defecto = (!p.obligatorio).then_some(p.defecto);
+    numero(objeto, p.clave, defecto).and_then(|v| dentro(p.clave, v, (p.minimo, p.maximo)))
 }
 
 fn claves_ajenas(objeto: &Map<String, Value>, forma: &Forma) -> Vec<Problema> {
@@ -109,12 +110,6 @@ fn claves_ajenas(objeto: &Map<String, Value>, forma: &Forma) -> Vec<Problema> {
             validas: validas.clone(),
         })
         .collect()
-}
-
-/// A tree's trunk must be thinner than its crown.
-fn coherencia(forma: &Forma, valores: &Valores) -> Option<Problema> {
-    let (copa, tronco) = (valores.get("radio_copa")?, valores.get("radio_tronco")?);
-    (forma.tipo == "arbol" && tronco >= copa).then_some(Problema::TroncoMayorQueCopa)
 }
 
 fn forma_del_objeto(objeto: &Map<String, Value>) -> Result<&'static Forma, Problema> {
@@ -146,7 +141,6 @@ fn leer_objeto(valor: &Value) -> Result<ObjetoPedido, Vec<Problema>> {
     let mut problemas = claves_ajenas(objeto, forma);
     problemas.extend(parametros.into_iter().filter_map(|(_, r)| r.err()));
     problemas.extend(posicion.as_ref().err().cloned().unwrap_or_default());
-    problemas.extend(coherencia(forma, &valores));
     match posicion {
         Ok(posicion) if problemas.is_empty() => Ok(ObjetoPedido {
             forma,

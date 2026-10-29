@@ -8,10 +8,11 @@ const TOLERANCIA_M: f64 = 1e-6;
 
 type Caja = [(f64, f64); 3];
 
-fn caja(objeto: &ObjetoPedido) -> Caja {
+/// The box of an object whose geometry is proven; `None` for the other shapes.
+fn caja(objeto: &ObjetoPedido) -> Option<Caja> {
     let p = objeto.posicion;
-    let [dx, dy, dz] = (objeto.forma.extension)(&objeto.valores);
-    [(p.x, p.x + dx), (p.y, p.y + dy), (p.z, p.z + dz)]
+    let [dx, dy, dz] = (objeto.forma.extension?)(&objeto.valores);
+    Some([(p.x, p.x + dx), (p.y, p.y + dy), (p.z, p.z + dz)])
 }
 
 fn se_solapan(a: &Caja, b: &Caja) -> bool {
@@ -21,8 +22,9 @@ fn se_solapan(a: &Caja, b: &Caja) -> bool {
 }
 
 /// Pairs of object indices whose boxes share volume. O(n²) in the objects of a scene.
+/// Shapes without a proven box are left out: see [`sin_caja`].
 pub(crate) fn colisiones(objetos: &[ObjetoPedido]) -> Vec<(usize, usize)> {
-    let cajas: Vec<Caja> = objetos.iter().map(caja).collect();
+    let cajas: Vec<Option<Caja>> = objetos.iter().map(caja).collect();
     cajas
         .iter()
         .enumerate()
@@ -31,8 +33,19 @@ pub(crate) fn colisiones(objetos: &[ObjetoPedido]) -> Vec<(usize, usize)> {
                 .iter()
                 .enumerate()
                 .skip(i + 1)
-                .filter(move |(_, b)| se_solapan(a, b))
+                .filter(move |(_, b)| matches!((a, b), (Some(a), Some(b)) if se_solapan(a, b)))
                 .map(move |(j, _)| (i, j))
         })
+        .collect()
+}
+
+/// Indices of the objects the collision check cannot see (shape without a proven box).
+pub(crate) fn sin_caja(objetos: &[ObjetoPedido]) -> Vec<usize> {
+    let vacias = |o: &ObjetoPedido| o.forma.extension.is_none();
+    objetos
+        .iter()
+        .enumerate()
+        .filter(|(_, o)| vacias(o))
+        .map(|(i, _)| i)
         .collect()
 }

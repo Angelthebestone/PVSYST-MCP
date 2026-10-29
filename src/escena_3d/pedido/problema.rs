@@ -29,6 +29,4 @@ pub(crate) enum Problema {
         tipo: &'static str,
         validas: Vec<&'static str>,
     },
-    #[error("'radio_tronco' debe ser menor que 'radio_copa'")]
-    TroncoMayorQueCopa,
 }
