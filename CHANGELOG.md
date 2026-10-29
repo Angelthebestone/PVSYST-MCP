@@ -66,7 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - The PVsyst install is no longer pinned to `C:\Program Files\PVsyst8.1.7`: `PVsystCLI.exe` and `PVsyst.exe` are
-  looked up in the newest `PVsyst8.x` folder under Program Files, Program Files (x86) and
+  looked up in the newest `PVsyst<n>.x` folder (n ≥ 8) under Program Files, Program Files (x86) and
   `%LOCALAPPDATA%\Programs` (`PVSYST_CLI`/`PVSYST_GUI` still win). Seen on 8.1.8 (build 49527): `THomeForm`,
   `TChoixObjetPVForm`, `TPVModuleForm` (16 fields) keep their classes; still TRIAL.
 - `vista.campos` gave a unit to text values whose key ends like one (`frente_a` → `A`); only numbers get a unit.

@@ -26,10 +26,16 @@ fn should_rank_1_10_above_1_8_when_comparing_versions() {
 }
 
 #[test]
-fn should_ignore_folder_when_it_is_data_or_another_major() {
+fn should_ignore_folder_when_it_is_data_or_a_major_before_8() {
     assert_eq!(version_de("PVsyst8.1_Data"), None);
     assert_eq!(version_de("PVsystBasic1.0"), None);
     assert_eq!(version_de("PVsyst7.4.0"), None);
+}
+
+#[test]
+fn should_rank_a_later_major_above_8_when_comparing_versions() {
+    assert_eq!(version_de("PVsyst9.0.1"), Some(vec![9, 0, 1]));
+    assert!(version_de("PVsyst9.0") > version_de("PVsyst8.1.10"));
 }
 
 #[test]

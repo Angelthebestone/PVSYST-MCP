@@ -166,7 +166,7 @@ fn resolve_workspace() -> PathBuf {
 }
 
 /// Version numbers of an install folder name such as `PVsyst8.1.8` (`[8, 1, 8]`).
-/// `None` for anything else, e.g. the data folder `PVsyst8.1_Data` or another major.
+/// `None` for anything else, e.g. the data folder `PVsyst8.1_Data` or a major before 8.
 pub(crate) fn version_de(carpeta: &str) -> Option<Vec<u32>> {
     let numeros: Vec<u32> = carpeta
         .strip_prefix("PVsyst")?
@@ -174,11 +174,11 @@ pub(crate) fn version_de(carpeta: &str) -> Option<Vec<u32>> {
         .map(str::parse)
         .collect::<Result<_, _>>()
         .ok()?;
-    (numeros.first() == Some(&8)).then_some(numeros)
+    (numeros.first()? >= &8).then_some(numeros)
 }
 
-/// The PVsyst 8.x install folders found on this machine, newest version first,
-/// so an update (8.1.7 → 8.1.8) needs no change here.
+/// The PVsyst 8 or later install folders found on this machine, newest version first,
+/// so an update (8.1.7 → 8.1.8, or a PVsyst 9) needs no change here.
 fn instalaciones() -> Vec<PathBuf> {
     let mut raices = vec![
         PathBuf::from(r"C:\Program Files"),
