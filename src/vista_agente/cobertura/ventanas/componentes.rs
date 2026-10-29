@@ -4,7 +4,7 @@ use super::super::dominio::{basica, solo_acciones, Ventana};
 
 pub(super) const VENTANAS: &[Ventana] = &[
     basica("TPVModuleForm").con_esquema("components.panels"),
-    basica("TGridInverterForm"),
+    basica("TGridInverterForm").con_esquema("components.inverters"),
     basica("TBatteryForm"),
     basica("TPumpForm"),
     basica("TPumpControllerForm"),

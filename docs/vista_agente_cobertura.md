@@ -12,6 +12,12 @@ recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactament
    comprobadas. Siguen sin validarse los rangos (son los del MCP, no de PVsyst), `tecnologia` (no se aplicó: el valor guardado
    fue `Technol=mtNotSpec`) y `g_ref_w_m2`: se tecleó 900 y la ventana siguió en 1000 y el archivo trae `GRef=1000`. `mu_isc_pct_c`
    no se guarda: PVsyst lo calcula desde `muISC`. Por eso no pasa a «completa».
+   `TGridInverterForm` («Parámetros principales») tiene ahora esquema `components.inverters` (15 campos de texto y número) y la
+   misma validación contra el `.OND` que guardó PVsyst (`tests/fixtures/vista_agente/Inversor_distintos_8_1_8.OND`): `VMppMin=310`,
+   `VmppNom=600.0`, `VMPPMax=820`, `VAbsMax=1000`, `VOutConv=400.0` (V), `PNomConv=20.500`, `PMaxOUT=22.500` y `PSeuil=0.10` (kW),
+   además de `Model` y `Manufacturer`. No se aplicaron `voltaje_min_pnom_v`, `corriente_entrada_max_a`, `corriente_ca_nominal_a`
+   y `corriente_ca_max_a` (quedan en «N/A» y deshabilitados tras rellenar: dependen de casillas que el esquema no modela), así que
+   no tienen `clave_archivo`. Radios (fases) y casillas (50/60 Hz) no entran en el modelo de campos.
 2. **Entidad básica** (clave por clase y posición a 96 DPI, valor leído por handle): **64**.
 3. **Solo acciones** (se describe por sus botones): **14**.
 4. **No aplica** (dibujado o ajeno, solo captura): **4**.

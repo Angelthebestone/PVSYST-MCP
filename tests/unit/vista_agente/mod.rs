@@ -202,3 +202,55 @@ fn should_keep_the_units_the_saved_module_shows_for_the_values_typed() {
     assert_eq!(valor("TRef"), Some(20.0));
     assert_eq!(valor("NCelS"), Some(72.0));
 }
+
+/// An inverter typed through `rellenar` and saved by PVsyst 8.1.8.
+const INVERSOR_GUARDADO: &str =
+    include_str!("../../fixtures/vista_agente/Inversor_distintos_8_1_8.OND");
+
+fn valor_guardado(archivo: &str, clave: &str) -> Option<f64> {
+    archivo
+        .lines()
+        .find_map(|l| {
+            l.trim()
+                .strip_prefix(&format!("{clave}="))
+                .map(str::to_string)
+        })
+        .and_then(|v| v.trim().parse::<f64>().ok())
+}
+
+#[test]
+fn should_find_every_file_key_of_the_inverter_schema_in_the_inverter_pvsyst_saved() {
+    let claves: Vec<&str> = INVERSOR_GUARDADO
+        .lines()
+        .filter_map(|l| l.trim().split_once('=').map(|(k, _)| k))
+        .collect();
+    let esquema = entidad("components.inverters").expect("inverter schema");
+    for clave in esquema.campos.iter().filter_map(|c| c.clave_archivo) {
+        assert!(
+            claves.contains(&clave),
+            "{clave} no está en el archivo guardado"
+        );
+    }
+}
+
+#[test]
+fn should_keep_the_units_the_saved_inverter_shows_for_the_values_typed() {
+    // Volts and kilowatts, as typed by `rellenar`.
+    let tecleado = [
+        ("VMppMin", 310.0),
+        ("VmppNom", 600.0),
+        ("VMPPMax", 820.0),
+        ("VAbsMax", 1000.0),
+        ("VOutConv", 400.0),
+        ("PNomConv", 20.5),
+        ("PMaxOUT", 22.5),
+        ("PSeuil", 0.1),
+    ];
+    for (clave, esperado) in tecleado {
+        assert_eq!(
+            valor_guardado(INVERSOR_GUARDADO, clave),
+            Some(esperado),
+            "{clave}"
+        );
+    }
+}
