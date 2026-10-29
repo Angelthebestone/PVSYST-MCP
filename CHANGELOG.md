@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Contract, size measurements and the tool × action matrix: `docs/vista_agente_salidas.md`.
 
 ### Added
+- **`gui_observar que:esquema entidad:escena_3d.formas`** describes the 27 shapes of the 3D editor (PVsyst type, combo entry, each parameter
+  with label, unit, default, range) before the agent asks for a scene; the unfiltered listing points to it (`otras_entidades`).
 - **`rellenar` fills several tabs** (`en_pagina` in the schema: tab 0 first, the others in order, back on tab 0). The inverter's
   efficiency fields live on tab 1.
 - **`componente crear_desde_ficha` types by schema keys** instead of coordinates (`components.panels`, `components.inverters`; the

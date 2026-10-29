@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 
 const MAX_NOMBRE: usize = 64;
 const AVISO_ANCLA: &str = "[INFERENCIA] colisiones solo entre paralelepípedos, con la posición como esquina inferior: el ancla de PVsyst no está demostrada y las demás formas no se comprueban (sin_caja).";
-const AVISO_SIN_CREACION: &str = "La creación de la escena en el editor 3D de PVsyst aún no está automatizada: esta acción solo valida el pedido. Las escenas no se escriben a mano.";
+const AVISO_SIN_CREACION: &str = "Con simular:true esta acción solo valida el pedido; sin él crea los objetos en el editor 3D abierto y comprueba el archivo que PVsyst guardó. Las escenas no se escriben a mano.";
 const AVISO_RANGOS: &str = "Los rangos son límites del MCP; los de PVsyst no están medidos.";
 
 /// A scene name that is a plain file name: it becomes `Shadings\<nombre>.SHD`.

@@ -4,12 +4,14 @@
 
 mod catalogo;
 mod colision;
+mod esquema;
 mod formas;
 mod informe;
 mod lectura;
 mod problema;
 mod verificacion;
 
+pub(crate) use esquema::esquema_de_formas;
 pub(crate) use informe::{describir_escena, nombre_valido};
 pub(crate) use lectura::{leer_objetos, ObjetoPedido, MAX_OBJETOS};
 pub(crate) use verificacion::comparar;

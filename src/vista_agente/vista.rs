@@ -13,6 +13,9 @@ use crate::args::{flag, opt_str};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
 
+/// The shapes of the 3D editor are described by their own catalogue, not by a form.
+const FORMAS_3D: &str = "escena_3d.formas";
+
 fn campo_json(campo: &CampoEsquema, vivo: Option<&CampoVivo>) -> Value {
     let mut map = serde_json::Map::new();
     map.insert("clave".into(), json!(campo.clave));
@@ -160,6 +163,9 @@ pub(crate) fn vista(paths: &crate::config::Paths, args: &Value) -> Result<Value>
 /// `gui_observar que:esquema`: every entity and its fields, or only the one
 /// named by `entidad`; an unknown key is an error, not the whole schema.
 pub(crate) fn listar_esquemas(args: &Value) -> Result<Value> {
+    if opt_str(args, &["entidad"]) == Some(FORMAS_3D) {
+        return Ok(crate::escena_3d::esquema_de_formas());
+    }
     let elegidas: Vec<&Entidad> = match opt_str(args, &["entidad"]) {
         Some(clave) => vec![entidad(clave)?],
         None => todas().to_vec(),
@@ -180,6 +186,7 @@ pub(crate) fn listar_esquemas(args: &Value) -> Result<Value> {
     let sin_filtro = opt_str(args, &["entidad"]).is_none();
     if let (true, Some(obj)) = (sin_filtro, esquemas.as_object_mut()) {
         obj.insert("cobertura".into(), cobertura::listar_ventanas());
+        obj.insert("otras_entidades".into(), json!([FORMAS_3D]));
     }
     Ok(esquemas)
 }

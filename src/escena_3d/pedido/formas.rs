@@ -32,6 +32,16 @@ pub(crate) struct Parametro {
     pub(super) maximo: f64,
 }
 
+impl Parametro {
+    pub(super) const fn minimo(&self) -> f64 {
+        self.minimo
+    }
+
+    pub(super) const fn maximo(&self) -> f64 {
+        self.maximo
+    }
+}
+
 /// A shape: its agent key, PVsyst's type name and its parameters.
 pub(crate) struct Forma {
     pub(crate) tipo: &'static str,
@@ -46,6 +56,11 @@ pub(crate) struct Forma {
 }
 
 impl Forma {
+    /// Whether the collision check knows the box this shape fills.
+    pub(super) const fn tiene_caja(&self) -> bool {
+        self.extension.is_some()
+    }
+
     /// `nombres` is (`ObjetElemType`, entry of PVsyst's combo).
     pub(super) const fn nueva(
         tipo: &'static str,

@@ -306,3 +306,27 @@ fn should_put_only_the_efficiency_fields_of_the_inverter_on_the_second_tab() {
     assert_eq!(en_pagina_1, ["eficiencia_max_pct", "eficiencia_euro_pct"]);
     assert!(panel().campos.iter().all(|c| c.pagina == 0));
 }
+
+#[test]
+fn should_describe_the_27_shapes_of_the_3d_editor_when_their_entity_is_asked_for() {
+    let v = crate::vista_agente::listar_esquemas(&json!({ "entidad": "escena_3d.formas" }))
+        .expect("shape schema");
+    let formas = v["formas"].as_array().expect("shapes");
+    assert_eq!(formas.len(), 27);
+    let tree = formas.iter().find(|f| f["tipo"] == "arbol").expect("tree");
+    assert_eq!(tree["tipo_pvsyst"], "oeTree");
+    assert_eq!(tree["campos"][0]["unidad"], "m");
+    let comunes: Vec<&str> = v["comunes"]
+        .as_array()
+        .expect("common keys")
+        .iter()
+        .map(|c| c["clave"].as_str().unwrap_or(""))
+        .collect();
+    assert!(comunes.contains(&"rotacion_azimut_deg"));
+}
+
+#[test]
+fn should_point_to_the_shape_entity_in_the_unfiltered_schema_listing() {
+    let v = crate::vista_agente::listar_esquemas(&json!({})).expect("listing");
+    assert_eq!(v["otras_entidades"][0], "escena_3d.formas");
+}

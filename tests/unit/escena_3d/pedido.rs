@@ -190,7 +190,7 @@ fn should_describe_the_scene_and_say_it_was_not_created_when_simular_is_not_set(
     assert!(
         d["avisos"][0]
             .as_str()
-            .is_some_and(|a| a.contains("aún no está automatizada")),
+            .is_some_and(|a| a.contains("solo valida el pedido")),
         "{d}"
     );
 }
