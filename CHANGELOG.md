@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Contract, size measurements and the tool × action matrix: `docs/vista_agente_salidas.md`.
 
 ### Added
+- **`rellenar`/`vista` entity `components.batteries`** (battery window, «Datos básicos», 10 fields), checked against a `.BTR` PVsyst
+  saved. The file keeps the internal resistance in ohm and the coulombic efficiency as a fraction, the window shows mOhm and %.
 - **`rellenar`/`vista` entity `components.inverters`** (grid inverter window, «Parámetros principales»): 15 text and number fields with
   units and file keys checked against an `.OND` PVsyst 8.1.8 saved (the trial licence saves components). Ranges are the MCP's.
 - **`gui_actuar accion:escena_leer`** (`escena`) lists the objects of the scene open in the 3D editor. The table of

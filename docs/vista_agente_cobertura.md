@@ -18,6 +18,12 @@ recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactament
    además de `Model` y `Manufacturer`. No se aplicaron `voltaje_min_pnom_v`, `corriente_entrada_max_a`, `corriente_ca_nominal_a`
    y `corriente_ca_max_a` (quedan en «N/A» y deshabilitados tras rellenar: dependen de casillas que el esquema no modela), así que
    no tienen `clave_archivo`. Radios (fases) y casillas (50/60 Hz) no entran en el modelo de campos.
+   `TBatteryForm` («Datos básicos») tiene esquema `components.batteries` (10 campos) con el `.BTR` guardado por PVsyst
+   (`tests/fixtures/vista_agente/Bateria_distintos_8_1_8.BTR`): `NCellSerie=6`, `VNomCell=2.1` (V), `CapNomC10=150.50` (Ah),
+   `BattTempRef=25.0` (°C), `BattTechnol=Lead_Acid`. **Escalas distintas entre ventana y archivo**: la ventana muestra la resistencia
+   interna en mΩ (3.5) y el archivo la guarda en Ω (`ResInterne=0.0035`); la eficiencia coulómbica se muestra en % (95.5) y se
+   guarda como fracción (`EfficI=0.955`). No se probaron los campos de la derecha (energía en DOD, capacidad de la hoja de datos,
+   tasa de descarga) ni las pestañas 1 a 4.
 2. **Entidad básica** (clave por clase y posición a 96 DPI, valor leído por handle): **64**.
 3. **Solo acciones** (se describe por sus botones): **14**.
 4. **No aplica** (dibujado o ajeno, solo captura): **4**.

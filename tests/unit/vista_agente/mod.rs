@@ -254,3 +254,42 @@ fn should_keep_the_units_the_saved_inverter_shows_for_the_values_typed() {
         );
     }
 }
+
+/// A battery typed through `rellenar` and saved by PVsyst 8.1.8.
+const BATERIA_GUARDADA: &str =
+    include_str!("../../fixtures/vista_agente/Bateria_distintos_8_1_8.BTR");
+
+#[test]
+fn should_find_every_file_key_of_the_battery_schema_in_the_battery_pvsyst_saved() {
+    let claves: Vec<&str> = BATERIA_GUARDADA
+        .lines()
+        .filter_map(|l| l.trim().split_once('=').map(|(k, _)| k))
+        .collect();
+    let esquema = entidad("components.batteries").expect("battery schema");
+    for clave in esquema.campos.iter().filter_map(|c| c.clave_archivo) {
+        assert!(
+            claves.contains(&clave),
+            "{clave} no está en el archivo guardado"
+        );
+    }
+}
+
+#[test]
+fn should_keep_the_scale_the_saved_battery_uses_for_the_values_typed() {
+    // Typed: 6 cells, 2.1 V, 150.5 Ah, 25 °C, 3.5 mOhm (stored in ohm) and 95.5 % (stored as a fraction).
+    let tecleado = [
+        ("NCellSerie", 6.0),
+        ("VNomCell", 2.1),
+        ("CapNomC10", 150.5),
+        ("BattTempRef", 25.0),
+        ("ResInterne", 0.0035),
+        ("EfficI", 0.955),
+    ];
+    for (clave, esperado) in tecleado {
+        assert_eq!(
+            valor_guardado(BATERIA_GUARDADA, clave),
+            Some(esperado),
+            "{clave}"
+        );
+    }
+}

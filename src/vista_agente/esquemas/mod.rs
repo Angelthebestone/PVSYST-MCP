@@ -1,12 +1,17 @@
 //! Registry of the forms the agent view knows.
 
+mod baterias;
 mod inversores;
 mod paneles;
 
 use super::dominio::Entidad;
 use crate::error::{Error, Result};
 
-static ENTIDADES: &[&Entidad] = &[&paneles::PANELES, &inversores::INVERSORES];
+static ENTIDADES: &[&Entidad] = &[
+    &paneles::PANELES,
+    &inversores::INVERSORES,
+    &baterias::BATERIAS,
+];
 
 pub(crate) fn todas() -> &'static [&'static Entidad] {
     ENTIDADES
