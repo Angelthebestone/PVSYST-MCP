@@ -51,6 +51,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   seen to open (`TArrayCharactForm`, not `TTranspositionForm`).
 
 ### Fixed
+- The PVsyst install is no longer pinned to `C:\Program Files\PVsyst8.1.7`: `PVsystCLI.exe` and `PVsyst.exe` are
+  looked up in the newest `PVsyst8.x` folder under Program Files, Program Files (x86) and
+  `%LOCALAPPDATA%\Programs` (`PVSYST_CLI`/`PVSYST_GUI` still win). Seen on 8.1.8 (build 49527): `THomeForm`,
+  `TChoixObjetPVForm`, `TPVModuleForm` (16 fields) keep their classes; still TRIAL.
+- `vista.campos` gave a unit to text values whose key ends like one (`frente_a` → `A`); only numbers get a unit.
 - `vista.estado` no longer says `ok` for a PVsystCLI run with `success:false`, a timeout or a `detected_error`
   (error code `fallo_cli`), nor for an answer with `completo:false`, `error` or `errores` (`fallo_parcial`). A run
   that produced its output file only warns about its process error.
