@@ -8,9 +8,11 @@ mod formas;
 mod informe;
 mod lectura;
 mod problema;
+mod verificacion;
 
-pub(crate) use informe::describir_escena;
-pub(crate) use lectura::MAX_OBJETOS;
+pub(crate) use informe::{describir_escena, nombre_valido};
+pub(crate) use lectura::{leer_objetos, ObjetoPedido, MAX_OBJETOS};
+pub(crate) use verificacion::comparar;
 
 #[cfg(test)]
 #[path = "../../../tests/unit/escena_3d/pedido.rs"]

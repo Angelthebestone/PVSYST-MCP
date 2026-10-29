@@ -7,6 +7,8 @@ pub(crate) enum Problema {
     NoEsObjeto,
     #[error("falta 'tipo' (texto)")]
     FaltaTipo,
+    #[error("'nombre' debe ser un texto de 1 a 64 caracteres sin saltos")]
+    NombreInvalido,
     #[error("tipo '{tipo}' desconocido: usa {validos:?}")]
     TipoDesconocido {
         tipo: String,

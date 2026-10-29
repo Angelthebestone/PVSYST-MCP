@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 pub(super) use super::catalogo::FORMAS;
 
 /// Values of one object by key, in meters and degrees.
-pub(super) type Valores = BTreeMap<&'static str, f64>;
+pub(crate) type Valores = BTreeMap<&'static str, f64>;
 
 /// Largest and smallest values the MCP accepts. PVsyst's own limits were not
 /// measured, so these only keep absurd requests out; they are not PVsyst's.

@@ -17,6 +17,7 @@ pub(crate) mod captura;
 pub(crate) mod clic_por_texto;
 pub(crate) mod combinacion;
 pub(crate) mod conduccion;
+pub(crate) mod escena;
 pub(crate) mod escritorio;
 pub(crate) mod esperas;
 pub(crate) mod ffi;
@@ -43,6 +44,7 @@ pub(crate) use proceso::gui_running;
 /// Lines of PVsyst's own log `que:mensajes` returns when `lineas` is absent.
 const MENSAJES_POR_DEFECTO: usize = 50;
 
+use crate::args::flag;
 use crate::error::{Error, Result};
 use serde_json::Value;
 
@@ -132,7 +134,8 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         "menu" => crate::gui_catalogo::menu(args),
         "campo" => campo_por_etiqueta::campo(paths, args),
         "rellenar" => crate::vista_agente::rellenar(paths, args),
-        "escena" => crate::escena_3d::pedir_escena(args),
+        "escena" if flag(args, &["simular"]) => crate::escena_3d::pedir_escena(args),
+        "escena" => escena::crear(paths, args),
         "escribir" => campos::escribir(paths, args),
         "seleccionar" => campos::seleccionar(paths, args),
         "pagina" => campos::pagina(paths, args),

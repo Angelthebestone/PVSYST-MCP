@@ -1,8 +1,14 @@
+use super::comparar;
 use super::describir_escena;
 use super::formas::FORMAS;
+use super::leer_objetos;
 use crate::escena_3d::codec::parse_escena_3d;
 use crate::escena_3d::dominio::TipoArchivoEscena;
 use serde_json::{json, Value};
+
+/// The scene PVsyst 8.1.8 saved after the editor was driven by the MCP: a 10 x 8 x 3 box at (5, 2, 1).
+const CAJA_POSICIONADA: &[u8] =
+    include_bytes!("../../fixtures/escena_3d/Casa_B_posicion_8_1_8.SHD");
 
 /// A scene of all 27 shapes with the defaults of PVsyst's dialog, saved by PVsyst 8.1.8.
 const FORMAS_GUARDADAS: &[u8] = include_bytes!("../../fixtures/escena_3d/Formas27_8_1_8.SHD");
@@ -219,4 +225,46 @@ fn should_take_the_default_turn_when_an_optional_value_is_left_out() {
 fn should_leave_the_shapes_without_a_proven_box_out_of_the_collision_check() {
     let d = describir_escena("Casa_A", &escena_de_ejemplo()).expect("valid scene");
     assert_eq!(d["sin_caja"], json!([1, 2]));
+}
+
+fn estados_de(pedido: &Value) -> Vec<(String, String)> {
+    let pedidos = leer_objetos(pedido).expect("valid request");
+    let escena = parse_escena_3d(CAJA_POSICIONADA, TipoArchivoEscena::Shd).expect("saved scene");
+    comparar(&escena, &pedidos)
+        .iter()
+        .map(|c| (c["clave"].to_string(), c["estado"].to_string()))
+        .collect()
+}
+
+#[test]
+fn should_find_every_requested_value_in_the_file_when_the_scene_is_what_was_asked() {
+    let estados = estados_de(&json!([{"tipo": "paralelepipedo", "x": 5, "y": 2, "z": 1,
+        "anchura_dx": 10, "longitud_dy": 8, "altura_dz": 3}]));
+    assert_eq!(estados.len(), 8);
+    assert!(estados.iter().all(|(_, e)| e == "\"ok\""), "{estados:?}");
+}
+
+#[test]
+fn should_name_the_values_that_differ_from_the_file() {
+    let estados = estados_de(&json!([{"tipo": "paralelepipedo", "x": 5, "y": 3, "z": 1,
+        "anchura_dx": 10, "longitud_dy": 9, "altura_dz": 3}]));
+    let difieren: Vec<&str> = estados
+        .iter()
+        .filter(|(_, e)| e != "\"ok\"")
+        .map(|(k, _)| k.as_str())
+        .collect();
+    assert_eq!(difieren, ["\"longitud_dy\"", "\"y\""]);
+}
+
+#[test]
+fn should_report_a_missing_object_when_the_file_has_fewer_than_asked() {
+    let dos = json!([
+        {"tipo": "paralelepipedo", "x": 0, "y": 0, "anchura_dx": 1, "longitud_dy": 1, "altura_dz": 1},
+        {"tipo": "paralelepipedo", "x": 5, "y": 2, "z": 1, "anchura_dx": 10, "longitud_dy": 8, "altura_dz": 3}
+    ]);
+    let estados = estados_de(&dos);
+    assert_eq!(
+        estados.last(),
+        Some(&("\"objeto\"".into(), "\"falta\"".into()))
+    );
 }

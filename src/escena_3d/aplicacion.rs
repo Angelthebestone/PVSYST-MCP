@@ -2,6 +2,7 @@
 
 use super::codec::parse_escena_3d;
 use super::dominio::{ObjetoEscena3d, TipoArchivoEscena};
+use super::pedido::ObjetoPedido;
 use crate::args::{req_str, workspace_of};
 use crate::config::{data_ro, Paths};
 use crate::error::{Error, Result};
@@ -9,6 +10,7 @@ use crate::workspace::{
     leer_bytes_acotados, resolver_archivo_con_fallback, PeticionResolucion, MAX_BYTES_MAXIMO,
 };
 use serde_json::{json, Value};
+use std::path::Path;
 
 /// Reads and decodes a `.SHD`, `.BLD`, or `.SHO` file, returning its structured 3D object tree.
 pub(crate) fn leer_escena(paths: &Paths, args: &Value) -> Result<Value> {
@@ -79,6 +81,14 @@ fn objeto_a_json(obj: &ObjetoEscena3d) -> Value {
         );
     }
     Value::Object(map)
+}
+
+/// Reads the scene PVsyst saved at `ruta` and compares it with what was asked for:
+/// one `{objeto, clave, pedido, leido, estado}` row per value.
+pub(crate) fn verificar_archivo(ruta: &Path, pedidos: &[ObjetoPedido]) -> Result<Vec<Value>> {
+    let bytes = leer_bytes_acotados(ruta, MAX_BYTES_MAXIMO)?;
+    let escena = parse_escena_3d(&bytes, TipoArchivoEscena::Shd)?;
+    Ok(super::pedido::comparar(&escena, pedidos))
 }
 
 /// `gui_actuar accion:escena`: validates the request and reports what the editor would be asked

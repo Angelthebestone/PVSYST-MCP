@@ -10,7 +10,8 @@ const AVISO_ANCLA: &str = "[INFERENCIA] colisiones solo entre paralelepípedos, 
 const AVISO_SIN_CREACION: &str = "La creación de la escena en el editor 3D de PVsyst aún no está automatizada: esta acción solo valida el pedido. Las escenas no se escriben a mano.";
 const AVISO_RANGOS: &str = "Los rangos son límites del MCP; los de PVsyst no están medidos.";
 
-fn nombre_valido(nombre: &str) -> Result<&str> {
+/// A scene name that is a plain file name: it becomes `Shadings\<nombre>.SHD`.
+pub(crate) fn nombre_valido(nombre: &str) -> Result<&str> {
     let permitido = |c: char| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | ' ');
     if nombre.is_empty() || nombre.chars().count() > MAX_NOMBRE || !nombre.chars().all(permitido) {
         return Err(Error::Invalid(format!(
