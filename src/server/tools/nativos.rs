@@ -120,7 +120,7 @@ const SINONIMOS_GUI_OBSERVAR: Sinonimos = Sinonimos {
 
 pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
     nombre: "gui_actuar",
-    descripcion: "Actua sobre la GUI de PVsyst: clic (tambien por texto visible), escribir, seleccionar, pestana, teclas, fila de una lista o arbol, menus por posicion, cerrar, lanzar, reiniciar, esperas, rellenar un formulario por claves y validar un pedido de escena 3D. / EN: Acts on the PVsyst GUI: click (also by on-screen text), type, select, tab page, keys, list or tree row, menus by position, close, launch, restart, waits, fill a form by keys and validate a 3D scene request.",
+    descripcion: "Actua sobre la GUI de PVsyst: clic (tambien por texto visible), escribir, seleccionar, pestana, teclas, fila de una lista o arbol, menus por posicion, cerrar, lanzar, reiniciar, esperas, rellenar un formulario por claves y validar o crear una escena 3D en el editor. / EN: Acts on the PVsyst GUI: click (also by on-screen text), type, select, tab page, keys, list or tree row, menus by position, close, launch, restart, waits, fill a form by keys and validate or build a 3D scene in the editor.",
     anotaciones: Anotaciones {
         titulo: "Actuar en GUI / Act on GUI",
         es_solo_lectura: false,

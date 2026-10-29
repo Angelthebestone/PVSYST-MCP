@@ -12,6 +12,11 @@ const PAUSA: Duration = Duration::from_millis(400);
 
 /// Opens a catalogue function (`gui_actuar accion:funcion`), opening its host when needed.
 pub(super) fn abrir(funcion: &str) -> Result<Value> {
+    // The menu commands need PVsyst in the foreground, and a window opened a moment ago may not be.
+    if let Ok(editor) = ventana("TPerspectiveForm") {
+        ffi::traer_al_frente(editor);
+        std::thread::sleep(PAUSA);
+    }
     crate::gui_catalogo::abrir(&json!({ "funcion": funcion }))
 }
 

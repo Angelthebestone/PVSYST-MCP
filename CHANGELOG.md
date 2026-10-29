@@ -24,11 +24,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Contract, size measurements and the tool × action matrix: `docs/vista_agente_salidas.md`.
 
 ### Added
-- **`gui_actuar accion:escena`** validates a 3D scene request (`escena`, `objetos`:
-  `paralelepipedo`, `tejado_dos_aguas`, `chimenea`, `arbol`) without PVsyst: types, ranges, the file slot of
-  each dimension and collisions. Ranges are the MCP's, not PVsyst's, and collisions are inferred (anchor not
-  proven). It is validation only (`creado:false`, with a warning that creation in the editor is not
-  implemented): scenes are never written by hand.
+- **`gui_actuar accion:escena` builds a 3D scene in PVsyst's editor.** Tried on PVsyst 8.1.8 in PRUEBA, which
+  does save scenes (`Archivo > Exportar escena (.SHD)` wrote the file; the project was not touched). With
+  `simular:true` it only validates the request (`escena`, `objetos`) without PVsyst: types, ranges and
+  collisions. Without it, with the editor open on an empty scene, it creates each object in the elementary-object
+  dialog, sets the position in «Lista y gestión de objetos», has PVsyst save the scene and compares the saved
+  file with the request, field by field (`comparacion` rows `{objeto, clave, pedido, leido, estado}`,
+  `verificado`). The MCP never writes a scene file. Up to 20 objects (the table shows 20 rows) and the scene
+  name must not exist in `Shadings`.
+- **The 27 shapes of the elementary-object dialog** (`oeTree`, `oeHouse`, …) with their PVsyst type name, the
+  label of each parameter and its position in `Params=`, measured live and proven against a scene PVsyst saved
+  (`tests/fixtures/escena_3d/Formas27_8_1_8.SHD`). Ranges are the MCP's, not PVsyst's. Breaking change for the
+  unreleased `escena` request: dimensions now use PVsyst's own parameters (`anchura_dx`, `longitud_dy`,
+  `altura_dz`, tree `altura_punto_medio`…) and the `tejado_dos_aguas`/`chimenea`/`arbol` keys of the first draft
+  are gone.
+- **`leer` reads the text form of a scene** (`PVObject_=pvShading`, UTF-8 with byte-order mark) that PVsyst 8.1.8
+  saves; before, such a file failed with «Incoherencia entre extensión y clase raíz». The geometry reports
+  `tipo_pvsyst` (`oeParallelepipede`).
 - **Window coverage:** every one of the 82 window classes of `docs/gui_mapa.json` is registered in one of four
   states and listed in `gui_observar que:esquema` (`cobertura`). `que:vista` on a window without a schema
   returns its fields by control class and 96-DPI position (combo items included) or its buttons.

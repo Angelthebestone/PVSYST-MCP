@@ -56,14 +56,17 @@ fn exigir_editor_vacio(pedidos: &[ObjetoPedido]) -> Result<()> {
 
 fn informe(nombre: &str, guardado: &std::path::Path, pedidos: &[ObjetoPedido]) -> Result<Value> {
     let comparacion = verificar_archivo(guardado, pedidos)?;
-    let difieren = comparacion.iter().filter(|c| c["estado"] != "ok").count();
+    // The rows that differ are what the agent must read: the matching ones are only counted.
+    let (coinciden, difieren): (Vec<Value>, Vec<Value>) =
+        comparacion.into_iter().partition(|c| c["estado"] == "ok");
     Ok(json!({
         "escena": nombre,
         "creado": true,
         "archivo": guardado.display().to_string(),
-        "verificado": difieren == 0,
-        "campos_que_difieren": difieren,
-        "comparacion": comparacion,
+        "verificado": difieren.is_empty(),
+        "campos_verificados": coinciden.len() + difieren.len(),
+        "campos_que_difieren": difieren.len(),
+        "comparacion": difieren,
         "origen": "pvsyst",
         "avisos": ["El editor 3D sigue abierto con la escena: ciérralo con Archivo > Cerrar escena para conservarla en la variante, o con Cancelar para descartarla."],
     }))
