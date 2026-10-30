@@ -218,8 +218,16 @@ catálogo abre otra ventana (`herramientas.factor_transposicion` abre `TArrayCha
 - Un esquema describe los controles que la ventana muestra en un estado: los que aparecen o desaparecen con otra opción (el tipo de
   campo de la orientación, las casillas del inversor) salen como `presente:false` y sus valores quedan en `sin_mapear`.
 - Las clases de control que la vista lee son `TEdit`, `TMemo`, `TLabeledEdit`, `TMaskEdit`, `TSpinEdit`, `TComboBox`,
-  `TComboBoxEx`, `TCheckBox` y `TRadioButton`. No lee `TUpDown`, `TListBox`, `TDateTimePicker`, `TTrackBar`, árboles ni cuadrículas.
+  `TComboBoxEx`, `TCheckBox`, `TRadioButton` y `TDateTimePicker`. No lee `TUpDown`, `TListBox`, `TTrackBar`, árboles ni cuadrículas.
   `TBuildingObjectForm`, `TGeoSiteForm`, `TOrientManageForm` y `TPreferencesForm` mostraron 0 campos legibles y se pasaron a «solo acciones».
 - Solo 150 % (144 DPI). Interfaz en español. Sin licencia no se valida nada de lo guardado.
-- Instancias que comparten clase (p. ej. `TChoixObjetPVForm`, 15): la vista devuelve `titulo`; no se colapsan en una entidad por clase
-  pero tampoco hay una entidad por título.
+- Instancias que comparten clase (`TChoixObjetPVForm` 15, `TDetailedLossesForm` 4, `TDimensForm` 3): la vista de una ventana sin esquema
+  devuelve `titulo` y `abierta_con`, la lista de funciones del catálogo (o botones) que el mapa registró para ese título, así que las 15
+  instancias del selector se distinguen por título («Eligiendo un inversor de red» → `bases_de_datos.inversores_red`). Dos funciones
+  pueden abrir el mismo título («Eligiendo un sitio geográfico»: `bases_de_datos.sitios_geograficos` y `ventana_proyecto.sitio.abrir`).
+  No hay una entidad por título: los campos de cada instancia salen de la lectura en vivo.
+- **Controles que la vista lee y no** (decisión, con el recuento del mapa): se lee `TDateTimePicker` (31 en 13 ventanas; se comprobó en
+  «Datos comerciales» del inversor: `30/10/2026`). `TUpDown` (164 en 33 ventanas) no se lee: es la flecha de un `TEdit` vecino que ya
+  trae el valor. `TTrackBar` (11 en 3 ventanas) no se lee: no se midió en vivo. `TListBox` (31 en 14 ventanas) no se lee a propósito:
+  enumerar sus filas sería listar las bases de datos de componentes por la GUI; las filas se eligen por índice con `accion:fila`.
+  Árboles y cuadrículas no exponen filas a UIA ni a MSAA (ver «Filas de listas y árboles»).

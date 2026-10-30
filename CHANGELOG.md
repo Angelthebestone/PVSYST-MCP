@@ -37,6 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Conditional fields**: `CampoEsquema::si` declares the check box a field depends on (`depende_de` in `que:esquema`); the
   inverter schema models its check boxes and phase/frequency options (`definir_corriente_ca_nominal`, `fase_trifasica`, ...), and
   `que:vista` lists the anchor of every unmapped control (`sin_mapear`).
+- **`que:vista` of a window without a schema returns `abierta_con`**: what opened the instance whose title the map recorded, so the 15
+  windows of class `TChoixObjetPVForm` (and the 4 `TDetailedLossesForm`, 3 `TDimensForm`) are told apart by title. `TDateTimePicker`
+  is now read (checked live); `TListBox` is deliberately not (it would list the component databases through the GUI).
 - **Crear menu of the 3D editor catalogued**: `TTrackerFieldForm`, `TShedFieldForm` (shared by tables, domes and sun shields),
   `TRectFieldForm` and `TPolyFieldForm` open from `escena_3d.crear.*`, with every tab read (map: 89 classes).
 - **`gui_actuar accion:escena_importar`** (`archivo` + `escena`, optional `unidades`, `simular`) imports a 3D mesh (3DS, DAE, PVC, PVC2,

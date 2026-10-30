@@ -1,7 +1,7 @@
 use super::basica::{campos_con_clave, clave_de};
 use super::dominio::Cobertura;
 use super::listado::listar_ventanas;
-use super::mapa::{clases_del_mapa, resumir, ResumenMapa};
+use super::mapa::{abierta_con, clases_del_mapa, resumir, ResumenMapa};
 use super::ventanas::{de_clase, todas};
 use crate::vista_agente::campos_vivos::CampoVivo;
 use crate::vista_agente::dominio::Ancla;
@@ -225,4 +225,26 @@ fn should_not_link_the_transposition_window_to_a_function_that_opens_another_one
     assert!(funciones
         .iter()
         .any(|c| c == "herramientas.factor_transposicion"));
+}
+
+#[test]
+fn should_tell_the_instances_of_a_shared_class_apart_by_their_title() {
+    let modulo = abierta_con("TChoixObjetPVForm", "Eligiendo un módulo FV");
+    let inversor = abierta_con("TChoixObjetPVForm", "Eligiendo un inversor de red");
+
+    assert_eq!(modulo, ["bases_de_datos.modulos_pv"]);
+    assert_eq!(inversor, ["bases_de_datos.inversores_red"]);
+}
+
+#[test]
+fn should_list_every_way_in_when_two_functions_open_the_same_titled_window() {
+    let sitio = abierta_con("TChoixObjetPVForm", "Eligiendo un sitio geográfico");
+
+    assert_eq!(sitio.len(), 2);
+}
+
+#[test]
+fn should_answer_nothing_when_the_map_has_no_instance_with_that_title() {
+    assert!(abierta_con("TChoixObjetPVForm", "Un título que no existe").is_empty());
+    assert!(abierta_con("TClaseDesconocida", "x").is_empty());
 }

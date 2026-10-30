@@ -6,7 +6,14 @@ use crate::adapters::gui::ffi::{self, Hwnd};
 use crate::adapters::gui::ocr::esta_marcado;
 use crate::adapters::gui::ventanas::{hijos_visibles_con_clase, rect_of};
 
-const CLASES_TEXTO: &[&str] = &["TEdit", "TMemo", "TLabeledEdit", "TMaskEdit", "TSpinEdit"];
+const CLASES_TEXTO: &[&str] = &[
+    "TEdit",
+    "TMemo",
+    "TLabeledEdit",
+    "TMaskEdit",
+    "TSpinEdit",
+    "TDateTimePicker",
+];
 /// Controls that offer a list of items to choose from.
 pub(crate) const CLASES_LISTA: &[&str] = &["TComboBox", "TComboBoxEx"];
 const CLASES_OPCION: &[&str] = &["TCheckBox", "TRadioButton"];
