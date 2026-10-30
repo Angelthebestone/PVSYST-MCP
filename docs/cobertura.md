@@ -40,7 +40,7 @@ Everything else is a convenience layer on top. So coverage is bounded by the
 
 **Workspace / admin:** `workspace` (`accion`: `crear`, `exportar`, `importar`, `exportar_proyecto`, `historial`, `restaurar`).
 
-**GUI automation:** `gui_observar` (`que`: `ventanas`, `controles`, `leer`, `capturar`, `uia`, `arbol`, `mensajes`, `funciones`, `formulario`, `vista`, `esquema`, `menus`), `gui_actuar` (`accion`: `click`, `clic_fisico`, `mensaje`, `cerrar`, `activar`, `teclas`, `fila`, `escena`, `escena_leer`, `escribir`, `seleccionar`, `pagina`, `esperar_cierre`, `lanzar`, `uia_invocar`, `esperar`, `paso`, `funcion`, `menu`, `campo`, `rellenar`, `clic_texto`, `reiniciar`). `PVSYST_MCP_ESCRITORIO=aislado` runs PVsyst and these tools on a private hidden desktop.
+**GUI automation:** `gui_observar` (`que`: `ventanas`, `controles`, `leer`, `capturar`, `uia`, `arbol`, `mensajes`, `funciones`, `formulario`, `vista`, `esquema`, `menus`), `gui_actuar` (`accion`: `click`, `clic_fisico`, `mensaje`, `cerrar`, `activar`, `teclas`, `fila`, `escena`, `escena_leer`, `escena_importar`, `escribir`, `seleccionar`, `pagina`, `esperar_cierre`, `lanzar`, `uia_invocar`, `esperar`, `paso`, `funcion`, `menu`, `campo`, `rellenar`, `clic_texto`, `reiniciar`). `PVSYST_MCP_ESCRITORIO=aislado` runs PVsyst and these tools on a private hidden desktop.
 
 **Output contract:** every answer of the 15 tools, errors included, carries `vista` (`estado`, `resumen`, `origen`, `campos`, `avisos`, `siguiente`, `recortado`, `error`). `siguiente` holds calls the target tool accepts as written. Per-action summaries and next steps: `src/vista_agente/contrato/catalogo/`; the tool × action matrix is in `docs/vista_agente_salidas.md`.
 
@@ -73,7 +73,7 @@ observed on PVsyst 8.1.7 (`docs/gui_mapa.json`).
 | Geographic site | `.SIT` | `sitio` (`crear`), `leer`, `editar` |
 | Weather data | `.MET`, `.MEF`, `.TFT`, `.DAT` | `sitio` (`convertir_meteo`, `meteo_pvgis`, `escribir_serie`), `leer` (`serie:true` decodes the hourly body of `.MET`), `escribir_archivo` |
 | Measured data | `.DAF`, `.DAM` | `leer` (`serie:true` for `.DAM`), `sitio escribir_serie`, `escribir_archivo` |
-| Horizon / shading scene | `.HOR`, `.SHD`, `.BLD`, `.SHO` | `.HOR`: `leer` and `sitio escribir_horizonte` (structured); `.SHD`/`.BLD`/`.SHO` are decoded read-only by `leer` (objects, positions, elementary shapes; `escribir_archivo` refuses them: mesh format not proven). The 27 elementary shapes are built in PVsyst's own 3D editor by `gui_actuar accion:escena` (PVsyst saves the file, the MCP compares it field by field) and the open scene is read back with `accion:escena_leer`; `sitio horizonte_pvgis` |
+| Horizon / shading scene | `.HOR`, `.SHD`, `.BLD`, `.SHO` | `.HOR`: `leer` and `sitio escribir_horizonte` (structured); `.SHD`/`.BLD`/`.SHO` are decoded read-only by `leer` (objects, positions, elementary shapes; `escribir_archivo` refuses them: mesh format not proven). The 27 elementary shapes are built in PVsyst's own 3D editor by `gui_actuar accion:escena` (PVsyst saves the file, the MCP compares it field by field) the open scene is read back with `accion:escena_leer` and a mesh (3DS, DAE, PVC, PVC2, PVZ2) is imported with `accion:escena_importar` (PVsyst converts it); `sitio horizonte_pvgis` |
 | Models / templates | `.LOD`, `.SPL`, `.SFI`, `.RVT` | `leer`, `escribir_archivo`; `.RVT` variable list: `editar accion:rvt` |
 | Batch/parametric runs | `.CSV` + `.RVT` | `simular` (`preparar`, `ejecutar` with `filas`) |
 | Param override | `Param_Modif.dat` | `simular` (`preparar` with `parametros`) |

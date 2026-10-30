@@ -24,6 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Contract, size measurements and the tool × action matrix: `docs/vista_agente_salidas.md`.
 
 ### Added
+- **`gui_actuar accion:escena_importar`** (`archivo` + `escena`, optional `unidades`, `simular`) imports a 3D mesh (3DS, DAE, PVC, PVC2,
+  PVZ2) into the scene open in the editor with PVsyst's own «Importar una escena 3D»: the menu entry, the Windows file dialog and
+  «Importar resultado». PVsyst converts the mesh; the MCP exports the scene afterwards and returns it. Measured on PVsyst 8.1.8: the
+  sample `SHD_PVC_Fixed_Example.pvc` gives 66 PV tables, 2 orientations and a group, as the dialog announced. `simular:true` reads the
+  file and drops the import with «Cancelar». A path under `Program Files` is refused before PVsyst is touched (PVsyst refuses it).
+- **`gui_actuar accion:menu` takes `subitem`** for an entry of a submenu (`menu` 0, `item` 4, `subitem` 0 = «Importar ▸ Importar una
+  escena 3D»): the id is read from the submenu's own `HMENU`, so the submenu is never entered.
 - **`gui_observar que:esquema entidad:escena_3d.formas`** describes the 27 shapes of the 3D editor (PVsyst type, combo entry, each parameter
   with label, unit, default, range) before the agent asks for a scene; the unfiltered listing points to it (`otras_entidades`).
 - **`rellenar` fills several tabs** (`en_pagina` in the schema: tab 0 first, the others in order, back on tab 0). The inverter's
