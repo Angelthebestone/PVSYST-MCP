@@ -30,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `NStringCh=4`, `PNomSizing=50.0`.
 - `rellenar` no longer reports an option or a check box as "recalculated" when only its caption was read.
 
+- **The project window's bar clicks are gone**: «Cargar proyecto» and «Guardar la variante activa» run their catalogued menu commands and
+  the project list's first row is chosen with `accion:fila`, instead of clicking fixed offsets of a toolbar. `Formulario::clic_barra`
+  is deleted.
+
 ### Added
 - **`variante.orientation`** (`TOrientationForm`, fixed plane), **`variante.system`** and **`proyecto.ventana`** entities for
   `que:vista`/`rellenar`, checked against a variant PVsyst 8.1.8 saved (`FieldTilt`, `FieldAzim`, `NModSerie`, `NStringCh`, `NInverter`,

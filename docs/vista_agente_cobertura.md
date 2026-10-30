@@ -168,6 +168,16 @@ Medido en vivo con el release (PVsyst 8.1.7; la tabla de objetos del editor 3D y
 
 `que:esquema` trae `abierta_con` por clase: las funciones del catálogo que la abren. `herramientas.factor_transposicion` declara `TArrayCharactForm`, la ventana que se vio abrir; `TTranspositionForm` queda sin función que la abra.
 
+## Barras de acciones (`TActionToolBar`, Tarea D idea 4)
+Decisión: **no se ofrece una acción por coordenadas de barra**. Un clic ciego en un icono no tiene postcondición sin OCR (a diferencia de
+`fila`, cuya banda resaltada se comprueba), y las acciones que el MCP usaba de las barras tienen su entrada de menú en el catálogo,
+con el id leído del popup y verificada en vivo. Se aplicó donde había coordenadas: `ProyectoEnPvsyst` pulsaba «Cargar» y «Guardar variante»
+con un desplazamiento fijo (`X_CARGAR=100`, `X_GUARDAR_VARIANTE=113`) y elegía la primera fila de la lista con un desplazamiento
+(`FILA_1=(80,28)`); ahora ejecuta `ventana_proyecto.proyecto.cargar` y `ventana_proyecto.variante.guardar` y elige la fila con `accion:fila`
+(`Formulario::clic_barra` se borró). Probado en vivo (PVsyst 8.1.8, 2026-10-30): `proyecto dimensionar` sobre otro proyecto (cargado por menú
+y `fila` 0) y su guardado de variante dieron 21 módulos en serie × 3 cadenas y el `.VC0` guardado lo confirmó (`NModSerie=21`,
+`NStringCh=3`, `PNomSizing=20.0`). Los iconos de la barra del editor 3D sin menú equivalente quedan sin geometría medida y no se ofrecen.
+
 ## Pestañas (`gui_actuar accion:pagina`)
 Recorridas en vivo con el release (PVsyst 8.1.7, 144 DPI, 2026-10-28, PRUEBA): cada clase se abrió una vez, se pidió `pagina i` hasta «fuera de rango» y tras cada cambio se leyó `que:vista`. Nada se guardó; los diálogos de componentes se abrieron con «Nuevo» y se cerraron con Cancelar/Cerrar.
 
