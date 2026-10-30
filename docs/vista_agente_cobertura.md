@@ -42,7 +42,7 @@ recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactament
 - Clases que PVsyst abrió y **no están en el mapa**: `TAboutForm`, `TLicenseMainForm` (puede mostrar datos de la licencia) y un
   diálogo de Windows (`#32770`). No se añadieron al mapa.
 
-## Por clase (78 de 85 abiertas en vivo; 7 solo clasificadas)
+## Por clase (82 de 89 abiertas en vivo; 7 solo clasificadas)
 | Clase | Dominio | Estado | Abierta en vivo | Campos vivos | Botones | Instancias en el mapa |
 |---|---|---|---|---|---|---|
 | `MicrosoftWindowsTooltip` | aplicacion | 4 | no | — | — | 1 |
@@ -77,6 +77,10 @@ recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactament
 | `THelpForm` | aplicacion | 4 | sí (`escena_3d.ayuda.paginas_de_ayuda`) | 0 | 0 | 1 |
 | `THorizonForm` | variante | 2 | sí (`variante.horizonte`) | 9 | 7 | 4 |
 | `TImportResultForm` | escena 3d | 2 | sí (Archivo ▸ Importar ▸ Importar una escena 3D, PVsyst 8.1.8) | 10 | 2 | 1 |
+| `TTrackerFieldForm` | escena_3d | 2 | sí (`escena_3d.crear.conjunto_de_rastreadores`, PVsyst 8.1.8) | 19 | 3 | 1 |
+| `TShedFieldForm` | escena_3d | 2 | sí (`escena_3d.crear.conjunto_de_tablas`, `…conjunto_de_cupulas` y `…conjunto_de_protectores_solares`: las tres abren esta clase) | 11 | 3 | 3 |
+| `TRectFieldForm` | escena_3d | 2 | sí (`escena_3d.crear.plano_fv_rectangular`) | 9 | 3 | 1 |
+| `TPolyFieldForm` | escena_3d | 2 | sí (`escena_3d.crear.plano_fv_poligonal`) | 7 | 3 | 1 |
 | `TImportHorizonForm` | variante | 2 | sí (`variante.horizonte.leer_importar`) | 9 | 3 | 1 |
 | `TMetWizard` | meteo | 3 | sí (`bases_de_datos.importar_archivo_personalizado`) | 0 | 2 | 1 |
 | `TMeteoCompareForm` | meteo | 2 | sí (`bases_de_datos.comparar_meteo`) | 10 | 9 | 1 |
@@ -174,13 +178,20 @@ Recorridas en vivo con el release (PVsyst 8.1.7, 144 DPI, 2026-10-28, PRUEBA): c
 | `TPumpForm` | `bases_de_datos.bombas.nuevo` | 4 | 20/9/4/11 |
 | `TSAControllerForm` | `bases_de_datos.controladores_independientes.nuevo` | 4 | 23/12/4/13 |
 | `TSystemCircuitForm` | `variante.sistema.diagrama_unifilar` | 2 | 5/9 |
+| `TPolyFieldForm` | `escena_3d.crear.plano_fv_poligonal` | 3 | 7/(veto)/14 |
+| `TRectFieldForm` | `escena_3d.crear.plano_fv_rectangular` | 3 | 9/12/14 |
+| `TShedFieldForm` | `escena_3d.crear.conjunto_de_tablas` | 3 | 11/14/14 |
 | `TSystemeAddForm` | `variante.gestion_energia` | 4 | 6/2/20/2 |
+| `TTrackerFieldForm` | `escena_3d.crear.conjunto_de_rastreadores` | 4 | 19/15/6/14 |
 
 - 0 vetos en las 19 clases de la tabla: todas las pestañas cambiaron. Los campos son los visibles de cada pestaña por clase y posición, no una entidad con esquema. `TPreferencesForm` sigue sin campos legibles en ninguna de sus 9 pestañas.
 - `docs/gui_mapa.json` difiere del recorrido en el número de pestañas de `TGeneratorForm` (2; el mapa, 1), `TPumpControllerForm` (2; 1), `TGridInverterForm` (6; 5), `TEcoEvaluationForm` (5; el mapa lista 6 nombres, y no se midió por qué una no aparece), `TSystemeAddForm` (4; 3) y otras: el mapa solo registra las pestañas que se pisaron `[INFERENCIA]`.
 - **`TPVModuleForm` (módulo nuevo, 5 pestañas):** `pagina 1` fue vetada con los campos obligatorios vacíos; tras `rellenar` con valores válidos (modelo, fabricante, potencia, Isc, Voc, Impp, Vmpp, μIsc) pasó la 0→1, y desde la 1 PVsyst vetó **todo** cambio, incluso volver a la 0, mientras la pestaña tuviera campos inválidos. Coincide con la hipótesis «PVsyst impide salir de una página mientras sus campos son inválidos» (observada, no probada contra el código). `rellenar` hoy solo cubre la pestaña 0: tras `pagina`, `que:vista` repite las 16 claves del esquema y el resto cae en `sin_mapear`.
 - `TEcoEvaluationForm`: recorrer sus pestañas marca el formulario como modificado; cerrarlo pregunta «¿Quiere cancelar las modificaciones?» y no hay botón inocuo (No lo deja abierto, Sí está prohibido en la exploración). Se resolvió cerrando el proceso de PVsyst, que no tenía nada guardado.
 - Sin abrir: ninguna de las 5 que faltaban (`TSettingsForm`, `TDomesticUseForm`, `TWaterUseForm`, `TSystemeBattForm`, `TSystemPumpingForm`) sigue sin abrir (PVsyst 8.1.8, 2026-10-29): las cuatro de sistema se abrieron con los proyectos demo `_DEMO_StandAlone` (fila 7 de «Cargar proyecto», `TDomesticUseForm` 35 campos y 2 pestañas, `TSystemeBattForm` 24 y 4) y `_DEMO_Pumping` (fila 4, `TWaterUseForm` 11 y 2, `TSystemPumpingForm` 18 y 3), y `TSettingsForm` (20 campos, 4 pestañas: Albedo, Condiciones de diseño, Otras limitaciones, Preferencias) con el botón «Configuración del proyecto» (`accion:clic_texto`): la función por menú falló porque un intento anterior dejó la barra de menús activada (la ventana mostraba «Proyecto» resaltado) y hubo que salir con `ESC`. `TGeoSiteForm` no se recorrió a propósito: una pestaña es un mapa web.
+
+- **Diálogos de campo del editor 3D** (`TTrackerFieldForm`, `TShedFieldForm`, `TRectFieldForm`, `TPolyFieldForm`; PVsyst 8.1.8, 144 DPI, escena importada abierta, 2026-10-30): se abrieron con `accion:menu menu:1 item:N`, se leyó cada pestaña y se cerraron con Cancelar. Tras visitar una pestaña, Cancelar pregunta «¿Quiere mantener sus modificaciones en el objeto?» (Cancelar/No/Sí): se responde «No», que descarta el objeto; «Sí» lo añadiría a la escena. Las entradas 6, 7 y 8 del menú («Conjunto de tablas», «de cúpulas», «de protectores solares») abren la misma clase `TShedFieldForm` con el mismo título («Campo de colectores en cobertizos»): no se distinguen por clase ni por título. En `TPolyFieldForm` la pestaña «Dibujo poli» abre `TOrientationForm` («Gestión de orientaciones») y deja el formulario deshabilitado hasta cerrarlo con Cancelar; su pestaña «Partición» se leyó aparte. Tras la respuesta «No» el menú del editor puede quedar armado (el nombre «Archivo» resaltado) y el siguiente `accion:menu` falla con «El menú 0 … no se abrió»: una pulsación de Alt lo desarma.
+- Los campos de estos diálogos incluyen `TUpDown` (flechas de los campos numéricos), que la vista no lee; los números de la tabla cuentan solo los controles legibles.
 
 ## No abiertas, solo clasificadas desde el mapa
 `MicrosoftWindowsTooltip`, `TBacktrackingForm`, `TShedElecShadingForm`, `TSystemegridDCForm`, `TTranspositionForm`, `TVCManageForm`, `TVoltageOptimiseForm`.

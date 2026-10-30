@@ -9,6 +9,8 @@ use crate::gui_catalogo::dominio::{Efecto, Funcion};
 
 const EDITOR: &str = "TPerspectiveForm";
 const ABRE_EL_EDITOR: &str = "variante.sombreados_cercanos.construccion_perspectiva";
+/// What closing a field dialog does after one of its tabs was visited.
+const CIERRE_DE_OBJETO: &str = "tras recorrer sus pestañas, Cancelar pregunta «¿Quiere mantener sus modificaciones en el objeto?»: «No» descarta (Sí añadiría el objeto a la escena)";
 
 pub(super) const FUNCIONES: &[Funcion] = &[
     Funcion::posicion(
@@ -92,6 +94,62 @@ pub(super) const FUNCIONES: &[Funcion] = &[
     .abre("TTableFieldForm")
     .nota(
         "deja el editor en un diálogo modal: al cerrarlo pregunta si mantener las modificaciones",
+    ),
+    Funcion::posicion(
+        "escena_3d.crear.conjunto_de_rastreadores",
+        "Crear > Conjunto de rastreadores",
+        (1, 5),
+    )
+    .en(EDITOR)
+    .requiere(ABRE_EL_EDITOR)
+    .abre("TTrackerFieldForm")
+    .nota(CIERRE_DE_OBJETO),
+    Funcion::posicion(
+        "escena_3d.crear.conjunto_de_tablas",
+        "Crear > Conjunto de tablas",
+        (1, 6),
+    )
+    .en(EDITOR)
+    .requiere(ABRE_EL_EDITOR)
+    .abre("TShedFieldForm")
+    .nota(CIERRE_DE_OBJETO),
+    Funcion::posicion(
+        "escena_3d.crear.conjunto_de_cupulas",
+        "Crear > Conjunto de cúpulas",
+        (1, 7),
+    )
+    .en(EDITOR)
+    .requiere(ABRE_EL_EDITOR)
+    .abre("TShedFieldForm")
+    .nota(CIERRE_DE_OBJETO),
+    Funcion::posicion(
+        "escena_3d.crear.conjunto_de_protectores_solares",
+        "Crear > Conjunto de protectores solares",
+        (1, 8),
+    )
+    .en(EDITOR)
+    .requiere(ABRE_EL_EDITOR)
+    .abre("TShedFieldForm")
+    .nota(CIERRE_DE_OBJETO),
+    Funcion::posicion(
+        "escena_3d.crear.plano_fv_rectangular",
+        "Crear > Plano FV rectangular (simple o múltiple)",
+        (1, 9),
+    )
+    .en(EDITOR)
+    .requiere(ABRE_EL_EDITOR)
+    .abre("TRectFieldForm")
+    .nota(CIERRE_DE_OBJETO),
+    Funcion::posicion(
+        "escena_3d.crear.plano_fv_poligonal",
+        "Crear > Plano FV poligonal",
+        (1, 10),
+    )
+    .en(EDITOR)
+    .requiere(ABRE_EL_EDITOR)
+    .abre("TPolyFieldForm")
+    .nota(
+        "la pestaña «Dibujo poli» abre TOrientationForm (Gestión de orientaciones) y deja este formulario deshabilitado hasta cerrarlo con Cancelar; después Cancelar pregunta «¿Quiere mantener sus modificaciones en el objeto?»: «No» descarta",
     ),
     Funcion::posicion(
         "escena_3d.herramientas.herramienta_educativa_orientacion",
