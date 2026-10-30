@@ -438,7 +438,7 @@
       "name": "gui_observar"
     },
     {
-      "description": "Actua sobre la GUI de PVsyst: clic (tambien por texto visible), escribir, seleccionar, pestana, teclas, fila de una lista o arbol, menus por posicion, cerrar, lanzar, reiniciar, esperas, rellenar un formulario por claves y validar o crear una escena 3D en el editor. / EN: Acts on the PVsyst GUI: click (also by on-screen text), type, select, tab page, keys, list or tree row, menus by position, close, launch, restart, waits, fill a form by keys and validate or build a 3D scene in the editor.",
+      "description": "Actua sobre la GUI de PVsyst: clic (tambien por texto visible), escribir, seleccionar, pestana, teclas, fila de una lista o arbol, menus por posicion, cerrar, lanzar, reiniciar, esperas, rellenar un formulario por claves y validar, importar (mallas) o crear una escena 3D en el editor. / EN: Acts on the PVsyst GUI: click (also by on-screen text), type, select, tab page, keys, list or tree row, menus by position, close, launch, restart, waits, fill a form by keys and validate, import (meshes) or build a 3D scene in the editor.",
       "name": "gui_actuar"
     }
   ],
