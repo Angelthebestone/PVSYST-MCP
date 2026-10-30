@@ -6,7 +6,14 @@ use crate::adapters::gui::ffi::{self, Hwnd};
 use crate::adapters::gui::ocr::esta_marcado;
 use crate::adapters::gui::ventanas::{hijos_visibles_con_clase, rect_of};
 
-const CLASES_TEXTO: &[&str] = &["TEdit", "TMemo", "TLabeledEdit", "TMaskEdit", "TSpinEdit"];
+const CLASES_TEXTO: &[&str] = &[
+    "TEdit",
+    "TMemo",
+    "TLabeledEdit",
+    "TMaskEdit",
+    "TSpinEdit",
+    "TDateTimePicker",
+];
 /// Controls that offer a list of items to choose from.
 pub(crate) const CLASES_LISTA: &[&str] = &["TComboBox", "TComboBoxEx"];
 const CLASES_OPCION: &[&str] = &["TCheckBox", "TRadioButton"];
@@ -27,7 +34,8 @@ fn es_campo(clase: &str) -> bool {
         .any(|clases| clases.contains(&clase))
 }
 
-fn valor_de(c: Hwnd, clase: &str) -> String {
+/// The value of control `c` as the view shows it: `true`/`false` for options, its text otherwise.
+pub(crate) fn valor_de(c: Hwnd, clase: &str) -> String {
     if CLASES_OPCION.contains(&clase) {
         return esta_marcado(c)
             .map(|m| m.to_string())

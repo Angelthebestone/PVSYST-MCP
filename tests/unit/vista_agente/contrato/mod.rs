@@ -116,6 +116,14 @@ fn should_read_the_unit_from_the_last_segment_of_the_key() {
 }
 
 #[test]
+fn should_not_give_a_unit_to_a_text_value_when_the_key_ends_like_a_unit() {
+    let (campos, _) = super::campos::campos_de(&json!({ "frente_a": "VC1", "pnom_w": 400 }));
+    let unidad = |clave: &str| campos.iter().find(|c| c.clave == clave)?.unidad.clone();
+    assert_eq!(unidad("frente_a"), None);
+    assert_eq!(unidad("pnom_w").as_deref(), Some("W"));
+}
+
+#[test]
 fn should_flatten_nested_scalars_with_dotted_keys_and_skip_long_texts() {
     let salida = json!({
         "tipo_sistema": "red",

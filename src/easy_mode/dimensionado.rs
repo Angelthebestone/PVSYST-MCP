@@ -22,6 +22,9 @@ pub(crate) const APROXIMACION_DISENO_AUTOMATICO: Aproximacion = Aproximacion {
 const FACTOR_SEGURIDAD_VOC: f64 = 1.15;
 pub(crate) const WATTS_POR_KILOWATT: f64 = 1000.0;
 const RANGO_SERIE_OFFSET: u32 = 2;
+/// Most modules in one string the search tries: a bad voltage in a database file (a tiny `Voc`, a huge
+/// `VAbsMax`) must not turn the search into billions of candidates. Same ceiling as the schema's `n_modulos_serie`.
+const MAX_MODULOS_EN_SERIE: u32 = 1000;
 
 /// Electrical parameters for series string sizing.
 pub(crate) struct VentanaElectrica {
@@ -57,11 +60,22 @@ pub(crate) fn dimensionar_serie(
 
 /// Sizing calculation over a typed electrical window DTO.
 pub(crate) fn dimensionar_serie_ventana(v: &VentanaElectrica) -> Option<(u32, u32)> {
-    if [v.pmod_w, v.voc_v, v.vmpp_v].iter().any(|x| *x <= 0.0) {
+    let finitos = [
+        v.kwp,
+        v.pmod_w,
+        v.voc_v,
+        v.vmpp_v,
+        v.vmpp_min_v,
+        v.vabs_max_v,
+    ];
+    if finitos.iter().any(|x| !x.is_finite())
+        || [v.pmod_w, v.voc_v, v.vmpp_v].iter().any(|x| *x <= 0.0)
+    {
         return None;
     }
     let ns_min = (v.vmpp_min_v / v.vmpp_v).ceil().max(1.0) as u32;
-    let ns_max = (v.vabs_max_v / (FACTOR_SEGURIDAD_VOC * v.voc_v)).floor() as u32;
+    let ns_max = ((v.vabs_max_v / (FACTOR_SEGURIDAD_VOC * v.voc_v)).floor() as u32)
+        .min(MAX_MODULOS_EN_SERIE);
     mejor_disposicion(ns_min..=ns_max, v.kwp * WATTS_POR_KILOWATT, v.pmod_w)
 }
 

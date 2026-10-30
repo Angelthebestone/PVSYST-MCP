@@ -104,8 +104,13 @@ impl Server {
     }
 
     fn process_notification(&self, method: &str, params: &Value) {
-        if method == "tools/call" {
-            let _ = self.ejecutar_herramienta(params, &SeguimientoTarea::inerte());
+        if method != "tools/call" {
+            return;
+        }
+        // A notification gets no answer, so a failed call would otherwise vanish.
+        let resultado = self.ejecutar_herramienta(params, &SeguimientoTarea::inerte());
+        if resultado.get("isError") == Some(&Value::Bool(true)) {
+            tracing::warn!(method, "tools/call recibido como notificación falló");
         }
     }
 

@@ -2,22 +2,18 @@
 //! a planned power, PVsyst chooses the modules in series, the strings and the
 //! inverter count, and warns about the electrical window.
 
+use super::relleno::{rellenar, valor};
 use super::rotulos::{rotulos_dimensionado, RotulosDimensionado};
-use super::{contar, objeto, ProyectoEnPvsyst};
-use crate::adapters::gui::conduccion::Campo;
+use super::{abrir_sesion, contar, objeto, ProyectoEnPvsyst};
 use crate::adapters::gui::rotulos::Idioma;
-use crate::adapters::gui::sesion_pvsyst::Sesion;
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
 
 const ROTULOS: RotulosDimensionado = rotulos_dimensionado(Idioma::Es);
 
-/// "Planned power" option and field of the pre-sizing help.
-const OPCION_POTENCIA: Campo = Campo::opcion(1044, 73);
-const POTENCIA_PLANEADA: Campo = Campo::edit(1080, 73);
-const MODULOS_SERIE: Campo = Campo::edit(468, 486);
-const CADENAS: Campo = Campo::edit(468, 514);
+/// The System window as the agent view describes it (`gui_observar que:esquema`).
+const SISTEMA: &str = "variante.system";
 /// PVsyst sizes one sub-array per pre-sizing; several need one each.
 const UN_SUBCONJUNTO: usize = 1;
 
@@ -28,7 +24,7 @@ pub(crate) fn dimensionar(
     variante: &str,
     kwp: f64,
 ) -> Result<Value> {
-    let sesion = Sesion::abrir(paths)?;
+    let sesion = abrir_sesion(paths)?;
     sesion.ejecutar(|s| {
         let p = ProyectoEnPvsyst::abrir(s, paths, proyecto, variante)?;
         let subconjuntos = contar(&p.leer_variante()?, "pvSubArray");
@@ -39,11 +35,11 @@ pub(crate) fn dimensionar(
         }
         p.ventana.pulsar(ROTULOS.sistema)?;
         let sistema = s.esperar(ROTULOS.formulario_sistema)?;
-        sistema.marcar(OPCION_POTENCIA)?;
-        sistema.escribir(POTENCIA_PLANEADA, &format!("{kwp}"))?;
+        let pedido = json!({ "usar_potencia_planeada": true, "potencia_planeada_kwp": kwp });
+        let formulario = rellenar(paths, &sistema, (SISTEMA, pedido))?;
         let propuesta = json!({
-            "n_mod_serie": sistema.leer(MODULOS_SERIE)?,
-            "n_strings": sistema.leer(CADENAS)?,
+            "n_mod_serie": valor(&formulario, "n_modulos_serie"),
+            "n_strings": valor(&formulario, "n_cadenas"),
         });
         sistema.pulsar(ROTULOS.ok)?;
         s.aceptar_mensajes();

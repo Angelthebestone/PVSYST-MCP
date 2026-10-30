@@ -2,7 +2,6 @@
 //! confirmation, or the caller asked for a dry run. The next step is the same
 //! call, completed.
 
-use super::catalogo::buscar;
 use super::construccion::Contexto;
 use super::tipos::{ErrorVista, Estado, PasoSiguiente};
 use crate::args::{flag, DRY_RUN, REQUIERE_CONFIRMACION};
@@ -45,16 +44,11 @@ fn es_ensayo_respondido(salida: &Value) -> bool {
 
 /// Whether the answer is not final. A dry run is only a dry run when it worked: a
 /// failed one has nothing to complete. `estado` is the state the answer would have.
-pub(super) fn pendiente_de(
-    ctx: &Contexto<'_>,
-    salida: &Value,
-    estado: Estado,
-) -> Option<Pendiente> {
+pub(super) fn pendiente_de(salida: &Value, estado: Estado) -> Option<Pendiente> {
     if flag(salida, &[REQUIERE_CONFIRMACION]) {
         return Some(Pendiente::Confirmacion);
     }
-    let sin_version_real = buscar(ctx.tool, ctx.accion).is_some_and(|e| e.solo_ensayo);
-    let es_ensayo = estado == Estado::Ok && es_ensayo_respondido(salida) && !sin_version_real;
+    let es_ensayo = estado == Estado::Ok && es_ensayo_respondido(salida);
     es_ensayo.then_some(Pendiente::Ensayo)
 }
 

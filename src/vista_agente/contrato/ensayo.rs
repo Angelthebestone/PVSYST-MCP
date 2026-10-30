@@ -15,7 +15,7 @@ fn implementa_ensayo(tool: &str, accion: &str) -> bool {
             | ("entorno", "licencia" | "licencia_sync" | "exportar_logs")
             | ("simular", "ejecutar")
             | ("sitio", "convertir_meteo" | "crear")
-            | ("gui_actuar", "escena" | "rellenar")
+            | ("gui_actuar", "escena" | "escena_importar" | "rellenar")
     )
 }
 

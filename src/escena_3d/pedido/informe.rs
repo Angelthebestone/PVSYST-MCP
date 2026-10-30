@@ -1,16 +1,17 @@
 //! The answer to `escena`: what would be created.
 
-use super::colision::colisiones;
+use super::colision::{colisiones, sin_caja};
 use super::lectura::{leer_objetos, ObjetoPedido};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
 
 const MAX_NOMBRE: usize = 64;
-const AVISO_ANCLA: &str = "[INFERENCIA] colisiones calculadas con la posición como esquina inferior y sin rotación ni inclinación de la chimenea: el ancla de PVsyst no está demostrada.";
-const AVISO_SIN_CREACION: &str = "La creación de la escena en el editor 3D de PVsyst no está implementada: esta acción solo valida el pedido. PVsyst en modo PRUEBA tampoco guarda y las escenas no se escriben a mano.";
+const AVISO_ANCLA: &str = "[INFERENCIA] colisiones solo entre paralelepípedos, con la posición como esquina inferior: el ancla de PVsyst no está demostrada y las demás formas no se comprueban (sin_caja).";
+const AVISO_SIN_CREACION: &str = "Con simular:true esta acción solo valida el pedido; sin él crea los objetos en el editor 3D abierto y comprueba el archivo que PVsyst guardó. Las escenas no se escriben a mano.";
 const AVISO_RANGOS: &str = "Los rangos son límites del MCP; los de PVsyst no están medidos.";
 
-fn nombre_valido(nombre: &str) -> Result<&str> {
+/// A scene name that is a plain file name: it becomes `Shadings\<nombre>.SHD`.
+pub(crate) fn nombre_valido(nombre: &str) -> Result<&str> {
     let permitido = |c: char| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | ' ');
     if nombre.is_empty() || nombre.chars().count() > MAX_NOMBRE || !nombre.chars().all(permitido) {
         return Err(Error::Invalid(format!(
@@ -26,18 +27,21 @@ fn objeto_json(indice: usize, objeto: &ObjetoPedido) -> Value {
         .forma
         .parametros
         .iter()
-        .map(|p| json!({ "clave": p.clave, "valor": valores.get(p.clave), "unidad": p.unidad }))
-        .collect();
-    let ranuras: Vec<Value> = objeto
-        .forma
-        .parametros
-        .iter()
-        .map(|p| json!({ "ranura": p.ranura, "clave": p.clave, "valor": valores.get(p.clave) }))
+        .enumerate()
+        .map(|(i, p)| {
+            json!({
+                "clave": p.clave,
+                "etiqueta_pvsyst": p.etiqueta,
+                "valor": valores.get(p.clave),
+                "unidad": p.unidad,
+                "posicion_en_params": i,
+            })
+        })
         .collect();
     json!({
         "indice": indice,
         "tipo": objeto.forma.tipo,
-        "forma": { "codigo": objeto.forma.codigo, "nombre_pvsyst": objeto.forma.nombre_pvsyst },
+        "forma": { "tipo_pvsyst": objeto.forma.tipo_pvsyst, "nombre_pvsyst": objeto.forma.nombre_pvsyst },
         "posicion": {
             "x": objeto.posicion.x,
             "y": objeto.posicion.y,
@@ -45,7 +49,6 @@ fn objeto_json(indice: usize, objeto: &ObjetoPedido) -> Value {
             "rotacion_azimut_deg": objeto.posicion.rotacion_azimut_deg,
         },
         "campos": campos,
-        "ranuras_archivo": ranuras,
     })
 }
 
@@ -72,6 +75,7 @@ pub(crate) fn describir_escena(escena: &str, objetos: &Value) -> Result<Value> {
         "objetos": descritos,
         "colisiones": choques,
         "colisiones_total": todas.len(),
+        "sin_caja": sin_caja(&pedidos),
         "origen": "aproximacion_mcp",
         "avisos": [AVISO_SIN_CREACION, AVISO_RANGOS, AVISO_ANCLA],
     }))

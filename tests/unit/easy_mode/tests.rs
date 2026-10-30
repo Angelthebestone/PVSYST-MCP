@@ -26,6 +26,26 @@ fn dimensionar_serie_rejects_empty_window() {
 }
 
 #[test]
+fn should_stop_at_a_thousand_modules_in_series_when_the_voltage_limit_is_absurd() {
+    // A VAbsMax of 1e12 V would allow ~1e10 modules per string: the search must stay bounded.
+    let (ns, _) = dimensionar_serie(10.0, 400.0, 49.0, 41.0, 200.0, 1.0e12).expect("a layout");
+
+    assert!(ns <= 1000, "{ns}");
+}
+
+#[test]
+fn should_find_no_layout_when_a_voltage_of_the_window_is_not_a_finite_number() {
+    assert_eq!(
+        dimensionar_serie(10.0, 400.0, 49.0, 41.0, f64::NAN, 1000.0),
+        None
+    );
+    assert_eq!(
+        dimensionar_serie(10.0, 400.0, 49.0, 41.0, 200.0, f64::INFINITY),
+        None
+    );
+}
+
+#[test]
 fn errores_de_collects_failed_steps_and_kpi_error() {
     let pasos = vec![
         json!({ "paso": "sitio", "ok": true }),

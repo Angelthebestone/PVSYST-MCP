@@ -28,30 +28,6 @@ pub(crate) struct Campo {
     pub(crate) y: i32,
 }
 
-impl Campo {
-    pub(crate) const fn edit(x: i32, y: i32) -> Self {
-        Self {
-            clase: "TEdit",
-            x,
-            y,
-        }
-    }
-    pub(crate) const fn combo(x: i32, y: i32) -> Self {
-        Self {
-            clase: "TComboBox",
-            x,
-            y,
-        }
-    }
-    pub(crate) const fn opcion(x: i32, y: i32) -> Self {
-        Self {
-            clase: "TRadioButton",
-            x,
-            y,
-        }
-    }
-}
-
 /// A visible top-level PVsyst form.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Formulario {
@@ -173,6 +149,11 @@ impl Formulario {
             })
     }
 
+    /// Clicks control `c` of this form with the mouse (check boxes and options).
+    pub(crate) fn marcar_en(&self, c: Hwnd) {
+        self.clic_en_control(c);
+    }
+
     fn clic_en_control(&self, c: Hwnd) {
         let r = rect_of(c);
         ffi::traer_al_frente(self.h);
@@ -181,7 +162,7 @@ impl Formulario {
     }
 
     /// The only visible control of class `clase` on the form.
-    fn unico(&self, clase: &str) -> Result<Hwnd> {
+    pub(crate) fn unico(&self, clase: &str) -> Result<Hwnd> {
         let mut it = self.hijos_visibles().filter(|c| class_of(*c) == clase);
         match (it.next(), it.next()) {
             (Some(c), None) => Ok(c),
@@ -202,7 +183,7 @@ impl Formulario {
     }
 
     /// Clicks at `(dx, dy)` (px at 96 DPI) from the top-left corner of the
-    /// form's only control of class `clase` (e.g. the first row of a list).
+    /// form's only control of class `clase` (e.g. a cell of a list).
     pub(crate) fn clic_en_unico(&self, clase: &str, (dx, dy): (i32, i32)) -> Result<()> {
         let r = rect_of(self.unico(clase)?);
         ffi::traer_al_frente(self.h);
@@ -224,17 +205,6 @@ impl Formulario {
         ffi::teclear_en(c, texto)?;
         ffi::pulsar_tabulador();
         std::thread::sleep(PAUSA_ACCION);
-        Ok(())
-    }
-
-    pub(crate) fn leer(&self, campo: Campo) -> Result<String> {
-        self.control(campo).map(ffi::texto_control)
-    }
-
-    /// Clicks the unlabeled option (radio button) at `campo`.
-    pub(crate) fn marcar(&self, campo: Campo) -> Result<()> {
-        let c = self.control(campo)?;
-        self.clic_en_control(c);
         Ok(())
     }
 
@@ -264,25 +234,5 @@ impl Formulario {
         ffi::mostrar_pagina(pc, indice)?;
         std::thread::sleep(PAUSA_ACCION);
         ffi::exigir_cambio_de_pestana(indice, ffi::pagina_seleccionada(pc))
-    }
-
-    /// Clicks a point of a toolbar (`TActionToolBar`), the only way to reach
-    /// its actions: the `n`-th toolbar wider than 500 px, top to bottom.
-    pub(crate) fn clic_barra(&self, n: usize, x: i32) -> Result<()> {
-        const ANCHO_BARRA_MIN_PX: i32 = 500;
-        let mut barras: Vec<ffi::Rect> = self
-            .hijos_visibles()
-            .filter(|c| class_of(*c) == "TActionToolBar")
-            .map(rect_of)
-            .filter(|r| r.right - r.left >= self.escalar(ANCHO_BARRA_MIN_PX))
-            .collect();
-        barras.sort_by_key(|r| r.top);
-        let r = barras
-            .get(n)
-            .ok_or_else(|| Error::Gui(format!("'{}' no tiene esa barra", self.titulo())))?;
-        ffi::traer_al_frente(self.h);
-        ffi::clic_fisico_en(r.left + self.escalar(x), (r.top + r.bottom) / 2);
-        std::thread::sleep(PAUSA_ACCION);
-        Ok(())
     }
 }

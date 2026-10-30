@@ -1,4 +1,5 @@
 use super::*;
+use crate::error::Error;
 
 fn parametros(valor: &Value) -> Result<ParametrosPerdidas> {
     ParametrosPerdidas::nuevo(EntradaPerdidas::de_args(valor)?)

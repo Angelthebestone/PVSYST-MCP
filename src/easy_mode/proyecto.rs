@@ -196,9 +196,13 @@ pub(crate) fn deshacer_nuevos(paths: &Paths, antes: &[PathBuf], originales: &[(P
         .into_iter()
         .filter(|p| !antes.contains(p))
     {
-        let _ = std::fs::remove_file(nuevo);
+        if let Err(error) = std::fs::remove_file(&nuevo) {
+            tracing::warn!(archivo = %nuevo.display(), %error, "el deshacer no pudo borrar un archivo nuevo");
+        }
     }
     for (ruta, bytes) in originales {
-        let _ = history::escribir_atomico(ruta, bytes);
+        if let Err(error) = history::escribir_atomico(ruta, bytes) {
+            tracing::warn!(archivo = %ruta.display(), %error, "el deshacer no pudo restaurar un original");
+        }
     }
 }

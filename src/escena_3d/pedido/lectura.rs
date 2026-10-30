@@ -11,7 +11,9 @@ pub(crate) const MAX_OBJETOS: usize = 500;
 /// Largest coordinate the MCP accepts, in meters.
 const MAXIMO_COORDENADA_M: f64 = 100_000.0;
 const MAXIMO_GIRO_DEG: f64 = 360.0;
-const CLAVES_DE_POSICION: &[&str] = &["tipo", "x", "y", "z", "rotacion_azimut_deg"];
+const CLAVES_DE_POSICION: &[&str] = &["tipo", "nombre", "x", "y", "z", "rotacion_azimut_deg"];
+/// Longest name PVsyst's dialog is asked to take.
+const MAX_NOMBRE_OBJETO: usize = 64;
 
 /// Where an object sits, in meters and degrees.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -26,7 +28,21 @@ pub(crate) struct Posicion {
 pub(crate) struct ObjetoPedido {
     pub(crate) forma: &'static Forma,
     pub(crate) posicion: Posicion,
-    pub(super) valores: Valores,
+    /// The name to give it; PVsyst names it after its shape when absent.
+    pub(crate) nombre: Option<String>,
+    pub(crate) valores: Valores,
+}
+
+fn leer_nombre(objeto: &Map<String, Value>) -> Result<Option<String>, Problema> {
+    let Some(valor) = objeto.get("nombre") else {
+        return Ok(None);
+    };
+    let nombre = valor.as_str().map(str::trim).filter(|n| {
+        !n.is_empty() && n.chars().count() <= MAX_NOMBRE_OBJETO && !n.chars().any(char::is_control)
+    });
+    nombre
+        .map(|n| Some(n.to_string()))
+        .ok_or(Problema::NombreInvalido)
 }
 
 fn numero(
@@ -91,7 +107,8 @@ fn leer_posicion(objeto: &Map<String, Value>) -> Result<Posicion, Vec<Problema>>
 }
 
 fn leer_parametro(objeto: &Map<String, Value>, p: &Parametro) -> Result<f64, Problema> {
-    numero(objeto, p.clave, None).and_then(|v| dentro(p.clave, v, (p.minimo, p.maximo)))
+    let defecto = (!p.obligatorio).then_some(p.defecto);
+    numero(objeto, p.clave, defecto).and_then(|v| dentro(p.clave, v, (p.minimo, p.maximo)))
 }
 
 fn claves_ajenas(objeto: &Map<String, Value>, forma: &Forma) -> Vec<Problema> {
@@ -109,12 +126,6 @@ fn claves_ajenas(objeto: &Map<String, Value>, forma: &Forma) -> Vec<Problema> {
             validas: validas.clone(),
         })
         .collect()
-}
-
-/// A tree's trunk must be thinner than its crown.
-fn coherencia(forma: &Forma, valores: &Valores) -> Option<Problema> {
-    let (copa, tronco) = (valores.get("radio_copa")?, valores.get("radio_tronco")?);
-    (forma.tipo == "arbol" && tronco >= copa).then_some(Problema::TroncoMayorQueCopa)
 }
 
 fn forma_del_objeto(objeto: &Map<String, Value>) -> Result<&'static Forma, Problema> {
@@ -139,6 +150,7 @@ fn leer_objeto(valor: &Value) -> Result<ObjetoPedido, Vec<Problema>> {
         .map(|p| (p.clave, leer_parametro(objeto, p)))
         .collect();
     let posicion = leer_posicion(objeto);
+    let nombre = leer_nombre(objeto);
     let valores: Valores = parametros
         .iter()
         .filter_map(|(clave, r)| Some((*clave, *r.as_ref().ok()?)))
@@ -146,11 +158,12 @@ fn leer_objeto(valor: &Value) -> Result<ObjetoPedido, Vec<Problema>> {
     let mut problemas = claves_ajenas(objeto, forma);
     problemas.extend(parametros.into_iter().filter_map(|(_, r)| r.err()));
     problemas.extend(posicion.as_ref().err().cloned().unwrap_or_default());
-    problemas.extend(coherencia(forma, &valores));
+    problemas.extend(nombre.as_ref().err().cloned());
     match posicion {
         Ok(posicion) if problemas.is_empty() => Ok(ObjetoPedido {
             forma,
             posicion,
+            nombre: nombre.unwrap_or_default(),
             valores,
         }),
         _ => Err(problemas),

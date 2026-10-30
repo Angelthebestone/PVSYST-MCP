@@ -6,6 +6,10 @@
 //! opened, and that takes the keyboard: VCL ignores posted `WM_KEY*` messages
 //! on the private desktop.
 
+mod submenu;
+
+pub(crate) use submenu::id_en_submenu;
+
 use super::escritorio;
 use super::ffi::{self, Hwnd, ItemMenu, TipoItem};
 use super::ventanas::{class_of, enum_windows_de, pid_of, visible};
@@ -140,6 +144,15 @@ fn salir_de_la_barra(ventana: Hwnd, origen: OrigenSalida) {
 /// Opens top-level menu `menu` of `ventana`, reads its entries and always
 /// leaves the menu bar, also when something failed half way.
 fn leer_menu(ventana: Hwnd, menu: usize) -> Result<Vec<ItemMenu>> {
+    leer_con(ventana, menu, ffi::items_de_popup)
+}
+
+/// Like [`leer_menu`], with `lector` choosing which entries of the open popup to read.
+fn leer_con(
+    ventana: Hwnd,
+    menu: usize,
+    lector: impl FnOnce(Hwnd) -> Option<Vec<ItemMenu>>,
+) -> Result<Vec<ItemMenu>> {
     poner_al_frente(ventana)?;
     let popup = match abrir_menu(ventana, menu) {
         Ok(()) => esperar_popup(pid_of(ventana)),
@@ -148,9 +161,9 @@ fn leer_menu(ventana: Hwnd, menu: usize) -> Result<Vec<ItemMenu>> {
             return Err(e);
         }
     };
-    let items = popup.and_then(ffi::items_de_popup).ok_or_else(|| {
+    let items = popup.and_then(lector).ok_or_else(|| {
         Error::NotFound(format!(
-            "El menú {menu} de {} no se abrió",
+            "El menú {menu} de {} no se abrió o la entrada pedida no tiene submenú",
             class_of(ventana)
         ))
     });
@@ -190,16 +203,22 @@ pub(crate) fn id_en_posicion(ventana: Hwnd, posicion: Posicion) -> Result<u16> {
             items.len()
         ))
     })?;
+    id_de_comando(
+        item,
+        &format!("{} del menú {}", posicion.item, posicion.menu),
+    )
+}
+
+/// The `WM_COMMAND` id of `item`, which must be an enabled command; `donde` names it in errors.
+fn id_de_comando(item: &ItemMenu, donde: &str) -> Result<u16> {
     match item.tipo {
-        TipoItem::Comando(_) if item.deshabilitado => Err(Error::Gui(format!(
-            "La entrada {} del menú {} está deshabilitada",
-            posicion.item, posicion.menu
-        ))),
+        TipoItem::Comando(_) if item.deshabilitado => {
+            Err(Error::Gui(format!("La entrada {donde} está deshabilitada")))
+        }
         TipoItem::Comando(id) => u16::try_from(id)
             .map_err(|_| Error::Invalid(format!("Id de comando {id} fuera de 16 bits"))),
         _ => Err(Error::Invalid(format!(
-            "La entrada {} del menú {} no es un comando (separador o submenú)",
-            posicion.item, posicion.menu
+            "La entrada {donde} no es un comando (separador o submenú)"
         ))),
     }
 }

@@ -2,7 +2,7 @@ use super::cliente_mcp::{synthetic_workspace, tool_text, Client, DEMO_WS};
 use serde_json::json;
 use std::path::{Path, PathBuf};
 
-const DEMO_PAN: &str = r"C:\Program Files\PVsyst8.1.7\DataRO\PVsyst8.1_Data\ComposPV\PVModules\CX-M500_2450Wp_1_00_086.PAN";
+const DEMO_PAN: &str = r"C:\Program Files\PVsyst8.1.8\DataRO\PVsyst8.1_Data\ComposPV\PVModules\CX-M500_2450Wp_1_00_086.PAN";
 
 fn stage_project(tmp: &Path, name: &str) -> PathBuf {
     let projects = tmp.join("Projects");

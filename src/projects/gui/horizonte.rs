@@ -1,8 +1,7 @@
 //! Horizon import by PVsyst itself: its horizon window downloads the PVGIS
 //! profile for the project site and computes the diffuse and albedo factors.
 
-use super::{objeto, ProyectoEnPvsyst};
-use crate::adapters::gui::sesion_pvsyst::Sesion;
+use super::{abrir_sesion, objeto, ProyectoEnPvsyst};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
@@ -17,7 +16,7 @@ const ESPERA_DESCARGA: Duration = Duration::from_secs(90);
 
 /// Imports the PVGIS horizon of the project site into `variante`.
 pub(crate) fn importar_pvgis(paths: &Paths, proyecto: &str, variante: &str) -> Result<Value> {
-    let sesion = Sesion::abrir(paths)?;
+    let sesion = abrir_sesion(paths)?;
     sesion.ejecutar(|s| {
         let p = ProyectoEnPvsyst::abrir(s, paths, proyecto, variante)?;
         p.ventana.pulsar(ROTULOS.horizonte)?;

@@ -5,7 +5,7 @@ use crate::config::Paths;
 use crate::error::Error;
 use serde_json::json;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 const FIXTURE_ESCENA_SINTETICA: &[u8] =
     b"pvShdBuilding;Synthetic Test;\r\nVersion 4.21; Calcul=$0001;\r\npvShdElemObject;Box;\r\nVersion 4.21; Calcul=$0005;\r\n";
@@ -151,12 +151,37 @@ fn should_reject_truncated_3d_file() {
     assert!(matches!(&err_una_linea, Error::Invalid(msg) if msg.contains("insuficiente")));
 }
 
+/// Scene saved by PVsyst 8.1.8 (PRUEBA) from the editor: one box, 10 x 8 x 3 m.
+const ESCENA_TEXTO_8_1_8: &[u8] = include_bytes!("../../fixtures/escena_3d/Casa_A_8_1_8.SHD");
+
+#[test]
+fn should_read_the_box_when_the_scene_is_the_text_form_with_a_byte_order_mark() {
+    let escena = parse_escena_3d(ESCENA_TEXTO_8_1_8, TipoArchivoEscena::Shd).expect("texto");
+
+    assert_eq!(escena.clase_raiz(), "pvShading");
+    assert_eq!(escena.version(), "8.1.8");
+    assert_eq!(escena.objetos().len(), 1);
+    let caja = &escena.objetos()[0];
+    assert_eq!((caja.clase(), caja.nombre()), ("pvShdElemObject", "Casa_A"));
+    let geo = caja.geometria().expect("geometria");
+    assert_eq!(geo.tipo_pvsyst.as_deref(), Some("oeParallelepipede"));
+    assert_eq!(geo.dimensiones, vec![10.0, 8.0, 3.0]);
+    assert_eq!(caja.posicion().expect("posicion").z, 0.0);
+}
+
+#[test]
+fn should_reject_the_text_form_when_the_extension_is_another_category() {
+    let err = parse_escena_3d(ESCENA_TEXTO_8_1_8, TipoArchivoEscena::Bld).unwrap_err();
+    assert!(matches!(&err, Error::Invalid(msg) if msg.contains("pvShdBuilding")));
+}
+
 #[test]
 #[ignore = "necesita la instalación de PVsyst"]
 fn should_decode_real_demo_geneve_grid_bld_sample() {
-    let ruta = PathBuf::from(
-        r"C:\Program Files\PVsyst8.1.7\DataRO\PVsyst8.1_Data\Shadings\DEMO_Geneve_Grid.BLD",
-    );
+    let ruta = crate::config::data_ro()
+        .join("PVsyst8.1_Data")
+        .join("Shadings")
+        .join("DEMO_Geneve_Grid.BLD");
     if !ruta.exists() {
         panic!(
             "Falta el archivo requerido de la instalación de PVsyst: {}",

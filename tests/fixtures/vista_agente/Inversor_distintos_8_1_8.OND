@@ -1,0 +1,45 @@
+﻿PVObject_=pvGInverter
+  Comment=MCPfab	MCP_Inv	Manufacturer
+  Version=8.1.8
+  Flags=$01
+
+  PVObject_Commercial=pvCommercial
+    Flags=$41
+    Manufacturer=MCPfab
+    Model=MCP_Inv
+    DataSource=Manufacturer
+    NPieces=100
+    PriceDate=29/10/26 03:36
+  End of PVObject pvCommercial
+
+  Converter=TConverter
+    PNomConv=20.500
+    PMaxOUT=22.500
+    VOutConv=400.0
+    VMppMin=310
+    VMPPMax=820
+    VmppNom=600.0
+    VAbsMax=1000
+    PSeuil=0.10
+    EfficMax=0.00
+    EfficEuro=0.00
+    FResNorm=3.00
+    ModeOper=MPPT
+    CompPMax=Lim
+    CompVMax=Lim
+    MonoTri=Mono
+    ModeAffEnum=Efficf_PIn
+    UnitAffEnum=kW
+    IDCMax=0.000
+    INomDC=0.000
+    TPNom=50.0
+    TPMax=25.0
+    TPLim1=60.0
+    HasdefaultPThresh=False
+  End of TConverter
+  NbInputs=1
+  NbMPPT=1
+  NbMSInterne=2
+  MasterSlave=No_M_S
+  MS_Thresh=0.8
+End of PVObject pvGInverter

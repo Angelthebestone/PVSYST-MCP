@@ -183,28 +183,43 @@ impl Funcion {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum PedidoMenu {
     Id(u16),
-    Posicion { menu: usize, item: usize },
+    Posicion {
+        menu: usize,
+        item: usize,
+    },
+    /// An entry of the submenu at (`menu`, `item`).
+    Submenu {
+        menu: usize,
+        item: usize,
+        sub: usize,
+    },
 }
 
 /// The command a request for `accion:menu` names: an `id`, or a `menu` and an
-/// `item` (positions from 0). Giving both kinds, or half a position, is an
-/// error rather than a guess.
+/// `item` (positions from 0), plus a `subitem` when `item` is a submenu. Giving
+/// both kinds, or half a position, is an error rather than a guess.
 pub(crate) fn pedido_de_menu(args: &Value) -> Result<PedidoMenu> {
-    let (id, menu, item) = (
+    let (id, menu, item, sub) = (
         opt_u32(args, "id")?,
         opt_u32(args, "menu")?,
         opt_u32(args, "item")?,
+        opt_u32(args, "subitem")?,
     );
-    match (id, menu, item) {
-        (Some(id), None, None) => u16::try_from(id)
+    match (id, menu, item, sub) {
+        (Some(id), None, None, None) => u16::try_from(id)
             .map(PedidoMenu::Id)
             .map_err(|_| Error::Invalid("'id' va de 0 a 65535".into())),
-        (None, Some(menu), Some(item)) => Ok(PedidoMenu::Posicion {
+        (None, Some(menu), Some(item), None) => Ok(PedidoMenu::Posicion {
             menu: menu as usize,
             item: item as usize,
         }),
+        (None, Some(menu), Some(item), Some(sub)) => Ok(PedidoMenu::Submenu {
+            menu: menu as usize,
+            item: item as usize,
+            sub: sub as usize,
+        }),
         _ => Err(Error::Invalid(
-            "accion 'menu' requiere 'id', o la pareja 'menu' e 'item' (posiciones desde 0), no ambas".into(),
+            "accion 'menu' requiere 'id', o la pareja 'menu' e 'item' (posiciones desde 0; 'subitem' si 'item' es un submenú), no ambas".into(),
         )),
     }
 }

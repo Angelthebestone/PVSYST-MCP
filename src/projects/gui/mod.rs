@@ -6,14 +6,16 @@
 pub(crate) mod dimensionado;
 pub(crate) mod horizonte;
 pub(crate) mod p50;
+mod relleno;
 pub(crate) mod rotulos;
 
-use crate::adapters::gui::conduccion::{Campo, Formulario};
+use crate::adapters::gui::conduccion::Formulario;
 use crate::adapters::gui::rotulos::Idioma;
 use crate::adapters::gui::sesion_pvsyst::Sesion;
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use rotulos::{rotulos_proyecto_gui, RotulosProyectoGui};
+use serde_json::json;
 
 const ROTULOS: RotulosProyectoGui = rotulos_proyecto_gui(Idioma::Es);
 use crate::format::object::{self, PvNode};
@@ -23,13 +25,11 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
-/// Offsets (px at 96 DPI) of "Carga" in the project bar and "Guardar" in the variant bar.
-const X_CARGAR: i32 = 100;
-const X_GUARDAR_VARIANTE: i32 = 113;
-/// First row of the project list, relative to the list's top-left corner.
-const FILA_1: (i32, i32) = (80, 28);
-/// Variant selector of the project window.
-const SELECTOR_VARIANTE: Campo = Campo::combo(448, 339);
+/// The project window's commands, as the GUI catalogue names them (menu entries by position).
+const CARGAR_PROYECTO: &str = "ventana_proyecto.proyecto.cargar";
+const GUARDAR_VARIANTE: &str = "ventana_proyecto.variante.guardar";
+/// The project list shows the file typed in the search box as its first row.
+const PRIMERA_FILA: u64 = 0;
 const ESPERA_TITULO: Duration = Duration::from_secs(10);
 
 /// A project open in PVsyst on one variant.
@@ -37,6 +37,18 @@ pub(crate) struct ProyectoEnPvsyst<'s> {
     pub(crate) sesion: &'s Sesion,
     pub(crate) ventana: Formulario,
     pub(crate) archivo_variante: PathBuf,
+}
+
+/// A session for a step that loads a project and saves its variant. Both go through the menu
+/// bar, which PVsyst opens only for the keyboard, and the isolated desktop ignores keys: the
+/// step is refused before PVsyst is touched instead of failing with a variant half edited.
+pub(super) fn abrir_sesion(paths: &Paths) -> Result<Sesion> {
+    if crate::adapters::gui::escritorio::es_aislado() {
+        return Err(Error::Gui(
+            "Cargar el proyecto y guardar la variante usan los menús de PVsyst, que se abren con el teclado: el escritorio aislado (PVSYST_MCP_ESCRITORIO=aislado) lo ignora. Quita esa variable para este paso".into(),
+        ));
+    }
+    Sesion::abrir(paths)
 }
 
 fn boton_de_inicio(tipo: TipoSistema) -> &'static str {
@@ -62,11 +74,20 @@ fn esperar_titulo(f: &Formulario, prj: &str) -> Result<()> {
     Ok(())
 }
 
+/// Runs a catalogued command of the project window (its menu entry, found by position).
+fn ejecutar(proyecto: &Formulario, funcion: &str) -> Result<()> {
+    crate::adapters::gui::ffi::traer_al_frente(proyecto.h);
+    crate::gui_catalogo::abrir(&json!({ "funcion": funcion })).map(|_| ())
+}
+
 fn cargar(sesion: &Sesion, proyecto: &Formulario, prj: &str) -> Result<()> {
-    proyecto.clic_barra(0, X_CARGAR)?;
+    ejecutar(proyecto, CARGAR_PROYECTO)?;
     let lista = sesion.esperar(ROTULOS.formulario_cargar)?;
     lista.escribir_unico("TEdit", prj)?;
-    lista.clic_en_unico("TVirtualStringTree", FILA_1)?;
+    let arbol = lista.unico("TVirtualStringTree")?;
+    crate::adapters::gui::fila::fila(
+        &json!({ "ventana": format!("0x{arbol:X}"), "indice": PRIMERA_FILA }),
+    )?;
     lista.pulsar(ROTULOS.ok)?;
     sesion.aceptar_mensajes();
     esperar_titulo(proyecto, prj)
@@ -116,7 +137,8 @@ impl<'s> ProyectoEnPvsyst<'s> {
         if !ventana.titulo().ends_with(&prj) {
             cargar(sesion, &ventana, &prj)?;
         }
-        ventana.seleccionar(SELECTOR_VARIANTE, &variante.to_ascii_uppercase())?;
+        let eleccion = json!({ "variante_activa": variante.to_ascii_uppercase() });
+        relleno::rellenar(paths, &ventana, ("proyecto.ventana", eleccion))?;
         sesion.aceptar_mensajes();
         Ok(Self {
             sesion,
@@ -128,7 +150,7 @@ impl<'s> ProyectoEnPvsyst<'s> {
     /// Saves the variant through PVsyst and checks that PVsyst wrote the file.
     pub(crate) fn guardar_variante(&self) -> Result<PvNode> {
         let antes = crate::workspace::leer_bytes(&self.archivo_variante)?;
-        self.ventana.clic_barra(1, X_GUARDAR_VARIANTE)?;
+        ejecutar(&self.ventana, GUARDAR_VARIANTE)?;
         let dialogo = self.sesion.esperar(ROTULOS.formulario_guardar)?;
         dialogo.pulsar(ROTULOS.guardar)?;
         self.sesion.aceptar_mensajes();

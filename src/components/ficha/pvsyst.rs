@@ -2,14 +2,18 @@
 //! PVsyst's own component windows. PVsyst fits the one-diode model (RShunt,
 //! RSerie, Gamma...) or builds the efficiency profile, and saves the file.
 
-use crate::adapters::gui::conduccion::{Campo, Formulario};
+use crate::adapters::gui::conduccion::Formulario;
+use crate::adapters::gui::ffi;
 use crate::adapters::gui::rotulos::Idioma;
 use crate::adapters::gui::sesion_pvsyst::Sesion;
+use crate::adapters::gui::ventanas::class_of;
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::object;
+use crate::vista_agente::clave_para_archivo;
 use serde_json::{json, Map, Value};
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 /// Declarative captions and form classes for PVsyst component creation.
 struct RotulosFicha {
@@ -42,29 +46,17 @@ const fn rotulos_ficha(idioma: Idioma) -> RotulosFicha {
 
 const ROTULOS: RotulosFicha = rotulos_ficha(Idioma::Es);
 
-/// One datasheet value: its key in the PVsyst file and where it is typed.
-struct Entrada {
-    clave: &'static str,
-    campo: Campo,
-    pagina: usize,
-}
+const PAUSA_FOCO: Duration = Duration::from_millis(300);
 
-const fn e(clave: &'static str, x: i32, y: i32, pagina: usize) -> Entrada {
-    Entrada {
-        clave,
-        campo: Campo::edit(x, y),
-        pagina,
-    }
-}
-
-/// What differs between creating a module and an inverter.
-struct Tipo {
+/// What differs between creating a module and an inverter. The values are typed
+/// by the keys of the entity's schema (`gui_actuar accion:rellenar`), so no
+/// coordinate lives here; a datasheet key is the entity field's `clave_archivo`.
+pub(super) struct Tipo {
     boton_base: &'static str,
     formulario: &'static str,
+    entidad: &'static str,
     carpeta: &'static str,
     extension: &'static str,
-    nombre_archivo: Campo,
-    entradas: &'static [Entrada],
     obligatorias: &'static [&'static str],
     leidas: &'static [&'static str],
 }
@@ -72,20 +64,9 @@ struct Tipo {
 const MODULO: Tipo = Tipo {
     boton_base: "Módulos PV",
     formulario: "TPVModuleForm",
+    entidad: "components.panels",
     carpeta: "PVmodules",
     extension: "PAN",
-    nombre_archivo: Campo::edit(243, 79),
-    entradas: &[
-        e("Model", 243, 53, 0),
-        e("Manufacturer", 621, 53, 0),
-        e("PNom", 130, 157, 0),
-        e("Isc", 250, 279, 0),
-        e("Voc", 493, 279, 0),
-        e("Imp", 250, 303, 0),
-        e("Vmp", 493, 303, 0),
-        e("muISC", 250, 327, 0),
-        e("NCelS", 493, 327, 0),
-    ],
     obligatorias: &[
         "Model",
         "Manufacturer",
@@ -103,28 +84,12 @@ const MODULO: Tipo = Tipo {
     ],
 };
 
-/// Technology list of the module window.
-const TECNOLOGIA: Campo = Campo::combo(166, 189);
-
 const INVERSOR: Tipo = Tipo {
     boton_base: "Inversor de red",
     formulario: "TGridInverterForm",
+    entidad: "components.inverters",
     carpeta: "Inverters",
     extension: "OND",
-    nombre_archivo: Campo::edit(241, 84),
-    entradas: &[
-        e("Model", 241, 58, 0),
-        e("Manufacturer", 621, 58, 0),
-        e("VMppMin", 286, 171, 0),
-        e("VMPPMax", 286, 267, 0),
-        e("VAbsMax", 286, 291, 0),
-        e("PSeuil", 240, 332, 0),
-        e("VOutConv", 546, 250, 0),
-        e("PNomConv", 545, 275, 0),
-        e("PMaxOUT", 545, 299, 0),
-        e("EfficMax", 493, 105, 1),
-        e("EfficEuro", 493, 132, 1),
-    ],
     obligatorias: &[
         "Model",
         "Manufacturer",
@@ -150,14 +115,22 @@ const INVERSOR: Tipo = Tipo {
     ],
 };
 
-/// Grid phases as PVsyst names them in the file and in the window.
+/// Grid phases as the file names them (`MonoTri`) and the schema option each one chooses.
 const FASES: [(&str, &str); 3] = [
-    ("Mono", "Monofásico"),
-    ("Tri", "Trifásico"),
-    ("Bi", "Bifásico"),
+    ("Mono", "fase_monofasica"),
+    ("Tri", "fase_trifasica"),
+    ("Bi", "fase_bifasica"),
 ];
 
-fn tipo_de(tipo: &str) -> Result<&'static Tipo> {
+/// The schema option for the phase `fase` of a datasheet, when it is one PVsyst knows.
+fn opcion_de_fase(fase: &str) -> Option<&'static str> {
+    FASES
+        .iter()
+        .find(|(k, _)| k.eq_ignore_ascii_case(fase))
+        .map(|(_, opcion)| *opcion)
+}
+
+pub(super) fn tipo_de(tipo: &str) -> Result<&'static Tipo> {
     match tipo.to_ascii_uppercase().as_str() {
         "PAN" => Ok(&MODULO),
         "OND" => Ok(&INVERSOR),
@@ -182,8 +155,11 @@ fn validar(t: &Tipo, datos: &Map<String, Value>) -> Result<()> {
         .filter(|k| !datos.contains_key(*k))
         .collect();
     let conocidas =
-        |k: &str| t.obligatorias.contains(&k) || t.entradas.iter().any(|en| en.clave == k);
+        |k: &str| t.obligatorias.contains(&k) || clave_para_archivo(t.entidad, k).is_some();
     let extra: Vec<&String> = datos.keys().filter(|k| !conocidas(k)).collect();
+    if let Some(fase) = texto(datos, "MonoTri").filter(|f| opcion_de_fase(f).is_none()) {
+        return Err(Error::Invalid(format!("MonoTri '{fase}': Mono, Tri o Bi")));
+    }
     if faltan.is_empty() && extra.is_empty() {
         return Ok(());
     }
@@ -192,38 +168,26 @@ fn validar(t: &Tipo, datos: &Map<String, Value>) -> Result<()> {
     )))
 }
 
-fn rellenar(t: &Tipo, f: &Formulario, datos: &Map<String, Value>, archivo: &str) -> Result<()> {
-    f.escribir(t.nombre_archivo, archivo)?;
-    for pagina in [0, 1] {
-        let de_pagina: Vec<&Entrada> = t.entradas.iter().filter(|en| en.pagina == pagina).collect();
-        if de_pagina.iter().all(|en| !datos.contains_key(en.clave)) {
-            continue;
-        }
-        f.pagina(pagina)?;
-        for en in de_pagina {
-            if let Some(v) = texto(datos, en.clave) {
-                f.escribir(en.campo, &v)?;
-            }
+/// The values to type, by the keys of the entity: the file name (without the
+/// extension, which PVsyst adds and asks to overwrite when it is typed) and every
+/// datasheet value that is a field of the schema. Pure.
+pub(super) fn valores_de(t: &Tipo, datos: &Map<String, Value>, nombre: &str) -> Map<String, Value> {
+    let mut valores = Map::new();
+    valores.insert("nombre_archivo".into(), json!(nombre));
+    if let Some(opcion) = texto(datos, "MonoTri").and_then(|f| opcion_de_fase(&f)) {
+        valores.insert(opcion.into(), json!(true));
+    }
+    for (clave_archivo, valor) in datos {
+        if let Some(clave) = clave_para_archivo(t.entidad, clave_archivo) {
+            valores.insert(clave.into(), valor.clone());
         }
     }
-    f.pagina(0)?;
-    opciones(f, datos)
+    valores
 }
 
-/// Lists and options: module technology, inverter phases and frequency.
-fn opciones(f: &Formulario, datos: &Map<String, Value>) -> Result<()> {
-    if let Some(tec) = texto(datos, "Technol") {
-        f.seleccionar(TECNOLOGIA, &tec)?;
-    }
-    if let Some(fases) = texto(datos, "MonoTri") {
-        let rotulo = FASES
-            .iter()
-            .find(|(k, _)| k.eq_ignore_ascii_case(&fases))
-            .map(|(_, r)| *r)
-            .ok_or_else(|| Error::Invalid(format!("MonoTri '{fases}': Mono, Tri o Bi")))?;
-        f.elegir(rotulo)?;
-    }
-    Ok(())
+fn rellenar(paths: &Paths, t: &Tipo, valores: &Map<String, Value>) -> Result<()> {
+    let pedido = json!({ "entidad": t.entidad, "valores": valores, "ventana": t.formulario });
+    crate::vista_agente::rellenar(paths, &pedido).map(|_| ())
 }
 
 fn guardar(s: &Sesion, f: &Formulario) -> Result<()> {
@@ -236,11 +200,27 @@ fn guardar(s: &Sesion, f: &Formulario) -> Result<()> {
                 f.titulo()
             ))
         })?;
-    confirmar.pulsar(ROTULOS.guardar_como)?;
-    s.esperar(ROTULOS.formulario_guardar_objeto)?
-        .pulsar(ROTULOS.guardar)?;
+    pulsar_al_frente(&confirmar, ROTULOS.guardar_como)?;
+    let destino = s.esperar(ROTULOS.formulario_guardar_objeto)?;
+    pulsar_al_frente(&destino, ROTULOS.guardar)?;
     s.aceptar_mensajes();
     Ok(())
+}
+
+/// A click on these dialogs is ignored unless they are in front and hold the
+/// focus: the file-name field takes it (the save dialog of a scene needed the same).
+fn pulsar_al_frente(dialogo: &Formulario, rotulo: &str) -> Result<()> {
+    let campo = ffi::enum_children(dialogo.h)
+        .into_iter()
+        .find(|c| class_of(*c) == "TEdit");
+    match campo {
+        Some(c) => ffi::traer_y_focar(c, PAUSA_FOCO),
+        None => {
+            ffi::traer_al_frente(dialogo.h);
+            true
+        }
+    };
+    dialogo.pulsar(rotulo)
 }
 
 /// Creates the component in PVsyst and returns what PVsyst saved.
@@ -269,7 +249,7 @@ pub(crate) fn crear(
         s.esperar(ROTULOS.formulario_eleccion_objeto)?
             .pulsar(ROTULOS.nuevo)?;
         let f = s.esperar(t.formulario)?;
-        rellenar(t, &f, datos, &archivo)?;
+        rellenar(paths, t, &valores_de(t, datos, nombre))?;
         guardar(s, &f)?;
         let avisos = s.mensajes();
         leer_guardado(t, &destino, &avisos)

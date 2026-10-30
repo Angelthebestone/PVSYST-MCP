@@ -51,8 +51,6 @@ pub(crate) struct Entrada {
     pub(crate) resumen: &'static str,
     pub(crate) pista: Option<&'static str>,
     pub(crate) siguiente: &'static [Paso],
-    /// The action only describes what it would do; there is no real run to offer after it.
-    pub(crate) solo_ensayo: bool,
 }
 
 pub(super) const fn entrada(
@@ -66,7 +64,6 @@ pub(super) const fn entrada(
         resumen,
         pista: None,
         siguiente: &[],
-        solo_ensayo: false,
     }
 }
 
@@ -74,13 +71,6 @@ impl Entrada {
     pub(super) const fn pista(self, pista: &'static str) -> Self {
         Entrada {
             pista: Some(pista),
-            ..self
-        }
-    }
-
-    pub(super) const fn solo_ensayo(self) -> Self {
-        Entrada {
-            solo_ensayo: true,
             ..self
         }
     }

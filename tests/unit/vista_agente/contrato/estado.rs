@@ -124,3 +124,22 @@ fn should_warn_and_not_fail_when_the_run_produced_its_output_despite_a_process_e
         vista.avisos
     );
 }
+
+#[test]
+fn should_stay_ok_when_a_click_step_says_it_asked_for_no_verification() {
+    // `paso` answers `verificado:false` when the caller gave no `verificar`: nothing failed.
+    let salida = json!({ "via": "uia", "objetivo": "OK", "verificado": false });
+
+    let vista = vista_de("gui_actuar", "paso", &salida);
+
+    assert_eq!(vista.estado, Estado::Ok);
+}
+
+#[test]
+fn should_be_partial_when_a_scene_answer_counts_fields_that_differ() {
+    let salida = json!({ "creado": true, "verificado": false, "campos_que_difieren": 2 });
+
+    let vista = vista_de("gui_actuar", "escena", &salida);
+
+    assert_eq!(vista.estado, Estado::Parcial);
+}

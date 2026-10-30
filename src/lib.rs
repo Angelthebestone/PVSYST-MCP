@@ -27,10 +27,6 @@ mod adapters;
     reason = "deuda medida; pendiente del paso 2 de la limpieza"
 )]
 mod admin;
-#[expect(
-    clippy::indexing_slicing,
-    reason = "deuda medida; pendiente del paso 2 de la limpieza"
-)]
 mod almacenamiento;
 #[expect(
     clippy::too_many_arguments,

@@ -1,0 +1,59 @@
+INSTRUCCIONES DE REVISION (ultrareview) - PR "feat(vista): escena_importar, entidades de variante, campos condicionales y correcciones del escaneo"
+
+ALCANCE
+Revisa el PR completo (31 commits, 116 archivos, diff contra main) y, ademas, TODO el codigo de `src/` y `tests/` del repo, directorio por directorio. El diff marca lo menos revisado: dale prioridad, pero no te limites a el. Antes de analizar, lista los archivos `.rs` y recorre todos; al final entrega una tabla `directorio | archivos | lineas | hallazgos` que demuestre la cobertura (los directorios sin revisar, dichos).
+Criterio: `agents.md` es ley. Solo lectura: no edites el codigo, no abras ni lances PVsyst, no crees archivos .md.
+Ignora `target/`, `.scratch/`, `tests/fixtures/` y `docs/gui_mapa.json` (generado).
+
+PRIORIDAD ALTA (en este orden, sobre el PR y sobre el codigo que toca)
+
+A. Bugs de estado en los flujos GUI
+   - Flujos que dejan una ventana, un dialogo o un proceso abierto si fallan a medias: `escena_importar` (menu, dialogo de archivo, `TImportResultForm`), `proyecto dimensionar`, «Cargar proyecto» y «Guardar variante» por menu, `rellenar`.
+   - Exito silencioso: `verificado:true`, `estado:ok` o `importado:true` sin comprobacion real; resultados que no se contrastan con lo que PVsyst dejo en el archivo.
+   - Teclas o clics enviados a otra ventana o aplicacion; clics repetidos (dos clics seguidos son un doble clic); estado de la barra de menus armada tras un fallo.
+B. `unsafe`, FFI y procesos hijo
+   - `ffi/menus.rs` (`GetSubMenu`, `MN_GETHMENU`, `GetMenuItemCount`): validez de los HMENU, ventanas que desaparecen entre llamadas.
+   - `adapters/http.rs`: `spawn`, lectura acotada, `kill` y `wait_with_output`; procesos huerfanos, bloqueo por la tuberia de `stderr`, tope de 64 MiB realmente efectivo.
+   - Cualquier `unsafe` sin comentario de seguridad que lo justifique.
+C. Validacion en el borde
+   - La ruta de `archivo` en `escena_importar` (extension, Program Files, existencia, enlaces, UNC, rutas relativas, nombres con espacios o caracteres raros).
+   - Que ningun argumento nuevo (`archivo`, `escena`, `unidades`, `subitem`, `entidad`, `valores`) llegue a una ruta, un comando, una tecla o un `format!` sin validar.
+D. Tests
+   - Que verifiquen comportamiento observable y no implementacion; que cubran feliz, error y bordes; que sean deterministas, sin `sleep`, sin red y sin PVsyst.
+   - Ramas de error sin test; tests que repiten la implementacion; nombres que no sigan `should_X_when_Y`; tests dentro de `src/` (solo se permite el enganche `#[cfg(test)] #[path = "..."] mod tests;`).
+   - Reconoce que los flujos GUI de este PR solo se probaron en vivo: senala los que no tienen un test puro de su parte pura.
+E. Afirmaciones sin medir
+   - `clave_archivo` y rangos de los esquemas (`src/vista_agente/esquemas/`) que los fixtures de `tests/fixtures/vista_agente/` no demuestren.
+   - Texto de docs, CHANGELOG, README (en/es), manifiesto y receta que afirme algo no medido o sin la marca [INFERENCIA]. Ya paso una vez con una frase sobre las tablas en `docs/pvsyst_format.md`.
+
+PRIORIDAD NORMAL
+
+1. Codigo duplicado: bloques de 3 o mas lineas repetidos (tambien entre modulos), literales y constantes repetidos, helpers casi iguales, `match` paralelos que deberian ser datos.
+2. Codigo muerto: funciones, constantes, variantes, campos, modulos, ayudas de test o entradas de catalogo sin uso; restos de las migraciones de este PR (coordenadas, `clic_barra`, `Campo`, alias); `#[allow]` o `#[expect]` que ya no hacen falta; dependencias de `Cargo.toml` sin uso. Distingue «sin uso» de «usado solo en tests».
+3. Ineficiencia: `clone` y asignaciones innecesarias, busquedas lineales repetidas donde cabe un mapa, lecturas de archivo repetidas, `sleep` fijos donde cabe sondeo con plazo, datos estaticos reconstruidos en cada llamada (candidatos a `OnceLock` o `const`), lectura de archivos enteros sin cota.
+4. Sobreingenieria: abstracciones de un solo uso, parametros o tipos que nadie usa, capas que solo reenvian, configuracion para valores que no cambian, traits con una sola implementacion.
+5. Codigo simplificable: ramas anidadas, funciones de mas de 50 lineas o mas de 3 parametros, archivos de mas de 300 lineas, numeros magicos, `bool` como parametro, `else` anidado.
+
+PUNTOS ADICIONALES
+
+6. Coherencia de la superficie publica: cada accion o argumento nuevo debe aparecer igual en `src/server/tools/nativos.rs`, `ACCIONES` en `adapters/gui/mod.rs`, la tabla de ensayo (`vista_agente/contrato/ensayo.rs`), el catalogo de vista (`vista_agente/contrato/catalogo/`), README en/es, `mcpb/manifest.json`, la receta (`server/recetas/datos.rs`) y el CHANGELOG. Busca desajustes y alias que ya no se usan.
+7. Manejo de errores: errores tragados (`let _ =`, `.ok()` que oculta fallos), errores no tipados en la libreria, mensajes sin contexto, `unwrap`/`expect`/`panic` o indexacion que pueda entrar en panico en produccion, casts con perdida (`as`).
+8. Arquitectura: dependencias que apuntan hacia fuera (dominio que conoce Win32, FFI o GUI), acoplamiento entre features, God objects, estado global mutable, ley de Demeter, carpetas o archivos `utils`, `helpers`, `common`, `datos`, `manager`.
+9. Fragilidad de idioma, version y DPI: etiquetas o titulos en espanol comparados como texto fijo, anclas a 96 DPI que dependan de la version de PVsyst, comparaciones sensibles a mayusculas o acentos. Declara lo que solo se midio en PVsyst 8.1.8 a 144 DPI.
+10. Privacidad y reglas del proyecto: rutas de usuario, nombres de proyecto o datos personales en codigo, fixtures, docs o logs; no decodificar las bases ofuscadas de PVsyst; no eludir licencia ni modo PRUEBA; no pulsar «Activar». Cualquier camino que pulse Guardar, OK, Aplicar o Si fuera de un flujo explicito del MCP.
+11. Registro y observabilidad: `println!`, `dbg!` o logs que no sean `tracing`; informacion personal en logs; fallos silenciosos que merecian un `tracing::warn!`.
+12. Concurrencia y recursos: archivos temporales o procesos sin liberar, esperas sin plazo, bloqueos dentro de async, condiciones de carrera entre PVsyst y el MCP (archivo que se lee antes de terminar de escribirse, ventana que cambia entre dos llamadas).
+
+COMO TRABAJAR
+- Mide antes de afirmar: tamanos y funciones largas con herramientas de solo lectura, referencias con busqueda, avisos con `cargo build` y `cargo clippy --all-targets -- -D warnings`. No ejecutes `cargo test` completo en una sola corrida (se ha colgado): cada binario de `tests/*.rs` por separado, con timeout y salida a un archivo temporal fuera del repo, solo si lo necesitas para confirmar un hallazgo.
+- Cada hallazgo lleva evidencia verificable (linea, conteo, salida de herramienta). [CONFIRMADO] si lo demuestra el codigo o una herramienta; [PLAUSIBLE] si es inferencia. No reportes por intuicion.
+- No propongas dependencias nuevas para problemas de 10 lineas.
+
+FORMATO DE SALIDA (en espanol, seco, sin elogios ni resumenes de lo que esta bien)
+1. Tabla de cobertura por directorio.
+2. Tabla de conteos por categoria (A a E y 1 a 12) y severidad.
+3. Hallazgos agrupados por categoria y ordenados por gravedad (alta: bug, fuga de recursos o riesgo de seguridad; media: duplicacion o ineficiencia con impacto real, o violacion clara de agents.md; baja: estilo o simplificacion). Una linea por hallazgo:
+   [CONFIRMADO|PLAUSIBLE] archivo:linea - que esta mal - evidencia - correccion minima
+   Para duplicados agrupa todas las ubicaciones; para codigo muerto da la lista de simbolos y el comando que lo comprueba.
+4. Las 15 correcciones de mayor retorno (impacto/esfuerzo).
+5. En una linea, lo que no se pudo comprobar sin PVsyst.

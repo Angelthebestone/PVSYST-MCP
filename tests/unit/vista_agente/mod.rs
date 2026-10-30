@@ -159,3 +159,284 @@ fn should_return_only_the_requested_schema_entity() {
         .expect("schema");
     assert_eq!(v["count"], json!(1));
 }
+
+/// A module typed through `rellenar` (a different value in every field) and saved by PVsyst 8.1.8.
+const MODULO_GUARDADO: &str =
+    include_str!("../../fixtures/vista_agente/Modulo_distintos_8_1_8.PAN");
+
+#[test]
+fn should_find_every_file_key_of_the_panel_schema_in_the_module_pvsyst_saved() {
+    let claves: Vec<&str> = MODULO_GUARDADO
+        .lines()
+        .filter_map(|l| l.trim().split_once('=').map(|(k, _)| k))
+        .collect();
+    let con_clave = panel().campos.iter().filter_map(|c| c.clave_archivo);
+    for clave in con_clave {
+        assert!(
+            claves.contains(&clave),
+            "{clave} no está en el archivo guardado"
+        );
+    }
+}
+
+#[test]
+fn should_keep_the_units_the_saved_module_shows_for_the_values_typed() {
+    let valor = |k: &str| {
+        MODULO_GUARDADO
+            .lines()
+            .find_map(|l| l.trim().strip_prefix(&format!("{k}=")).map(str::to_string))
+            .and_then(|v| v.trim().parse::<f64>().ok())
+    };
+    // The values `rellenar` typed: W, A, V, mA/°C, °C and a count.
+    let tecleado = [
+        ("PNom", 410.5),
+        ("Isc", 11.2),
+        ("Voc", 48.3),
+        ("Imp", 10.4),
+        ("Vmp", 39.5),
+    ];
+    for (clave, esperado) in tecleado {
+        assert_eq!(valor(clave), Some(esperado), "{clave}");
+    }
+    assert_eq!(valor("muISC"), Some(4.2));
+    assert_eq!(valor("TRef"), Some(20.0));
+    assert_eq!(valor("NCelS"), Some(72.0));
+}
+
+/// An inverter typed through `rellenar` and saved by PVsyst 8.1.8.
+const INVERSOR_GUARDADO: &str =
+    include_str!("../../fixtures/vista_agente/Inversor_distintos_8_1_8.OND");
+
+fn valor_guardado(archivo: &str, clave: &str) -> Option<f64> {
+    archivo
+        .lines()
+        .find_map(|l| {
+            l.trim()
+                .strip_prefix(&format!("{clave}="))
+                .map(str::to_string)
+        })
+        .and_then(|v| v.trim().parse::<f64>().ok())
+}
+
+#[test]
+fn should_find_every_file_key_of_the_inverter_schema_in_the_inverter_pvsyst_saved() {
+    let claves: Vec<&str> = INVERSOR_GUARDADO
+        .lines()
+        .filter_map(|l| l.trim().split_once('=').map(|(k, _)| k))
+        .collect();
+    let esquema = entidad("components.inverters").expect("inverter schema");
+    for clave in esquema.campos.iter().filter_map(|c| c.clave_archivo) {
+        assert!(
+            claves.contains(&clave),
+            "{clave} no está en el archivo guardado"
+        );
+    }
+}
+
+#[test]
+fn should_keep_the_units_the_saved_inverter_shows_for_the_values_typed() {
+    // Volts and kilowatts, as typed by `rellenar`.
+    let tecleado = [
+        ("VMppMin", 310.0),
+        ("VmppNom", 600.0),
+        ("VMPPMax", 820.0),
+        ("VAbsMax", 1000.0),
+        ("VOutConv", 400.0),
+        ("PNomConv", 20.5),
+        ("PMaxOUT", 22.5),
+        ("PSeuil", 0.1),
+    ];
+    for (clave, esperado) in tecleado {
+        assert_eq!(
+            valor_guardado(INVERSOR_GUARDADO, clave),
+            Some(esperado),
+            "{clave}"
+        );
+    }
+}
+
+/// A battery typed through `rellenar` and saved by PVsyst 8.1.8.
+const BATERIA_GUARDADA: &str =
+    include_str!("../../fixtures/vista_agente/Bateria_distintos_8_1_8.BTR");
+
+#[test]
+fn should_find_every_file_key_of_the_battery_schema_in_the_battery_pvsyst_saved() {
+    let claves: Vec<&str> = BATERIA_GUARDADA
+        .lines()
+        .filter_map(|l| l.trim().split_once('=').map(|(k, _)| k))
+        .collect();
+    let esquema = entidad("components.batteries").expect("battery schema");
+    for clave in esquema.campos.iter().filter_map(|c| c.clave_archivo) {
+        assert!(
+            claves.contains(&clave),
+            "{clave} no está en el archivo guardado"
+        );
+    }
+}
+
+#[test]
+fn should_keep_the_scale_the_saved_battery_uses_for_the_values_typed() {
+    // Typed: 6 cells, 2.1 V, 150.5 Ah, 25 °C, 3.5 mOhm (stored in ohm) and 95.5 % (stored as a fraction).
+    let tecleado = [
+        ("NCellSerie", 6.0),
+        ("VNomCell", 2.1),
+        ("CapNomC10", 150.5),
+        ("BattTempRef", 25.0),
+        ("ResInterne", 0.0035),
+        ("EfficI", 0.955),
+    ];
+    for (clave, esperado) in tecleado {
+        assert_eq!(
+            valor_guardado(BATERIA_GUARDADA, clave),
+            Some(esperado),
+            "{clave}"
+        );
+    }
+}
+
+#[test]
+fn should_put_only_the_efficiency_fields_of_the_inverter_on_the_second_tab() {
+    let esquema = entidad("components.inverters").expect("inverter schema");
+    let en_pagina_1: Vec<&str> = esquema
+        .campos
+        .iter()
+        .filter(|c| c.pagina == 1)
+        .map(|c| c.clave)
+        .collect();
+    assert_eq!(en_pagina_1, ["eficiencia_max_pct", "eficiencia_euro_pct"]);
+    assert!(panel().campos.iter().all(|c| c.pagina == 0));
+}
+
+#[test]
+fn should_describe_the_27_shapes_of_the_3d_editor_when_their_entity_is_asked_for() {
+    let v = crate::vista_agente::listar_esquemas(&json!({ "entidad": "escena_3d.formas" }))
+        .expect("shape schema");
+    let formas = v["formas"].as_array().expect("shapes");
+    assert_eq!(formas.len(), 27);
+    let tree = formas.iter().find(|f| f["tipo"] == "arbol").expect("tree");
+    assert_eq!(tree["tipo_pvsyst"], "oeTree");
+    assert_eq!(tree["campos"][0]["unidad"], "m");
+    let comunes: Vec<&str> = v["comunes"]
+        .as_array()
+        .expect("common keys")
+        .iter()
+        .map(|c| c["clave"].as_str().unwrap_or(""))
+        .collect();
+    assert!(comunes.contains(&"rotacion_azimut_deg"));
+}
+
+#[test]
+fn should_point_to_the_shape_entity_in_the_unfiltered_schema_listing() {
+    let v = crate::vista_agente::listar_esquemas(&json!({})).expect("listing");
+    assert_eq!(v["otras_entidades"][0], "escena_3d.formas");
+}
+
+/// The orientation and the array layout typed through `rellenar` and saved by PVsyst 8.1.8 with
+/// «Guardar la variante activa» (tilt 25, azimuth 10; `proyecto dimensionar` for 50 kWp).
+const VARIANTE_GUARDADA: &str =
+    include_str!("../../fixtures/vista_agente/Variante_orientacion_sistema_8_1_8.VC0");
+
+#[test]
+fn should_find_every_file_key_of_the_orientation_and_system_schemas_in_the_variant_pvsyst_saved() {
+    let claves: Vec<&str> = VARIANTE_GUARDADA
+        .lines()
+        .filter_map(|l| l.trim().split_once('=').map(|(k, _)| k))
+        .collect();
+    for entidad_clave in ["variante.orientation", "variante.system"] {
+        let esquema = entidad(entidad_clave).expect("schema");
+        for clave in esquema.campos.iter().filter_map(|c| c.clave_archivo) {
+            assert!(
+                claves.contains(&clave),
+                "{clave} no está en la variante guardada"
+            );
+        }
+    }
+}
+
+#[test]
+fn should_keep_the_values_the_saved_variant_shows_for_what_was_typed() {
+    for (clave, tecleado) in [
+        ("FieldTilt", 25.0),
+        ("FieldAzim", 10.0),
+        ("NModSerie", 28.0),
+        ("NStringCh", 4.0),
+        ("NInverter", 1.0),
+    ] {
+        assert_eq!(
+            valor_guardado(VARIANTE_GUARDADA, clave),
+            Some(tecleado),
+            "{clave}"
+        );
+    }
+}
+
+#[test]
+fn should_accept_true_or_false_for_an_option_and_reject_anything_else() {
+    let sistema = entidad("variante.system").expect("system schema");
+
+    let bien = planificar(
+        sistema,
+        &valores(&json!({ "usar_potencia_planeada": true })),
+    );
+    let mal = planificar(
+        sistema,
+        &valores(&json!({ "usar_potencia_planeada": "si" })),
+    );
+
+    assert_eq!(bien.expect("plan")[0].texto, "true");
+    assert!(matches!(mal, Err(Error::Invalid(_))));
+}
+
+#[test]
+fn should_list_the_option_as_a_checkbox_type_and_keep_its_schema_unambiguous() {
+    let sistema = entidad("variante.system").expect("system schema");
+
+    let tipo = sistema.campo("usar_area_disponible").expect("option").tipo;
+
+    assert_eq!(tipo.nombre(), "casilla");
+}
+
+/// Fields that depend on a check box, with the type of the check box declared before them.
+fn tipos_de_casilla_anterior() -> Vec<(&'static str, Option<&'static str>)> {
+    todas()
+        .iter()
+        .flat_map(|e| {
+            e.campos.iter().enumerate().filter_map(move |(i, campo)| {
+                let casilla = campo.depende_de?;
+                let anterior = e.campos.iter().take(i).find(|c| c.clave == casilla);
+                Some((campo.clave, anterior.map(|c| c.tipo.nombre())))
+            })
+        })
+        .collect()
+}
+
+#[test]
+fn should_declare_a_check_box_before_every_field_that_depends_on_it() {
+    let dependientes = tipos_de_casilla_anterior();
+
+    assert!(!dependientes.is_empty());
+    for (clave, tipo) in dependientes {
+        assert_eq!(
+            tipo,
+            Some("casilla"),
+            "{clave}: su casilla no está declarada antes"
+        );
+    }
+}
+
+#[test]
+fn should_tell_which_check_box_a_conditional_inverter_field_needs_when_the_schema_is_listed() {
+    let listado =
+        crate::vista_agente::listar_esquemas(&json!({ "entidad": "components.inverters" }))
+            .expect("listing");
+
+    let campos = listado["entidades"][0]["campos"]
+        .as_array()
+        .expect("fields");
+    let corriente = campos
+        .iter()
+        .find(|c| c["clave"] == "corriente_ca_nominal_a")
+        .expect("field");
+
+    assert_eq!(corriente["depende_de"], "definir_corriente_ca_nominal");
+}

@@ -120,7 +120,7 @@ const SINONIMOS_GUI_OBSERVAR: Sinonimos = Sinonimos {
 
 pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
     nombre: "gui_actuar",
-    descripcion: "Actua sobre la GUI de PVsyst: clic (tambien por texto visible), escribir, seleccionar, pestana, teclas, fila de una lista o arbol, menus por posicion, cerrar, lanzar, reiniciar, esperas, rellenar un formulario por claves y validar un pedido de escena 3D. / EN: Acts on the PVsyst GUI: click (also by on-screen text), type, select, tab page, keys, list or tree row, menus by position, close, launch, restart, waits, fill a form by keys and validate a 3D scene request.",
+    descripcion: "Actua sobre la GUI de PVsyst: clic (tambien por texto visible), escribir, seleccionar, pestana, teclas, fila de una lista o arbol, menus por posicion, cerrar, lanzar, reiniciar, esperas, rellenar un formulario por claves y validar, importar (mallas) o crear una escena 3D en el editor. / EN: Acts on the PVsyst GUI: click (also by on-screen text), type, select, tab page, keys, list or tree row, menus by position, close, launch, restart, waits, fill a form by keys and validate, import (meshes) or build a 3D scene in the editor.",
     anotaciones: Anotaciones {
         titulo: "Actuar en GUI / Act on GUI",
         es_solo_lectura: false,
@@ -159,12 +159,15 @@ pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
         ("etiqueta", TipoDato::String),
         ("menu", TipoDato::Integer),
         ("item", TipoDato::Integer),
+        ("subitem", TipoDato::Integer),
         ("dx", TipoDato::Integer),
         ("dy", TipoDato::Integer),
         ("entidad", TipoDato::String),
         ("valores", TipoDato::Object),
         ("simular", TipoDato::Boolean),
         ("escena", TipoDato::String),
+        ("unidades", TipoDato::String),
+        ("archivo", TipoDato::String),
         ("objetos", TipoDato::Array),
     ],
     requeridos: &[],
@@ -186,6 +189,8 @@ pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
         ("clic_texto", &["ventana", "texto"]),
         ("secuencia", &["pasos"]),
         ("escena", &["escena", "objetos"]),
+        ("escena_leer", &["escena"]),
+        ("escena_importar", &["archivo", "escena"]),
     ],
     sinonimos: SINONIMOS_GUI_ACTUAR,
     ejecutar: Ejecutor::Simple(ejecutar_actuar),

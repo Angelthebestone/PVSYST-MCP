@@ -102,3 +102,15 @@ fn should_report_a_gui_error_when_the_click_closed_another_window() {
     .a_error();
     assert!(matches!(error, crate::error::Error::Gui(_)));
 }
+
+#[test]
+fn should_use_26px_rows_when_the_control_is_the_object_table_of_the_3d_editor() {
+    let tabla = Control {
+        clase: "TVirtualStringTree",
+        anfitrion: "TShdObjectSelectionForm",
+        titulo: "Lista y gestión de objetos",
+    };
+    let g = geometria_de(&tabla).expect("declarada");
+    assert_eq!(g.alto_fila_px, 26);
+    assert_eq!(g.centro_de_fila(0), 45);
+}

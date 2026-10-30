@@ -3,9 +3,10 @@
 use crate::args::{flag, no_encontrado, req_str, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::format::edit::ChangeOutcome;
 use crate::history;
 use crate::workspace::{validar_nombre, Alcance};
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -135,6 +136,24 @@ pub(crate) fn guardar_variante(
     motivo: &str,
 ) -> Result<Option<String>> {
     history::reemplazar(&v.workspace, &v.vpath, nuevo, motivo)
+}
+
+/// What every `proyecto <accion>` that edits a variant answers: which variant, the parameters
+/// applied, each change PVsyst's file took and the history entry. The action adds its own keys.
+pub(crate) fn respuesta_de_edicion(
+    v: &VarianteAbierta,
+    parametros: &Value,
+    (cambios, historial_id): (&[ChangeOutcome], Option<String>),
+) -> Map<String, Value> {
+    let mut respuesta = Map::new();
+    respuesta.insert("proyecto".into(), json!(v.stem));
+    respuesta.insert("variante".into(), json!(v.variante));
+    respuesta.insert("archivo".into(), json!(v.vpath.display().to_string()));
+    respuesta.insert("parametros".into(), parametros.clone());
+    let cambios: Vec<Value> = cambios.iter().map(ChangeOutcome::to_json).collect();
+    respuesta.insert("cambios".into(), json!(cambios));
+    respuesta.insert("historial_id".into(), json!(historial_id));
+    respuesta
 }
 
 pub(crate) fn crear_variante(paths: &Paths, args: &Value) -> Result<Value> {

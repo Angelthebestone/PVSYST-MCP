@@ -1,0 +1,91 @@
+//! Small steps the scene driver repeats: open a catalogued window, list the
+//! controls of a class from top to bottom, type a value into a field.
+
+use crate::adapters::gui::conduccion::{esperar, Formulario};
+use crate::adapters::gui::ffi::{self, Hwnd};
+use crate::adapters::gui::ventanas::{class_of, hwnd_de, rect_of, visible};
+use crate::error::{Error, Result};
+use serde_json::{json, Value};
+use std::time::Duration;
+
+/// Lets the form react to a typed value before the next step.
+const PAUSA: Duration = Duration::from_millis(400);
+
+/// Time PVsyst gets to ask «¿Quiere mantener sus modificaciones…?» after a «Cancelar».
+const ESPERA_PREGUNTA: Duration = Duration::from_millis(1500);
+
+/// Runs `paso` on the open `dialogo`; when it fails the dialog is dropped («Cancelar», and «No»
+/// if PVsyst asks to keep the changes), so a failed step does not leave PVsyst behind a modal.
+pub(super) fn con_descarte<T>(dialogo: &Formulario, paso: impl FnOnce() -> Result<T>) -> Result<T> {
+    let resultado = paso();
+    if resultado.is_err() {
+        descartar(dialogo);
+    }
+    resultado
+}
+
+/// Best effort: the step error is what the caller reports.
+pub(super) fn descartar(dialogo: &Formulario) {
+    if dialogo.pulsar("Cancelar").is_err() {
+        tracing::warn!(clase = %dialogo.clase(), "no se pudo cancelar el diálogo tras un fallo");
+        return;
+    }
+    if let Ok(pregunta) = esperar(dialogo.pid(), "TMessageForm", ESPERA_PREGUNTA) {
+        let _ = pregunta.pulsar("No");
+    }
+}
+
+/// Opens a catalogue function (`gui_actuar accion:funcion`), opening its host when needed.
+pub(super) fn abrir(funcion: &str) -> Result<Value> {
+    // The menu commands need PVsyst in the foreground, and a window opened a moment ago may not be.
+    if let Ok(editor) = ventana("TPerspectiveForm") {
+        ffi::traer_al_frente(editor);
+        std::thread::sleep(PAUSA);
+    }
+    crate::gui_catalogo::abrir(&json!({ "funcion": funcion }))
+}
+
+/// The open window of class `clase`.
+pub(super) fn ventana(clase: &str) -> Result<Hwnd> {
+    hwnd_de(&json!({ "ventana": clase }), "ventana")
+}
+
+/// Visible children of `padre` of class `clase`, top to bottom.
+pub(super) fn hijos(padre: Hwnd, clase: &str) -> Vec<Hwnd> {
+    let mut lista: Vec<Hwnd> = ffi::enum_children(padre)
+        .into_iter()
+        .filter(|c| visible(*c) && class_of(*c) == clase)
+        .collect();
+    lista.sort_by_key(|c| rect_of(*c).top);
+    lista
+}
+
+/// Enabled edit fields of `padre`, top to bottom.
+pub(super) fn campos(padre: Hwnd) -> Vec<Hwnd> {
+    hijos(padre, "TEdit")
+        .into_iter()
+        .filter(|c| ffi::estado_ventana(*c).habilitada)
+        .collect()
+}
+
+/// The `n`-th (from 0) child of class `clase`, or an error naming what is missing.
+pub(super) fn hijo_n(padre: Hwnd, clase: &str, n: usize) -> Result<Hwnd> {
+    hijos(padre, clase)
+        .get(n)
+        .copied()
+        .ok_or_else(|| Error::Gui(format!("Falta el control {clase} nº {n} de la ventana")))
+}
+
+/// Types `texto` into `campo` as a user would: focus first, so the field commits
+/// when Tab leaves it, and refuses to type when the focus did not move.
+pub(super) fn escribir(formulario: Hwnd, campo: Hwnd, texto: &str) -> Result<()> {
+    if !ffi::traer_y_focar(campo, PAUSA) {
+        return Err(Error::Gui(format!(
+            "No se pudo dar el foco al campo de la ventana 0x{formulario:X}: lo escrito iría a otro control"
+        )));
+    }
+    ffi::teclear_en(campo, texto)?;
+    ffi::pulsar_tabulador();
+    std::thread::sleep(PAUSA);
+    Ok(())
+}

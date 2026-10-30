@@ -7,7 +7,9 @@ use super::espera::{esperar_nuevas, Resultado, SolicitudEspera};
 use crate::adapters::gui::acciones::clic_por_mensajes;
 use crate::adapters::gui::conduccion::Formulario;
 use crate::adapters::gui::ffi::{self, Hwnd, WM_COMMAND};
-use crate::adapters::gui::menu_por_posicion::{contar_menus, id_en_posicion, Posicion};
+use crate::adapters::gui::menu_por_posicion::{
+    contar_menus, id_en_posicion, id_en_submenu, Posicion,
+};
 use crate::adapters::gui::modal;
 use crate::adapters::gui::resumen::resumen_de_ventana;
 use crate::adapters::gui::ventanas::{
@@ -124,7 +126,7 @@ pub(crate) fn menu(args: &Value) -> Result<Value> {
 /// would run another command: a request typed by hand is checked against the
 /// real bar. Catalogue entries are fixed data, verified live, and skip this.
 fn exigir_menu_en_la_barra(anfitrion: Hwnd, pedido: PedidoMenu) -> Result<()> {
-    let PedidoMenu::Posicion { menu, .. } = pedido else {
+    let (PedidoMenu::Posicion { menu, .. } | PedidoMenu::Submenu { menu, .. }) = pedido else {
         return Ok(());
     };
     exigir_anfitrion_habilitado(anfitrion)?;
@@ -145,6 +147,10 @@ fn id_de_pedido(anfitrion: Hwnd, pedido: PedidoMenu) -> Result<u16> {
         PedidoMenu::Posicion { menu, item } => {
             exigir_anfitrion_habilitado(anfitrion)?;
             id_en_posicion(anfitrion, Posicion { menu, item })
+        }
+        PedidoMenu::Submenu { menu, item, sub } => {
+            exigir_anfitrion_habilitado(anfitrion)?;
+            id_en_submenu(anfitrion, Posicion { menu, item }, sub)
         }
     }
 }

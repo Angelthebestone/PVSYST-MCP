@@ -25,8 +25,12 @@ pub(crate) static PANELES: Entidad = Entidad {
         .en_archivo("PNom")
         .en("W"),
         CampoEsquema::lista("tecnologia", "Tecnología", en(116, 211)).en_archivo("Technol"),
-        CampoEsquema::numero("g_ref_w_m2", "GRef", en(233, 276), (100.0, 2000.0)).en("W/m2"),
-        CampoEsquema::numero("t_ref_c", "TRef", en(478, 276), (-50.0, 100.0)).en("°C"),
+        CampoEsquema::numero("g_ref_w_m2", "GRef", en(233, 276), (100.0, 2000.0))
+            .en_archivo("GRef")
+            .en("W/m2"),
+        CampoEsquema::numero("t_ref_c", "TRef", en(478, 276), (-50.0, 100.0))
+            .en_archivo("TRef")
+            .en("°C"),
         CampoEsquema::numero("isc_a", "Isc", en(233, 300), (0.0, 100.0))
             .en_archivo("Isc")
             .en("A"),
