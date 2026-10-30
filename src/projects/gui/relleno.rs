@@ -23,7 +23,7 @@ pub(super) fn rellenar(
         .as_array()
         .into_iter()
         .flatten()
-        .find(|r| r["estado"] != "ok");
+        .find(|r| !tomado(r));
     if let Some(r) = distinto {
         return Err(Error::Gui(format!(
             "PVsyst no tomó '{}': pedido {}, leído {}",
@@ -31,6 +31,25 @@ pub(super) fn rellenar(
         )));
     }
     Ok(respuesta["formulario"].clone())
+}
+
+/// Largest relative gap between a number asked for and the one PVsyst shows back: PVsyst keeps
+/// the decimals of its own field (12.345 reads back 12.3), which is still the value it took.
+const REDONDEO_DE_PVSYST: f64 = 0.01;
+
+/// Whether PVsyst took the value of one result of the fill.
+fn tomado(resultado: &Value) -> bool {
+    if resultado["estado"] == "ok" {
+        return true;
+    }
+    let numero = |v: &Value| {
+        v.as_str()
+            .and_then(|t| t.trim().replace(',', ".").parse::<f64>().ok())
+    };
+    match (numero(&resultado["pedido"]), numero(&resultado["despues"])) {
+        (Some(pedido), Some(leido)) => (pedido - leido).abs() <= pedido.abs() * REDONDEO_DE_PVSYST,
+        _ => false,
+    }
 }
 
 /// The value of field `clave` in what [`rellenar`] returned.
@@ -42,3 +61,7 @@ pub(super) fn valor(formulario: &Value, clave: &str) -> Value {
         .find(|c| c["clave"] == clave)
         .map_or(Value::Null, |c| c["valor"].clone())
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/projects/gui/relleno.rs"]
+mod tests;

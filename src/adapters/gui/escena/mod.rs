@@ -28,7 +28,7 @@ pub(crate) fn crear(paths: &Paths, args: &Value) -> Result<Value> {
         "nombre de la escena, p.ej. 'Casa_A'",
     )?)?;
     let pedidos = leer_objetos(args.get("objetos").unwrap_or(&Value::Null))?;
-    exigir_editor_vacio(&pedidos)?;
+    exigir_editor_vacio(paths, nombre, &pedidos)?;
     exportar::exigir_libre(paths, nombre)?;
     for objeto in &pedidos {
         objeto::crear(objeto)?;
@@ -90,13 +90,16 @@ pub(crate) fn importar(paths: &Paths, args: &Value) -> Result<Value> {
     exigir_editor_abierto("importar una malla")?;
     exportar::exigir_libre(paths, nombre)?;
     let resultado = importar::abrir_resultado(&ruta)?;
-    if let Some(unidades) = opt_str(args, &["unidades"]) {
-        importar::elegir_unidades(&resultado, unidades)?;
-    }
-    let unidades = importar::unidades_elegidas(&resultado);
+    let unidades = pasos::con_descarte(&resultado, || {
+        if let Some(unidades) = opt_str(args, &["unidades"]) {
+            importar::elegir_unidades(&resultado, unidades)?;
+        }
+        Ok(importar::unidades_elegidas(&resultado))
+    })?;
     if flag(args, &["simular"]) {
         importar::cerrar_resultado(&resultado, "Cancelar")?;
         return Ok(json!({
+            "simulado": true,
             "importado": false,
             "unidades": unidades,
             "archivo": ruta.display().to_string(),
@@ -120,8 +123,10 @@ fn exigir_editor_abierto(para: &str) -> Result<()> {
     exigir_habilitada(editor, para)
 }
 
-/// The editor must be open and, since rows are found by position, empty.
-fn exigir_editor_vacio(pedidos: &[ObjetoPedido]) -> Result<()> {
+/// The editor must be open and, since rows are found by position, empty: typing the positions
+/// into rows 0..N would move objects that were already there. The object table has no controls to
+/// count, so PVsyst exports the scene under a throwaway name and the file is read and deleted.
+fn exigir_editor_vacio(paths: &Paths, nombre: &str, pedidos: &[ObjetoPedido]) -> Result<()> {
     exigir_editor_abierto("crear la escena")?;
     if pedidos.len() > lista::MAX_FILAS_VISIBLES {
         return Err(Error::Invalid(format!(
@@ -129,7 +134,24 @@ fn exigir_editor_vacio(pedidos: &[ObjetoPedido]) -> Result<()> {
             lista::MAX_FILAS_VISIBLES
         )));
     }
-    Ok(())
+    let previa = format!("previa_{nombre}");
+    let ruta = exportar::ruta_de(paths, &previa);
+    // A throwaway left by an interrupted call.
+    let _ = std::fs::remove_file(&ruta);
+    let escena = exportada(paths, &previa);
+    if let Err(error) = std::fs::remove_file(&ruta) {
+        tracing::warn!(archivo = %ruta.display(), %error, "no se pudo borrar la exportación previa");
+    }
+    let existentes = escena?
+        .get("total_objetos")
+        .and_then(Value::as_u64)
+        .unwrap_or(0);
+    if existentes == 0 {
+        return Ok(());
+    }
+    Err(Error::Invalid(format!(
+        "El editor 3D ya tiene {existentes} objetos: crear una escena escribiría las posiciones sobre ellos. Ciérralo con Cancelar (sin guardar) y ábrelo de nuevo, o usa escena_importar si solo quieres añadir"
+    )))
 }
 
 fn informe(nombre: &str, guardado: &std::path::Path, pedidos: &[ObjetoPedido]) -> Result<Value> {

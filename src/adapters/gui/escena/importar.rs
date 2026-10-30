@@ -3,9 +3,10 @@
 //! converts the mesh; the MCP names the file and reads back the scene PVsyst exports.
 
 use super::pasos::{hijo_n, ventana};
-use crate::adapters::gui::conduccion::{esperar, esperar_cierre, Formulario};
+use crate::adapters::gui::conduccion::{esperar, esperar_cierre, formularios, Formulario};
 use crate::adapters::gui::ffi::{self, Hwnd, Mensaje, WM_COMMAND};
-use crate::adapters::gui::ventanas::pid_of;
+use crate::adapters::gui::sondeo::sondear_hasta;
+use crate::adapters::gui::ventanas::{class_of, pid_of};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
@@ -13,6 +14,8 @@ use std::time::Duration;
 
 const DIALOGO_ARCHIVO: &str = "#32770";
 const RESULTADO: &str = "TImportResultForm";
+const MENSAJE: &str = "TMessageForm";
+const SONDEO: Duration = Duration::from_millis(200);
 /// «Archivo» is menu 0 of the editor, «Importar» its item 4, «Importar una escena 3D» its entry 0.
 const ENTRADA_IMPORTAR: (u8, u8, u8) = (0, 4, 0);
 /// Command id of the default button («Abrir») of a Windows file dialog.
@@ -47,7 +50,13 @@ pub(super) fn malla_valida(texto: &str) -> Result<PathBuf> {
     if !ruta.is_file() {
         return Err(Error::NotFound(format!("No existe {}", ruta.display())));
     }
-    Ok(ruta)
+    // PVsyst's dialog resolves a relative name against its own folder, not this process's.
+    std::path::absolute(&ruta).map_err(|e| {
+        Error::Invalid(format!(
+            "No se pudo resolver la ruta {}: {e}",
+            ruta.display()
+        ))
+    })
 }
 
 /// Opens «Importar una escena 3D», types `ruta` in the file dialog and waits for the
@@ -59,9 +68,30 @@ pub(super) fn abrir_resultado(ruta: &Path) -> Result<Formulario> {
         "ventana": format!("0x{editor:X}"),
         "menu": menu, "item": item, "subitem": sub,
     }))?;
-    let dialogo = esperar(pid_of(editor), DIALOGO_ARCHIVO, ESPERA_DIALOGO)?;
+    let dialogo = esperar_dialogo_de_archivo(pid_of(editor))?;
     escribir_ruta(dialogo.h, ruta)?;
     esperar(pid_of(editor), RESULTADO, ESPERA_RESULTADO)
+}
+
+/// The file dialog. A scene that already has objects makes PVsyst ask first «¿Desea despejar la
+/// escena de sombreado actual?»: «No» keeps what is there and the import adds to it.
+fn esperar_dialogo_de_archivo(pid: u32) -> Result<Formulario> {
+    let primera = sondear_hasta(ESPERA_DIALOGO, SONDEO, || {
+        formularios(pid)
+            .into_iter()
+            .find(|h| [DIALOGO_ARCHIVO, MENSAJE].contains(&class_of(*h).as_str()))
+    })
+    .ok_or_else(|| {
+        Error::Gui(format!(
+            "PVsyst no abrió '{DIALOGO_ARCHIVO}' en {} s",
+            ESPERA_DIALOGO.as_secs()
+        ))
+    })?;
+    if class_of(primera) != MENSAJE {
+        return Ok(Formulario::de(primera));
+    }
+    Formulario::de(primera).pulsar("No")?;
+    esperar(pid, DIALOGO_ARCHIVO, ESPERA_DIALOGO)
 }
 
 fn escribir_ruta(dialogo: Hwnd, ruta: &Path) -> Result<()> {

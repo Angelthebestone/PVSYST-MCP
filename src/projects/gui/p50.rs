@@ -4,9 +4,8 @@
 //! the evaluation page in the report (`-rp:p50p90`).
 
 use super::rotulos::{rotulos_p50, RotulosP50};
-use super::ProyectoEnPvsyst;
+use super::{abrir_sesion, ProyectoEnPvsyst};
 use crate::adapters::gui::rotulos::Idioma;
-use crate::adapters::gui::sesion_pvsyst::Sesion;
 use crate::adapters::uia;
 use crate::config::Paths;
 use crate::error::{Error, Result};
@@ -30,7 +29,7 @@ const CAMPOS: [&str; 10] = [
 
 /// Adds the P50-P90 evaluation to `variante` as PVsyst defines it.
 pub(crate) fn configurar(paths: &Paths, proyecto: &str, variante: &str) -> Result<Value> {
-    let sesion = Sesion::abrir(paths)?;
+    let sesion = abrir_sesion(paths)?;
     sesion.ejecutar(|s| {
         let p = ProyectoEnPvsyst::abrir(s, paths, proyecto, variante)?;
         p.ventana.pulsar(ROTULOS.gestion_energia)?;

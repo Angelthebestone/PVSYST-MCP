@@ -24,6 +24,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Contract, size measurements and the tool × action matrix: `docs/vista_agente_salidas.md`.
 
 ### Fixed
+- Review of the PR (cloud ultrareview), each finding checked against the code first:
+  - A `gui_actuar accion:paso` that asks for no verification (`verificado:false`) is `ok` again; only a scene answer that counts
+    `campos_que_difieren` is partial.
+  - `escena_importar simular:true` answers `simulado:true`, so the contract offers the real call as the next step; `archivo` is made
+    absolute (PVsyst's dialog resolves a relative name against its own folder); on a scene that already has objects PVsyst asks
+    «¿Desea despejar la escena de sombreado actual?» and the answer is «No» (the import adds). Measured live: 66 tables into a scene of 3 → 69.
+  - `escena` refuses an editor that already holds objects (it types positions into rows 0..N); the check exports the scene under a
+    throwaway name and deletes it. An empty scene exports fine (`total_objetos:0`).
+  - A failed step of `escena`, `escena_importar` or the export drops the open dialog («Cancelar», and «No» to «¿mantener
+    modificaciones?») instead of leaving PVsyst behind a modal. Measured: a `unidades` PVsyst does not offer closes `TImportResultForm`.
+  - `rellenar` applies check boxes and options first and reads the form again, so a field they enable can be filled in the same call;
+    after a failure on another tab it returns to tab 0.
+  - `proyecto dimensionar` accepts PVsyst's own rounding of the planned power (12.345 reads back 12.3).
+  - The inverter phase of a datasheet goes through the schema options (`fase_*`), not a click by caption.
+  - The PVsyst install lookup takes major 8 only (the GUI map was measured on 8.1.x); a PVsyst 9 needs `PVSYST_GUI`/`PVSYST_CLI`.
+  - `proyecto dimensionar`, P50 and horizon are refused on the isolated desktop before PVsyst is touched: loading a project and saving its
+    variant now go through menus, which need the keyboard (they used to click the toolbar with an emulated mouse; not measured on
+    the isolated desktop, `tests/aislado.rs` has never run).
 - **`disenar_sistema` sizing no longer loops over billions of candidates** when a database file carries an absurd voltage (a tiny `Voc`, a
   huge or non-finite `VAbsMax`): the series search stops at 1000 modules and a non-finite voltage finds no layout.
 - **`http_get` (PVGIS, uncertainty lookups) refuses a body over 64 MiB** and stops reading it instead of buffering whatever the server sends.

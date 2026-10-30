@@ -39,6 +39,18 @@ pub(crate) struct ProyectoEnPvsyst<'s> {
     pub(crate) archivo_variante: PathBuf,
 }
 
+/// A session for a step that loads a project and saves its variant. Both go through the menu
+/// bar, which PVsyst opens only for the keyboard, and the isolated desktop ignores keys: the
+/// step is refused before PVsyst is touched instead of failing with a variant half edited.
+pub(super) fn abrir_sesion(paths: &Paths) -> Result<Sesion> {
+    if crate::adapters::gui::escritorio::es_aislado() {
+        return Err(Error::Gui(
+            "Cargar el proyecto y guardar la variante usan los menús de PVsyst, que se abren con el teclado: el escritorio aislado (PVSYST_MCP_ESCRITORIO=aislado) lo ignora. Quita esa variable para este paso".into(),
+        ));
+    }
+    Sesion::abrir(paths)
+}
+
 fn boton_de_inicio(tipo: TipoSistema) -> &'static str {
     match tipo {
         TipoSistema::Red => ROTULOS.inicio_red,

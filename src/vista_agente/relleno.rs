@@ -185,8 +185,23 @@ struct Aplicacion<'a> {
 type Producido = (Vec<Value>, Vec<Value>);
 
 impl Aplicacion<'_> {
-    /// The changes of one tab; the form is already showing it.
+    /// The changes of one tab; the form is already showing it. Check boxes and options go
+    /// first and the form is read again after them: a field they enable is disabled until then.
     fn aplicar(&self, grupo: &[&Cambio]) -> Result<Producido> {
+        let (casillas, resto): (Vec<&Cambio>, Vec<&Cambio>) = grupo
+            .iter()
+            .partition(|c| c.campo.tipo == TipoValor::Casilla);
+        let (mut resultados, mut recalculados) = (Vec::new(), Vec::new());
+        for lote in [casillas, resto].iter().filter(|l| !l.is_empty()) {
+            let (r, rec) = self.aplicar_lote(lote)?;
+            resultados.extend(r);
+            recalculados.extend(rec);
+        }
+        Ok((resultados, recalculados))
+    }
+
+    /// One batch against a single reading of the form.
+    fn aplicar_lote(&self, grupo: &[&Cambio]) -> Result<Producido> {
         let vivos = campos_vivos(self.formulario.h);
         let pasos = emparejar(grupo, &vivos)?;
         verificar_listas(&pasos)?;
@@ -215,8 +230,26 @@ fn por_paginas(app: &Aplicacion<'_>, cambios: &[Cambio]) -> Result<Producido> {
         grupos.entry(c.campo.pagina).or_default().push(c);
     }
     let escribe = app.modo == ModoEjecucion::Aplicar;
+    let cambia_de_pagina = escribe && grupos.keys().any(|p| *p != 0);
+    let producido = recorrer_paginas(app, &grupos);
+    if !cambia_de_pagina {
+        return producido;
+    }
+    // Back on tab 0 also after a failure, so the next call finds the form where it assumes.
+    let vuelta = app.formulario.pagina(0);
+    match producido {
+        Ok(hecho) => vuelta.map(|()| hecho),
+        Err(error) => Err(error),
+    }
+}
+
+fn recorrer_paginas(
+    app: &Aplicacion<'_>,
+    grupos: &BTreeMap<usize, Vec<&Cambio>>,
+) -> Result<Producido> {
+    let escribe = app.modo == ModoEjecucion::Aplicar;
     let (mut resultados, mut recalc) = (Vec::new(), Vec::new());
-    for (pagina, grupo) in &grupos {
+    for (pagina, grupo) in grupos {
         let (r, rec) = match (*pagina, escribe) {
             (0, _) => app.aplicar(grupo)?,
             (_, false) => Aplicacion::simular_otra_pagina(grupo),
@@ -227,9 +260,6 @@ fn por_paginas(app: &Aplicacion<'_>, cambios: &[Cambio]) -> Result<Producido> {
         };
         resultados.extend(r);
         recalc.extend(rec);
-    }
-    if escribe && grupos.keys().any(|p| *p != 0) {
-        app.formulario.pagina(0)?;
     }
     Ok((resultados, recalc))
 }

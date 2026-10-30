@@ -106,7 +106,10 @@ fn falla_la_cli(salida: &Value) -> bool {
 /// Keys that say the answer is missing part of what was asked for.
 fn es_incompleta(salida: &Value) -> bool {
     salida.get("completo").and_then(Value::as_bool) == Some(false)
-        || salida.get("verificado").and_then(Value::as_bool) == Some(false)
+        || salida
+            .get("campos_que_difieren")
+            .and_then(Value::as_u64)
+            .is_some_and(|n| n > 0)
         || !textos_de(salida, "errores").is_empty()
         || !textos_de(salida, "error").is_empty()
 }

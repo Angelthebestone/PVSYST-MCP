@@ -4,9 +4,8 @@
 
 use super::relleno::{rellenar, valor};
 use super::rotulos::{rotulos_dimensionado, RotulosDimensionado};
-use super::{contar, objeto, ProyectoEnPvsyst};
+use super::{abrir_sesion, contar, objeto, ProyectoEnPvsyst};
 use crate::adapters::gui::rotulos::Idioma;
-use crate::adapters::gui::sesion_pvsyst::Sesion;
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
@@ -25,7 +24,7 @@ pub(crate) fn dimensionar(
     variante: &str,
     kwp: f64,
 ) -> Result<Value> {
-    let sesion = Sesion::abrir(paths)?;
+    let sesion = abrir_sesion(paths)?;
     sesion.ejecutar(|s| {
         let p = ProyectoEnPvsyst::abrir(s, paths, proyecto, variante)?;
         let subconjuntos = contar(&p.leer_variante()?, "pvSubArray");

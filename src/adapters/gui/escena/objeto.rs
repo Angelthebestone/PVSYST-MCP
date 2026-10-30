@@ -1,7 +1,7 @@
 //! One object of the scene: PVsyst's elementary-object dialog, filled field by
 //! field and closed with «Cerrar objeto», which adds it to the scene.
 
-use super::pasos::{abrir, campos, escribir, hijo_n, ventana};
+use super::pasos::{abrir, campos, con_descarte, escribir, hijo_n, ventana};
 use crate::adapters::gui::conduccion::{esperar_cierre, Formulario};
 use crate::adapters::gui::ffi;
 use crate::error::{Error, Result};
@@ -17,9 +17,11 @@ const ESPERA_CIERRE: Duration = Duration::from_secs(10);
 pub(super) fn crear(objeto: &ObjetoPedido) -> Result<()> {
     abrir("escena_3d.crear.objeto_elemental")?;
     let dialogo = Formulario::de(ventana(DIALOGO)?);
-    elegir_forma(&dialogo, objeto)?;
-    rellenar(&dialogo, objeto)?;
-    dialogo.pulsar("Cerrar objeto")?;
+    con_descarte(&dialogo, || {
+        elegir_forma(&dialogo, objeto)?;
+        rellenar(&dialogo, objeto)?;
+        dialogo.pulsar("Cerrar objeto")
+    })?;
     if esperar_cierre(dialogo.h, ESPERA_CIERRE) {
         return Ok(());
     }

@@ -72,13 +72,14 @@ fn should_type_a_module_datasheet_by_the_schema_keys_of_the_panel() {
 }
 
 #[test]
-fn should_type_the_inverter_efficiencies_by_the_schema_keys_and_leave_the_phases_out() {
+fn should_type_the_inverter_efficiencies_and_choose_the_phase_by_the_schema_keys() {
     let datos = json!({"PNomConv": 20, "EfficMax": 98.1, "EfficEuro": 97.3, "MonoTri": "Tri"});
     let tipo = pvsyst::tipo_de("OND").expect("inverter type");
     let valores = pvsyst::valores_de(tipo, datos.as_object().expect("object"), "I1");
     assert_eq!(valores["potencia_ca_nominal_kw"], 20);
     assert_eq!(valores["eficiencia_max_pct"], 98.1);
     assert_eq!(valores["eficiencia_euro_pct"], 97.3);
-    // The phases are a radio button the schema does not model: they are chosen by caption.
-    assert!(!valores.contains_key("MonoTri") && valores.len() == 4);
+    // The phase is the schema's option, not the file key `MonoTri`.
+    assert_eq!(valores["fase_trifasica"], true);
+    assert!(!valores.contains_key("MonoTri") && valores.len() == 5);
 }

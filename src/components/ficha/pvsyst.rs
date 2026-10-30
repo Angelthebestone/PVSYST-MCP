@@ -115,12 +115,20 @@ const INVERSOR: Tipo = Tipo {
     ],
 };
 
-/// Grid phases as PVsyst names them in the file and in the window.
+/// Grid phases as the file names them (`MonoTri`) and the schema option each one chooses.
 const FASES: [(&str, &str); 3] = [
-    ("Mono", "Monofásico"),
-    ("Tri", "Trifásico"),
-    ("Bi", "Bifásico"),
+    ("Mono", "fase_monofasica"),
+    ("Tri", "fase_trifasica"),
+    ("Bi", "fase_bifasica"),
 ];
+
+/// The schema option for the phase `fase` of a datasheet, when it is one PVsyst knows.
+fn opcion_de_fase(fase: &str) -> Option<&'static str> {
+    FASES
+        .iter()
+        .find(|(k, _)| k.eq_ignore_ascii_case(fase))
+        .map(|(_, opcion)| *opcion)
+}
 
 pub(super) fn tipo_de(tipo: &str) -> Result<&'static Tipo> {
     match tipo.to_ascii_uppercase().as_str() {
@@ -149,6 +157,9 @@ fn validar(t: &Tipo, datos: &Map<String, Value>) -> Result<()> {
     let conocidas =
         |k: &str| t.obligatorias.contains(&k) || clave_para_archivo(t.entidad, k).is_some();
     let extra: Vec<&String> = datos.keys().filter(|k| !conocidas(k)).collect();
+    if let Some(fase) = texto(datos, "MonoTri").filter(|f| opcion_de_fase(f).is_none()) {
+        return Err(Error::Invalid(format!("MonoTri '{fase}': Mono, Tri o Bi")));
+    }
     if faltan.is_empty() && extra.is_empty() {
         return Ok(());
     }
@@ -163,6 +174,9 @@ fn validar(t: &Tipo, datos: &Map<String, Value>) -> Result<()> {
 pub(super) fn valores_de(t: &Tipo, datos: &Map<String, Value>, nombre: &str) -> Map<String, Value> {
     let mut valores = Map::new();
     valores.insert("nombre_archivo".into(), json!(nombre));
+    if let Some(opcion) = texto(datos, "MonoTri").and_then(|f| opcion_de_fase(&f)) {
+        valores.insert(opcion.into(), json!(true));
+    }
     for (clave_archivo, valor) in datos {
         if let Some(clave) = clave_para_archivo(t.entidad, clave_archivo) {
             valores.insert(clave.into(), valor.clone());
@@ -174,19 +188,6 @@ pub(super) fn valores_de(t: &Tipo, datos: &Map<String, Value>, nombre: &str) -> 
 fn rellenar(paths: &Paths, t: &Tipo, valores: &Map<String, Value>) -> Result<()> {
     let pedido = json!({ "entidad": t.entidad, "valores": valores, "ventana": t.formulario });
     crate::vista_agente::rellenar(paths, &pedido).map(|_| ())
-}
-
-/// Inverter phases: a radio button, which the schema does not model.
-fn fases(f: &Formulario, datos: &Map<String, Value>) -> Result<()> {
-    if let Some(fases) = texto(datos, "MonoTri") {
-        let rotulo = FASES
-            .iter()
-            .find(|(k, _)| k.eq_ignore_ascii_case(&fases))
-            .map(|(_, r)| *r)
-            .ok_or_else(|| Error::Invalid(format!("MonoTri '{fases}': Mono, Tri o Bi")))?;
-        f.elegir(rotulo)?;
-    }
-    Ok(())
 }
 
 fn guardar(s: &Sesion, f: &Formulario) -> Result<()> {
@@ -249,7 +250,6 @@ pub(crate) fn crear(
             .pulsar(ROTULOS.nuevo)?;
         let f = s.esperar(t.formulario)?;
         rellenar(paths, t, &valores_de(t, datos, nombre))?;
-        fases(&f, datos)?;
         guardar(s, &f)?;
         let avisos = s.mensajes();
         leer_guardado(t, &destino, &avisos)

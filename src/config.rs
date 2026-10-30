@@ -174,11 +174,12 @@ pub(crate) fn version_de(carpeta: &str) -> Option<Vec<u32>> {
         .map(str::parse)
         .collect::<Result<_, _>>()
         .ok()?;
-    (numeros.first()? >= &8).then_some(numeros)
+    (numeros.first()? == &8).then_some(numeros)
 }
 
-/// The PVsyst 8 or later install folders found on this machine, newest version first,
-/// so an update (8.1.7 → 8.1.8, or a PVsyst 9) needs no change here.
+/// The PVsyst 8 install folders found on this machine, newest version first, so an update
+/// (8.1.7 → 8.1.8) needs no change here. A PVsyst 9 is not picked: the GUI map, the anchors and
+/// the menu positions were measured on 8.1.x, so it needs an explicit `PVSYST_GUI`/`PVSYST_CLI`.
 fn instalaciones() -> Vec<PathBuf> {
     let mut raices = vec![
         PathBuf::from(r"C:\Program Files"),

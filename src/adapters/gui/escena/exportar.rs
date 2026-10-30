@@ -1,7 +1,7 @@
 //! Saves the scene with PVsyst's own «Exportar escena (.SHD)»: PVsyst writes
 //! the file, the MCP only names it and reads it back afterwards.
 
-use super::pasos::{abrir, hijo_n, ventana};
+use super::pasos::{abrir, con_descarte, descartar, hijo_n, ventana};
 use crate::adapters::gui::conduccion::{esperar_cierre, Formulario};
 use crate::adapters::gui::ffi;
 use crate::adapters::gui::sondeo::sondear_hasta;
@@ -40,12 +40,18 @@ pub(super) fn guardar(paths: &Paths, nombre: &str) -> Result<PathBuf> {
     let ruta = exigir_libre(paths, nombre)?;
     abrir("escena_3d.archivo.exportar_escena")?;
     let dialogo = Formulario::de(ventana(DIALOGO)?);
-    // Description above, file name below.
-    let campo_nombre = hijo_n(dialogo.h, "TEdit", 1)?;
-    ffi::traer_al_frente(dialogo.h);
-    ffi::teclear_en(campo_nombre, nombre)?;
-    dialogo.pulsar("Guardar")?;
-    if !esperar_cierre(dialogo.h, ESPERA_GUARDADO) || !esperar_escrito(&ruta) {
+    con_descarte(&dialogo, || {
+        // Description above, file name below.
+        let campo_nombre = hijo_n(dialogo.h, "TEdit", 1)?;
+        ffi::traer_al_frente(dialogo.h);
+        ffi::teclear_en(campo_nombre, nombre)?;
+        dialogo.pulsar("Guardar")
+    })?;
+    let cerrado = esperar_cierre(dialogo.h, ESPERA_GUARDADO);
+    if !cerrado {
+        descartar(&dialogo);
+    }
+    if !cerrado || !esperar_escrito(&ruta) {
         return Err(Error::Gui(format!(
             "PVsyst no guardó {}: no se intenta de otra forma",
             ruta.display()

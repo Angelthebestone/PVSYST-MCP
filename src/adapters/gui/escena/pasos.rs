@@ -1,6 +1,7 @@
 //! Small steps the scene driver repeats: open a catalogued window, list the
 //! controls of a class from top to bottom, type a value into a field.
 
+use crate::adapters::gui::conduccion::{esperar, Formulario};
 use crate::adapters::gui::ffi::{self, Hwnd};
 use crate::adapters::gui::ventanas::{class_of, hwnd_de, rect_of, visible};
 use crate::error::{Error, Result};
@@ -9,6 +10,30 @@ use std::time::Duration;
 
 /// Lets the form react to a typed value before the next step.
 const PAUSA: Duration = Duration::from_millis(400);
+
+/// Time PVsyst gets to ask «¿Quiere mantener sus modificaciones…?» after a «Cancelar».
+const ESPERA_PREGUNTA: Duration = Duration::from_millis(1500);
+
+/// Runs `paso` on the open `dialogo`; when it fails the dialog is dropped («Cancelar», and «No»
+/// if PVsyst asks to keep the changes), so a failed step does not leave PVsyst behind a modal.
+pub(super) fn con_descarte<T>(dialogo: &Formulario, paso: impl FnOnce() -> Result<T>) -> Result<T> {
+    let resultado = paso();
+    if resultado.is_err() {
+        descartar(dialogo);
+    }
+    resultado
+}
+
+/// Best effort: the step error is what the caller reports.
+pub(super) fn descartar(dialogo: &Formulario) {
+    if dialogo.pulsar("Cancelar").is_err() {
+        tracing::warn!(clase = %dialogo.clase(), "no se pudo cancelar el diálogo tras un fallo");
+        return;
+    }
+    if let Ok(pregunta) = esperar(dialogo.pid(), "TMessageForm", ESPERA_PREGUNTA) {
+        let _ = pregunta.pulsar("No");
+    }
+}
 
 /// Opens a catalogue function (`gui_actuar accion:funcion`), opening its host when needed.
 pub(super) fn abrir(funcion: &str) -> Result<Value> {

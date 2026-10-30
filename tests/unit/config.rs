@@ -33,9 +33,9 @@ fn should_ignore_folder_when_it_is_data_or_a_major_before_8() {
 }
 
 #[test]
-fn should_rank_a_later_major_above_8_when_comparing_versions() {
-    assert_eq!(version_de("PVsyst9.0.1"), Some(vec![9, 0, 1]));
-    assert!(version_de("PVsyst9.0") > version_de("PVsyst8.1.10"));
+fn should_skip_a_later_major_and_rank_minors_when_comparing_versions() {
+    assert_eq!(version_de("PVsyst9.0.1"), None);
+    assert!(version_de("PVsyst8.2") > version_de("PVsyst8.1.10"));
 }
 
 #[test]
