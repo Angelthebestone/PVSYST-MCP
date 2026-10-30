@@ -145,6 +145,12 @@ pub(super) const ENTRADAS: &[Entrada] = &[
     .luego(&[VER_VENTANAS]),
     entrada(
         "gui_actuar",
+        "escena_importar",
+        "Malla importada en el editor 3D por PVsyst; la escena que PVsyst exportó confirma los objetos.",
+    )
+    .luego(&[VER_VENTANAS]),
+    entrada(
+        "gui_actuar",
         "secuencia",
         "Secuencia de pasos de GUI ejecutada.",
     )

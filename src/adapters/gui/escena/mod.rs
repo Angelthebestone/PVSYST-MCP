@@ -4,13 +4,14 @@
 //! Nothing is written by the MCP: PVsyst writes the scene.
 
 mod exportar;
+mod importar;
 mod lista;
 mod objeto;
 mod pasos;
 
 use crate::adapters::gui::acciones::exigir_escritorio;
 use crate::adapters::gui::modal::exigir_habilitada;
-use crate::args::req_str;
+use crate::args::{flag, opt_str, req_str};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::escena_3d::{leer_objetos, nombre_valido, verificar_archivo, ObjetoPedido};
@@ -48,6 +49,11 @@ pub(crate) fn leer(paths: &Paths, args: &Value) -> Result<Value> {
         "nombre con el que PVsyst exporta la escena, p.ej. 'Lectura_1'",
     )?)?;
     exigir_editor_abierto("leer la escena")?;
+    exportada(paths, nombre)
+}
+
+/// Exports the open scene as `nombre` and reads the file PVsyst wrote.
+fn exportada(paths: &Paths, nombre: &str) -> Result<Value> {
     exportar::exigir_libre(paths, nombre)?;
     let guardado = exportar::guardar(paths, nombre)?;
     let archivo = format!("{nombre}.SHD");
@@ -61,6 +67,46 @@ pub(crate) fn leer(paths: &Paths, args: &Value) -> Result<Value> {
                 "PVsyst guardó {archivo} en Shadings para leerla; bórralo si no lo necesitas."
             )]),
         );
+    }
+    Ok(escena)
+}
+
+/// `gui_actuar accion:escena_importar`: imports a mesh (3DS, DAE, PVC, PVC2, PVZ2) into the
+/// scene open in the editor through PVsyst's own «Importar una escena 3D» and returns the
+/// scene PVsyst exports afterwards (`escena`). With `simular:true` the import is dropped with
+/// «Cancelar» once PVsyst has read the file. PVsyst converts the mesh: the MCP never does.
+pub(crate) fn importar(paths: &Paths, args: &Value) -> Result<Value> {
+    exigir_escritorio()?;
+    let ruta = importar::malla_valida(req_str(
+        args,
+        &["archivo"],
+        "ruta de la malla (3DS, DAE, PVC, PVC2, PVZ2), fuera de Program Files",
+    )?)?;
+    let nombre = nombre_valido(req_str(
+        args,
+        &["escena"],
+        "nombre con el que PVsyst exporta la escena importada, p.ej. 'Malla_1'",
+    )?)?;
+    exigir_editor_abierto("importar una malla")?;
+    exportar::exigir_libre(paths, nombre)?;
+    let resultado = importar::abrir_resultado(&ruta)?;
+    if let Some(unidades) = opt_str(args, &["unidades"]) {
+        importar::elegir_unidades(&resultado, unidades)?;
+    }
+    let unidades = importar::unidades_elegidas(&resultado);
+    if flag(args, &["simular"]) {
+        importar::cerrar_resultado(&resultado, "Cancelar")?;
+        return Ok(json!({
+            "importado": false,
+            "unidades": unidades,
+            "archivo": ruta.display().to_string(),
+        }));
+    }
+    importar::cerrar_resultado(&resultado, "OK")?;
+    let mut escena = exportada(paths, nombre)?;
+    if let Some(mapa) = escena.as_object_mut() {
+        mapa.insert("importado".into(), json!(true));
+        mapa.insert("unidades".into(), unidades);
     }
     Ok(escena)
 }

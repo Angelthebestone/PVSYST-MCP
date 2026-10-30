@@ -168,6 +168,31 @@ fn should_name_the_command_by_place_when_the_request_gives_menu_and_item() {
 }
 
 #[test]
+fn should_name_the_command_inside_a_submenu_when_the_request_gives_a_subitem() {
+    let pedido = pedido_de_menu(&json!({ "menu": 0, "item": 4, "subitem": 1 })).ok();
+
+    assert_eq!(
+        pedido,
+        Some(PedidoMenu::Submenu {
+            menu: 0,
+            item: 4,
+            sub: 1
+        })
+    );
+}
+
+#[test]
+fn should_reject_a_subitem_when_the_request_has_no_position_or_also_an_id() {
+    for pedido in [
+        json!({ "subitem": 1 }),
+        json!({ "menu": 0, "subitem": 1 }),
+        json!({ "id": 3, "subitem": 1 }),
+    ] {
+        assert!(pedido_de_menu(&pedido).is_err(), "{pedido}");
+    }
+}
+
+#[test]
 fn should_reject_the_request_when_it_gives_half_a_position_both_kinds_or_nothing() {
     for pedido in [
         json!({ "menu": 1 }),
