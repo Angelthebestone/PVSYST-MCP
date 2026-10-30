@@ -6,7 +6,7 @@ use crate::components::{resolve_component, ConsultaComponente};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::{edit, object};
-use crate::projects::lifecycle::{abrir_variante, guardar_variante};
+use crate::projects::lifecycle::{abrir_variante, guardar_variante, respuesta_de_edicion};
 use crate::projects::tipo_sistema::TipoSistema;
 use serde_json::{json, Value};
 
@@ -33,19 +33,16 @@ pub(crate) fn configurar_almacenamiento(paths: &Paths, args: &Value) -> Result<V
     let historial_id = guardar_variante(&variante, &bytes, "proyecto almacenamiento")?;
 
     let aviso = aviso_bateria(&variante, parametros.bateria());
-    let mut out = json!({
-        "proyecto": variante.stem,
-        "variante": variante.variante,
-        "archivo": variante.vpath.display().to_string(),
-        "parametros": parametros.como_json(),
-        "cambios": outcomes.iter().map(edit::ChangeOutcome::to_json).collect::<Vec<_>>(),
-        "insertados": insertados,
-        "historial_id": historial_id,
-    });
+    let mut out = respuesta_de_edicion(
+        &variante,
+        &parametros.como_json(),
+        (&outcomes, historial_id),
+    );
+    out.insert("insertados".into(), json!(insertados));
     if let Some(texto) = aviso {
-        out["aviso"] = json!(texto);
+        out.insert("aviso".into(), json!(texto));
     }
-    Ok(out)
+    Ok(out.into())
 }
 
 fn tiene_plim_grid(bytes: &[u8]) -> bool {

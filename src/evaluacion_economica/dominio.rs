@@ -1,6 +1,6 @@
 //! PVsyst economic-evaluation parameters and their section changes.
 
-use crate::args::{missing, opt_f64, opt_u32};
+use crate::args::{missing, opt_f64, opt_u32, rango_opcional};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
 
@@ -35,18 +35,6 @@ impl<'a> EntradaEconomicos<'a> {
             tarifa_venta_kwh: opt_f64(args, "tarifa_venta_kwh")?,
         })
     }
-}
-
-fn rango(valor: Option<f64>, max: f64, clave: &str) -> Result<()> {
-    let Some(valor) = valor else {
-        return Ok(());
-    };
-    if (0.0..=max).contains(&valor) {
-        return Ok(());
-    }
-    Err(Error::Invalid(format!(
-        "'{clave}' debe estar entre 0 y {max}: {valor}"
-    )))
 }
 
 fn validar_moneda(moneda: &str) -> Result<()> {
@@ -91,9 +79,9 @@ impl ParametrosEconomicos {
                 )));
             }
         }
-        rango(entrada.tasa_descuento, MAX_TASA, "tasa_descuento")?;
-        rango(entrada.inflacion, MAX_TASA, "inflacion")?;
-        rango(entrada.tarifa_venta_kwh, MAX_TARIFA_KWH, "tarifa_venta_kwh")?;
+        rango_opcional(entrada.tasa_descuento, MAX_TASA, "tasa_descuento")?;
+        rango_opcional(entrada.inflacion, MAX_TASA, "inflacion")?;
+        rango_opcional(entrada.tarifa_venta_kwh, MAX_TARIFA_KWH, "tarifa_venta_kwh")?;
         Ok(Self {
             moneda: entrada.moneda.map(str::to_string),
             vida_anios: entrada.vida_anios,

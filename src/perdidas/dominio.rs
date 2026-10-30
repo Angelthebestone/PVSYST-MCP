@@ -1,7 +1,7 @@
 //! Variant loss parameters and the `pvMainArray` / `pvSubArray` changes.
 
-use crate::args::{missing, opt_f64};
-use crate::error::{Error, Result};
+use crate::args::{missing, opt_f64, rango_opcional};
+use crate::error::Result;
 use crate::format::edit::EdicionObjeto;
 use serde_json::{json, Value};
 
@@ -33,18 +33,6 @@ impl EntradaPerdidas {
     }
 }
 
-fn rango(valor: Option<f64>, max: f64, clave: &str) -> Result<()> {
-    let Some(valor) = valor else {
-        return Ok(());
-    };
-    if (0.0..=max).contains(&valor) {
-        return Ok(());
-    }
-    Err(Error::Invalid(format!(
-        "'{clave}' debe estar entre 0 y {max}: {valor}"
-    )))
-}
-
 /// Validated loss percentages.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub(crate) struct ParametrosPerdidas {
@@ -70,10 +58,10 @@ impl ParametrosPerdidas {
                 "o uc_termico, lid_pct, mismatch_pct",
             ));
         }
-        rango(entrada.suciedad_pct, MAX_SUCIEDAD_PCT, "suciedad_pct")?;
-        rango(entrada.uc_termico, MAX_UC_TERMICO, "uc_termico")?;
-        rango(entrada.lid_pct, MAX_LID_PCT, "lid_pct")?;
-        rango(entrada.mismatch_pct, MAX_MISMATCH_PCT, "mismatch_pct")?;
+        rango_opcional(entrada.suciedad_pct, MAX_SUCIEDAD_PCT, "suciedad_pct")?;
+        rango_opcional(entrada.uc_termico, MAX_UC_TERMICO, "uc_termico")?;
+        rango_opcional(entrada.lid_pct, MAX_LID_PCT, "lid_pct")?;
+        rango_opcional(entrada.mismatch_pct, MAX_MISMATCH_PCT, "mismatch_pct")?;
         Ok(Self {
             suciedad_pct: entrada.suciedad_pct,
             uc_termico: entrada.uc_termico,

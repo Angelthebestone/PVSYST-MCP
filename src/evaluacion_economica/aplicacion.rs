@@ -3,9 +3,9 @@
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::evaluacion_economica::dominio::{EntradaEconomicos, ParametrosEconomicos};
-use crate::format::{edit, seccion};
-use crate::projects::lifecycle::{abrir_variante, guardar_variante};
-use serde_json::{json, Value};
+use crate::format::seccion;
+use crate::projects::lifecycle::{abrir_variante, guardar_variante, respuesta_de_edicion};
+use serde_json::Value;
 
 const SECCION: &str = "EconomicEval";
 const TARIFA_FIJA: &str = "taFixed";
@@ -29,12 +29,10 @@ pub(crate) fn configurar_economia(paths: &Paths, args: &Value) -> Result<Value> 
     let (bytes, outcomes) =
         seccion::editar_campos_seccion(&variante.bytes, SECCION, &parametros.cambios())?;
     let historial_id = guardar_variante(&variante, &bytes, "proyecto economia")?;
-    Ok(json!({
-        "proyecto": variante.stem,
-        "variante": variante.variante,
-        "archivo": variante.vpath.display().to_string(),
-        "parametros": parametros.como_json(),
-        "cambios": outcomes.iter().map(edit::ChangeOutcome::to_json).collect::<Vec<_>>(),
-        "historial_id": historial_id,
-    }))
+    Ok(respuesta_de_edicion(
+        &variante,
+        &parametros.como_json(),
+        (&outcomes, historial_id),
+    )
+    .into())
 }

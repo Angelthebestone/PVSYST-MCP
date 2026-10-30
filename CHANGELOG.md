@@ -23,7 +23,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   real call. Clients without `structuredContent` get the failure's `vista` as a second text item.
   Contract, size measurements and the tool × action matrix: `docs/vista_agente_salidas.md`.
 
+### Fixed
+- **`disenar_sistema` sizing no longer loops over billions of candidates** when a database file carries an absurd voltage (a tiny `Voc`, a
+  huge or non-finite `VAbsMax`): the series search stops at 1000 modules and a non-finite voltage finds no layout.
+- **`http_get` (PVGIS, uncertainty lookups) refuses a body over 64 MiB** and stops reading it instead of buffering whatever the server sends.
+- A `tools/call` that arrives as a notification and fails is logged; a failed rollback of `disenar_sistema` is logged instead of ignored.
+
 ### Changed
+- The six `proyecto` actions that edit a variant (storage, pumping, injection limit, losses, economics, tracker) build their answer with one
+  function (`respuesta_de_edicion`); the identical range check of losses and economics lives in `args::rango_opcional`.
 - **`proyecto dimensionar` and the active-variant choice no longer use coordinates.** The System window and the project window are
   schema entities (`variante.system`, `proyecto.ventana`) and the flow fills them by key with `rellenar`; the coordinate constants and
   `Formulario::{leer, marcar}` are gone. Measured on PVsyst 8.1.8: 50 kWp gave 28 modules in series × 4 strings, saved as `NModSerie=28`,

@@ -143,3 +143,18 @@ mod props {
         }
     }
 }
+
+#[test]
+fn should_accept_a_missing_or_in_range_number_when_checking_an_optional_range() {
+    assert!(rango_opcional(None, 10.0, "x").is_ok());
+    assert!(rango_opcional(Some(0.0), 10.0, "x").is_ok());
+    assert!(rango_opcional(Some(10.0), 10.0, "x").is_ok());
+}
+
+#[test]
+fn should_name_the_key_when_an_optional_number_is_out_of_range() {
+    let error = rango_opcional(Some(10.5), 10.0, "tasa").expect_err("fuera de rango");
+
+    assert!(error.to_string().contains("'tasa'"), "{error}");
+    assert!(rango_opcional(Some(-0.1), 10.0, "tasa").is_err());
+}

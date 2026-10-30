@@ -183,6 +183,19 @@ fn distancia(a: &str, b: &str) -> usize {
     prev[b.len()]
 }
 
+/// An optional number that, when given, lies in `0..=max`; `clave` names it in the error.
+pub(crate) fn rango_opcional(valor: Option<f64>, max: f64, clave: &str) -> Result<()> {
+    let Some(valor) = valor else {
+        return Ok(());
+    };
+    if (0.0..=max).contains(&valor) {
+        return Ok(());
+    }
+    Err(Error::Invalid(format!(
+        "'{clave}' debe estar entre 0 y {max}: {valor}"
+    )))
+}
+
 #[cfg(test)]
 #[path = "../tests/unit/args.rs"]
 mod tests;

@@ -4,7 +4,7 @@ use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::edit;
 use crate::perdidas::dominio::{usa_formato_nuevo_suciedad, EntradaPerdidas, ParametrosPerdidas};
-use crate::projects::lifecycle::{abrir_variante, guardar_variante};
+use crate::projects::lifecycle::{abrir_variante, guardar_variante, respuesta_de_edicion};
 use serde_json::{json, Value};
 
 pub(crate) fn aplicar_perdidas(paths: &Paths, args: &Value) -> Result<Value> {
@@ -28,13 +28,11 @@ pub(crate) fn aplicar_perdidas(paths: &Paths, args: &Value) -> Result<Value> {
     let (bytes, outcomes) =
         edit::editar_objetos(&variante.bytes, &parametros.ediciones(n_subarrays))?;
     let historial_id = guardar_variante(&variante, &bytes, "proyecto perdidas")?;
-    Ok(json!({
-        "proyecto": variante.stem,
-        "variante": variante.variante,
-        "archivo": variante.vpath.display().to_string(),
-        "n_subarrays": n_subarrays,
-        "parametros": parametros.como_json(),
-        "cambios": outcomes.iter().map(edit::ChangeOutcome::to_json).collect::<Vec<_>>(),
-        "historial_id": historial_id,
-    }))
+    let mut out = respuesta_de_edicion(
+        &variante,
+        &parametros.como_json(),
+        (&outcomes, historial_id),
+    );
+    out.insert("n_subarrays".into(), json!(n_subarrays));
+    Ok(out.into())
 }

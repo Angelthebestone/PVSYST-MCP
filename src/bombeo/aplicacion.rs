@@ -5,9 +5,9 @@ use crate::bombeo::dominio::{EntradaBombeo, ParametrosBombeo};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::{edit, seccion};
-use crate::projects::lifecycle::{abrir_variante, guardar_variante};
+use crate::projects::lifecycle::{abrir_variante, guardar_variante, respuesta_de_edicion};
 use crate::projects::tipo_sistema::TipoSistema;
-use serde_json::{json, Value};
+use serde_json::Value;
 
 pub(crate) fn configurar_bombeo(paths: &Paths, args: &Value) -> Result<Value> {
     let parametros = ParametrosBombeo::nuevo(EntradaBombeo::de_args(args)?)?;
@@ -28,14 +28,12 @@ pub(crate) fn configurar_bombeo(paths: &Paths, args: &Value) -> Result<Value> {
     };
     let outcomes: Vec<edit::ChangeOutcome> = sistema.into_iter().chain(agua).collect();
     let historial_id = guardar_variante(&variante, &bytes, "proyecto bombeo")?;
-    Ok(json!({
-        "proyecto": variante.stem,
-        "variante": variante.variante,
-        "archivo": variante.vpath.display().to_string(),
-        "parametros": parametros.como_json(),
-        "cambios": outcomes.iter().map(edit::ChangeOutcome::to_json).collect::<Vec<_>>(),
-        "historial_id": historial_id,
-    }))
+    Ok(respuesta_de_edicion(
+        &variante,
+        &parametros.como_json(),
+        (&outcomes, historial_id),
+    )
+    .into())
 }
 
 /// Variants made with `anadir circuito_hidraulico` carry the pump circuit but not the
