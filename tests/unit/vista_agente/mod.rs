@@ -330,3 +330,68 @@ fn should_point_to_the_shape_entity_in_the_unfiltered_schema_listing() {
     let v = crate::vista_agente::listar_esquemas(&json!({})).expect("listing");
     assert_eq!(v["otras_entidades"][0], "escena_3d.formas");
 }
+
+/// The orientation and the array layout typed through `rellenar` and saved by PVsyst 8.1.8 with
+/// «Guardar la variante activa» (tilt 25, azimuth 10; `proyecto dimensionar` for 50 kWp).
+const VARIANTE_GUARDADA: &str =
+    include_str!("../../fixtures/vista_agente/Variante_orientacion_sistema_8_1_8.VC0");
+
+#[test]
+fn should_find_every_file_key_of_the_orientation_and_system_schemas_in_the_variant_pvsyst_saved() {
+    let claves: Vec<&str> = VARIANTE_GUARDADA
+        .lines()
+        .filter_map(|l| l.trim().split_once('=').map(|(k, _)| k))
+        .collect();
+    for entidad_clave in ["variante.orientation", "variante.system"] {
+        let esquema = entidad(entidad_clave).expect("schema");
+        for clave in esquema.campos.iter().filter_map(|c| c.clave_archivo) {
+            assert!(
+                claves.contains(&clave),
+                "{clave} no está en la variante guardada"
+            );
+        }
+    }
+}
+
+#[test]
+fn should_keep_the_values_the_saved_variant_shows_for_what_was_typed() {
+    for (clave, tecleado) in [
+        ("FieldTilt", 25.0),
+        ("FieldAzim", 10.0),
+        ("NModSerie", 28.0),
+        ("NStringCh", 4.0),
+        ("NInverter", 1.0),
+    ] {
+        assert_eq!(
+            valor_guardado(VARIANTE_GUARDADA, clave),
+            Some(tecleado),
+            "{clave}"
+        );
+    }
+}
+
+#[test]
+fn should_accept_true_or_false_for_an_option_and_reject_anything_else() {
+    let sistema = entidad("variante.system").expect("system schema");
+
+    let bien = planificar(
+        sistema,
+        &valores(&json!({ "usar_potencia_planeada": true })),
+    );
+    let mal = planificar(
+        sistema,
+        &valores(&json!({ "usar_potencia_planeada": "si" })),
+    );
+
+    assert_eq!(bien.expect("plan")[0].texto, "true");
+    assert!(matches!(mal, Err(Error::Invalid(_))));
+}
+
+#[test]
+fn should_list_the_option_as_a_checkbox_type_and_keep_its_schema_unambiguous() {
+    let sistema = entidad("variante.system").expect("system schema");
+
+    let tipo = sistema.campo("usar_area_disponible").expect("option").tipo;
+
+    assert_eq!(tipo.nombre(), "casilla");
+}

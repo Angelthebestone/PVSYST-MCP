@@ -6,14 +6,16 @@
 pub(crate) mod dimensionado;
 pub(crate) mod horizonte;
 pub(crate) mod p50;
+mod relleno;
 pub(crate) mod rotulos;
 
-use crate::adapters::gui::conduccion::{Campo, Formulario};
+use crate::adapters::gui::conduccion::Formulario;
 use crate::adapters::gui::rotulos::Idioma;
 use crate::adapters::gui::sesion_pvsyst::Sesion;
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use rotulos::{rotulos_proyecto_gui, RotulosProyectoGui};
+use serde_json::json;
 
 const ROTULOS: RotulosProyectoGui = rotulos_proyecto_gui(Idioma::Es);
 use crate::format::object::{self, PvNode};
@@ -28,8 +30,6 @@ const X_CARGAR: i32 = 100;
 const X_GUARDAR_VARIANTE: i32 = 113;
 /// First row of the project list, relative to the list's top-left corner.
 const FILA_1: (i32, i32) = (80, 28);
-/// Variant selector of the project window.
-const SELECTOR_VARIANTE: Campo = Campo::combo(448, 339);
 const ESPERA_TITULO: Duration = Duration::from_secs(10);
 
 /// A project open in PVsyst on one variant.
@@ -116,7 +116,8 @@ impl<'s> ProyectoEnPvsyst<'s> {
         if !ventana.titulo().ends_with(&prj) {
             cargar(sesion, &ventana, &prj)?;
         }
-        ventana.seleccionar(SELECTOR_VARIANTE, &variante.to_ascii_uppercase())?;
+        let eleccion = json!({ "variante_activa": variante.to_ascii_uppercase() });
+        relleno::rellenar(paths, &ventana, ("proyecto.ventana", eleccion))?;
         sesion.aceptar_mensajes();
         Ok(Self {
             sesion,

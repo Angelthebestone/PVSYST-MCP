@@ -15,10 +15,18 @@ pub(crate) struct Ancla {
 /// What a field accepts.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) enum TipoValor {
-    Numero { minimo: f64, maximo: f64 },
-    Entero { minimo: i64, maximo: i64 },
+    Numero {
+        minimo: f64,
+        maximo: f64,
+    },
+    Entero {
+        minimo: i64,
+        maximo: i64,
+    },
     Texto,
     Lista,
+    /// An option (radio button): `true` or `false`.
+    Casilla,
 }
 
 impl TipoValor {
@@ -28,6 +36,7 @@ impl TipoValor {
             Self::Entero { .. } => "entero",
             Self::Texto => "texto",
             Self::Lista => "lista",
+            Self::Casilla => "casilla",
         }
     }
 }
@@ -108,6 +117,14 @@ impl CampoEsquema {
             minimo: rango.0,
             maximo: rango.1,
         };
+        c
+    }
+
+    /// An option of a group (radio button): it can be chosen, and is cleared by choosing another.
+    pub(crate) const fn opcion(clave: &'static str, etiqueta: &'static str, ancla: Ancla) -> Self {
+        let mut c = Self::base(clave, etiqueta, ancla);
+        c.clase = "TRadioButton";
+        c.tipo = TipoValor::Casilla;
         c
     }
 

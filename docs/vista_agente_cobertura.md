@@ -24,8 +24,16 @@ recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactament
    interna en mΩ (3.5) y el archivo la guarda en Ω (`ResInterne=0.0035`); la eficiencia coulómbica se muestra en % (95.5) y se
    guarda como fracción (`EfficI=0.955`). No se probaron los campos de la derecha (energía en DOD, capacidad de la hoja de datos,
    tasa de descarga) ni las pestañas 1 a 4.
-2. **Entidad básica** (clave por clase y posición a 96 DPI, valor leído por handle): **66** (más 3 con esquema propio: `TPVModuleForm`, `TGridInverterForm`, `TBatteryForm`).
-3. **Solo acciones** (se describe por sus botones): **15**.
+   Tres esquemas de variante, validados contra una variante que PVsyst 8.1.8 guardó con «Guardar la variante activa»
+   (`tests/fixtures/vista_agente/Variante_orientacion_sistema_8_1_8.VC0`; la PRUEBA **guarda variantes**):
+   `variante.orientation` (`TOrientationForm`, plano fijo: `FieldType`, `FieldTilt=25.0`, `FieldAzim=10.0`, `BaseSlope`; el nombre de la
+   orientación no se recalcula al cambiar la inclinación), `variante.system` (`TSystemegridForm`: `usar_potencia_planeada`/`usar_area_disponible`
+   son opciones; con 50 kWp PVsyst propuso 28 módulos en serie × 4 cadenas y guardó `NModSerie=28`, `NStringCh=4`, `NInverter=1`,
+   `PNomSizing=50.0`) y `proyecto.ventana` (`TProjectForm`: descripción, archivo meteo y variante activa). Los dos últimos reemplazan las
+   coordenadas de `proyecto dimensionar` y de la apertura de la variante. Rangos: son los del MCP, no los de PVsyst. Otros tipos de campo
+   (rastreadores, cobertizos) muestran otros controles: el esquema de orientación solo describe el plano fijo.
+2. **Entidad básica** (clave por clase y posición a 96 DPI, valor leído por handle): **71** (6 con esquema propio: `TPVModuleForm`, `TGridInverterForm`, `TBatteryForm`, `TOrientationForm`, `TSystemegridForm`, `TProjectForm`).
+3. **Solo acciones** (se describe por sus botones): **14**.
 4. **No aplica** (dibujado o ajeno, solo captura): **4**.
 
 ## Cómo se midió
@@ -99,7 +107,7 @@ recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactament
 | `TPerspectiveForm` | escena_3d | 4 | sí (`variante.sombreados_cercanos.construccion_perspectiva`) | 0 | 0 | 1 |
 | `TPlotLossDiagramF` | resultados | 4 | sí (`variante.resultados_detallados.diagrama_de_perdida`) | 0 | 0 | 1 |
 | `TPreferencesForm` | aplicacion | 3 | sí (`configuraciones.preferencias`) | 0 | 4 | 1 |
-| `TProjectForm` | variante | 3 | sí (`proyecto.nuevo_conectado_a_la_red`) | 0 | 16 | 4 |
+| `TProjectForm` | variante | 2 | sí (`proyecto.nuevo_conectado_a_la_red`) | 3 | 16 | 4 |
 | `TProjectLoadForm` | variante | 2 | sí (`proyecto.cargar`) | 1 | 3 | 2 |
 | `TPumpControllerForm` | componentes | 2 | sí (`bases_de_datos.controladores_bombeo.nuevo`) | 15 | 4 | 1 |
 | `TPumpForm` | componentes | 2 | sí (`bases_de_datos.bombas.nuevo`) | 20 | 4 | 1 |
@@ -201,7 +209,9 @@ catálogo abre otra ventana (`herramientas.factor_transposicion` abre `TArrayCha
 
 ## Límites declarados
 - Cobertura básica: sin unidad, rango ni `clave_archivo`; `rellenar` solo existe para las entidades con esquema
-  (`components.panels`).
+  (`components.panels`, `components.inverters`, `components.batteries`, `variante.orientation`, `variante.system`, `proyecto.ventana`).
+- Un esquema describe los controles que la ventana muestra en un estado: los que aparecen o desaparecen con otra opción (el tipo de
+  campo de la orientación, las casillas del inversor) salen como `presente:false` y sus valores quedan en `sin_mapear`.
 - Las clases de control que la vista lee son `TEdit`, `TMemo`, `TLabeledEdit`, `TMaskEdit`, `TSpinEdit`, `TComboBox`,
   `TComboBoxEx`, `TCheckBox` y `TRadioButton`. No lee `TUpDown`, `TListBox`, `TDateTimePicker`, `TTrackBar`, árboles ni cuadrículas.
   `TBuildingObjectForm`, `TGeoSiteForm`, `TOrientManageForm` y `TPreferencesForm` mostraron 0 campos legibles y se pasaron a «solo acciones».

@@ -23,7 +23,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   real call. Clients without `structuredContent` get the failure's `vista` as a second text item.
   Contract, size measurements and the tool × action matrix: `docs/vista_agente_salidas.md`.
 
+### Changed
+- **`proyecto dimensionar` and the active-variant choice no longer use coordinates.** The System window and the project window are
+  schema entities (`variante.system`, `proyecto.ventana`) and the flow fills them by key with `rellenar`; the coordinate constants and
+  `Formulario::{leer, marcar}` are gone. Measured on PVsyst 8.1.8: 50 kWp gave 28 modules in series × 4 strings, saved as `NModSerie=28`,
+  `NStringCh=4`, `PNomSizing=50.0`.
+- `rellenar` no longer reports an option or a check box as "recalculated" when only its caption was read.
+
 ### Added
+- **`variante.orientation`** (`TOrientationForm`, fixed plane), **`variante.system`** and **`proyecto.ventana`** entities for
+  `que:vista`/`rellenar`, checked against a variant PVsyst 8.1.8 saved (`FieldTilt`, `FieldAzim`, `NModSerie`, `NStringCh`, `NInverter`,
+  `PNomSizing`). New field type `casilla` (`true`/`false`) for the options of a group; an option is cleared by choosing another.
+- **Crear menu of the 3D editor catalogued**: `TTrackerFieldForm`, `TShedFieldForm` (shared by tables, domes and sun shields),
+  `TRectFieldForm` and `TPolyFieldForm` open from `escena_3d.crear.*`, with every tab read (map: 89 classes).
 - **`gui_actuar accion:escena_importar`** (`archivo` + `escena`, optional `unidades`, `simular`) imports a 3D mesh (3DS, DAE, PVC, PVC2,
   PVZ2) into the scene open in the editor with PVsyst's own «Importar una escena 3D»: the menu entry, the Windows file dialog and
   «Importar resultado». PVsyst converts the mesh; the MCP exports the scene afterwards and returns it. Measured on PVsyst 8.1.8: the

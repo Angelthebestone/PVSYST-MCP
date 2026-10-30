@@ -1,7 +1,7 @@
 //! `gui_actuar accion:rellenar`: types several values into a form by their
 //! schema keys and reports what each field holds afterwards.
 
-use super::campos_vivos::{campos_vivos, localizar, CampoVivo};
+use super::campos_vivos::{campos_vivos, localizar, valor_de, CampoVivo};
 use super::dominio::{CampoEsquema, Entidad, TipoValor};
 use super::esquemas::entidad;
 use super::plan::{coincide, planificar, Cambio};
@@ -75,7 +75,27 @@ fn verificar_listas(pasos: &[Paso]) -> Result<()> {
     Ok(())
 }
 
+/// Chooses an option or toggles a check box so it reads `texto`; an option that is on
+/// stays on until another of its group is chosen.
+fn marcar(destino: &EscrituraDestino<'_>, texto: &str) -> Result<()> {
+    let actual = valor_de(destino.control, destino.campo.clase);
+    if actual == texto {
+        return Ok(());
+    }
+    if destino.campo.clase == "TRadioButton" && texto == "false" {
+        return Err(Error::Invalid(format!(
+            "'{}' es una opción: se apaga eligiendo otra de su grupo",
+            destino.campo.clave
+        )));
+    }
+    destino.formulario.marcar_en(destino.control);
+    Ok(())
+}
+
 fn escribir(destino: &EscrituraDestino<'_>, texto: &str) -> Result<()> {
+    if destino.campo.tipo == TipoValor::Casilla {
+        return marcar(destino, texto);
+    }
     if destino.campo.tipo == TipoValor::Lista {
         if ffi::elegir_en_combo(destino.control, texto)? {
             return Ok(());
@@ -95,7 +115,7 @@ fn resultado_del_paso(
     modo: ModoEjecucion,
 ) -> Result<Value> {
     let campo = paso.cambio.campo;
-    let antes = ffi::texto_control(paso.control.hwnd);
+    let antes = valor_de(paso.control.hwnd, &paso.control.clase);
     if modo == ModoEjecucion::Simular {
         return Ok(paso_json(campo, (&paso.cambio.texto, &antes), None));
     }
@@ -105,7 +125,7 @@ fn resultado_del_paso(
         control: paso.control.hwnd,
     };
     escribir(&destino, &paso.cambio.texto)?;
-    let despues = ffi::texto_control(paso.control.hwnd);
+    let despues = valor_de(paso.control.hwnd, &paso.control.clase);
     Ok(paso_json(
         campo,
         (&paso.cambio.texto, &antes),
@@ -150,7 +170,7 @@ fn recalculados(entidad: &Entidad, antes: &[CampoVivo], pedidas: &[Paso]) -> Vec
 fn con_texto_actual(antes: &[CampoVivo]) -> Vec<(&CampoVivo, String)> {
     antes
         .iter()
-        .map(|a| (a, ffi::texto_control(a.hwnd)))
+        .map(|a| (a, valor_de(a.hwnd, &a.clase)))
         .collect()
 }
 

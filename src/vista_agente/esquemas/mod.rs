@@ -2,7 +2,10 @@
 
 mod baterias;
 mod inversores;
+mod orientacion;
 mod paneles;
+mod proyecto;
+mod sistema;
 
 use super::dominio::Entidad;
 use crate::error::{Error, Result};
@@ -11,6 +14,9 @@ static ENTIDADES: &[&Entidad] = &[
     &paneles::PANELES,
     &inversores::INVERSORES,
     &baterias::BATERIAS,
+    &orientacion::ORIENTACION,
+    &sistema::SISTEMA,
+    &proyecto::PROYECTO,
 ];
 
 pub(crate) fn todas() -> &'static [&'static Entidad] {

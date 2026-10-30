@@ -1,0 +1,32 @@
+  Orientations, list of=1 TOrientGroup
+
+    PVObject_=pvOrient
+      Comment=Fixed, Tilt 15.0°, Azim. 20.0°
+      Version=8.1.8
+      Flags=$00
+    NoOrient=1
+    FieldType=FixedPlane
+    FieldTilt=25.0
+    FieldAzim=10.0
+    BaseSlope=0.0
+    UsesTiltAver=False
+    UsesAzimAver=False
+    UsesSlopeAver=False
+
+    PVObject_=pvSubArray
+      Comment=PV Array
+      Version=8.1.8
+      Flags=$019E1005
+      Flags2=$20
+      SubArrayId=1
+      PVModule=Generic_Mono_440W_Half.PAN
+      GInverter=Generic_60kW.OND
+      NModSerie=28
+      NStringCh=4
+      NStrOrient1=4
+      NoOrientation=1
+      NInverter=1
+      NInvMPPT=1
+      SEIsHeterogeneousString=False,
+      AreaSizing=253.6
+      PNomSizing=50.0

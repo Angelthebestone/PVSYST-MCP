@@ -27,7 +27,8 @@ fn es_campo(clase: &str) -> bool {
         .any(|clases| clases.contains(&clase))
 }
 
-fn valor_de(c: Hwnd, clase: &str) -> String {
+/// The value of control `c` as the view shows it: `true`/`false` for options, its text otherwise.
+pub(crate) fn valor_de(c: Hwnd, clase: &str) -> String {
     if CLASES_OPCION.contains(&clase) {
         return esta_marcado(c)
             .map(|m| m.to_string())

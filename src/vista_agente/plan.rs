@@ -35,6 +35,11 @@ fn texto_de(campo: &CampoEsquema, valor: &Value) -> std::result::Result<String, 
             validar_rango(n, minimo, maximo)?;
             Ok(n.to_string())
         }
+        TipoValor::Casilla => match valor {
+            Value::Bool(b) => Ok(b.to_string()),
+            Value::String(t) if matches!(t.as_str(), "true" | "false") => Ok(t.clone()),
+            _ => Err("debe ser true o false".into()),
+        },
         TipoValor::Texto | TipoValor::Lista => match valor.as_str().map(str::trim) {
             Some(t) if !t.is_empty() => Ok(t.to_string()),
             _ => Err("debe ser un texto no vacío".into()),
@@ -111,7 +116,7 @@ pub(crate) fn coincide(campo: &CampoEsquema, pedido: &str, leido: &str) -> bool 
                 _ => false,
             }
         }
-        TipoValor::Texto => pedido == leido,
+        TipoValor::Texto | TipoValor::Casilla => pedido == leido,
         TipoValor::Lista => leido.to_lowercase().starts_with(&pedido.to_lowercase()),
     }
 }

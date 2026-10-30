@@ -28,30 +28,6 @@ pub(crate) struct Campo {
     pub(crate) y: i32,
 }
 
-impl Campo {
-    pub(crate) const fn edit(x: i32, y: i32) -> Self {
-        Self {
-            clase: "TEdit",
-            x,
-            y,
-        }
-    }
-    pub(crate) const fn combo(x: i32, y: i32) -> Self {
-        Self {
-            clase: "TComboBox",
-            x,
-            y,
-        }
-    }
-    pub(crate) const fn opcion(x: i32, y: i32) -> Self {
-        Self {
-            clase: "TRadioButton",
-            x,
-            y,
-        }
-    }
-}
-
 /// A visible top-level PVsyst form.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Formulario {
@@ -173,6 +149,11 @@ impl Formulario {
             })
     }
 
+    /// Clicks control `c` of this form with the mouse (check boxes and options).
+    pub(crate) fn marcar_en(&self, c: Hwnd) {
+        self.clic_en_control(c);
+    }
+
     fn clic_en_control(&self, c: Hwnd) {
         let r = rect_of(c);
         ffi::traer_al_frente(self.h);
@@ -224,17 +205,6 @@ impl Formulario {
         ffi::teclear_en(c, texto)?;
         ffi::pulsar_tabulador();
         std::thread::sleep(PAUSA_ACCION);
-        Ok(())
-    }
-
-    pub(crate) fn leer(&self, campo: Campo) -> Result<String> {
-        self.control(campo).map(ffi::texto_control)
-    }
-
-    /// Clicks the unlabeled option (radio button) at `campo`.
-    pub(crate) fn marcar(&self, campo: Campo) -> Result<()> {
-        let c = self.control(campo)?;
-        self.clic_en_control(c);
         Ok(())
     }
 
