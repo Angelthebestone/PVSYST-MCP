@@ -87,19 +87,31 @@ pub(crate) static INVERSORES: Entidad = Entidad {
         )
         .en_archivo("PMaxOUT")
         .en("kW"),
+        CampoEsquema::casilla(
+            "definir_corriente_ca_nominal",
+            "Definir la corriente AC nominal",
+            en(611, 347),
+        ),
         CampoEsquema::numero(
             "corriente_ca_nominal_a",
             "Corriente AC nominal",
             en(527, 345),
             (0.0, 20000.0),
         )
+        .si("definir_corriente_ca_nominal")
         .en("A"),
+        CampoEsquema::casilla(
+            "definir_corriente_ca_max",
+            "Definir la corriente AC máxima",
+            en(611, 371),
+        ),
         CampoEsquema::numero(
             "corriente_ca_max_a",
             "Corriente AC máxima",
             en(527, 369),
             (0.0, 20000.0),
         )
+        .si("definir_corriente_ca_max")
         .en("A"),
         CampoEsquema::numero(
             "umbral_potencia_kw",
@@ -109,6 +121,50 @@ pub(crate) static INVERSORES: Entidad = Entidad {
         )
         .en_archivo("PSeuil")
         .en("kW"),
+        CampoEsquema::texto("fuente_de_datos", "Fuente de datos", en(485, 106)),
+        CampoEsquema::opcion("fase_monofasica", "Monofásico", en(369, 195)),
+        CampoEsquema::opcion("fase_trifasica", "Trifásico", en(369, 213)),
+        CampoEsquema::opcion("fase_bifasica", "Bifásico", en(369, 229)),
+        CampoEsquema::casilla("frecuencia_50hz", "50 Hz", en(535, 207)),
+        CampoEsquema::casilla("frecuencia_60hz", "60 Hz", en(535, 226)),
+        CampoEsquema::numero(
+            "potencia_fv_nominal_kw",
+            "Potencia FV nominal (especificación contractual)",
+            en(213, 455),
+            (0.0, 10000.0),
+        )
+        .en("kW"),
+        CampoEsquema::casilla(
+            "definir_potencia_fv_max",
+            "Definir la potencia FV máxima",
+            en(301, 481),
+        ),
+        CampoEsquema::numero(
+            "potencia_fv_max_kw",
+            "Potencia FV máxima",
+            en(213, 479),
+            (0.0, 10000.0),
+        )
+        .si("definir_potencia_fv_max")
+        .en("kW"),
+        CampoEsquema::casilla(
+            "definir_corriente_fv_max",
+            "Definir la corriente FV máxima",
+            en(301, 505),
+        ),
+        CampoEsquema::numero(
+            "corriente_fv_max_a",
+            "Corriente FV máxima",
+            en(213, 503),
+            (0.0, 20000.0),
+        )
+        .si("definir_corriente_fv_max")
+        .en("A"),
+        CampoEsquema::casilla(
+            "eficiencia_3_voltajes",
+            "Eficiencia definida para 3 voltajes",
+            en(357, 479),
+        ),
         CampoEsquema::numero(
             "eficiencia_max_pct",
             "Eficiencia máx.",

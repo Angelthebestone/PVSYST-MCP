@@ -24,6 +24,9 @@ fn campo_json(campo: &CampoEsquema, vivo: Option<&CampoVivo>) -> Value {
     map.insert("clave_archivo".into(), json!(campo.clave_archivo));
     map.insert("editable".into(), json!(campo.es_editable()));
     map.insert("tipo".into(), json!(campo.tipo.nombre()));
+    if let Some(casilla) = campo.depende_de {
+        map.insert("depende_de".into(), json!(casilla));
+    }
     let Some(vivo) = vivo else {
         map.insert("presente".into(), json!(false));
         return Value::Object(map);
@@ -64,6 +67,8 @@ fn sin_mapear(ent: &Entidad, vivos: &[CampoVivo]) -> Vec<Value> {
                 "valor": v.texto,
                 "habilitado": v.habilitado,
                 "hwnd": format!("0x{:X}", v.hwnd),
+                "x": v.posicion.x,
+                "y": v.posicion.y,
             })
         })
         .collect()

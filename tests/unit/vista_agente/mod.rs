@@ -395,3 +395,48 @@ fn should_list_the_option_as_a_checkbox_type_and_keep_its_schema_unambiguous() {
 
     assert_eq!(tipo.nombre(), "casilla");
 }
+
+/// Fields that depend on a check box, with the type of the check box declared before them.
+fn tipos_de_casilla_anterior() -> Vec<(&'static str, Option<&'static str>)> {
+    todas()
+        .iter()
+        .flat_map(|e| {
+            e.campos.iter().enumerate().filter_map(move |(i, campo)| {
+                let casilla = campo.depende_de?;
+                let anterior = e.campos.iter().take(i).find(|c| c.clave == casilla);
+                Some((campo.clave, anterior.map(|c| c.tipo.nombre())))
+            })
+        })
+        .collect()
+}
+
+#[test]
+fn should_declare_a_check_box_before_every_field_that_depends_on_it() {
+    let dependientes = tipos_de_casilla_anterior();
+
+    assert!(!dependientes.is_empty());
+    for (clave, tipo) in dependientes {
+        assert_eq!(
+            tipo,
+            Some("casilla"),
+            "{clave}: su casilla no está declarada antes"
+        );
+    }
+}
+
+#[test]
+fn should_tell_which_check_box_a_conditional_inverter_field_needs_when_the_schema_is_listed() {
+    let listado =
+        crate::vista_agente::listar_esquemas(&json!({ "entidad": "components.inverters" }))
+            .expect("listing");
+
+    let campos = listado["entidades"][0]["campos"]
+        .as_array()
+        .expect("fields");
+    let corriente = campos
+        .iter()
+        .find(|c| c["clave"] == "corriente_ca_nominal_a")
+        .expect("field");
+
+    assert_eq!(corriente["depende_de"], "definir_corriente_ca_nominal");
+}

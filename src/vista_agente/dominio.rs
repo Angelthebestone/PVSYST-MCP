@@ -25,7 +25,7 @@ pub(crate) enum TipoValor {
     },
     Texto,
     Lista,
-    /// An option (radio button): `true` or `false`.
+    /// A check box or an option (radio button): `true` or `false`.
     Casilla,
 }
 
@@ -63,6 +63,8 @@ pub(crate) struct CampoEsquema {
     pub(crate) ancla: Ancla,
     /// Tab (from 0) of the form's `TPageControl` that shows the control.
     pub(crate) pagina: usize,
+    /// Key of the check box of this entity that has to be on for the control to take a value.
+    pub(crate) depende_de: Option<&'static str>,
 }
 
 impl CampoEsquema {
@@ -77,6 +79,7 @@ impl CampoEsquema {
             acceso: Acceso::Escritura,
             ancla,
             pagina: 0,
+            depende_de: None,
         }
     }
 
@@ -120,6 +123,14 @@ impl CampoEsquema {
         c
     }
 
+    /// A check box.
+    pub(crate) const fn casilla(clave: &'static str, etiqueta: &'static str, ancla: Ancla) -> Self {
+        let mut c = Self::base(clave, etiqueta, ancla);
+        c.clase = "TCheckBox";
+        c.tipo = TipoValor::Casilla;
+        c
+    }
+
     /// An option of a group (radio button): it can be chosen, and is cleared by choosing another.
     pub(crate) const fn opcion(clave: &'static str, etiqueta: &'static str, ancla: Ancla) -> Self {
         let mut c = Self::base(clave, etiqueta, ancla);
@@ -147,6 +158,12 @@ impl CampoEsquema {
 
     pub(crate) const fn en_pagina(mut self, pagina: usize) -> Self {
         self.pagina = pagina;
+        self
+    }
+
+    /// The field only takes a value once the check box `casilla` is on.
+    pub(crate) const fn si(mut self, casilla: &'static str) -> Self {
+        self.depende_de = Some(casilla);
         self
     }
 

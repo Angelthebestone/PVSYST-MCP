@@ -16,8 +16,13 @@ recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactament
    misma validación contra el `.OND` que guardó PVsyst (`tests/fixtures/vista_agente/Inversor_distintos_8_1_8.OND`): `VMppMin=310`,
    `VmppNom=600.0`, `VMPPMax=820`, `VAbsMax=1000`, `VOutConv=400.0` (V), `PNomConv=20.500`, `PMaxOUT=22.500` y `PSeuil=0.10` (kW),
    además de `Model` y `Manufacturer`. No se aplicaron `voltaje_min_pnom_v`, `corriente_entrada_max_a`, `corriente_ca_nominal_a`
-   y `corriente_ca_max_a` (quedan en «N/A» y deshabilitados tras rellenar: dependen de casillas que el esquema no modela), así que
-   no tienen `clave_archivo`. Radios (fases) y casillas (50/60 Hz) no entran en el modelo de campos.
+   y `corriente_ca_max_a` (quedan en «N/A» hasta marcar la casilla de su derecha) no tienen `clave_archivo`. El esquema ahora modela las casillas y las
+   opciones (`tipo:casilla`; las fases, 50/60 Hz, `definir_corriente_ca_nominal`, `definir_corriente_ca_max`, `definir_potencia_fv_max`,
+   `definir_corriente_fv_max` y `eficiencia_3_voltajes`) y cada campo condicionado declara `depende_de` con la casilla que lo habilita.
+   Probado en vivo en un inversor nuevo (PVsyst 8.1.8, cancelado al final): marcar la casilla y escribir el valor funciona
+   (`corriente_ca_nominal_a`=50 → `50.000`, `potencia_fv_max_kw`=70 → `70.000`), `fase_trifasica` apaga `fase_monofasica` (aparece en
+   `recalculados`) y, tras confirmar `corriente_ca_nominal_a`, PVsyst vuelve a dejar desmarcada su casilla conservando el valor `[no
+   explicado]`. Nada de esto se guardó: las claves de archivo de estos campos siguen sin validarse.
    `TBatteryForm` («Datos básicos») tiene esquema `components.batteries` (10 campos) con el `.BTR` guardado por PVsyst
    (`tests/fixtures/vista_agente/Bateria_distintos_8_1_8.BTR`): `NCellSerie=6`, `VNomCell=2.1` (V), `CapNomC10=150.50` (Ah),
    `BattTempRef=25.0` (°C), `BattTechnol=Lead_Acid`. **Escalas distintas entre ventana y archivo**: la ventana muestra la resistencia
