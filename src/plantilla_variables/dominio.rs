@@ -147,11 +147,7 @@ pub(crate) fn buscar_variable_valida(nombre: &str) -> Option<&'static str> {
 
 /// Parses the variable names from `.RVT` text content.
 pub(crate) fn parse_rvt(texto: &str) -> Result<Vec<String>> {
-    let linea = texto
-        .lines()
-        .map(str::trim)
-        .find(|l| !l.is_empty())
-        .unwrap_or("");
+    let linea = linea_de_variables(texto).map_or("", |i| texto.lines().nth(i).unwrap_or("").trim());
     let contenido = if let Some(idx) = linea.to_ascii_lowercase().find("resultvars=") {
         &linea[idx + PREFIX_RESULT_VARS.len()..]
     } else {
@@ -243,6 +239,29 @@ pub(crate) fn reordenar_variables(
 /// Serializes variables into the canonical single-line `.RVT` format.
 pub(crate) fn serializar_rvt(variables: &[String]) -> String {
     format!("  ResultVars={}\n", variables.join(";"))
+}
+
+/// Index of the line holding the variables: the `ResultVars=` line, else the first
+/// non-empty one (a bare list).
+fn linea_de_variables(texto: &str) -> Option<usize> {
+    let lineas: Vec<&str> = texto.lines().collect();
+    lineas
+        .iter()
+        .position(|l| l.to_ascii_lowercase().contains("resultvars="))
+        .or_else(|| lineas.iter().position(|l| !l.trim().is_empty()))
+}
+
+/// `original` with only its variable line replaced: any other line of the file is kept.
+pub(crate) fn reescribir_rvt(original: &str, variables: &[String]) -> String {
+    let nueva = serializar_rvt(variables);
+    let Some(indice) = linea_de_variables(original) else {
+        return nueva;
+    };
+    original
+        .split_inclusive('\n')
+        .enumerate()
+        .map(|(i, l)| if i == indice { nueva.as_str() } else { l })
+        .collect()
 }
 
 #[cfg(test)]

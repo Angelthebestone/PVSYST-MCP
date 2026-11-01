@@ -1,7 +1,7 @@
 //! Application orchestration for RVT variable template management.
 
 use super::dominio::{
-    anadir_variables, eliminar_variables, parse_rvt, reordenar_variables, serializar_rvt,
+    anadir_variables, eliminar_variables, parse_rvt, reescribir_rvt, reordenar_variables,
     VARIABLES_VALIDAS,
 };
 use crate::args::{opt_str, workspace_of};
@@ -139,7 +139,13 @@ fn guardar_y_responder(
                 .map_err(|e| Error::io(format!("No se pudo crear {}", parent.display()), e))?;
         }
     }
-    let contenido = serializar_rvt(variables);
+    let original = if ruta.is_file() {
+        fs::read_to_string(ruta)
+            .map_err(|e| Error::io(format!("No se pudo leer {}", ruta.display()), e))?
+    } else {
+        String::new()
+    };
+    let contenido = reescribir_rvt(&original, variables);
     let id = history::reemplazar(ws, ruta, contenido.as_bytes(), motivo)?;
     Ok(json!({
         "ok": true,

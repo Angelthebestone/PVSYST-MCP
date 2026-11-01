@@ -277,7 +277,9 @@ fn leer_guardado(
         )));
     }
     let bytes = crate::workspace::leer_bytes(destino)?;
-    let raiz = object::parse_first(&String::from_utf8_lossy(&bytes))
+    let raiz = object::parse_completo(&String::from_utf8_lossy(&bytes), destino)?
+        .into_iter()
+        .next()
         .ok_or_else(|| Error::Format("El archivo guardado no es un PVObject".into()))?;
     let valores: Map<String, Value> = t
         .leidas

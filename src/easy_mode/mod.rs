@@ -155,16 +155,14 @@ fn serializar_resultado(params: &DisenoParametros, c: &Corrida) -> Value {
     })
 }
 
-/// Runs the steps; when one fails, removes the project files this call created.
+/// Runs the steps; when one fails, undoes this call on the project's own files.
 fn correr_transaccional(
     paths: &Paths,
     params: &DisenoParametros,
     origen: OrigenSitioDiseno,
 ) -> Result<Corrida> {
-    let antes = proyecto::archivos_de_proyectos(paths);
-    let originales = proyecto::originales_del_proyecto(&antes, &params.proyecto.nombre);
-    correr_pasos(paths, params, origen)
-        .inspect_err(|_| proyecto::deshacer_nuevos(paths, &antes, &originales))
+    let foto = proyecto::FotoProyecto::tomar(paths, &params.proyecto.nombre)?;
+    correr_pasos(paths, params, origen).inspect_err(|_| foto.deshacer(paths))
 }
 
 /// Runs site → project → orientation → sizing → (simulation + KPIs) in order.

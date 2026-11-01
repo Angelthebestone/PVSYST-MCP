@@ -19,6 +19,14 @@ pub(crate) fn decodificar_latin1(b: &[u8]) -> String {
     b.iter().map(|&c| c as char).collect()
 }
 
+/// Encodes text as Latin-1; `None` when a character is outside it (above U+00FF).
+pub(crate) fn codificar_latin1(texto: &str) -> Option<Vec<u8>> {
+    texto
+        .chars()
+        .map(|c| u8::try_from(u32::from(c)).ok())
+        .collect()
+}
+
 /// Decodes bytes as UTF-8 if valid, falling back to Latin-1.
 pub(crate) fn decodificar_texto_flexible(b: &[u8]) -> String {
     match std::str::from_utf8(b) {

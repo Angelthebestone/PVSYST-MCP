@@ -372,33 +372,6 @@ fn vincular_sitio_replaces_the_template_site_in_the_project() {
 }
 
 #[test]
-fn deshacer_nuevos_removes_created_files_and_restores_overwritten_ones() {
-    let ws = tempfile::tempdir().unwrap();
-    let projects = ws.path().join("Projects");
-    std::fs::create_dir_all(&projects).unwrap();
-    std::fs::write(projects.join("Previo.PRJ"), b"antes").unwrap();
-    std::fs::write(projects.join("Mio.PRJ"), b"original").unwrap();
-    let paths = Paths {
-        workspace: ws.path().to_path_buf(),
-        ..Paths::resolve()
-    };
-    let antes = proyecto::archivos_de_proyectos(&paths);
-    let originales = proyecto::originales_del_proyecto(&antes, "Mio");
-    std::fs::write(projects.join("Mio.PRJ"), b"a medias").unwrap();
-    std::fs::write(projects.join("Mio.VC0"), b"x").unwrap();
-    proyecto::deshacer_nuevos(&paths, &antes, &originales);
-    assert_eq!(
-        std::fs::read(projects.join("Previo.PRJ")).unwrap(),
-        b"antes"
-    );
-    assert_eq!(
-        std::fs::read(projects.join("Mio.PRJ")).unwrap(),
-        b"original"
-    );
-    assert!(!projects.join("Mio.VC0").exists());
-}
-
-#[test]
 fn exigir_tolerancia_kwp_rejects_a_realised_kwp_beyond_the_tolerance() {
     let err = super::exigir_tolerancia_kwp(10.0, 20.0, Some(7.0)).unwrap_err();
     let msg = err.to_string();

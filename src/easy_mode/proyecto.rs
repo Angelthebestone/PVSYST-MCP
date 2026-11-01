@@ -106,22 +106,27 @@ pub(crate) fn ejecutar_paso_orientacion(
 }
 
 /// Reads the `.SIT` and returns the project path with its bytes, `SitePrj` replaced by that site.
-fn prj_con_sitio(paths: &Paths, nombre: &str, sit_file: &str) -> Result<(PathBuf, Vec<u8>)> {
-    let sit = std::fs::read(sit_file).map_err(|e| Error::io(format!("leer {sit_file}"), e))?;
+/// `prj` with its `SitePrj` object replaced by the `pvSite` of the `.SIT` at `sit_file`.
+pub(crate) fn insertar_sitio(prj: &[u8], sit_file: &Path) -> Result<Vec<u8>> {
+    let sit = crate::workspace::leer_bytes(sit_file)?;
     let bloque = insert::extraer_objeto(&sit, "pvSite")?;
+    insert::insertar_objeto(
+        prj,
+        "pvProject",
+        &bloque,
+        Some("SitePrj"),
+        insert::SiExiste::Reemplazar,
+    )
+}
+
+fn prj_con_sitio(paths: &Paths, nombre: &str, sit_file: &str) -> Result<(PathBuf, Vec<u8>)> {
     let prj_path = paths
         .workspace
         .join("Projects")
         .join(format!("{nombre}.PRJ"));
     let prj = std::fs::read(&prj_path)
         .map_err(|e| Error::io(format!("leer {}", prj_path.display()), e))?;
-    let nuevo = insert::insertar_objeto(
-        &prj,
-        "pvProject",
-        &bloque,
-        Some("SitePrj"),
-        insert::SiExiste::Reemplazar,
-    )?;
+    let nuevo = insertar_sitio(&prj, Path::new(sit_file))?;
     Ok((prj_path, nuevo))
 }
 
@@ -167,42 +172,78 @@ pub(crate) fn sustituir_sitio(
     Ok(json!({ "meteo_file": meteo }))
 }
 
-/// Files currently in the workspace `Projects` folder (empty when it does not exist).
-pub(crate) fn archivos_de_proyectos(paths: &Paths) -> Vec<PathBuf> {
-    std::fs::read_dir(paths.workspace.join("Projects"))
-        .map(|entradas| entradas.filter_map(|e| e.ok().map(|e| e.path())).collect())
-        .unwrap_or_default()
-}
-
-/// Bytes of the files of project `nombre` present in `antes`, to restore them if a design
-/// run that overwrites the project fails halfway.
-pub(crate) fn originales_del_proyecto(antes: &[PathBuf], nombre: &str) -> Vec<(PathBuf, Vec<u8>)> {
-    antes
-        .iter()
-        .filter(|p| {
-            p.file_stem()
-                .and_then(|s| s.to_str())
-                .is_some_and(|s| s.eq_ignore_ascii_case(nombre))
-        })
-        .filter_map(|p| Some((p.clone(), std::fs::read(p).ok()?)))
-        .collect()
-}
-
-/// Removes the project files created since `antes` and puts back the `originales`, so a
-/// failed design leaves neither partial nor half-overwritten files. Best effort: the
-/// step error is what the caller reports.
-pub(crate) fn deshacer_nuevos(paths: &Paths, antes: &[PathBuf], originales: &[(PathBuf, Vec<u8>)]) {
-    for nuevo in archivos_de_proyectos(paths)
-        .into_iter()
-        .filter(|p| !antes.contains(p))
-    {
-        if let Err(error) = std::fs::remove_file(&nuevo) {
-            tracing::warn!(archivo = %nuevo.display(), %error, "el deshacer no pudo borrar un archivo nuevo");
+/// Files of project `nombre` in the workspace `Projects` folder: empty when the folder
+/// does not exist, an error when it cannot be read (a rollback must not guess).
+fn archivos_del_proyecto(paths: &Paths, nombre: &str) -> Result<Vec<PathBuf>> {
+    let dir = paths.workspace.join("Projects");
+    let entradas = match std::fs::read_dir(&dir) {
+        Ok(e) => e,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(e) => return Err(Error::io(format!("No se pudo leer {}", dir.display()), e)),
+    };
+    let mut archivos = Vec::new();
+    for entrada in entradas {
+        let ruta = entrada
+            .map_err(|e| Error::io(format!("No se pudo leer {}", dir.display()), e))?
+            .path();
+        if es_del_proyecto(&ruta, nombre) {
+            archivos.push(ruta);
         }
     }
-    for (ruta, bytes) in originales {
-        if let Err(error) = history::escribir_atomico(ruta, bytes) {
-            tracing::warn!(archivo = %ruta.display(), %error, "el deshacer no pudo restaurar un original");
+    Ok(archivos)
+}
+
+fn es_del_proyecto(ruta: &Path, nombre: &str) -> bool {
+    ruta.file_stem()
+        .and_then(|s| s.to_str())
+        .is_some_and(|s| s.eq_ignore_ascii_case(nombre))
+}
+
+/// The files of one project before a design run, to undo the run if it fails. Only
+/// that project's files are touched: other files PVsyst or the user add meanwhile stay.
+pub(crate) struct FotoProyecto {
+    nombre: String,
+    originales: Vec<(PathBuf, Vec<u8>)>,
+}
+
+impl FotoProyecto {
+    /// Reads the project's current files; fails if the folder or a file cannot be read.
+    pub(crate) fn tomar(paths: &Paths, nombre: &str) -> Result<Self> {
+        let originales = archivos_del_proyecto(paths, nombre)?
+            .into_iter()
+            .map(|p| {
+                let bytes = crate::workspace::leer_bytes(&p)?;
+                Ok((p, bytes))
+            })
+            .collect::<Result<_>>()?;
+        Ok(Self {
+            nombre: nombre.to_string(),
+            originales,
+        })
+    }
+
+    /// Removes the project's files created since the photo and puts the originals back.
+    /// Best effort: the step error is what the caller reports.
+    pub(crate) fn deshacer(&self, paths: &Paths) {
+        let actuales = match archivos_del_proyecto(paths, &self.nombre) {
+            Ok(a) => a,
+            Err(error) => {
+                tracing::warn!(%error, "el deshacer no pudo listar el proyecto");
+                Vec::new()
+            }
+        };
+        let nuevos = actuales
+            .iter()
+            .filter(|p| !self.originales.iter().any(|(o, _)| o == *p));
+        for nuevo in nuevos {
+            if let Err(error) = std::fs::remove_file(nuevo) {
+                tracing::warn!(archivo = %nuevo.display(), %error, "el deshacer no pudo borrar un archivo nuevo");
+            }
+        }
+        for (ruta, bytes) in &self.originales {
+            if let Err(error) = history::escribir_atomico(ruta, bytes) {
+                tracing::warn!(archivo = %ruta.display(), %error, "el deshacer no pudo restaurar un original");
+            }
         }
     }
 }

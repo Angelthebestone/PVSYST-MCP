@@ -5,6 +5,7 @@ use super::decodificar::decodificar;
 use super::dominio::{
     fisico_a_crudo, validar_serie, MetadatosVariable, SerieHoraria, TipoVariable,
 };
+use super::reensamblado::{codificar_como, ensamblar_archivo};
 use crate::args::{req_str, workspace_of};
 use crate::config::{data_ro, Paths};
 use crate::error::{Error, Result};
@@ -71,7 +72,9 @@ pub(crate) fn escribir_serie(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
     let path = resolver_archivo(paths, args, ModoResolucion::SoloWorkspace)?;
     let bytes = leer_bytes_acotados(&path, MAX_BYTES_SERIE)?;
-    let original = String::from_utf8_lossy(&bytes);
+    // Header bytes outside UTF-8 (an ANSI comment) must come back as they were.
+    let es_utf8 = std::str::from_utf8(&bytes).is_ok();
+    let original = crate::format::decodificar_texto_flexible(&bytes);
 
     let variables = extraer_nombres_variables(args)?;
     let valores_por_var = extraer_valores(args, &variables)?;
@@ -81,17 +84,18 @@ pub(crate) fn escribir_serie(paths: &Paths, args: &Value) -> Result<Value> {
     let nueva_serie = actualizar_serie(serie_original, &variables, &valores_por_var)?;
     let nuevo_cuerpo = codificar(&nueva_serie)?;
     let nuevo_contenido = ensamblar_archivo(&original, &nuevo_cuerpo)?;
+    let nuevos_bytes = codificar_como(&nuevo_contenido, es_utf8)?;
 
     let historial_id =
         history::snapshot(&workspace, std::slice::from_ref(&path), "escribir_serie")?;
-    history::escribir_atomico(&path, nuevo_contenido.as_bytes())?;
+    history::escribir_atomico(&path, &nuevos_bytes)?;
 
     Ok(json!({
         "archivo": path.to_string_lossy(),
         "variables_actualizadas": variables,
         "total_horas": nueva_serie.horas.len(),
         "historial_id": historial_id,
-        "bytes_escritos": nuevo_contenido.len(),
+        "bytes_escritos": nuevos_bytes.len(),
     }))
 }
 
@@ -267,23 +271,4 @@ fn factor_y_tipo(serie: &SerieHoraria, nombre: &str) -> Result<(f64, TipoVariabl
         )));
     }
     Ok((tipo.wr_factor_defecto(), tipo))
-}
-
-fn ensamblar_archivo(original: &str, nuevo_cuerpo: &str) -> Result<String> {
-    let pos_start = original
-        .find("VarMeteo, list of=")
-        .ok_or_else(|| Error::Format("No se encontro seccion 'VarMeteo' en original".into()))?;
-    let line_start = original[..pos_start].rfind('\n').map_or(0, |p| p + 1);
-
-    let end_marker = "End of the List VarMeteo";
-    let pos_end = original
-        .find(end_marker)
-        .ok_or_else(|| Error::Format("No se encontro 'End of the List VarMeteo'".into()))?;
-    let line_end = original[pos_end..]
-        .find('\n')
-        .map_or(original.len(), |p| pos_end + p + 1);
-
-    let header = &original[..line_start];
-    let footer = &original[line_end..];
-    Ok(format!("{header}{nuevo_cuerpo}{footer}"))
 }

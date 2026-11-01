@@ -68,6 +68,7 @@ pub(crate) fn exportar_componente(paths: &Paths, args: &Value) -> Result<Value> 
     let src = components::resolve_component(&workspace, &consulta)?;
     let destino_str = req_str(args, &["destino"], "full output path")?;
     let destino = resolver_ruta(&workspace, destino_str, Alcance::de_args(args))?;
+    components::sobrescritura::exigir_sobrescribir(&destino, args)?;
     if let Some(parent) = destino.parent() {
         fs::create_dir_all(parent)
             .map_err(|e| Error::io(format!("Cannot create {}", parent.display()), e))?;

@@ -154,16 +154,18 @@ pub(crate) fn crear_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
 
     let prj_src = fs::read(&src_prj).map_err(|e| Error::io("Read PRJ", e))?;
     let var_src = fs::read(&src_var).map_err(|e| Error::io("Read variant", e))?;
-    let nuevo = personalizar(args, &prj_src, &var_src)?;
+    let mut nuevo = personalizar(args, &prj_src, &var_src)?;
     let sit = sit_pedido(&workspace, args)?;
+    // The site goes into the project before the pair is written: a site that cannot be
+    // linked leaves nothing behind, and it lands in this call's workspace and folder.
+    if let Some(sit) = &sit {
+        nuevo.prj = crate::easy_mode::proyecto::insertar_sitio(&nuevo.prj, sit)?;
+    }
 
     let historial_id = escribir_par(
         &workspace,
         &[(new_prj.clone(), nuevo.prj), (new_var.clone(), nuevo.var)],
     )?;
-    if let Some(sit) = &sit {
-        crate::easy_mode::proyecto::vincular_sitio(paths, nombre, &sit.to_string_lossy())?;
-    }
 
     Ok(json!({
         "project": nombre,

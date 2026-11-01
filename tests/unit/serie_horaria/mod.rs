@@ -251,3 +251,17 @@ fn should_refuse_repeated_variable_names() {
 
     assert!(matches!(res, Err(Error::Invalid(m)) if m.contains("GlobHor") && m.contains('3')));
 }
+
+#[test]
+fn should_write_an_ansi_header_back_byte_for_byte() {
+    let original = b"Comment=Estaci\xf3n\r\n".to_vec();
+    let texto = crate::format::decodificar_texto_flexible(&original);
+
+    let bytes = super::reensamblado::codificar_como(&texto, false).expect("ansi");
+
+    assert_eq!(bytes, original);
+    assert_eq!(
+        super::reensamblado::codificar_como("ñ", true).expect("utf8"),
+        "ñ".as_bytes()
+    );
+}

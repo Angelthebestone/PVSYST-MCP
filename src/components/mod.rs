@@ -153,7 +153,8 @@ pub(crate) fn leer_componente(paths: &Paths, args: &Value) -> Result<Value> {
         "is_text": object::is_pvobject(&text),
     });
     if object::is_pvobject(&text) {
-        let roots = object::parse(&text);
+        // A truncated file would nest its objects wrongly: refuse it instead of listing them.
+        let roots = object::parse_completo(&text, &path)?;
         out["objects"] = Value::Array(roots.iter().map(object::PvNode::to_json).collect());
     } else {
         out["note"] = json!(

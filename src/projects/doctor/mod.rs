@@ -145,8 +145,12 @@ pub(crate) fn doctor(paths: &Paths, args: &Value) -> Result<Value> {
         prj_txt: &prj_txt,
         modo,
     };
+    // One unreadable variant is reported and the others are still checked: an early
+    // return would drop the repairs and history ids already written for the rest.
     for var in &variantes {
-        revisar_variante(&ctx_var, var, &mut inf)?;
+        if let Err(e) = revisar_variante(&ctx_var, var, &mut inf) {
+            inf.errores.push(format!("{}: {e}", var.display()));
+        }
     }
 
     Ok(json!({
@@ -157,3 +161,7 @@ pub(crate) fn doctor(paths: &Paths, args: &Value) -> Result<Value> {
         "historial_ids": inf.historial,
     }))
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/projects/doctor/mod.rs"]
+mod tests;

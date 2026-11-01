@@ -161,15 +161,21 @@ impl<'s> ProyectoEnPvsyst<'s> {
                 self.archivo_variante.display()
             )));
         }
-        object::parse_first(&String::from_utf8_lossy(&despues))
-            .ok_or_else(|| Error::Format("La variante guardada no es un PVObject".into()))
+        raiz_completa(&despues, &self.archivo_variante)
     }
 
     pub(crate) fn leer_variante(&self) -> Result<PvNode> {
         let bytes = crate::workspace::leer_bytes(&self.archivo_variante)?;
-        object::parse_first(&String::from_utf8_lossy(&bytes))
-            .ok_or_else(|| Error::Format("La variante guardada no es un PVObject".into()))
+        raiz_completa(&bytes, &self.archivo_variante)
     }
+}
+
+/// Root object of a saved variant; a truncated file is an error, not a wrongly nested tree.
+fn raiz_completa(bytes: &[u8], archivo: &Path) -> Result<PvNode> {
+    object::parse_completo(&String::from_utf8_lossy(bytes), archivo)?
+        .into_iter()
+        .next()
+        .ok_or_else(|| Error::Format("La variante guardada no es un PVObject".into()))
 }
 
 /// Object `tipo` anywhere under `raiz`. O(n) in the tree.

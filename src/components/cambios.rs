@@ -28,6 +28,9 @@ pub(super) fn aplicar_cambios(bytes: &mut Vec<u8>, args: &Value) -> Result<Vec<V
     }
     let raiz = {
         let text = String::from_utf8_lossy(bytes);
+        if object::is_pvobject(&text) {
+            object::validar_estructura(bytes)?;
+        }
         object::is_pvobject(&text).then(|| object::parse_first(&text).map(|r| r.obj_type))
     };
     let (new_bytes, outcomes) = match raiz {

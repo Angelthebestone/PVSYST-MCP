@@ -18,6 +18,8 @@ const PLANTILLA_SEGUIDOR: &str = "_DEMO_Tracking.VC0";
 pub(crate) fn convertir_a_seguidor(paths: &Paths, args: &Value) -> Result<Value> {
     let parametros = ParametrosSeguidor::nuevo(EntradaSeguidor::de_args(args)?)?;
     let variante = abrir_variante(paths, args)?;
+    // An unbalanced file would cut pvShading short and hide its 3D scene from the check below.
+    object::validar_estructura(&variante.bytes)?;
     TipoSistema::exigir(&variante.bytes, TipoSistema::Red)?;
     exigir_una_orientacion(&variante.bytes)?;
     rechazar_escena_3d(&variante.bytes)?;
@@ -64,10 +66,13 @@ fn leer_plantilla() -> Result<Vec<u8>> {
     })
 }
 
-fn texto_de_objeto(bytes: &[u8], selector: &str) -> Option<String> {
-    insert::extraer_objeto(bytes, selector)
-        .ok()
-        .map(|bloque| String::from_utf8_lossy(&bloque).into_owned())
+/// Text of the object `selector`: `None` only when it is absent; any other failure is an error.
+fn texto_de_objeto(bytes: &[u8], selector: &str) -> Result<Option<String>> {
+    match insert::extraer_objeto(bytes, selector) {
+        Ok(bloque) => Ok(Some(String::from_utf8_lossy(&bloque).into_owned())),
+        Err(Error::NotFound(_)) => Ok(None),
+        Err(e) => Err(e),
+    }
 }
 
 fn exigir_una_orientacion(bytes: &[u8]) -> Result<()> {
@@ -97,7 +102,7 @@ fn exigir_una_orientacion(bytes: &[u8]) -> Result<()> {
 }
 
 fn rechazar_escena_3d(bytes: &[u8]) -> Result<()> {
-    let tiene = texto_de_objeto(bytes, "pvShading").is_some_and(|t| t.contains("ListeObjets"));
+    let tiene = texto_de_objeto(bytes, "pvShading")?.is_some_and(|t| t.contains("ListeObjets"));
     if !tiene {
         return Ok(());
     }
@@ -119,9 +124,13 @@ fn rechazar_bifacial(bytes: &[u8]) -> Result<()> {
 }
 
 fn no_orient(bytes: &[u8]) -> Result<String> {
-    let bloque = texto_de_objeto(bytes, "pvOrient")
+    let bloque = texto_de_objeto(bytes, "pvOrient")?
         .ok_or_else(|| Error::NotFound("La variante no tiene pvOrient".into()))?;
     object::parse_first(&bloque)
         .and_then(|nodo| nodo.find_deep("NoOrient").map(str::to_string))
         .ok_or_else(|| Error::NotFound("pvOrient no declara NoOrient".into()))
 }
+
+#[cfg(test)]
+#[path = "../../tests/unit/seguidores/aplicacion.rs"]
+mod tests;

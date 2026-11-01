@@ -31,10 +31,7 @@ pub(crate) fn exportar_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
 
     // Only the PRJ and its variant files belong to the project.
     let mut items: Vec<PathBuf> = vec![prj.clone()];
-    let entries = fs::read_dir(parent)
-        .map_err(|e| Error::io(format!("Cannot read directory {}", parent.display()), e))?;
-    for e in entries.flatten() {
-        let p = e.path();
+    for p in super::entradas_de(parent)? {
         let es_variante = p
             .extension()
             .and_then(|x| x.to_str())
@@ -48,6 +45,7 @@ pub(crate) fn exportar_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     } else {
         parent.join(format!("{stem}.zip"))
     };
+    crate::components::sobrescritura::exigir_sobrescribir(&destino, args)?;
     if let Some(p) = destino.parent() {
         fs::create_dir_all(p)
             .map_err(|e| Error::io(format!("Cannot create {}", p.display()), e))?;
