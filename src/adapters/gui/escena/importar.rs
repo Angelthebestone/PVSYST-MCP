@@ -3,6 +3,7 @@
 //! converts the mesh; the MCP names the file and reads back the scene PVsyst exports.
 
 use super::pasos::{hijo_n, ventana};
+use crate::adapters::gui::acciones::cerrar_ventana;
 use crate::adapters::gui::conduccion::{esperar, esperar_cierre, formularios, Formulario};
 use crate::adapters::gui::ffi::{self, Hwnd, Mensaje, WM_COMMAND};
 use crate::adapters::gui::sondeo::sondear_hasta;
@@ -22,7 +23,7 @@ const ENTRADA_IMPORTAR: (u8, u8, u8) = (0, 4, 0);
 const ID_ABRIR: usize = 1;
 const EXTENSIONES: &[&str] = &["3ds", "dae", "pvc", "pvc2", "pvz2"];
 /// PVsyst refuses to open a file under its install folder («Accès au fichier refusé»).
-const CARPETA_PROTEGIDA: &str = "program files";
+const CARPETAS_PROTEGIDAS: &[&str] = &["program files", "program files (x86)"];
 const ESPERA_DIALOGO: Duration = Duration::from_secs(15);
 /// Reading a large mesh is PVsyst's own work.
 const ESPERA_RESULTADO: Duration = Duration::from_secs(120);
@@ -42,35 +43,111 @@ pub(super) fn malla_valida(texto: &str) -> Result<PathBuf> {
             EXTENSIONES.join(", ")
         )));
     }
-    if texto.to_ascii_lowercase().contains(CARPETA_PROTEGIDA) {
-        return Err(Error::Invalid(
-            "PVsyst no abre archivos de Program Files: copia la malla a tu workspace".into(),
-        ));
-    }
-    if !ruta.is_file() {
-        return Err(Error::NotFound(format!("No existe {}", ruta.display())));
-    }
     // PVsyst's dialog resolves a relative name against its own folder, not this process's.
-    std::path::absolute(&ruta).map_err(|e| {
+    let absoluta = std::path::absolute(&ruta).map_err(|e| {
         Error::Invalid(format!(
             "No se pudo resolver la ruta {}: {e}",
             ruta.display()
         ))
+    })?;
+    exigir_fuera_de_carpeta_protegida(&absoluta)?;
+    if !absoluta.is_file() {
+        return Err(Error::NotFound(format!("No existe {}", ruta.display())));
+    }
+    // The real location: a junction or a symlink can lead into a protected folder.
+    if let Ok(real) = std::fs::canonicalize(&absoluta) {
+        exigir_fuera_de_carpeta_protegida(&real)?;
+    }
+    Ok(absoluta)
+}
+
+fn exigir_fuera_de_carpeta_protegida(ruta: &Path) -> Result<()> {
+    if en_carpeta_protegida(ruta) {
+        return Err(Error::Invalid(
+            "PVsyst no abre archivos de Program Files: copia la malla a tu workspace".into(),
+        ));
+    }
+    Ok(())
+}
+
+/// Whether a folder of `ruta` is one of PVsyst's protected ones, by whole components: the 8.3
+/// alias of «Program Files» counts, a folder that merely contains the words does not.
+pub(super) fn en_carpeta_protegida(ruta: &Path) -> bool {
+    ruta.components().any(|c| {
+        let nombre = c.as_os_str().to_string_lossy().to_ascii_lowercase();
+        CARPETAS_PROTEGIDAS.contains(&nombre.as_str()) || es_alias_corto_de_program_files(&nombre)
     })
 }
 
+/// `PROGRA~1`, `PROGRA~2`: the short names Windows gives «Program Files» and «Program Files (x86)».
+fn es_alias_corto_de_program_files(nombre: &str) -> bool {
+    nombre
+        .strip_prefix("progra~")
+        .is_some_and(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()))
+}
+
 /// Opens «Importar una escena 3D», types `ruta` in the file dialog and waits for the
-/// result form. Returns that form, still open.
+/// result form. Returns that form, still open. When any step fails, whatever the import left
+/// open (file dialog, PVsyst's error box) is closed, so PVsyst is not left behind a modal.
 pub(super) fn abrir_resultado(ruta: &Path) -> Result<Formulario> {
     let editor = ventana("TPerspectiveForm")?;
+    let pid = pid_of(editor);
     let (menu, item, sub) = ENTRADA_IMPORTAR;
-    crate::gui_catalogo::menu(&json!({
+    let abierto = crate::gui_catalogo::menu(&json!({
         "ventana": format!("0x{editor:X}"),
         "menu": menu, "item": item, "subitem": sub,
-    }))?;
-    let dialogo = esperar_dialogo_de_archivo(pid_of(editor))?;
-    escribir_ruta(dialogo.h, ruta)?;
-    esperar(pid_of(editor), RESULTADO, ESPERA_RESULTADO)
+    }))
+    .and_then(|_| esperar_dialogo_de_archivo(pid))
+    .and_then(|dialogo| escribir_ruta(dialogo.h, ruta))
+    .and_then(|()| esperar_resultado(pid));
+    if abierto.is_err() {
+        cerrar_modales(pid);
+    }
+    abierto
+}
+
+/// Waits for the result form. PVsyst answers a mesh it cannot read with an error box instead,
+/// which ends the wait at once rather than after `ESPERA_RESULTADO`.
+fn esperar_resultado(pid: u32) -> Result<Formulario> {
+    let abierto = sondear_hasta(ESPERA_RESULTADO, SONDEO, || {
+        formularios(pid)
+            .into_iter()
+            .find(|h| [RESULTADO, MENSAJE].contains(&class_of(*h).as_str()))
+    })
+    .ok_or_else(|| {
+        Error::Gui(format!(
+            "PVsyst no abrió '{RESULTADO}' en {} s",
+            ESPERA_RESULTADO.as_secs()
+        ))
+    })?;
+    if class_of(abierto) == MENSAJE {
+        return Err(Error::Gui(format!(
+            "PVsyst mostró un mensaje en vez de '{RESULTADO}': no pudo leer la malla (¿corrupta, no soportada o en una carpeta protegida?)"
+        )));
+    }
+    Ok(Formulario::de(abierto))
+}
+
+/// The forms an import can leave open, front-most first, out of `abiertas` (handle, class).
+pub(super) fn modales_de_importacion(abiertas: &[(Hwnd, String)]) -> Vec<Hwnd> {
+    abiertas
+        .iter()
+        .filter(|(_, clase)| [DIALOGO_ARCHIVO, MENSAJE, RESULTADO].contains(&clase.as_str()))
+        .map(|(h, _)| *h)
+        .collect()
+}
+
+/// Best effort: the failure of the import is what the caller reports.
+fn cerrar_modales(pid: u32) {
+    let abiertas: Vec<(Hwnd, String)> = formularios(pid)
+        .into_iter()
+        .map(|h| (h, class_of(h)))
+        .collect();
+    for h in modales_de_importacion(&abiertas) {
+        if let Err(error) = cerrar_ventana(h, &json!({ "cancelar": true })) {
+            tracing::warn!(ventana = h, %error, "no se pudo cerrar el diálogo de la importación");
+        }
+    }
 }
 
 /// The file dialog. A scene that already has objects makes PVsyst ask first «¿Desea despejar la
@@ -97,7 +174,7 @@ fn esperar_dialogo_de_archivo(pid: u32) -> Result<Formulario> {
 fn escribir_ruta(dialogo: Hwnd, ruta: &Path) -> Result<()> {
     let campo = ffi::enum_children(dialogo)
         .into_iter()
-        .find(|c| crate::adapters::gui::ventanas::class_of(*c) == "Edit")
+        .find(|c| class_of(*c) == "Edit")
         .ok_or_else(|| Error::Gui("El diálogo de archivo no tiene campo de nombre".into()))?;
     ffi::teclear_en(campo, &ruta.display().to_string())?;
     if !ffi::post_message(dialogo, Mensaje::nuevo(WM_COMMAND, ID_ABRIR, 0)) {
