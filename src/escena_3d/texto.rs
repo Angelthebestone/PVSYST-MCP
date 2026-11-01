@@ -7,7 +7,7 @@ use super::dominio::{
 };
 use crate::error::{Error, Result};
 use crate::format::decodificar_texto_flexible;
-use crate::format::object::{parse_first, PvNode};
+use crate::format::object::{parse_con_diagnostico, PvNode};
 
 const MARCA_UTF8: &[u8] = &[0xEF, 0xBB, 0xBF];
 const PREFIJO_OBJETO: &str = "pvShd";
@@ -20,7 +20,18 @@ pub(super) fn es_texto(bytes: &[u8]) -> bool {
 
 pub(super) fn parse_escena_texto(bytes: &[u8], tipo: TipoArchivoEscena) -> Result<Escena3d> {
     let texto = decodificar_texto_flexible(bytes);
-    let raiz = parse_first(&texto)
+    let (raices, estructura) = parse_con_diagnostico(&texto);
+    // A file PVsyst is still writing would otherwise read as a scene with fewer objects.
+    if !estructura.abiertos_sin_cerrar.is_empty() {
+        return Err(Error::Format(format!(
+            "Escena truncada: {} objeto(s) PVObject sin cerrar [{}]; espera a que PVsyst termine de escribirla",
+            estructura.abiertos_sin_cerrar.len(),
+            estructura.abiertos_sin_cerrar.join(", ")
+        )));
+    }
+    let raiz = raices
+        .into_iter()
+        .next()
         .ok_or_else(|| Error::Invalid("Escena de texto sin objeto raíz".into()))?;
     if raiz.obj_type != tipo.clase_raiz() {
         return Err(Error::Invalid(format!(
@@ -45,13 +56,15 @@ pub(super) fn parse_escena_texto(bytes: &[u8], tipo: TipoArchivoEscena) -> Resul
     })
 }
 
-/// The scene's objects (`pvShd*`), wherever the parser nested them.
+/// The scene's objects (`pvShd*`), wherever the parser nested them. A group or container
+/// (`pvShdObjectGroup`, `pvShdBuilding`...) is not an object itself: the objects inside it
+/// are, so counting and comparing see the same list as PVsyst's table. O(nodes).
 fn objetos_de<'a>(nodo: &'a PvNode, salida: &mut Vec<&'a PvNode>) {
     for hijo in &nodo.children {
-        if hijo.obj_type.starts_with(PREFIJO_OBJETO) {
+        let antes = salida.len();
+        objetos_de(hijo, salida);
+        if salida.len() == antes && hijo.obj_type.starts_with(PREFIJO_OBJETO) {
             salida.push(hijo);
-        } else {
-            objetos_de(hijo, salida);
         }
     }
 }
@@ -101,3 +114,7 @@ fn geometria_de(nodo: &PvNode) -> Option<GeometriaElemental> {
         dimensiones: numeros(nodo.field("Params")?)?,
     })
 }
+
+#[cfg(test)]
+#[path = "../../tests/unit/escena_3d/texto.rs"]
+mod tests;

@@ -145,7 +145,9 @@ fn exigir_editor_vacio(paths: &Paths, nombre: &str, pedidos: &[ObjetoPedido]) ->
     let existentes = escena?
         .get("total_objetos")
         .and_then(Value::as_u64)
-        .unwrap_or(0);
+        .ok_or_else(|| {
+            Error::Format("La escena exportada no dice cuántos objetos tiene: no se sabe si el editor está vacío".into())
+        })?;
     if existentes == 0 {
         return Ok(());
     }
