@@ -86,13 +86,15 @@ pub(crate) fn lanzar_en_segundo_plano(
         Previo::Ejecutar(plan) => plan,
     };
     let timeout = cli::timeout_de(args, cli::TIMEOUT_SIMULACION_S);
-    let id = cli::run_en_segundo_plano(paths, cli_args, timeout)?;
-    contexto["job_id"] = json!(id);
+    // The lock comes first: a job launched and then not recorded would run (and be
+    // charged) with no way to read its result, and a retry would charge it again.
     let mut lock = paths
         .estado
         .pendientes
         .lock()
         .map_err(|_| Error::Invalid("mutex pendientes envenenado".into()))?;
+    let id = cli::run_en_segundo_plano(paths, cli_args, timeout)?;
+    contexto["job_id"] = json!(id);
     lock.insert(
         id.clone(),
         super::estado::Pendiente {

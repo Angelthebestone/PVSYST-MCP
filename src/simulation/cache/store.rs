@@ -72,13 +72,34 @@ pub(crate) fn guardar(
     });
     let payload = serde_json::to_vec_pretty(&meta)
         .map_err(|e| Error::Format(format!("No se puede serializar meta.json: {e}")))?;
-    fs::write(dir.join("meta.json"), payload).map_err(|e| {
-        Error::io(
-            format!("No se puede escribir meta.json en '{}'", dir.display()),
-            e,
+    // Atomic: a write cut half way must not leave a meta.json that later reads as corrupt.
+    crate::history::escribir_atomico(&dir.join("meta.json"), &payload)
+}
+
+/// The stored `meta.json` of `dir`; a missing or damaged one is a cache miss, so the
+/// simulation runs instead of failing.
+fn leer_meta(dir: &Path, clave: &str) -> Option<Value> {
+    let texto = fs::read_to_string(dir.join("meta.json")).ok()?;
+    serde_json::from_str(&texto)
+        .inspect_err(
+            |e| tracing::warn!(clave, error = %e, "meta.json de la caché inválido: se ignora"),
         )
-    })?;
-    Ok(())
+        .ok()
+}
+
+/// Copies a cached output back to where the caller asked for it.
+fn restaurar(origen: &Path, dest: &Path) -> Result<()> {
+    if let Some(padre) = dest.parent() {
+        fs::create_dir_all(padre).map_err(|e| {
+            Error::io(
+                format!("No se puede crear carpeta para '{}'", dest.display()),
+                e,
+            )
+        })?;
+    }
+    fs::copy(origen, dest)
+        .map(|_| ())
+        .map_err(|e| Error::io(format!("No se puede restaurar '{}'", dest.display()), e))
 }
 
 pub(crate) fn buscar(
@@ -88,52 +109,19 @@ pub(crate) fn buscar(
     rpf: Option<&Path>,
 ) -> Result<Option<Value>> {
     let dir = carpeta_cache(workspace).join(clave);
-    let Ok(texto) = fs::read_to_string(dir.join("meta.json")) else {
+    let Some(meta) = leer_meta(&dir, clave) else {
         return Ok(None);
     };
-    let meta: Value = serde_json::from_str(&texto)
-        .map_err(|e| Error::Format(format!("meta.json de la caché inválido: {e}")))?;
     let tiene_csv = meta["tiene_csv"].as_bool().unwrap_or(false);
     let tiene_pdf = meta["tiene_pdf"].as_bool().unwrap_or(false);
-
-    if ocf.is_some() && !tiene_csv {
+    if (ocf.is_some() && !tiene_csv) || (rpf.is_some() && !tiene_pdf) {
         return Ok(None);
     }
-    if rpf.is_some() && !tiene_pdf {
-        return Ok(None);
-    }
-
     if let Some(dest) = ocf {
-        if let Some(padre) = dest.parent() {
-            fs::create_dir_all(padre).map_err(|e| {
-                Error::io(
-                    format!("No se puede crear carpeta para '{}'", dest.display()),
-                    e,
-                )
-            })?;
-        }
-        fs::copy(dir.join("result.csv"), dest).map_err(|e| {
-            Error::io(
-                format!("No se puede restaurar CSV en '{}'", dest.display()),
-                e,
-            )
-        })?;
+        restaurar(&dir.join("result.csv"), dest)?;
     }
     if let Some(dest) = rpf {
-        if let Some(padre) = dest.parent() {
-            fs::create_dir_all(padre).map_err(|e| {
-                Error::io(
-                    format!("No se puede crear carpeta para '{}'", dest.display()),
-                    e,
-                )
-            })?;
-        }
-        fs::copy(dir.join("report.pdf"), dest).map_err(|e| {
-            Error::io(
-                format!("No se puede restaurar PDF en '{}'", dest.display()),
-                e,
-            )
-        })?;
+        restaurar(&dir.join("report.pdf"), dest)?;
     }
 
     let mut out = meta.get("resultado").cloned().unwrap_or_else(|| json!({}));

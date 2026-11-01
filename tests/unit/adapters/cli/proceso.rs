@@ -36,3 +36,24 @@ fn should_include_truncation_flags_in_output_json() {
     assert_eq!(v["stderr_truncado"], json!(false));
     assert_eq!(v["success"], json!(true));
 }
+
+#[test]
+fn should_refuse_cli_options_that_are_not_texts() {
+    for opciones in [json!(["-w:C:\\ws", 3]), json!("-w:C:\\ws"), json!(7)] {
+        let res = opciones_de(&json!({ "opciones": opciones }));
+        assert!(matches!(res, Err(Error::Invalid(_))), "{opciones}");
+    }
+}
+
+#[test]
+fn should_build_cli_options_from_list_or_object() {
+    assert_eq!(
+        opciones_de(&json!({ "opciones": ["-a", "-b:1"] })).expect("lista"),
+        ["-a", "-b:1"]
+    );
+    assert_eq!(
+        opciones_de(&json!({ "opciones": { "-x": 2 } })).expect("objeto"),
+        ["--x:2"]
+    );
+    assert!(opciones_de(&json!({})).expect("vacío").is_empty());
+}

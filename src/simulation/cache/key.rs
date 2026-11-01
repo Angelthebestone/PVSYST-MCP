@@ -9,8 +9,9 @@ use std::path::{Path, PathBuf};
 pub(super) const OFFSET_FNV: u64 = 0xcbf2_9ce4_8422_2325;
 pub(super) const PRIMO_FNV: u64 = 0x0000_0100_0000_01b3;
 pub(super) const OPCIONES_SALIDA: [&str; 2] = ["-ocf", "-rpf"];
-pub(super) const OPCIONES_ENTRADA: [&str; 7] =
-    ["-bpf", "-brf", "-imf", "-isf", "-ipf", "-cof", "-irf"];
+/// Input files whose content enters the key; `-s` is the site PVsystCLI simulates with.
+pub(super) const OPCIONES_ENTRADA: [&str; 8] =
+    ["-bpf", "-brf", "-imf", "-isf", "-ipf", "-cof", "-irf", "-s"];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum ClaveCache {
@@ -35,7 +36,8 @@ pub(super) fn etiquetar(hash: u64, rotulo: &str, data: &[u8]) -> u64 {
     absorber(h, data)
 }
 
-pub(super) fn valor<'a>(cli_args: &'a [String], flag: &str) -> Option<&'a str> {
+/// Value of `-<flag>:` in a PVsystCLI command line.
+pub(crate) fn valor<'a>(cli_args: &'a [String], flag: &str) -> Option<&'a str> {
     let prefijo = format!("{flag}:");
     cli_args
         .iter()
@@ -107,15 +109,12 @@ pub(super) fn leer_referencia(workspace: &Path, ext: &str, nombre: &str) -> Lect
 }
 
 pub(super) fn leer_opcion(workspace: &Path, opcion: &str, v: &str) -> LecturaReferencia {
-    let cand_direct = PathBuf::from(v);
-    let cand_ws = workspace.join(v);
-    let ruta = if cand_direct.is_file() {
-        Some(cand_direct)
-    } else if cand_ws.is_file() {
-        Some(cand_ws)
-    } else {
-        None
-    };
+    // A site may also be named by its file in `Sites/`.
+    let en_sitios = (opcion == "-s").then(|| workspace.join("Sites").join(v));
+    let ruta = [Some(PathBuf::from(v)), Some(workspace.join(v)), en_sitios]
+        .into_iter()
+        .flatten()
+        .find(|p| p.is_file());
     let Some(p) = ruta else {
         return LecturaReferencia::NotFound(format!(
             "Archivo de opción '{opcion}' no encontrado: '{v}'"

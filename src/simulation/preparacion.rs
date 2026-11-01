@@ -153,9 +153,11 @@ pub(crate) fn con_salidas_por_defecto(
     Ok(salidas)
 }
 
+/// The outputs come from the command line PVsystCLI receives (`-ocf`, `-rpf`), which
+/// holds the defaulted paths too: `args` only has the ones the caller spelled out.
 pub(crate) fn preparar(args: &Value, workspace: &Path, cli_args: &[String]) -> Result<Previo> {
-    let ocf = opt_str(args, &["output_csv"]).map(str::to_string);
-    let rpf = opt_str(args, &["report_pdf"]).map(str::to_string);
+    let ocf = cache::valor(cli_args, "-ocf").map(str::to_string);
+    let rpf = cache::valor(cli_args, "-rpf").map(str::to_string);
     let lote = cli_args.iter().any(|a| a.starts_with("-bpf:"));
     let ejecuciones = ejecuciones_previstas(cli_args);
     let (clave, advertencia_cache) = if lote || flag(args, &["sin_cache"]) {

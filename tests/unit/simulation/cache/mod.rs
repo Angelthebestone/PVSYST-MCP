@@ -140,3 +140,61 @@ fn should_reject_cache_key_when_variant_is_not_an_identifier() {
 
     assert!(matches!(res, Err(crate::error::Error::Invalid(_))));
 }
+
+#[test]
+fn should_treat_corrupt_cache_entry_as_a_miss() {
+    let ws = tempfile::tempdir().expect("ws");
+    let dir = crate::adapters::ledger::carpeta_cache(ws.path()).join("abc");
+    fs::create_dir_all(&dir).expect("cache");
+    fs::write(dir.join("meta.json"), "{ cortado").expect("meta");
+
+    let res = buscar(ws.path(), "abc", None, None).expect("fallo de caché, no error");
+
+    assert!(res.is_none());
+}
+
+#[test]
+fn should_find_entry_written_by_guardar() {
+    let ws = tempfile::tempdir().expect("ws");
+
+    guardar(ws.path(), "k1", None, None, &json!({ "success": true })).expect("guardado");
+    let hit = buscar(ws.path(), "k1", None, None).expect("buscar");
+
+    assert!(hit.is_some());
+}
+
+/// Workspace with `Projects/Planta.PRJ`, its `VC0` and `Sites/S.SIT` holding `sitio`.
+fn workspace_con_sitio(sitio: &str) -> tempfile::TempDir {
+    let ws = tempfile::tempdir().expect("ws");
+    let proyectos = ws.path().join("Projects");
+    let sitios = ws.path().join("Sites");
+    fs::create_dir_all(&proyectos).expect("Projects");
+    fs::create_dir_all(&sitios).expect("Sites");
+    fs::write(
+        proyectos.join("Planta.PRJ"),
+        "PVObject_=pvProject\nEnd of PVObject pvProject\n",
+    )
+    .expect("prj");
+    fs::write(
+        proyectos.join("Planta.VC0"),
+        "PVObject_=pvVCalcul\nEnd of PVObject pvVCalcul\n",
+    )
+    .expect("vc0");
+    fs::write(sitios.join("S.SIT"), sitio).expect("sit");
+    ws
+}
+
+#[test]
+fn should_change_cache_key_when_site_content_changes() {
+    let args = cli(&["run-simulation", "-p:Planta.PRJ", "-v:VC0", "-s:S.SIT"]);
+    let a = workspace_con_sitio("Latitude=4.6");
+    let b = workspace_con_sitio("Latitude=10.4");
+
+    let clave_a = clave(a.path(), &args).expect("clave a");
+    let clave_b = clave(b.path(), &args).expect("clave b");
+
+    assert!(matches!(clave_a, ClaveCache::Valida(_)), "{clave_a:?}");
+    assert_ne!(clave_a, clave_b);
+    let igual = workspace_con_sitio("Latitude=4.6");
+    assert_eq!(clave(igual.path(), &args).expect("misma clave"), clave_a);
+}

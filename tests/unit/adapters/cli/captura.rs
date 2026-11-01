@@ -40,11 +40,50 @@ fn should_surface_error_when_mutex_is_poisoned() {
 
 #[test]
 fn should_surface_error_when_reader_thread_panics() {
-    let handle: JoinHandle<Result<()>> = thread::spawn(|| {
-        panic!("pánico en hilo de lectura");
+    let sink = crear_sink();
+    let lector: JoinHandle<Result<()>> = thread::spawn(|| panic!("pánico en hilo de lectura"));
+
+    let res = esperar_lector(
+        lector,
+        (&sink, "stdout"),
+        Instant::now() + Duration::from_secs(60),
+    );
+
+    assert!(matches!(res, Err(Error::Cli(m)) if m.contains("stdout") && m.contains("pánico")));
+}
+
+#[test]
+fn should_return_captured_output_marked_truncated_when_pipe_never_closes() {
+    let sink = crear_sink();
+    let (tx, rx) = std::sync::mpsc::channel::<()>();
+    let lector: JoinHandle<Result<()>> = thread::spawn(move || {
+        let _ = rx.recv();
+        Ok(())
     });
-    let join_res = handle
-        .join()
-        .map_err(|_| Error::Cli("Hilo de lectura terminó con pánico".to_string()));
-    assert!(join_res.is_err());
+
+    let res = esperar_lector(lector, (&sink, "stdout"), Instant::now());
+
+    assert!(res.is_ok());
+    assert!(es_truncado(&sink).expect("sink"));
+    drop(tx);
+}
+
+#[test]
+fn should_propagate_read_error_of_the_reader_thread() {
+    let sink = crear_sink();
+    let lector: JoinHandle<Result<()>> = thread::spawn(|| {
+        Err(Error::io(
+            "Error leyendo pipe de stderr",
+            std::io::Error::other("roto"),
+        ))
+    });
+
+    let res = esperar_lector(
+        lector,
+        (&sink, "stderr"),
+        Instant::now() + Duration::from_secs(60),
+    );
+
+    assert!(matches!(res, Err(Error::Io { .. })));
+    assert!(!es_truncado(&sink).expect("sink"));
 }

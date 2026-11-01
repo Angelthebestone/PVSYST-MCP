@@ -1,10 +1,13 @@
 //! Zip and archive execution helpers using the OS' built-in `tar.exe` (bsdtar).
 
+use crate::adapters::cli::captura::{crear_sink, drain, esperar_lector, texto_sink};
 use crate::error::{Error, Result};
 use std::fs;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Read};
 use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 /// The system bsdtar (`%SystemRoot%\System32\tar.exe`).
 pub(crate) fn tar_exe() -> PathBuf {
@@ -81,6 +84,8 @@ fn validar_entrada(nombre: &str, linea: &str) -> Result<()> {
 /// Most bytes a `tar -t[v]f` listing may produce before it is aborted: a
 /// legitimate workspace (≤ `MAX_ENTRADAS` lines) stays far below it.
 const MAX_BYTES_LISTADO: u64 = 64 * 1024 * 1024;
+/// Time stderr may stay open after tar exited (an inherited pipe never reaches EOF).
+const PLAZO_STDERR: Duration = Duration::from_secs(5);
 /// Largest zip accepted for import.
 const MAX_BYTES_ZIP: u64 = 4 * 1024 * 1024 * 1024;
 
@@ -150,32 +155,40 @@ fn listar(zip: &Path, opcion: &str) -> Result<String> {
         .stdout
         .take()
         .ok_or_else(|| Error::Invalid("tar.exe sin salida estándar".into()))?;
-    let listado = listado_dentro_de_limites(lineas_de_listado(BufReader::new(salida)), LIMITES_ZIP);
+    // stderr drains on its own thread: a tar that writes many warnings would
+    // otherwise block on a full pipe while this thread waits on stdout.
+    let sink_err = crear_sink();
+    let lector_err = drain(
+        hijo.stderr.take(),
+        Arc::clone(&sink_err),
+        "stderr de tar.exe",
+    );
+    // The total read is capped before splitting, so one endless line cannot grow unbounded.
+    let acotada = BufReader::new(salida.take(MAX_BYTES_LISTADO + 1));
+    let listado = listado_dentro_de_limites(lineas_de_listado(acotada), LIMITES_ZIP);
     if listado.is_err() {
-        // Best effort: the listing is already rejected; tar must not linger.
-        let _ = hijo.kill();
-        let _ = hijo.wait();
-        return listado;
+        // The listing is already rejected; tar must not linger.
+        if let Err(e) = hijo.kill() {
+            tracing::debug!(error = %e, "tar.exe ya había terminado");
+        }
     }
-    // tar writes only a few diagnostic lines to stderr, so reading it after
-    // stdout cannot deadlock on a full pipe.
-    let errores = hijo
-        .stderr
-        .take()
-        .map(std::io::read_to_string)
-        .transpose()
-        .map_err(|e| Error::io("No se pudo leer stderr de tar.exe", e))?
-        .unwrap_or_default();
     let estado = hijo
         .wait()
         .map_err(|e| Error::io("Failed to run tar.exe", e))?;
+    esperar_lector(
+        lector_err,
+        (&sink_err, "stderr de tar.exe"),
+        Instant::now() + PLAZO_STDERR,
+    )?;
+    let listado = listado?;
+    let errores = texto_sink(&sink_err)?;
     if !estado.success() {
         return Err(Error::Invalid(format!(
             "No se pudo leer el zip: {}",
             errores.trim()
         )));
     }
-    listado
+    Ok(listado)
 }
 
 /// Lists the zip entries and rejects unsafe paths, links and oversized archives.

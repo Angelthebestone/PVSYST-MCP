@@ -131,3 +131,49 @@ fn should_reject_simulation_variant_that_is_not_an_identifier() {
 
     assert!(matches!(res, Err(Error::Invalid(m)) if m.contains("Variante inválida")));
 }
+
+#[test]
+fn should_not_launch_background_job_when_pending_lock_is_poisoned() {
+    let ws = tempfile::tempdir().expect("ws");
+    let paths = crate::config::Paths::para_test(ws.path());
+    let estado = std::sync::Arc::clone(&paths.estado);
+    let _ = std::thread::spawn(move || {
+        let _guard = estado.pendientes.lock();
+        panic!("envenenar");
+    })
+    .join();
+    let cli_args = vec!["run-simulation".to_string(), "-p:Planta.PRJ".to_string()];
+
+    let res = super::ejecucion::lanzar_en_segundo_plano(
+        &paths,
+        &json!({ "sin_cache": true }),
+        ws.path(),
+        &cli_args,
+        json!({}),
+    );
+
+    assert!(matches!(res, Err(Error::Invalid(m)) if m.contains("envenenado")));
+    assert!(crate::adapters::cli::estado_trabajo(&paths, "sim-1").is_none());
+}
+
+#[test]
+fn should_plan_outputs_from_the_command_line_when_args_use_defaults() {
+    let ws = tempfile::tempdir().expect("ws");
+    let csv = ws.path().join("Results").join("Planta_VC0.csv");
+    let pdf = ws.path().join("Results").join("Planta_VC0.pdf");
+    let cli_args = vec![
+        "run-simulation".to_string(),
+        "-p:Planta.PRJ".to_string(),
+        format!("-ocf:{}", csv.display()),
+        format!("-rpf:{}", pdf.display()),
+    ];
+
+    let previo = super::preparacion::preparar(&json!({ "sin_cache": true }), ws.path(), &cli_args)
+        .expect("plan");
+
+    let super::preparacion::Previo::Ejecutar(plan) = previo else {
+        panic!("se esperaba un plan de ejecución");
+    };
+    assert_eq!(plan.ocf.as_deref(), Some(csv.to_string_lossy().as_ref()));
+    assert_eq!(plan.rpf.as_deref(), Some(pdf.to_string_lossy().as_ref()));
+}
