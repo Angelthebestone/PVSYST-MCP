@@ -3,6 +3,7 @@
 
 use super::campos_vivos::{campos_vivos, localizar, recalculados, valor_de, CampoVivo};
 use super::dominio::{CampoEsquema, Entidad, TipoValor};
+use super::escritura::{escribir, EscrituraDestino};
 use super::esquemas::entidad;
 use super::informe_relleno::{
     es_fallido, pagina_fallida, paso_fallido, paso_json, resumir_relleno,
@@ -10,7 +11,7 @@ use super::informe_relleno::{
 use super::plan::{planificar, Cambio};
 use super::ventana::ventana_de;
 use crate::adapters::gui::conduccion::Formulario;
-use crate::adapters::gui::ffi::{self, Hwnd};
+use crate::adapters::gui::ffi;
 use crate::args::{flag, missing, req_str};
 use crate::error::{Error, Result};
 use serde_json::{json, Map, Value};
@@ -20,12 +21,6 @@ use std::collections::BTreeMap;
 enum ModoEjecucion {
     Aplicar,
     Simular,
-}
-
-struct EscrituraDestino<'a> {
-    formulario: &'a Formulario,
-    campo: &'a CampoEsquema,
-    control: Hwnd,
 }
 
 /// A change tied to the live control that receives it.
@@ -75,40 +70,6 @@ fn verificar_listas(pasos: &[Paso]) -> Result<()> {
             paso.cambio.campo.clave, paso.cambio.texto
         )));
     }
-    Ok(())
-}
-
-/// Chooses an option or toggles a check box so it reads `texto`; an option that is on
-/// stays on until another of its group is chosen.
-fn marcar(destino: &EscrituraDestino<'_>, texto: &str) -> Result<()> {
-    let actual = valor_de(destino.control, destino.campo.clase);
-    if actual == texto {
-        return Ok(());
-    }
-    if destino.campo.clase == "TRadioButton" && texto == "false" {
-        return Err(Error::Invalid(format!(
-            "'{}' es una opción: se apaga eligiendo otra de su grupo",
-            destino.campo.clave
-        )));
-    }
-    destino.formulario.marcar_en(destino.control);
-    Ok(())
-}
-
-fn escribir(destino: &EscrituraDestino<'_>, texto: &str) -> Result<()> {
-    if destino.campo.tipo == TipoValor::Casilla {
-        return marcar(destino, texto);
-    }
-    if destino.campo.tipo == TipoValor::Lista {
-        if ffi::elegir_en_combo(destino.control, texto)? {
-            return Ok(());
-        }
-        return Err(Error::Invalid(format!(
-            "La lista '{}' no ofrece '{texto}'",
-            destino.campo.clave
-        )));
-    }
-    destino.formulario.escribir_en(destino.control, texto)?;
     Ok(())
 }
 

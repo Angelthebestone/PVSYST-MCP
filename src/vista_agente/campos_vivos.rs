@@ -35,12 +35,14 @@ fn es_campo(clase: &str) -> bool {
         .any(|clases| clases.contains(&clase))
 }
 
-/// The value of control `c` as the view shows it: `true`/`false` for options, its text otherwise.
+/// What an option reads when its state could not be queried.
+pub(crate) const DESCONOCIDO: &str = "desconocido";
+
+/// The value of control `c` as the view shows it: `true`/`false` for options
+/// ([`DESCONOCIDO`] if unreadable), its text otherwise.
 pub(crate) fn valor_de(c: Hwnd, clase: &str) -> String {
     if CLASES_OPCION.contains(&clase) {
-        return esta_marcado(c)
-            .map(|m| m.to_string())
-            .unwrap_or_else(|| "desconocido".to_string());
+        return esta_marcado(c).map_or_else(|| DESCONOCIDO.to_string(), |m| m.to_string());
     }
     ffi::texto_control(c)
 }

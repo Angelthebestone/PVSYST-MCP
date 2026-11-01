@@ -8,6 +8,7 @@ mod campos_vivos;
 mod cobertura;
 pub(crate) mod contrato;
 mod dominio;
+mod escritura;
 mod esquemas;
 mod informe_relleno;
 mod plan;

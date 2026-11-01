@@ -55,6 +55,11 @@ fn validar_rango<T: Copy + PartialOrd + std::fmt::Display>(
     }
 }
 
+/// An option (radio button) cannot be switched off by itself.
+fn apaga_opcion(campo: &CampoEsquema, texto: &str) -> bool {
+    campo.clase == "TRadioButton" && texto == "false"
+}
+
 /// Validates `valores` against `entidad`. Every problem is reported at once;
 /// the changes come back in schema order so the run is reproducible. O(campos).
 pub(crate) fn planificar(
@@ -76,6 +81,11 @@ pub(crate) fn planificar(
         .filter(|c| valores.contains_key(c.clave))
     {
         match texto_de(campo, &valores[campo.clave]) {
+            // Refused here, before anything is typed: the write could not honour it half way.
+            Ok(texto) if apaga_opcion(campo, &texto) => problemas.push(format!(
+                "'{}' es una opción: se apaga eligiendo otra de su grupo",
+                campo.clave
+            )),
             Ok(texto) => cambios.push(Cambio { campo, texto }),
             Err(motivo) => problemas.push(format!("'{}' {motivo}", campo.clave)),
         }
