@@ -13,11 +13,37 @@ use std::time::Duration;
 const FOCO: Duration = Duration::from_millis(80);
 
 /// The keys go to whoever has the focus, so a control target must really have
-/// it: an arrow sent to the wrong control changes a combo instead of a list.
-/// Never sent without that guarantee.
-fn dar_foco_al_control(h: ffi::Hwnd) -> Result<()> {
-    if !escritorio::es_aislado() && ffi::dar_foco(h) {
-        return Ok(());
+/// it: an arrow sent to the wrong control changes a combo instead of a list. On the
+/// desktop of the user nothing is sent without that guarantee, because the keys could
+/// reach another application; on the isolated desktop only PVsyst's own windows can
+/// receive them, so a focus that did not move is reported (`false`) and the keys go on.
+fn dar_foco_al_control(h: ffi::Hwnd) -> Result<bool> {
+    let destino = if escritorio::es_aislado() {
+        Destino::Aislado
+    } else {
+        Destino::Usuario
+    };
+    resolver_foco(ffi::dar_foco(h), destino, h)
+}
+
+/// The desktop the keys are sent on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Destino {
+    Usuario,
+    Aislado,
+}
+
+/// What a focus attempt (`logrado`) means for sending the keys: `Ok(foco dado)` or an error.
+fn resolver_foco(logrado: bool, destino: Destino, h: ffi::Hwnd) -> Result<bool> {
+    if logrado {
+        return Ok(true);
+    }
+    if destino == Destino::Aislado {
+        tracing::warn!(
+            control = h,
+            "el control no tomó el foco en el escritorio aislado: se envían las teclas igualmente"
+        );
+        return Ok(false);
     }
     Err(Error::Gui(format!(
         "No se pudo dar el foco al control 0x{h:X}: las teclas no se envían sin esa garantía. Usa la ventana contenedora o accion:clic_fisico sobre el control"
@@ -66,14 +92,16 @@ pub(crate) fn teclas(args: &Value) -> Result<Value> {
     ffi::traer_al_frente(raiz);
     std::thread::sleep(FOCO);
     exigir_primer_plano(raiz)?;
-    if raiz != h {
-        dar_foco_al_control(h)?;
-    }
+    let foco = raiz != h && dar_foco_al_control(h)?;
     ffi::pulsar_combinacion(vk, &mods);
     Ok(json!({
         "sent": combo,
         "hwnd": format!("0x{:X}", h),
-        "foco": raiz != h,
+        "foco": foco,
         "via": if escritorio::es_aislado() { "mensajes" } else { "keybd_event" },
     }))
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/adapters/gui/teclado.rs"]
+mod tests;
