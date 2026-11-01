@@ -286,3 +286,18 @@ fn should_report_a_missing_object_when_the_file_has_fewer_than_asked() {
         Some(&("\"objeto\"".into(), "\"falta\"".into()))
     );
 }
+
+#[test]
+fn should_bound_the_listed_collisions_when_hundreds_of_boxes_overlap() {
+    use super::informe::MAX_COLISIONES_LISTADAS;
+    let caja = json!({"tipo": "paralelepipedo", "x": 0, "y": 0, "anchura_dx": 10, "longitud_dy": 8, "altura_dz": 3});
+    let objetos = Value::Array(vec![caja; 500]);
+
+    let d = describir_escena("Solapadas", &objetos).expect("valid scene");
+
+    assert_eq!(d["colisiones_total"], json!(500 * 499 / 2));
+    assert_eq!(
+        d["colisiones"].as_array().map(Vec::len),
+        Some(MAX_COLISIONES_LISTADAS)
+    );
+}

@@ -6,6 +6,8 @@ use crate::error::{Error, Result};
 use serde_json::{json, Value};
 
 const MAX_NOMBRE: usize = 64;
+/// Colliding pairs listed at most; `colisiones_total` says how many there are.
+pub(super) const MAX_COLISIONES_LISTADAS: usize = 1000;
 const AVISO_ANCLA: &str = "[INFERENCIA] colisiones solo entre paralelepípedos, con la posición como esquina inferior: el ancla de PVsyst no está demostrada y las demás formas no se comprueban (sin_caja).";
 const AVISO_SIN_CREACION: &str = "Con simular:true esta acción solo valida el pedido; sin él crea los objetos en el editor 3D abierto y comprueba el archivo que PVsyst guardó. Las escenas no se escriben a mano.";
 const AVISO_RANGOS: &str = "Los rangos son límites del MCP; los de PVsyst no están medidos.";
@@ -63,9 +65,11 @@ pub(crate) fn describir_escena(escena: &str, objetos: &Value) -> Result<Value> {
         .map(|(i, o)| objeto_json(i, o))
         .collect();
     let todas = colisiones(&pedidos);
-    // Every pair: the detail level trims the list and `detalle:completo` returns it whole.
+    // Only the first pairs become JSON: `colisiones_total` counts all of them (up to
+    // MAX_OBJETOS objects there are ~125,000 pairs), and the detail level trims further.
     let choques: Vec<Value> = todas
         .iter()
+        .take(MAX_COLISIONES_LISTADAS)
         .map(|(a, b)| json!({ "a": a, "b": b }))
         .collect();
     Ok(json!({
