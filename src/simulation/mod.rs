@@ -75,6 +75,7 @@ fn resolver_datos_proyecto(
 ) -> Result<(std::path::PathBuf, String, String, std::path::PathBuf)> {
     let proyecto = req_str(args, &["proyecto"], "")?;
     let variante = opt_str(args, &["variante"]).unwrap_or("VC0");
+    crate::projects::lifecycle::variantes::exigir_variante_valida(variante)?;
     let variante_up = variante.to_ascii_uppercase();
     let prj_path = crate::projects::resolve_project_file(workspace, proyecto)?;
     let stem = prj_path
@@ -101,9 +102,10 @@ pub(crate) fn lanzar_simulacion_seguida(
     let workspace = workspace_of(paths, args);
     let (prj_path, stem, variante_up, variant_file) = resolver_datos_proyecto(&workspace, args)?;
     opciones::validar(args)?;
+    preparacion::validar_extra_options(args)?;
     opciones::exigir_variante(&variant_file)?;
     let args_con_salidas =
-        preparacion::con_salidas_por_defecto(args, &workspace, &stem, &variante_up);
+        preparacion::con_salidas_por_defecto(args, &workspace, &stem, &variante_up)?;
     let cli_args = preparacion::argumentos_cli(&args_con_salidas, &workspace, &stem, &variante_up);
     // The reported files are the same resolved values that built `-ocf` / `-rpf`.
     let output_csv = opt_str(&args_con_salidas, &["output_csv"]);

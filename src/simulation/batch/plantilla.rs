@@ -39,19 +39,24 @@ fn pick(row: &Value, keys: &[&str]) -> String {
         .unwrap_or_default()
 }
 
-/// Cells of one batch row; PVsyst's CSV has no quoting, so a separator or
-/// line break inside a value would shift columns or add rows.
+/// PVsyst's batch files (`.csv`, `Param_Modif.dat`, `.rvt`) have no quoting: a
+/// `;` or a line break inside a value would shift columns or add rows.
+pub(super) fn exigir_sin_separadores(contexto: &str, valor: &str) -> Result<()> {
+    if valor.contains([';', '\r', '\n']) {
+        return Err(Error::Invalid(format!(
+            "{contexto}: el valor no puede contener ';' ni saltos de línea"
+        )));
+    }
+    Ok(())
+}
+
+/// Cells of one batch row, each checked by [`exigir_sin_separadores`].
 fn celdas(fila: usize, row: &Value) -> Result<Vec<String>> {
     COLUMNS
         .iter()
         .map(|keys| {
             let celda = pick(row, keys);
-            if celda.contains([';', '\r', '\n']) {
-                return Err(Error::Invalid(format!(
-                    "Fila {fila}, columna '{}': el valor no puede contener ';' ni saltos de línea",
-                    keys[0]
-                )));
-            }
+            exigir_sin_separadores(&format!("Fila {fila}, columna '{}'", keys[0]), &celda)?;
             Ok(celda)
         })
         .collect()
@@ -64,6 +69,8 @@ pub(super) fn batch_csv(
     filas: &[Value],
     stamp: &str,
 ) -> Result<String> {
+    exigir_sin_separadores("proyecto", proyecto)?;
+    exigir_sin_separadores("variante", variante)?;
     let cuerpo = filas
         .iter()
         .enumerate()

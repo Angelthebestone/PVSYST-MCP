@@ -278,3 +278,30 @@ fn should_execute_tools_e2e_via_server() {
     assert_eq!(parsed["titulo"], "Horizonte E2E");
     assert_eq!(parsed["puntos"].as_array().expect("puntos").len(), 3);
 }
+
+#[test]
+fn should_reject_horizon_outside_workspace_when_name_escapes() {
+    let ws = tempfile::tempdir().expect("ws");
+    let fuera = tempfile::tempdir().expect("fuera");
+    let ajeno = fuera.path().join("Ajeno.HOR");
+    fs::write(&ajeno, "x").expect("hor");
+    let paths = Paths::para_test(ws.path());
+
+    for nombre in [
+        ajeno.to_string_lossy().into_owned(),
+        "..\\Ajeno.HOR".to_string(),
+    ] {
+        let res = crate::horizonte_archivo::leer_horizonte(&paths, &json!({ "archivo": nombre }));
+        assert!(matches!(res, Err(Error::Invalid(_))), "{nombre}: {res:?}");
+    }
+}
+
+#[test]
+fn should_report_not_found_when_horizon_is_missing_everywhere() {
+    let ws = tempfile::tempdir().expect("ws");
+    let paths = Paths::para_test(ws.path());
+
+    let res = crate::horizonte_archivo::leer_horizonte(&paths, &json!({ "archivo": "Nada" }));
+
+    assert!(matches!(res, Err(Error::NotFound(_))), "{res:?}");
+}

@@ -130,7 +130,9 @@ fn despachar_por_extension(paths: &Paths, args: &Value, archivo: &str) -> Result
 
 fn es_proyecto(workspace: &Path, archivo: &str, ext: &str) -> bool {
     let variante = ext.len() == 3 && (ext.starts_with("VC") || ext.starts_with("CM"));
+    // Only a plain name is looked up: a path would turn this into an existence oracle.
     let nombre = ext.is_empty()
+        && crate::workspace::es_relativa_simple(Path::new(archivo))
         && workspace
             .join("Projects")
             .join(format!("{archivo}.PRJ"))
@@ -173,3 +175,7 @@ fn extension_mayuscula(archivo: &str) -> String {
         .unwrap_or("")
         .to_ascii_uppercase()
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/server/tools/workspace_ejecucion.rs"]
+mod tests;

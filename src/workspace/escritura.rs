@@ -71,16 +71,9 @@ fn extraer_bytes_acotados(args: &Value) -> Result<Vec<u8>> {
 
 fn validar_formato_pvsyst(path: &Path, bytes: &[u8]) -> Result<()> {
     let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
-    if file_name.contains(':') {
-        return Err(Error::Invalid(format!(
-            "Nombre de archivo inválido (contiene ':'): '{file_name}'"
-        )));
-    }
-    if file_name.ends_with('.') || file_name.ends_with(' ') {
-        return Err(Error::Invalid(format!(
-            "Nombre de archivo no puede terminar en punto o espacio: '{file_name}'"
-        )));
-    }
+    // One rule for every written name: ':' (alternate streams), trailing dot or space,
+    // control characters and device names (`CON`, `CONIN$`...).
+    crate::workspace::validar_nombre(file_name)?;
     let normalizado = file_name;
     if normalizado.eq_ignore_ascii_case("Currency.dat") {
         return Err(Error::Invalid(

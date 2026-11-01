@@ -14,7 +14,7 @@ use crate::args::{flag, req_str};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::object;
-use crate::workspace::{resolver_ruta, walk_ext, Alcance};
+use crate::workspace::{es_relativa_simple, resolver_ruta, walk_ext, Alcance};
 use serde_json::{json, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -241,8 +241,7 @@ pub(crate) fn resolve_project_file_con_alcance(
     name: &str,
     alcance: Alcance,
 ) -> Result<PathBuf> {
-    let direct = Path::new(name);
-    if direct.is_absolute() || name.contains("..") {
+    if !es_relativa_simple(Path::new(name)) {
         let safe = resolver_ruta(workspace, name, alcance)?;
         if safe.exists() {
             return Ok(safe);

@@ -8,28 +8,27 @@ use crate::args::{opt_str, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::history;
+use crate::workspace::{es_relativa_simple, resolver_ruta, Alcance};
 use serde_json::{json, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-/// Resolves an RVT file path within the workspace.
+/// Resolves an RVT file path: a bare name prefers `Models/<name>` when it exists;
+/// anything else goes through `resolver_ruta` (confined unless
+/// `permitir_fuera_del_workspace`).
 fn resolver_ruta_rvt(ws: &Path, args: &Value) -> Result<PathBuf> {
     let ruta_rel = opt_str(args, &["batch_rvt_file"])
         .or_else(|| opt_str(args, &["archivo"]))
         .ok_or_else(|| Error::Invalid("Falta 'batch_rvt_file' o 'archivo'".into()))?;
-    let path = PathBuf::from(ruta_rel);
-    if path.is_absolute() {
-        Ok(path)
-    } else if ruta_rel.contains('/') || ruta_rel.contains('\\') {
-        Ok(ws.join(path))
-    } else {
-        let models = ws.join("Models").join(&path);
+    let alcance = Alcance::de_args(args);
+    let es_nombre = !ruta_rel.contains(['/', '\\']) && es_relativa_simple(Path::new(ruta_rel));
+    if es_nombre {
+        let models = resolver_ruta(ws, &format!("Models/{ruta_rel}"), alcance)?;
         if models.exists() {
-            Ok(models)
-        } else {
-            Ok(ws.join(path))
+            return Ok(models);
         }
     }
+    resolver_ruta(ws, ruta_rel, alcance)
 }
 
 /// Reads string items from a JSON array argument.

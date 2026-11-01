@@ -15,7 +15,7 @@ use std::path::Path;
 
 mod plantilla;
 
-use plantilla::batch_csv;
+use plantilla::{batch_csv, exigir_sin_separadores};
 
 fn now_stamp() -> String {
     let secs = std::time::SystemTime::now()
@@ -34,31 +34,57 @@ fn now_stamp() -> String {
     )
 }
 
-/// Build a `Param_Modif.dat` file (advanced/hidden parameter overrides) and
-/// return its path, ready to be passed to `lanzar_simulacion.input_param_file`.
+/// Optional per-parameter text of `Param_Modif.dat` (initial value, unit, description).
+struct ColumnasDat<'a> {
+    iniciales: Option<&'a serde_json::Map<String, Value>>,
+    unidades: Option<&'a serde_json::Map<String, Value>>,
+    descripciones: Option<&'a serde_json::Map<String, Value>>,
+}
+
+impl ColumnasDat<'_> {
+    fn de_args(args: &Value) -> ColumnasDat<'_> {
+        let mapa = |k: &str| args.get(k).and_then(Value::as_object);
+        ColumnasDat {
+            iniciales: mapa("iniciales"),
+            unidades: mapa("unidades"),
+            descripciones: mapa("descripciones"),
+        }
+    }
+
+    fn texto(mapa: Option<&serde_json::Map<String, Value>>, key: &str) -> String {
+        mapa.and_then(|m| m.get(key))
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string()
+    }
+}
+
+/// Build a `Param_Modif.dat` file (advanced/hidden parameter overrides): one
+/// `name;initial;new;unit;description` line per parameter, every field checked
+/// for separators because the format has no quoting.
 fn construir_dat(
     params: &serde_json::Map<String, Value>,
-    iniciales: Option<&serde_json::Map<String, Value>>,
-    unidades: Option<&serde_json::Map<String, Value>>,
-    descripciones: Option<&serde_json::Map<String, Value>>,
-) -> String {
+    columnas: &ColumnasDat<'_>,
+) -> Result<String> {
     let mut text = String::from("Hidden parameters: User's modifications;\n");
     for (key, new) in params {
-        let new_s = value_text(new);
-        let init = iniciales
+        let init = columnas
+            .iniciales
             .and_then(|m| m.get(key))
             .map_or_else(|| "0.0000".to_string(), value_text);
-        let unit = unidades
-            .and_then(|m| m.get(key))
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
-        let desc = descripciones
-            .and_then(|m| m.get(key))
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
-        let _ = writeln!(text, "{key};{init};{new_s};{unit};{desc}");
+        let campos = [
+            key.clone(),
+            init,
+            value_text(new),
+            ColumnasDat::texto(columnas.unidades, key),
+            ColumnasDat::texto(columnas.descripciones, key),
+        ];
+        for campo in &campos {
+            exigir_sin_separadores(&format!("Parámetro '{key}'"), campo)?;
+        }
+        let _ = writeln!(text, "{}", campos.join(";"));
     }
-    text
+    Ok(text)
 }
 
 pub(crate) fn modificar_parametros(paths: &Paths, args: &Value) -> Result<Value> {
@@ -67,10 +93,7 @@ pub(crate) fn modificar_parametros(paths: &Paths, args: &Value) -> Result<Value>
         .get("parametros")
         .and_then(|v| v.as_object())
         .ok_or_else(|| missing("parametros", "object: name -> new value"))?;
-    let iniciales = args.get("iniciales").and_then(|v| v.as_object());
-    let unidades = args.get("unidades").and_then(|v| v.as_object());
-    let descripciones = args.get("descripciones").and_then(|v| v.as_object());
-    let text = construir_dat(params, iniciales, unidades, descripciones);
+    let text = construir_dat(params, &ColumnasDat::de_args(args))?;
     let destino = match opt_str(args, &["destino"]) {
         Some(p) => crate::workspace::resolver_ruta(
             &workspace,
@@ -107,7 +130,9 @@ pub(crate) fn crear_batch(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
     let proyecto = req_str(args, &["proyecto"], "")?;
     let variante = opt_str(args, &["variante"]).unwrap_or("VC0");
+    crate::projects::lifecycle::variantes::exigir_variante_valida(variante)?;
     let prj = crate::projects::resolve_project_file(&workspace, proyecto)?;
+    let stem = crate::projects::lifecycle::variantes::stem_de(&prj)?;
     if !prj.with_extension(variante).exists() {
         return Err(Error::NotFound(format!(
             "Variant {variante} of '{proyecto}' does not exist; pass an existing 'variante' (see listar que:proyectos)"
@@ -121,7 +146,7 @@ pub(crate) fn crear_batch(paths: &Paths, args: &Value) -> Result<Value> {
         return Err(Error::Invalid("'filas' must not be empty".into()));
     }
 
-    let out = batch_csv(proyecto, variante, filas, &now_stamp())?;
+    let out = batch_csv(&stem, variante, filas, &now_stamp())?;
 
     let destino = match opt_str(args, &["destino"]) {
         Some(p) => crate::workspace::resolver_ruta(
@@ -153,19 +178,30 @@ pub(crate) fn crear_batch(paths: &Paths, args: &Value) -> Result<Value> {
     }))
 }
 
+/// `variables` of a batch call as names: a non-text entry or one with a separator is an error.
+fn variables_rvt(args: &Value) -> Result<Vec<&str>> {
+    let Some(lista) = args.get("variables").and_then(Value::as_array) else {
+        return Ok(Vec::new());
+    };
+    lista
+        .iter()
+        .map(|v| {
+            let nombre = v.as_str().ok_or_else(|| {
+                Error::Invalid(format!("'variables' solo admite nombres (recibido {v})"))
+            })?;
+            exigir_sin_separadores(&format!("Variable '{nombre}'"), nombre)?;
+            Ok(nombre)
+        })
+        .collect()
+}
+
 /// Optional RVT (batch result variable list) from `variables`; returns `(path, history id)`.
 fn escribir_rvt(
     workspace: &Path,
     batch_dir: &Path,
     args: &Value,
 ) -> Result<(Option<String>, Option<String>)> {
-    let list: Vec<&str> = args
-        .get("variables")
-        .and_then(|v| v.as_array())
-        .into_iter()
-        .flatten()
-        .filter_map(Value::as_str)
-        .collect();
+    let list = variables_rvt(args)?;
     if list.is_empty() {
         return Ok((None, None));
     }
@@ -174,3 +210,7 @@ fn escribir_rvt(
     let id = history::reemplazar(workspace, &rvs, content.as_bytes(), "crear_batch")?;
     Ok((Some(rvs.to_string_lossy().to_string()), id))
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/simulation/batch/dat.rs"]
+mod tests;

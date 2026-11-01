@@ -159,15 +159,57 @@ fn should_decode_text_module_fixture() {
 
 #[test]
 fn should_reject_module_outside_workspace_without_libre_scope() {
-    let paths = Paths::resolve();
-    let outside = std::env::temp_dir().join("outside.PAN");
+    let ws = tempfile::tempdir().expect("ws");
+    let fuera = tempfile::tempdir().expect("fuera");
+    let outside = fuera.path().join("outside.PAN");
+    std::fs::write(&outside, "x").expect("pan");
+    let paths = Paths::para_test(ws.path());
+
     let res = resolve_module_file(
-        &paths.workspace,
+        ws.path(),
         &paths,
         &outside.to_string_lossy(),
         Alcance::Workspace,
     );
-    assert!(res.is_err());
+
+    assert!(matches!(res, Err(Error::Invalid(_))), "{res:?}");
+}
+
+/// `<ComposPV>\..\..\(...)\<file>`: lexically under the read-only base, really outside it.
+fn ruta_que_sale_de_compos_ro(destino: &Path) -> PathBuf {
+    let normales = |p: &Path| -> Vec<std::ffi::OsString> {
+        p.components()
+            .filter_map(|c| match c {
+                std::path::Component::Normal(n) => Some(n.to_os_string()),
+                _ => None,
+            })
+            .collect()
+    };
+    let base = crate::config::compos_ro();
+    let mut ruta = base.clone();
+    ruta.extend(normales(&base).iter().map(|_| ".."));
+    ruta.extend(normales(destino));
+    ruta
+}
+
+#[test]
+fn should_reject_lexical_escape_from_read_only_base_when_confined() {
+    let ws = tempfile::tempdir().expect("ws");
+    let fuera = tempfile::tempdir().expect("fuera");
+    let outside = fuera.path().join("Escape.PAN");
+    std::fs::write(&outside, "x").expect("pan");
+    let truco = ruta_que_sale_de_compos_ro(&outside);
+    assert!(truco.starts_with(crate::config::compos_ro()));
+    let paths = Paths::para_test(ws.path());
+
+    let res = resolve_module_file(
+        ws.path(),
+        &paths,
+        &truco.to_string_lossy(),
+        Alcance::Workspace,
+    );
+
+    assert!(matches!(res, Err(Error::Invalid(_))), "{res:?}");
 }
 
 #[test]

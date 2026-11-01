@@ -106,7 +106,8 @@ pub(crate) fn resolve_module_file(
 ) -> Result<PathBuf> {
     let direct = Path::new(name);
     if direct.is_absolute() {
-        if direct.starts_with(crate::config::compos_ro()) && direct.exists() {
+        // Canonical, not lexical: `ComposPV\..\..\x.PAN` starts with the base but leaves it.
+        if crate::components::resolucion::es_base_solo_lectura(direct) {
             return Ok(direct.to_path_buf());
         }
         let resolved = crate::workspace::resolver_ruta(ws, name, alcance)?;

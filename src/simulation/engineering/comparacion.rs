@@ -143,15 +143,26 @@ pub(super) fn variantes_con_resultados(workspace: &Path, proyecto: &str) -> Vec<
     out
 }
 
+/// `variantes` as given: each must be a text `VCn`/`CMn`, not silently dropped.
+fn variantes_pedidas(lista: &[Value]) -> Result<Vec<String>> {
+    lista
+        .iter()
+        .map(|v| {
+            let texto = v.as_str().ok_or_else(|| {
+                Error::Invalid(format!("'variantes' solo admite textos (recibido {v})"))
+            })?;
+            crate::projects::lifecycle::variantes::exigir_variante_valida(texto)?;
+            Ok(texto.to_string())
+        })
+        .collect()
+}
+
 pub(crate) fn comparar(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
     let proyecto = req_str(args, &["proyecto"], "proyecto")?;
+    crate::workspace::validar_nombre(proyecto)?;
     let variantes: Vec<String> = match args.get("variantes").and_then(Value::as_array) {
-        Some(lista) => lista
-            .iter()
-            .filter_map(Value::as_str)
-            .map(str::to_string)
-            .collect(),
+        Some(lista) => variantes_pedidas(lista)?,
         None => variantes_con_resultados(&workspace, proyecto),
     };
     if variantes.len() < 2 {

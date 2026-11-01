@@ -23,5 +23,6 @@ pub(crate) use listado::{listar_archivos, ResumenRecorrido};
 pub(crate) use nombres::validar_nombre;
 pub(crate) use recorrido::walk_ext;
 pub(crate) use rutas::{
-    mover_a_papelera, resolver_archivo_con_fallback, resolver_ruta, PeticionResolucion,
+    es_relativa_simple, mover_a_papelera, primer_existente_en_bases, primer_existente_en_workspace,
+    resolver_archivo_con_fallback, resolver_ruta, PeticionResolucion,
 };

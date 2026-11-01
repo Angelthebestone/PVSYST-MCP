@@ -27,3 +27,15 @@ fn should_reject_values_that_would_shift_batch_columns() {
         );
     }
 }
+
+#[test]
+fn should_reject_project_or_variant_with_separator_when_rendering_header() {
+    let rows = [json!({ "tilt": 30 })];
+    for (proyecto, variante) in [("P;x", "VC1"), ("P", "VC1\n"), ("P\r", "VC1")] {
+        let res = batch_csv(proyecto, variante, &rows, "01/01/2026");
+        assert!(
+            matches!(res, Err(Error::Invalid(_))),
+            "{proyecto:?} {variante:?}"
+        );
+    }
+}

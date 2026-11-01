@@ -84,7 +84,6 @@ mod gui_catalogo;
 )]
 mod history;
 #[expect(
-    clippy::excessive_nesting,
     clippy::indexing_slicing,
     reason = "deuda medida; pendiente del paso 2 de la limpieza"
 )]

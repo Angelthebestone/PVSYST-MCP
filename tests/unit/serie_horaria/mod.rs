@@ -188,3 +188,21 @@ fn vacia_serie() -> SerieHoraria {
         valores_crudos: std::collections::HashMap::new(),
     }
 }
+
+#[test]
+fn should_reject_series_outside_workspace_when_name_escapes() {
+    let ws = tempfile::tempdir().expect("ws");
+    let fuera = tempfile::tempdir().expect("fuera");
+    let ajeno = fuera.path().join("Ajeno.MET");
+    fs::write(&ajeno, "x").expect("met");
+    let paths = crate::config::Paths::para_test(ws.path());
+
+    for nombre in [
+        ajeno.to_string_lossy().into_owned(),
+        "../Ajeno.MET".to_string(),
+    ] {
+        let args = serde_json::json!({ "archivo": nombre });
+        let res = super::aplicacion::leer_serie(&paths, &args);
+        assert!(matches!(res, Err(Error::Invalid(_))), "{nombre}: {res:?}");
+    }
+}

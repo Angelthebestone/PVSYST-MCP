@@ -21,3 +21,36 @@ fn excluded_parameter_prefixes_are_skipped() {
     assert!(excluida("VarSimul_TempLss"));
     assert!(!excluida("FieldTilt"));
 }
+
+#[test]
+fn should_reject_project_or_variant_that_is_not_a_plain_name_when_building_case() {
+    let ws = tempfile::tempdir().expect("ws");
+    let paths = crate::config::Paths::para_test(ws.path());
+    for args in [
+        serde_json::json!({ "proyecto": "..\\..\\x" }),
+        serde_json::json!({ "proyecto": "Planta", "variante": "../VC0" }),
+    ] {
+        let res = super::caso(&paths, &args);
+        assert!(
+            matches!(res, Err(crate::error::Error::Invalid(_))),
+            "{args}"
+        );
+    }
+}
+
+#[test]
+fn should_reject_compared_variant_that_is_not_text_or_identifier() {
+    let ws = tempfile::tempdir().expect("ws");
+    let paths = crate::config::Paths::para_test(ws.path());
+    for variantes in [
+        serde_json::json!(["VC0", 1]),
+        serde_json::json!(["VC0", "../VC1"]),
+    ] {
+        let args = serde_json::json!({ "proyecto": "Planta", "variantes": variantes });
+        let res = super::comparar(&paths, &args);
+        assert!(
+            matches!(res, Err(crate::error::Error::Invalid(_))),
+            "{args}"
+        );
+    }
+}

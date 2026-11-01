@@ -54,7 +54,7 @@ fn should_refuse_writing_with_colon_or_trailing_dots() {
         json!({ "archivo": "Meteo/foo.MEF.", "contenido": base64(&valid_mef), "base64": true });
     let err_dot = escribir_archivo(&paths, &args_dot).expect_err("punto final rechazado");
     assert!(matches!(err_dot, crate::error::Error::Invalid(_)));
-    assert!(err_dot.to_string().contains("terminar en punto o espacio"));
+    assert!(err_dot.to_string().contains("terminar con espacio o punto"));
 }
 
 #[test]
@@ -139,4 +139,17 @@ fn should_write_a_meteo_format_when_bytes_reproduce_exactly() {
         fs::read(ws.path().join("Meteo/Mio.MEF")).expect("leer"),
         bytes
     );
+}
+
+#[test]
+fn should_refuse_writing_console_device_name() {
+    let ws = tempdir().expect("ws");
+    let paths = dummy_paths(ws.path());
+
+    let res = escribir_archivo(
+        &paths,
+        &json!({ "archivo": "Meteo/CONOUT$.MEF", "contenido": "x" }),
+    );
+
+    assert!(matches!(res, Err(crate::error::Error::Invalid(m)) if m.contains("reservado")));
 }

@@ -83,7 +83,7 @@ fn resolver_plantilla(workspace: &Path, plantilla: &str, alcance: Alcance) -> Re
 
 /// A PVsyst demo project in DataRO named `plantilla`, with or without `.PRJ`.
 fn plantilla_demo_ro(plantilla: &str) -> Option<PathBuf> {
-    if Path::new(plantilla).is_absolute() || plantilla.contains("..") {
+    if !crate::workspace::es_relativa_simple(Path::new(plantilla)) {
         return None;
     }
     let base = crate::config::proyectos_demo_ro();
@@ -107,6 +107,7 @@ fn sit_pedido(workspace: &Path, args: &Value) -> Result<Option<PathBuf>> {
     let Some(sitio) = args.get("sitio").and_then(Value::as_str) else {
         return Ok(None);
     };
+    crate::workspace::validar_nombre(sitio)?;
     let dir = workspace.join("Sites");
     let sit = dir.join(format!("{sitio}.SIT"));
     if !sit.is_file() {
@@ -268,3 +269,7 @@ pub(crate) fn renombrar_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     let renombrados = renombrar_todo(&pares)?;
     Ok(json!({ "renamed": renombrados }))
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/projects/lifecycle/creacion.rs"]
+mod tests;

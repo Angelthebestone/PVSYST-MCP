@@ -38,7 +38,9 @@ pub(crate) fn ruta_segura(base: &Path, rel: &str) -> Result<PathBuf> {
         .canonicalize()
         .map_err(|e| Error::io(format!("Workspace no accesible {}", base.display()), e))?;
     let mut ancestro = joined.as_path();
-    while !ancestro.exists() {
+    // `symlink_metadata`, not `exists`: a dangling link must be canonicalised (and
+    // fail) instead of being skipped, or a write through it would land outside.
+    while fs::symlink_metadata(ancestro).is_err() {
         ancestro = ancestro
             .parent()
             .ok_or_else(|| Error::Invalid(format!("Ruta sin ancestro existente: '{rel}'")))?;
@@ -50,6 +52,16 @@ pub(crate) fn ruta_segura(base: &Path, rel: &str) -> Result<PathBuf> {
         return Err(Error::Invalid(format!("Ruta fuera del workspace: '{rel}'")));
     }
     Ok(joined)
+}
+
+/// Is `p` a plain relative path (only named components and `.`)?
+///
+/// A rooted path without drive (`\\Users\\x`), a drive-relative one (`C:x`) or one with
+/// `..` is not: `Path::join` would replace or leave the base, so those must go
+/// through [`resolver_ruta`].
+pub(crate) fn es_relativa_simple(p: &Path) -> bool {
+    p.components()
+        .all(|c| matches!(c, Component::Normal(_) | Component::CurDir))
 }
 
 /// Absolute stays, relative is joined to the workspace. Unchecked: use `resolver_ruta`.
@@ -70,6 +82,37 @@ pub(crate) fn resolver_ruta(workspace: &Path, p: &str, alcance: Alcance) -> Resu
         Alcance::Libre => Ok(resolve(workspace, p)),
     }
 }
+/// First existing file among `candidatos`, each resolved under the workspace with
+/// `resolver_ruta`. A candidate that escapes the workspace is an error, not a miss:
+/// the caller learns why instead of reading "not found". O(c) stats.
+pub(crate) fn primer_existente_en_workspace(
+    workspace: &Path,
+    candidatos: &[String],
+    alcance: Alcance,
+) -> Result<Option<PathBuf>> {
+    for c in candidatos {
+        match resolver_ruta(workspace, c, alcance) {
+            Ok(p) if p.is_file() => return Ok(Some(p)),
+            Ok(_) => {}
+            Err(e @ Error::Invalid(_)) => return Err(e),
+            Err(e) => tracing::debug!(candidato = %c, error = %e, "candidato no resoluble"),
+        }
+    }
+    Ok(None)
+}
+
+/// First existing file `<base>/<nombre>` over `bases` × `nombres`, each confined to
+/// its base with `ruta_segura`: read-only folders (DataRO) cannot be left with `..`
+/// or an absolute name. A base that does not exist is skipped. O(b·n) stats.
+pub(crate) fn primer_existente_en_bases(bases: &[PathBuf], nombres: &[String]) -> Option<PathBuf> {
+    bases.iter().find_map(|base| {
+        nombres
+            .iter()
+            .filter_map(|n| ruta_segura(base, n).ok())
+            .find(|p| p.is_file())
+    })
+}
+
 /// Specification for resolving a file with natural folder and DataRO fallbacks.
 #[derive(Debug, Clone)]
 pub(crate) struct PeticionResolucion<'a> {
@@ -154,3 +197,7 @@ pub(crate) fn mover_a_papelera(workspace: &Path, origen: &Path) -> Result<PathBu
     })?;
     Ok(destino)
 }
+
+#[cfg(test)]
+#[path = "../../tests/unit/workspace/rutas.rs"]
+mod tests;

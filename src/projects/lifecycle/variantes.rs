@@ -19,15 +19,23 @@ pub(crate) fn es_variante_valida(nombre: &str) -> bool {
         && b[2].is_ascii_alphanumeric()
 }
 
-/// Variant file `<parent>/<stem>.<variante>`; rejects anything that is not a
-/// variant identifier so user input cannot escape the project folder.
+/// Variant file `<parent>/<stem>.<variante>`; rejects a stem that is not a plain
+/// name and anything that is not a variant identifier, so user input cannot escape
+/// the project folder.
 pub(crate) fn ruta_variante(parent: &Path, stem: &str, variante: &str) -> Result<PathBuf> {
-    if !es_variante_valida(variante) {
-        return Err(Error::Invalid(format!(
-            "Variante inválida '{variante}': debe ser VCn o CMn (n alfanumérico)"
-        )));
-    }
+    validar_nombre(stem)?;
+    exigir_variante_valida(variante)?;
     Ok(parent.join(format!("{stem}.{variante}")))
+}
+
+/// [`es_variante_valida`] as a boundary check: the error names the expected form.
+pub(crate) fn exigir_variante_valida(variante: &str) -> Result<()> {
+    if es_variante_valida(variante) {
+        return Ok(());
+    }
+    Err(Error::Invalid(format!(
+        "Variante inválida '{variante}': debe ser VCn o CMn (n alfanumérico)"
+    )))
 }
 
 /// File stem of a project path as an owned string.

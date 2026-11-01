@@ -3,6 +3,7 @@
 
 pub(crate) mod entrada;
 pub(crate) mod nasa;
+mod opciones_crear;
 mod peticion;
 pub(crate) mod pvgis;
 pub(crate) mod readers;
@@ -74,30 +75,6 @@ fn ejecutar<F: FnOnce(Value) -> Value>(
     ))
 }
 
-/// Optional `create-site` flags present in `args`.
-fn opciones_sitio(args: &Value) -> Vec<String> {
-    const OPCIONALES: [(&str, &str); 8] = [
-        ("altitud", "-alt"),
-        ("timezone", "-tz"),
-        ("country_code", "-cc"),
-        ("region", "-r"),
-        ("albedo", "-alb"),
-        ("source", "-s"),
-        ("output_sit_file", "-osf"),
-        ("cmd_options_file", "-cof"),
-    ];
-    OPCIONALES
-        .iter()
-        .filter_map(|(key, flag)| {
-            let s = args
-                .get(*key)
-                .map(value_text)
-                .filter(|s| !s.is_empty() && s != "null")?;
-            Some(format!("{flag}:{s}"))
-        })
-        .collect()
-}
-
 pub(crate) fn crear_sitio(paths: &Paths, args: &Value) -> Result<Value> {
     let req = |key: &str| texto(args, &[key]).ok_or_else(|| missing(key, ""));
     let name = req("nombre_sitio")?;
@@ -111,9 +88,12 @@ pub(crate) fn crear_sitio(paths: &Paths, args: &Value) -> Result<Value> {
         format!("-sn:{name}"),
         format!("-lat:{}", req("latitud")?),
         format!("-lon:{}", req("longitud")?),
-        format!("-wdf:{}", req("weather_data_file")?),
     ];
-    opciones.extend(opciones_sitio(args));
+    opciones.extend(opciones_crear::opciones_sitio(args));
+    opciones.extend(opciones_crear::archivos_sitio(
+        &workspace_of(paths, args),
+        args,
+    )?);
     ejecutar(
         paths,
         args,

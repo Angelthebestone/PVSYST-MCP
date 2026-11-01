@@ -28,10 +28,12 @@ fn should_restore_files_and_allow_undo_via_previous_snapshot() {
 #[test]
 fn should_reject_path_like_snapshot_ids() {
     let ws = crear_workspace_temporal("badid");
-    assert!(restaurar(&ws, "../x").is_err());
-    assert!(restaurar(&ws, "a/b").is_err());
-    assert!(restaurar(&ws, "a\\b").is_err());
-    assert!(restaurar(&ws, "").is_err());
+    for id in ["../x", "a/b", "a\\b", "", "C:x", "C:\\x", ".", "a b"] {
+        assert!(
+            matches!(restaurar(&ws, id), Err(crate::error::Error::Invalid(m)) if m.contains("Id de historial")),
+            "{id:?}"
+        );
+    }
     let _ = fs::remove_dir_all(&ws);
 }
 

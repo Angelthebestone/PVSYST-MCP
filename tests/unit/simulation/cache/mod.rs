@@ -125,3 +125,18 @@ fn should_mark_key_unusable_when_referenced_file_is_missing_or_unreadable() {
     }
     let _ = fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn should_reject_cache_key_when_variant_is_not_an_identifier() {
+    let ws = tempfile::tempdir().expect("ws");
+    let dir = ws.path().join("Projects");
+    fs::create_dir_all(&dir).expect("Projects");
+    fs::write(dir.join("Planta.PRJ"), "x").expect("prj");
+
+    let res = clave(
+        ws.path(),
+        &cli(&["run-simulation", "-p:Planta.PRJ", "-v:../../x"]),
+    );
+
+    assert!(matches!(res, Err(crate::error::Error::Invalid(_))));
+}

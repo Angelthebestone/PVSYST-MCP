@@ -174,6 +174,7 @@ pub(crate) fn clave(workspace: &Path, cli_args: &[String]) -> Result<ClaveCache>
     let prj = resolve_project_file(workspace, proyecto)?;
     let mut archivos = vec![("proyecto".to_owned(), prj.clone())];
     if let Some(variante) = valor(cli_args, "-v") {
+        crate::projects::lifecycle::variantes::exigir_variante_valida(variante)?;
         archivos.push(("variante".to_owned(), prj.with_extension(variante)));
     }
 

@@ -3,8 +3,7 @@ use tempfile::TempDir;
 
 fn workspace_temporal() -> (TempDir, Paths) {
     let tmp = TempDir::new().expect("temp dir");
-    let mut paths = Paths::resolve();
-    paths.workspace = tmp.path().to_path_buf();
+    let paths = Paths::para_test(tmp.path());
     (tmp, paths)
 }
 
@@ -151,4 +150,35 @@ fn should_dispatch_via_editar_rvt() {
     let parsed: Value = serde_json::from_str(text).expect("parsed");
     assert_eq!(parsed["ok"], true);
     assert_eq!(parsed["total"], 2);
+}
+
+#[test]
+fn should_reject_rvt_outside_workspace_when_not_permitted() {
+    let (_tmp, paths) = workspace_temporal();
+    let fuera = TempDir::new().expect("fuera");
+    let ajeno = fuera.path().join("Ajeno.RVT");
+    for archivo in [
+        ajeno.to_string_lossy().into_owned(),
+        "../Ajeno.RVT".to_string(),
+    ] {
+        let args = json!({ "archivo": archivo, "operacion": "crear", "variables": ["HSol"] });
+        let res = gestionar_rvt(&paths, &args);
+        assert!(matches!(res, Err(Error::Invalid(_))), "{archivo}: {res:?}");
+    }
+    assert!(!ajeno.exists());
+}
+
+#[test]
+fn should_prefer_models_folder_when_bare_name_exists_there() {
+    let (tmp, paths) = workspace_temporal();
+    let models = tmp.path().join("Models");
+    std::fs::create_dir_all(&models).expect("Models");
+    std::fs::write(models.join("Plantilla.RVT"), "HSol;\r\n").expect("rvt");
+
+    let res = gestionar_rvt(&paths, &json!({ "archivo": "Plantilla.RVT" })).expect("listar");
+
+    assert_eq!(
+        Path::new(res["archivo"].as_str().expect("archivo")),
+        models.join("Plantilla.RVT")
+    );
 }

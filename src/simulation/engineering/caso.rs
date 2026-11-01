@@ -76,7 +76,11 @@ pub(crate) fn con_cabecera(c: &Caso, mut v: Value) -> Value {
 pub(crate) fn caso(paths: &Paths, args: &Value) -> Result<Caso> {
     let workspace = workspace_of(paths, args);
     let proyecto = req_str(args, &["proyecto"], "proyecto")?.to_string();
+    crate::workspace::validar_nombre(&proyecto)?;
     let variante_pedida = opt_str(args, &["variante"]);
+    if let Some(v) = variante_pedida {
+        crate::projects::lifecycle::variantes::exigir_variante_valida(v)?;
+    }
     let archivo = opt_str(args, &["archivo"]);
     let (csv, pdf) = resultado_de(&workspace, Some(&proyecto), variante_pedida, archivo)?;
     let pdf = pdf.ok_or_else(|| {

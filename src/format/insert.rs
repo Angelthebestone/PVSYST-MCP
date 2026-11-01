@@ -109,6 +109,17 @@ pub(crate) enum SiExiste {
     Reemplazar,
 }
 
+/// A role goes into the header `PVObject_<rol>=<tipo>`: only ASCII letters, digits
+/// and `_`, or a `=` or line break would forge another header.
+fn validar_rol(rol: &str) -> Result<()> {
+    if !rol.is_empty() && rol.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_') {
+        return Ok(());
+    }
+    Err(Error::Invalid(format!(
+        "'rol' inválido '{rol}': solo letras, dígitos y '_'"
+    )))
+}
+
 /// Insert `bloque` as a child of the object selected by `selector_padre`.
 ///
 /// Refuses with `Error::Format` if `destino` or `bloque` is unbalanced, and with
@@ -122,6 +133,9 @@ pub(crate) fn insertar_objeto(
 ) -> Result<Vec<u8>> {
     object::validar_estructura(destino)?;
     object::validar_estructura(bloque)?;
+    if let Some(r) = rol {
+        validar_rol(r)?;
+    }
     let segs = parse_selector(selector_padre)?;
 
     let spans = edit::spans_of(destino);

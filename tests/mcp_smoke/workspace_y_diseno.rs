@@ -170,7 +170,9 @@ fn pvsyst_cli_dry_run_builds_command() {
 
 #[test]
 fn sitio_crear_dry_run_builds_command() {
-    let mut c = Client::start(None);
+    let ws = tempfile::tempdir().expect("ws");
+    std::fs::write(ws.path().join("w.csv"), "x").expect("csv");
+    let mut c = Client::start(Some(&ws.path().to_string_lossy()));
     let resp = c.call(
         9,
         "sitio",
@@ -183,6 +185,10 @@ fn sitio_crear_dry_run_builds_command() {
     let cmd = data["command_line"].as_str().unwrap();
     assert!(cmd.contains("create-site"));
     assert!(cmd.contains("-lat:46.2"), "cmd={cmd}");
+    assert!(
+        cmd.contains(&format!("-wdf:{}", ws.path().join("w.csv").display())),
+        "cmd={cmd}"
+    );
 }
 
 #[test]

@@ -172,3 +172,12 @@ proptest! {
         prop_assert_eq!(String::from_utf8(eliminado).expect("utf8"), doc);
     }
 }
+
+#[test]
+fn should_reject_role_that_would_forge_a_header() {
+    let bloque = b"PVObject_Old=pvChild\n  X=1\nEnd of PVObject pvChild\n";
+    for rol in ["A=pvX", "A\nPVObject_B", "A\r", "", "con espacio"] {
+        let res = insertar_objeto(SINTETICO, "pvRoot", bloque, Some(rol), SiExiste::Rechazar);
+        assert!(matches!(res, Err(Error::Invalid(_))), "{rol:?}");
+    }
+}

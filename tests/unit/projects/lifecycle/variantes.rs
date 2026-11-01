@@ -31,3 +31,14 @@ fn should_parse_only_positive_integers() {
     assert_eq!(parse_entero(&json!(0)), None);
     assert_eq!(parse_entero(&json!(2.5)), None);
 }
+
+#[test]
+fn should_reject_project_stem_that_leaves_the_folder_when_building_variant_route() {
+    let parent = Path::new("proj");
+    for stem in ["..\\..\\X", "../X", "\\Users\\X", "C:X", ""] {
+        assert!(
+            matches!(ruta_variante(parent, stem, "VC0"), Err(Error::Invalid(_))),
+            "{stem}"
+        );
+    }
+}
