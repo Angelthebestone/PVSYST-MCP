@@ -6,7 +6,7 @@
 use crate::state::Estado;
 use std::ffi::OsString;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 /// Environment variable that enables the MCP's own approximations.
 pub(crate) const VARIABLE_APROXIMACIONES: &str = "PVSYST_MCP_APROXIMACIONES";
@@ -183,14 +183,25 @@ pub(crate) fn version_de(carpeta: &str) -> Option<Vec<u32>> {
 /// The PVsyst 8 install folders found on this machine, newest version first, so an update
 /// (8.1.7 → 8.1.8) needs no change here. A PVsyst 9 is not picked: the GUI map, the anchors and
 /// the menu positions were measured on 8.1.x, so it needs an explicit `PVSYST_GUI`/`PVSYST_CLI`.
-fn instalaciones() -> Vec<PathBuf> {
-    let mut raices = vec![
-        PathBuf::from(r"C:\Program Files"),
-        PathBuf::from(r"C:\Program Files (x86)"),
-    ];
-    if let Some(h) = home() {
-        raices.push(h.join(r"AppData\Local\Programs"));
-    }
+///
+/// The folders are listed once per process: `data_ro` asks for them on every request, and an
+/// install made while the server runs is picked up on its next start.
+fn instalaciones() -> &'static [PathBuf] {
+    static INSTALACIONES: OnceLock<Vec<PathBuf>> = OnceLock::new();
+    INSTALACIONES.get_or_init(|| {
+        let mut raices = vec![
+            PathBuf::from(r"C:\Program Files"),
+            PathBuf::from(r"C:\Program Files (x86)"),
+        ];
+        if let Some(h) = home() {
+            raices.push(h.join(r"AppData\Local\Programs"));
+        }
+        instalaciones_en(&raices)
+    })
+}
+
+/// The PVsyst 8 install folders directly under `raices`, newest version first.
+fn instalaciones_en(raices: &[PathBuf]) -> Vec<PathBuf> {
     let mut halladas: Vec<(Vec<u32>, PathBuf)> = raices
         .iter()
         .filter_map(|r| std::fs::read_dir(r).ok())
@@ -206,8 +217,11 @@ fn resolve_exe(variable: &str, exe: &str) -> PathBuf {
     if let Some(p) = ruta_de_entorno(variable) {
         return p;
     }
-    let candidates = instalaciones().into_iter().map(|d| d.join(exe)).collect();
-    first_existing(candidates).unwrap_or_else(|| PathBuf::from(exe))
+    instalaciones()
+        .iter()
+        .map(|d| d.join(exe))
+        .find(|p| p.exists())
+        .unwrap_or_else(|| PathBuf::from(exe))
 }
 
 fn resolve_cli() -> PathBuf {
