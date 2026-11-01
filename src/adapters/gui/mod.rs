@@ -35,6 +35,7 @@ pub(crate) mod secuencia;
 pub(crate) mod sesion_pvsyst;
 pub(crate) mod sondeo;
 pub(crate) mod teclado;
+pub(crate) mod uia_paso;
 pub(crate) mod uia_vista;
 pub(crate) mod ventanas;
 
@@ -147,9 +148,9 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         "cerrar_todo" => proceso::cerrar_todo(args),
         "secuencia" => secuencia::secuencia(paths, args),
         "reiniciar" => recuperacion::reiniciar(paths, args),
-        "uia_invocar" => uia_vista::uia_invocar(args),
+        "uia_invocar" => uia_paso::uia_invocar(args),
         "esperar" => esperas::esperar(args),
-        "paso" => uia_vista::paso(args),
+        "paso" => uia_paso::paso(args),
         other => Err(Error::Invalid(format!(
             "Unknown accion '{other}' ({})",
             ACCIONES.join("|")

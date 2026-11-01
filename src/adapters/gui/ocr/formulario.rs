@@ -5,7 +5,8 @@ use super::captura_ocr::{capturar_lineas_pantalla, ParametrosCaptura};
 use super::dominio::{asociar_etiqueta, normalizar_etiqueta, LineaOcr};
 use super::segmentacion::segmentar_lineas;
 use crate::adapters::gui::ffi::{self, Hwnd, Rect};
-use crate::adapters::gui::uia_vista::{aplanar, raiz_por_defecto};
+use crate::adapters::gui::uia_paso::raiz_por_defecto;
+use crate::adapters::gui::uia_vista::aplanar;
 use crate::adapters::gui::ventanas::{
     class_of, hijos_visibles_con_clase, hwnd_de, rect_of, text_of, ventanas_de,
 };
