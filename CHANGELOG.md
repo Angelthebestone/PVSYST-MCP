@@ -76,6 +76,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Scene text files: grouped objects count one by one, a file cut off while PVsyst writes it is refused, and a missing `total_objetos`
     is not read as an empty editor. `describir_escena` lists at most 1000 colliding pairs (`colisiones_total` counts all).
   - The install folders of PVsyst are listed once per process, not on every request that needs `DataRO`.
+  - `escena_importar`: if «Importar resultado» does not close after «OK» or «Cancelar» (or the click fails), the form is dropped with
+    «Cancelar» and, failing that, closed, and the error says whether it is gone. `componente crear` retries the focus of a save dialog
+    once and logs when it still is not there. Not measured with PVsyst.
 - **`disenar_sistema` sizing no longer loops over billions of candidates** when a database file carries an absurd voltage (a tiny `Voc`, a
   huge or non-finite `VAbsMax`): the series search stops at 1000 modules and a non-finite voltage finds no layout.
 - **`http_get` (PVGIS, uncertainty lookups) refuses a body over 64 MiB** and stops reading it instead of buffering whatever the server sends.

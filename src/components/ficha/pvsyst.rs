@@ -211,17 +211,26 @@ fn guardar(s: &Sesion, f: &Formulario) -> Result<()> {
 
 /// A click on these dialogs is ignored unless they are in front and hold the
 /// focus: the file-name field takes it (the save dialog of a scene needed the same).
+/// The focus is tried twice; if it still is not there the click is sent anyway (it has worked
+/// without a confirmed focus) but the miss is logged, so a click PVsyst ignores leaves a trace.
 fn pulsar_al_frente(dialogo: &Formulario, rotulo: &str) -> Result<()> {
     let campo = ffi::enum_children(dialogo.h)
         .into_iter()
         .find(|c| class_of(*c) == "TEdit");
-    match campo {
-        Some(c) => ffi::traer_y_focar(c, PAUSA_FOCO),
+    let con_foco = match campo {
+        Some(c) => ffi::traer_y_focar(c, PAUSA_FOCO) || ffi::traer_y_focar(c, PAUSA_FOCO),
         None => {
             ffi::traer_al_frente(dialogo.h);
             true
         }
     };
+    if !con_foco {
+        tracing::warn!(
+            ventana = dialogo.h,
+            rotulo,
+            "el diálogo no quedó delante ni con el foco: PVsyst puede ignorar el clic"
+        );
+    }
     dialogo.pulsar(rotulo)
 }
 

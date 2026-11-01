@@ -28,6 +28,8 @@ const ESPERA_DIALOGO: Duration = Duration::from_secs(15);
 /// Reading a large mesh is PVsyst's own work.
 const ESPERA_RESULTADO: Duration = Duration::from_secs(120);
 const ESPERA_CIERRE: Duration = Duration::from_secs(60);
+/// Time «Cancelar» or the window close gets to take effect after a failed close.
+const ESPERA_LIBERACION: Duration = Duration::from_secs(5);
 
 /// The mesh file the request names, checked before PVsyst is touched.
 pub(super) fn malla_valida(texto: &str) -> Result<PathBuf> {
@@ -201,14 +203,43 @@ pub(super) fn unidades_elegidas(resultado: &Formulario) -> Value {
 }
 
 /// Closes «Importar resultado» with `boton` («OK» applies the import, «Cancelar» drops it).
+/// When the click fails or the form stays open, the form is dropped with «Cancelar» (and the
+/// window closed if even that fails), so PVsyst is not left behind a modal; the error says so.
 pub(super) fn cerrar_resultado(resultado: &Formulario, boton: &str) -> Result<()> {
-    resultado.pulsar(boton)?;
-    if esperar_cierre(resultado.h, ESPERA_CIERRE) {
+    let pulsado = resultado.pulsar(boton);
+    if pulsado.is_ok() && esperar_cierre(resultado.h, ESPERA_CIERRE) {
         return Ok(());
     }
-    Err(Error::Gui(format!(
-        "PVsyst no cerró '{RESULTADO}' tras «{boton}»"
-    )))
+    let cerrado = liberar_resultado(resultado);
+    let estado = if cerrado {
+        "se canceló"
+    } else {
+        "sigue abierto"
+    };
+    Err(match pulsado {
+        Err(error) => Error::Gui(format!(
+            "No se pudo pulsar «{boton}» en '{RESULTADO}' ({error}); {estado}"
+        )),
+        Ok(()) => Error::Gui(format!(
+            "PVsyst no cerró '{RESULTADO}' tras «{boton}»; {estado}"
+        )),
+    })
+}
+
+/// Best effort after a failed close: «Cancelar» first, then the window itself. Whether the form
+/// is gone afterwards.
+fn liberar_resultado(resultado: &Formulario) -> bool {
+    if !ffi::es_ventana(resultado.h) {
+        return true;
+    }
+    super::pasos::descartar(resultado);
+    if esperar_cierre(resultado.h, ESPERA_LIBERACION) {
+        return true;
+    }
+    if let Err(error) = cerrar_ventana(resultado.h, &json!({ "cancelar": true })) {
+        tracing::warn!(%error, "no se pudo cerrar '{RESULTADO}' tras un fallo");
+    }
+    esperar_cierre(resultado.h, ESPERA_LIBERACION)
 }
 
 #[cfg(test)]
