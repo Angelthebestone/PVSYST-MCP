@@ -8,6 +8,7 @@ mod esquema;
 mod formas;
 mod informe;
 mod lectura;
+mod planas;
 mod problema;
 mod verificacion;
 

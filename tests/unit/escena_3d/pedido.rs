@@ -1,6 +1,6 @@
 use super::comparar;
 use super::describir_escena;
-use super::formas::FORMAS;
+use super::formas::formas;
 use super::leer_objetos;
 use crate::escena_3d::codec::parse_escena_3d;
 use crate::escena_3d::dominio::TipoArchivoEscena;
@@ -78,19 +78,19 @@ fn should_give_each_dimension_the_position_it_has_in_params() {
 
 #[test]
 fn should_list_the_27_shapes_with_unique_keys_and_file_types() {
-    let mut claves: Vec<&str> = FORMAS.iter().map(|f| f.tipo).collect();
-    let mut tipos: Vec<&str> = FORMAS.iter().map(|f| f.tipo_pvsyst).collect();
+    let mut claves: Vec<&str> = formas().map(|f| f.tipo).collect();
+    let mut tipos: Vec<&str> = formas().map(|f| f.tipo_pvsyst).collect();
     claves.sort_unstable();
     claves.dedup();
     tipos.sort_unstable();
     tipos.dedup();
-    assert_eq!((FORMAS.len(), claves.len(), tipos.len()), (27, 27, 27));
+    assert_eq!((formas().count(), claves.len(), tipos.len()), (27, 27, 27));
 }
 
 #[test]
 fn should_match_every_shape_with_what_pvsyst_saved_for_its_default_values() {
     let escena = parse_escena_3d(FORMAS_GUARDADAS, TipoArchivoEscena::Shd).expect("saved scene");
-    for forma in FORMAS {
+    for forma in formas() {
         let defectos: Vec<f64> = forma.parametros.iter().map(|p| p.defecto).collect();
         let guardada = escena
             .objetos()

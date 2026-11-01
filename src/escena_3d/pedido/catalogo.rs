@@ -1,4 +1,5 @@
-//! The 27 elementary shapes of PVsyst 8.1.8's `TElementaryObjectForm`, as data.
+//! The solids and the trees of the 27 elementary shapes of PVsyst 8.1.8's `TElementaryObjectForm`, as data;
+//! the seven flat figures are in `planas.rs`.
 //!
 //! Measured live on 2026-10-29: each shape was created with its default values,
 //! the scene exported with `Archivo > Exportar escena (.SHD)` and the file read
@@ -10,15 +11,10 @@
 //! order is proven for all 27.
 
 use super::formas::{
-    angulo, apertura, caja, cuenta, giro, longitud, Forma, Parametro, PARAMETROS_DE_CAJA,
+    angulo, apertura, caja, cuenta, longitud, Forma, Parametro, PARAMETROS_DE_CAJA,
 };
+use super::planas::{LADOS, PLANAS};
 
-const ROTACION: Parametro = giro("rotacion_plano_deg", "Rotación en plano");
-const LADOS: [Parametro; 3] = [
-    longitud("lado_1_2", "Lado 1-2", 1.0),
-    longitud("lado_2_3", "Lado 2-3", 1.0),
-    longitud("lado_3_1", "Lado 3-1", 1.0),
-];
 const TECHO_ANCHO_LARGO: [Parametro; 5] = [
     longitud("ancho_base", "Ancho base", 8.0),
     longitud("longitud_superior", "Longitud superior", 12.0),
@@ -31,69 +27,12 @@ const TECHO_ANCHO_LARGO: [Parametro; 5] = [
     angulo("aguilon_2_angulo_deg", "Aguilón 2 ángulo", 0.0),
 ];
 
-pub(crate) const FORMAS: &[Forma] = &[
-    Forma::nueva(
-        "triangulo",
-        ("oeTriangle", "Triángulo"),
-        &[LADOS[0], LADOS[1], LADOS[2], ROTACION],
-    ),
-    Forma::nueva(
-        "triangulo_isosceles",
-        ("oeTriangleIsocele", "Triángulo Isósceles"),
-        &[
-            longitud("base", "Base", 1.0),
-            longitud("altura", "Altura", 1.0),
-            ROTACION,
-        ],
-    ),
-    Forma::nueva(
-        "triangulo_rectangulo",
-        ("oeTriangleRectangle", "Triángulo Rectángulo"),
-        &[
-            longitud("base", "Base", 1.0),
-            longitud("altura", "Altura", 1.0),
-            ROTACION,
-        ],
-    ),
-    Forma::nueva(
-        "rectangulo",
-        ("oeRectangle", "Rectángulo"),
-        &[
-            longitud("anchura", "Anchura", 1.0),
-            longitud("altura", "Altura", 2.0),
-            ROTACION,
-        ],
-    ),
-    Forma::nueva(
-        "trapecio",
-        ("oeTrapeze", "Trapecio"),
-        &[
-            longitud("base_inferior", "Base inferior", 3.0),
-            longitud("base_superior", "Base superior", 2.0),
-            longitud("altura", "Altura", 1.0),
-            longitud("desviacion_izquierda", "Desviación izquierda", 0.5),
-            ROTACION,
-        ],
-    ),
-    Forma::nueva(
-        "poligono_regular",
-        ("oeRegularPolygon", "Polígono regular"),
-        &[
-            longitud("radio", "Radio", 1.0),
-            cuenta("num_lados", "Núm. de lados", 6.0),
-            ROTACION,
-        ],
-    ),
-    Forma::nueva(
-        "sector_seudocircular",
-        ("oePseudoCircleSector", "Sector seudocircular"),
-        &[
-            longitud("radio", "Radio", 1.0),
-            apertura("angulo_apertura_deg", "Ángulo de apertura", 180.0),
-            cuenta("num_segmentos", "Núm. de segmentos", 8.0),
-            ROTACION,
-        ],
-    ),
+/// All 27 shapes, flat figures first (the order of PVsyst's combo).
+pub(crate) fn formas() -> impl Iterator<Item = &'static Forma> + Clone {
+    PLANAS.iter().chain(SOLIDOS)
+}
+
+const SOLIDOS: &[Forma] = &[
     Forma::nueva(
         "paralelepipedo",
         ("oeParallelepipede", "Paralelepípedo"),

@@ -2,7 +2,7 @@
 //! a scene (`gui_observar que:esquema entidad:escena_3d.formas`). Pure: it only
 //! describes `catalogo.rs`.
 
-use super::formas::{Forma, Parametro, FORMAS};
+use super::formas::{formas, Forma, Parametro};
 use serde_json::{json, Value};
 
 /// Keys every object takes besides the values of its shape.
@@ -51,7 +51,7 @@ pub(crate) fn esquema_de_formas() -> Value {
             .iter()
             .map(|(clave, unidad, nota)| json!({"clave": clave, "unidad": unidad, "nota": nota}))
             .collect::<Vec<_>>(),
-        "formas": FORMAS.iter().map(forma_json).collect::<Vec<_>>(),
+        "formas": formas().map(forma_json).collect::<Vec<_>>(),
         "avisos": ["Los rangos son límites del MCP; los de PVsyst no están medidos."],
     })
 }

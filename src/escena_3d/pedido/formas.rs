@@ -1,9 +1,9 @@
 //! What a shape is, as data: its key, PVsyst's type name and the parameters in
-//! the order of `Params=` in the file. The rows are in `catalogo.rs`.
+//! the order of `Params=` in the file. The rows are in `planas.rs` and `catalogo.rs`.
 
 use std::collections::BTreeMap;
 
-pub(super) use super::catalogo::FORMAS;
+pub(super) use super::catalogo::formas;
 
 /// Values of one object by key, in meters and degrees.
 pub(crate) type Valores = BTreeMap<&'static str, f64>;
@@ -173,5 +173,5 @@ pub(super) fn caja(v: &Valores) -> [f64; 3] {
 
 /// The shape named `tipo`. O(27).
 pub(crate) fn forma_de(tipo: &str) -> Option<&'static Forma> {
-    FORMAS.iter().find(|f| f.tipo == tipo)
+    formas().find(|f| f.tipo == tipo)
 }

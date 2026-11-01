@@ -30,8 +30,11 @@ pub(super) fn descartar(dialogo: &Formulario) {
         tracing::warn!(clase = %dialogo.clase(), "no se pudo cancelar el diálogo tras un fallo");
         return;
     }
-    if let Ok(pregunta) = esperar(dialogo.pid(), "TMessageForm", ESPERA_PREGUNTA) {
-        let _ = pregunta.pulsar("No");
+    let Ok(pregunta) = esperar(dialogo.pid(), "TMessageForm", ESPERA_PREGUNTA) else {
+        return;
+    };
+    if let Err(error) = pregunta.pulsar("No") {
+        tracing::warn!(%error, "no se pudo responder «No» a «¿conservar modificaciones?» tras un fallo");
     }
 }
 

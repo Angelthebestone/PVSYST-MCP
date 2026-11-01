@@ -1,7 +1,7 @@
 //! Reads and validates the objects an agent asks for. Every problem is
 //! reported at once, with the keys the object accepts.
 
-use super::formas::{forma_de, Forma, Parametro, Valores, FORMAS};
+use super::formas::{forma_de, formas, Forma, Parametro, Valores};
 use super::problema::Problema;
 use crate::error::{Error, Result};
 use serde_json::{Map, Value};
@@ -135,7 +135,7 @@ fn forma_del_objeto(objeto: &Map<String, Value>) -> Result<&'static Forma, Probl
         .ok_or(Problema::FaltaTipo)?;
     forma_de(tipo).ok_or_else(|| Problema::TipoDesconocido {
         tipo: tipo.to_string(),
-        validos: FORMAS.iter().map(|f| f.tipo).collect(),
+        validos: formas().map(|f| f.tipo).collect(),
     })
 }
 
