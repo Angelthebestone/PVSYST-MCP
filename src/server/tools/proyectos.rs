@@ -223,21 +223,50 @@ fn configurar_variante(paths: &Paths, args: &Value) -> Result<Value> {
         .ok_or_else(|| {
             Error::Invalid("'pasos' debe ser una lista no vacía de {accion:…}".into())
         })?;
+    // Every step goes through the same aliases and schema checks as a direct call.
     let llamadas = pasos
         .iter()
-        .map(|p| paso_completo(args, p))
+        .enumerate()
+        .map(|(i, p)| {
+            let llamada = TOOL_PROYECTO.preparar_args(&paso_completo(args, p)?)?;
+            TOOL_PROYECTO
+                .validar(&llamada, paths.aproximaciones)
+                .map_err(|e| {
+                    con_prefijo(e, &format!("Paso {} inválido; no se aplicó ninguno", i + 1))
+                })?;
+            Ok(llamada)
+        })
         .collect::<Result<Vec<_>>>()?;
     let mut resultados = Vec::with_capacity(llamadas.len());
     for (indice, llamada) in llamadas.iter().enumerate() {
         let resultado = ejecutar_proyecto(paths, llamada).map_err(|e| {
-            Error::Invalid(format!(
-                "Paso {} fallido tras aplicar {indice} paso(s): {e}",
-                indice + 1
-            ))
+            con_prefijo(
+                e,
+                &format!("Paso {} fallido tras aplicar {indice} paso(s)", indice + 1),
+            )
         })?;
         resultados.push(resultado);
     }
     Ok(serde_json::json!({ "pasos_aplicados": resultados.len(), "resultados": resultados }))
+}
+
+/// `e` with `prefijo` before its message, keeping its kind so the answer's error code
+/// still says what went wrong (not every failure is an invalid argument).
+fn con_prefijo(e: Error, prefijo: &str) -> Error {
+    let con = |m: String| format!("{prefijo}: {m}");
+    match e {
+        Error::Invalid(m) => Error::Invalid(con(m)),
+        Error::NotFound(m) => Error::NotFound(con(m)),
+        Error::Format(m) => Error::Format(con(m)),
+        Error::Cli(m) => Error::Cli(con(m)),
+        Error::Gui(m) => Error::Gui(con(m)),
+        Error::Network(m) => Error::Network(con(m)),
+        Error::Io { context, source } => Error::Io {
+            context: con(context),
+            source,
+        },
+        otro @ (Error::MissingArg { .. } | Error::MissingArgs { .. }) => otro,
+    }
 }
 
 fn configurar_p50(paths: &Paths, args: &Value) -> Result<Value> {

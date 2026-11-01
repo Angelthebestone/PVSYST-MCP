@@ -175,3 +175,37 @@ fn should_demand_the_window_when_a_menu_command_names_none() {
         "missing expected 'ventana' error, got: {error}"
     );
 }
+
+#[test]
+fn should_validate_every_configured_step_before_applying_the_first() {
+    let ws = tempfile::tempdir().expect("ws");
+    let paths = Paths::para_test(ws.path());
+    let args = json!({
+        "accion": "configurar",
+        "proyecto": "Planta",
+        "pasos": [
+            { "accion": "perdidas" },
+            { "accion": "limite_inyeccion" }
+        ]
+    });
+
+    let err = call(&paths, "proyecto", &args).expect_err("paso 2 sin potencia_kw");
+
+    let msg = err.to_string();
+    assert!(msg.contains("potencia_kw"), "{msg}");
+    assert!(!msg.contains("Paso 1 fallido"), "{msg}");
+}
+
+#[test]
+fn should_keep_the_error_kind_of_a_failed_step() {
+    let ws = tempfile::tempdir().expect("ws");
+    let paths = Paths::para_test(ws.path());
+    let args = json!({ "accion": "configurar", "proyecto": "NoExiste", "pasos": [ { "accion": "perdidas", "suciedad_pct": 2 } ] });
+
+    let err = call(&paths, "proyecto", &args).expect_err("proyecto inexistente");
+
+    assert!(
+        matches!(&err, crate::error::Error::NotFound(m) if m.starts_with("Paso 1 fallido")),
+        "{err:?}"
+    );
+}

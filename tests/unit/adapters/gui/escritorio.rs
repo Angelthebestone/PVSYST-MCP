@@ -24,10 +24,12 @@ fn should_reject_unknown_values_when_a_typo_would_drive_the_users_desktop() {
 fn should_quote_every_part_when_building_the_command_line() {
     let linea = linea_de_comando(
         Path::new(r"C:\Program Files\PVsyst8.1.7\PVsyst.exe"),
-        &[Path::new(r"C:\Users\Ana María\Projects\Casa.PRJ")],
+        &[Path::new(
+            r"C:\Users\Usuaria Ejemplo\Proyectos Año\Casa.PRJ",
+        )],
     );
     assert_eq!(
         linea,
-        r#""C:\Program Files\PVsyst8.1.7\PVsyst.exe" "C:\Users\Ana María\Projects\Casa.PRJ""#
+        r#""C:\Program Files\PVsyst8.1.7\PVsyst.exe" "C:\Users\Usuaria Ejemplo\Proyectos Año\Casa.PRJ""#
     );
 }

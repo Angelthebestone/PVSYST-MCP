@@ -1,5 +1,5 @@
 //! Catalogue filters for `listar_modulos`: nominal power range and free text
-//! over file name, vendor and model. Module metadata is parsed by `pan.rs`.
+//! over file name, vendor and model. Module metadata is parsed by `components::pan`.
 
 use crate::error::Result;
 use serde_json::{json, Value};

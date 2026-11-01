@@ -1,5 +1,7 @@
-//! PV module window (`TPVModuleForm`, "Datos básicos" page), PVsyst 8.1.7.
-//! Anchors are the control corners in the form's 96-DPI layout, measured live;
+//! PV module window (`TPVModuleForm`, "Datos básicos" page). Anchors are the control
+//! corners in the form's 96-DPI layout, measured live on PVsyst 8.1.7; units and file
+//! keys were checked against a `.PAN` saved by PVsyst 8.1.8. [INFERENCIA] ranges and
+//! the `clave_archivo` of fields not in that `.PAN` have no measured source;
 //! file keys are the ones `componente crear_desde_ficha` already writes.
 
 use crate::vista_agente::dominio::{Ancla, CampoEsquema, Entidad};

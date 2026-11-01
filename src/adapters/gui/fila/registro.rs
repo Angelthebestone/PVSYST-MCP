@@ -1,5 +1,5 @@
-//! Row geometry measured per control (PVsyst 8.1.7, 144 DPI, captures at the
-//! 96-DPI layout). The row height is not global: each control has its own, and
+//! Row geometry measured per control at 144 DPI, captures at the 96-DPI layout:
+//! the project tree and the module list on PVsyst 8.1.7, the 3D object table on 8.1.8. The row height is not global: each control has its own, and
 //! a control of the same class in another window is not assumed to match.
 
 use super::error::ErrorFila;

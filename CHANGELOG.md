@@ -24,6 +24,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Contract, size measurements and the tool × action matrix: `docs/vista_agente_salidas.md`.
 
 ### Fixed
+- Review of the PR (Haiku review, `docs/REVISION_HAIKU_HALLAZGOS.md`), each finding reproduced first:
+  - **Confinement**: project names that are not plain relative paths (`\Users\x`, `C:x`), RVT templates, `simular`
+    `output_csv`/`report_pdf`, `sitio crear` `weather_data_file`/`cmd_options_file`/`output_sit_file`, horizon and series lookups and
+    DataRO fallbacks stay inside the workspace unless `permitir_fuera_del_workspace`; `sitio` of `proyecto crear`, history ids,
+    insertion roles and written file names (`CONIN$`, `CONOUT$`) are validated; variants are `VCn`/`CMn` everywhere.
+  - **Refused input instead of silent changes**: `extra_options` that redefine a flag the MCP builds (`-w`, `-p`, `-v`, `-ocf`, `-s`,
+    …); batch fields with `;` or line breaks; non-text `opciones` of `pvsyst_cli`, `variables` of RVT and series, `variantes` of
+    `resultados comparar`; a non-numeric `PNomConv`; invalid `offset`/`limite`; repeated series variables; `editar` of a component
+    without `cambios`. `sitio crear` needs its weather file to exist (as `convertir_meteo` already did).
+  - **Partial work is reported**: `rellenar` keeps the fields typed before a failure and adds `campos_que_difieren`, `completo:false`,
+    `errores` and `formulario_error`; `gui_actuar accion:funcion` says when the expected window never opened; PVsyst sizing and horizon
+    import compare what was saved; `crear_desde_ficha` stops before saving a datasheet that was not typed as asked and lists
+    `diferencias_con_la_ficha`; a legacy MEF without readable variables is `completo:false`; a deliverable lists `secciones_omitidas`.
+  - **No data loss on failure paths**: `disenar_sistema` undoes only its own project's files; `proyecto crear` writes the site into the
+    PRJ before the pair is written (and in the call's workspace); `doctor` keeps checking after an unreadable variant; exports of a
+    component or a project need `sobrescribir` to replace a file; `PVsyst.ini` and series files keep bytes outside UTF-8; truncated
+    files are refused; folders are listed without dropping unreadable entries.
+  - **Processes and cache**: PVsystCLI is always killed and reaped on an early exit; reader threads and `tar` stderr no longer block;
+    a background job is recorded before it starts and a panic is its error; default outputs are cached and restored; `-s` enters
+    the cache key; a damaged cache entry or ledger no longer breaks a run or skips the trial confirmation.
+  - Simulation KPIs of `disenar_sistema` no longer carry an always-null `kwp` (the design answer has `kwp_realizado`), and a PAN created
+    by approximation no longer carries an always-empty `ignorados`.
 - Review of the PR (cloud ultrareview), each finding checked against the code first:
   - A `gui_actuar accion:paso` that asks for no verification (`verificado:false`) is `ok` again; only a scene answer that counts
     `campos_que_difieren` is partial.

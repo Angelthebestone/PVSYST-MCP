@@ -342,7 +342,7 @@
       "win32"
     ]
   },
-  "description": "Automates PVsyst 8.1.7 through its data files and the documented PVsystCLI commands.",
+  "description": "Automates PVsyst 8.1 (measured on 8.1.7 and 8.1.8) through its data files, the documented PVsystCLI commands and its own windows.",
   "display_name": "PVsyst MCP",
   "documentation": "https://github.com/Angelthebestone/PVSYST-MCP#readme",
   "homepage": "https://github.com/Angelthebestone/PVSYST-MCP",

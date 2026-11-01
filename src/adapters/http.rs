@@ -35,7 +35,9 @@ fn leer_acotado(origen: impl Read, max: u64) -> Result<Vec<u8>> {
 /// Fetch `url` and return the response body. Fails when curl cannot start,
 /// exits non-zero, returns an empty body or one over [`MAX_CUERPO_BYTES`].
 pub(crate) fn http_get(url: &str) -> Result<String> {
-    tracing::info!(url, "HTTP GET");
+    // The query carries the site coordinates: only the endpoint is logged.
+    let endpoint = url.split_once('?').map_or(url, |(base, _)| base);
+    tracing::info!(endpoint, "HTTP GET");
     let mut curl = Command::new(curl_exe())
         .args(["-sS", "-L", "--max-time", "30", url])
         .stdout(Stdio::piped())
