@@ -5,6 +5,8 @@ use super::plan::{coincide, es_valido, planificar};
 use crate::error::Error;
 use serde_json::{json, Map, Value};
 
+mod coincidencia;
+
 fn valores(v: &Value) -> Map<String, Value> {
     v.as_object().cloned().unwrap_or_default()
 }

@@ -10,12 +10,14 @@ pub(crate) mod contrato;
 mod dominio;
 mod escritura;
 mod esquemas;
+mod exactitud;
 mod informe_relleno;
 mod plan;
 mod relleno;
 mod ventana;
 mod vista;
 
+pub(crate) use exactitud::rellenar_exacto;
 pub(crate) use relleno::rellenar;
 pub(crate) use vista::{listar_esquemas, vista};
 

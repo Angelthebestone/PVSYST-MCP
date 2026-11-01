@@ -2,7 +2,7 @@
 //! schema keys and reports what each field holds afterwards.
 
 use super::campos_vivos::{campos_vivos, localizar, recalculados, valor_de, CampoVivo};
-use super::dominio::{CampoEsquema, Entidad, TipoValor};
+use super::dominio::{Entidad, TipoValor};
 use super::escritura::{escribir, EscrituraDestino};
 use super::esquemas::entidad;
 use super::informe_relleno::{
@@ -11,7 +11,7 @@ use super::informe_relleno::{
 use super::plan::{planificar, Cambio};
 use super::ventana::ventana_de;
 use crate::adapters::gui::conduccion::Formulario;
-use crate::adapters::gui::ffi;
+use crate::adapters::gui::ffi::{self, Hwnd};
 use crate::args::{flag, missing, req_str};
 use crate::error::{Error, Result};
 use serde_json::{json, Map, Value};

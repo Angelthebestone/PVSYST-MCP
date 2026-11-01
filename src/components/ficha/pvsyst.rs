@@ -188,15 +188,8 @@ pub(super) fn valores_de(t: &Tipo, datos: &Map<String, Value>, nombre: &str) -> 
 /// Types the datasheet; a field that failed or reads back differently stops before saving.
 fn rellenar(paths: &Paths, t: &Tipo, valores: &Map<String, Value>) -> Result<()> {
     let pedido = json!({ "entidad": t.entidad, "valores": valores, "ventana": t.formulario });
-    let hecho = crate::vista_agente::rellenar(paths, &pedido)?;
-    let difieren = hecho["campos_que_difieren"].as_u64().unwrap_or(0);
-    if hecho["completo"] == false || difieren > 0 {
-        return Err(Error::Gui(format!(
-            "La ficha no quedó como se pidió ({difieren} campo(s) distinto(s), errores {}): no se guarda",
-            hecho["errores"]
-        )));
-    }
-    Ok(())
+    // A value PVsyst limited or did not take must not end up saved in the component.
+    crate::vista_agente::rellenar_exacto(paths, &pedido).map(|_| ())
 }
 
 fn guardar(s: &Sesion, f: &Formulario) -> Result<()> {

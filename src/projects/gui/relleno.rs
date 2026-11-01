@@ -3,7 +3,7 @@
 
 use crate::adapters::gui::conduccion::Formulario;
 use crate::config::Paths;
-use crate::error::{Error, Result};
+use crate::error::Result;
 use serde_json::{json, Value};
 
 /// Types `valores` ({key: value}) into `formulario`, an open window of entity `entidad`.
@@ -18,35 +18,8 @@ pub(super) fn rellenar(
         "ventana": format!("0x{:X}", formulario.h),
         "valores": valores,
     });
-    let respuesta = crate::vista_agente::rellenar(paths, &pedido)?;
-    let distinto = respuesta["resultados"]
-        .as_array()
-        .into_iter()
-        .flatten()
-        .find(|r| !tomado(r));
-    if let Some(r) = distinto {
-        return Err(Error::Gui(format!(
-            "PVsyst no tomó '{}': pedido {}, leído {}",
-            r["clave"], r["pedido"], r["despues"]
-        )));
-    }
+    let respuesta = crate::vista_agente::rellenar_exacto(paths, &pedido)?;
     Ok(respuesta["formulario"].clone())
-}
-
-/// Largest relative gap between a number asked for and the one PVsyst shows back: PVsyst keeps
-/// the decimals of its own field (12.345 reads back 12.3), which is still the value it took.
-const REDONDEO_DE_PVSYST: f64 = 0.01;
-
-/// Whether PVsyst took the value of one result of the fill.
-fn tomado(resultado: &Value) -> bool {
-    if resultado["estado"] == "ok" {
-        return true;
-    }
-    let numero = |v: &Value| v.as_str().and_then(crate::format::numero_texto);
-    match (numero(&resultado["pedido"]), numero(&resultado["despues"])) {
-        (Some(pedido), Some(leido)) => (pedido - leido).abs() <= pedido.abs() * REDONDEO_DE_PVSYST,
-        _ => false,
-    }
 }
 
 /// The value of field `clave` in what [`rellenar`] returned.
@@ -58,7 +31,3 @@ pub(super) fn valor(formulario: &Value, clave: &str) -> Value {
         .find(|c| c["clave"] == clave)
         .map_or(Value::Null, |c| c["valor"].clone())
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/projects/gui/relleno.rs"]
-mod tests;
