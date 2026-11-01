@@ -64,6 +64,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `proyecto dimensionar`, P50 and horizon are refused on the isolated desktop before PVsyst is touched: loading a project and saving its
     variant now go through menus, which need the keyboard (they used to click the toolbar with an emulated mouse; not measured on
     the isolated desktop, `tests/aislado.rs` has never run).
+- Review of the PR (code-review), each finding checked against the code first:
+  - `escena_importar`: a failure while opening the dialog or waiting for «Importar resultado» closes whatever it left open (file dialog,
+    PVsyst's error box); an error box ends the wait at once instead of after 120 s. The protected-folder check compares path components of
+    the absolute and the real path (`PROGRA~1`, junctions), not a substring of the text.
+  - `rellenar` never clicks a check box whose state it could not read, and refuses an option asked as `false` before typing anything.
+    A number reads back as `ok` only within half a unit of the last decimal PVsyst shows (12.345 reads 12.3; 100 read as 100.9 is
+    `distinto`); counts are exact. The datasheet flow (`componente crear`) and the project steps fail, listing every field PVsyst did
+    not take, instead of saving or sizing on top of it.
+  - `gui_actuar accion:teclas` on a child control works again on the isolated desktop (`foco:false` if the control did not take the focus).
+  - Scene text files: grouped objects count one by one, a file cut off while PVsyst writes it is refused, and a missing `total_objetos`
+    is not read as an empty editor. `describir_escena` lists at most 1000 colliding pairs (`colisiones_total` counts all).
+  - The install folders of PVsyst are listed once per process, not on every request that needs `DataRO`.
 - **`disenar_sistema` sizing no longer loops over billions of candidates** when a database file carries an absurd voltage (a tiny `Voc`, a
   huge or non-finite `VAbsMax`): the series search stops at 1000 modules and a non-finite voltage finds no layout.
 - **`http_get` (PVGIS, uncertainty lookups) refuses a body over 64 MiB** and stops reading it instead of buffering whatever the server sends.
