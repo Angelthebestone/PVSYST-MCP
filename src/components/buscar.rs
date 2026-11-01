@@ -13,10 +13,7 @@ pub(crate) struct Criterios {
 
 /// Number from a JSON number or a numeric string (decimal comma allowed).
 pub(crate) fn numero(v: &Value) -> Option<f64> {
-    v.as_f64().or_else(|| {
-        v.as_str()
-            .and_then(|s| s.trim().replace(',', ".").parse::<f64>().ok())
-    })
+    crate::format::numero_json(v)
 }
 
 /// Module metadata shown in the listing; a parse failure becomes `error`.

@@ -187,7 +187,7 @@ pub(crate) fn exigir_escritorio() -> Result<()> {
     }
 }
 
-pub(crate) fn invocar(_paths: &crate::config::Paths, args: &Value) -> Result<Value> {
+pub(crate) fn invocar(args: &Value) -> Result<Value> {
     let scoped = ventanas_de(args)?;
     let reference = req_str(
         args,

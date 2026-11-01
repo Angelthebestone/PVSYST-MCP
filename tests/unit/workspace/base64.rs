@@ -17,3 +17,11 @@ fn should_reject_non_canonical_base64() {
         );
     }
 }
+
+#[test]
+fn should_encode_with_padding_per_rfc_4648() {
+    assert_eq!(base64(b"Man"), "TWFu");
+    assert_eq!(base64(b"Ma"), "TWE=");
+    assert_eq!(base64(b"M"), "TQ==");
+    assert_eq!(base64(b""), "");
+}

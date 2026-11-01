@@ -21,10 +21,21 @@ pub(crate) enum FinDeLinea {
     Crlf,
 }
 
+impl FinDeLinea {
+    /// The terminator a raw line already uses (`\r` left by splitting on `\n`).
+    pub(crate) fn de(linea: &[u8]) -> Self {
+        if linea.ends_with(b"\r") {
+            Self::Crlf
+        } else {
+            Self::Lf
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ChangeOutcome {
     pub key: String,
-    pub action: String, // "replaced" | "inserted" | "deleted" | "not-found"
+    pub action: String, // "replaced" | "inserted" | "deleted"
     pub old_value: Option<String>,
     pub new_value: Option<String>,
 }
@@ -163,11 +174,7 @@ fn apply_field_change(
     let found = find_field_line(doc, span, in_child, key);
     match (found, value) {
         (Some((i, old)), Some(new)) => {
-            let fin = if doc.lines[i].ends_with(b"\r") {
-                FinDeLinea::Crlf
-            } else {
-                FinDeLinea::Lf
-            };
+            let fin = FinDeLinea::de(&doc.lines[i]);
             let indent = indent_width(&doc.lines[i]);
             doc.lines[i] = field_line(indent, key, new, fin);
             Ok(outcome(key, "replaced", Some(old), Some(new)))
@@ -223,11 +230,7 @@ pub(crate) fn edit_fields(
         outcomes.push(outcome);
     }
 
-    let fin = if doc.lines[span.open].ends_with(b"\r") {
-        FinDeLinea::Crlf
-    } else {
-        FinDeLinea::Lf
-    };
+    let fin = FinDeLinea::de(&doc.lines[span.open]);
     for (key, value) in inserts.into_iter().rev() {
         doc.lines
             .insert(span.open + 1, field_line(find, key, value, fin));

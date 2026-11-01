@@ -226,7 +226,7 @@ pub(crate) fn eliminar_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
                 .parent()
                 .ok_or_else(|| Error::Invalid("No parent directory".into()))?;
             std::iter::once(prj.clone())
-                .chain(variant_files(parent, &stem))
+                .chain(variant_files(parent, &stem)?)
                 .collect()
         }
     };
@@ -255,7 +255,7 @@ pub(crate) fn renombrar_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
         .to_path_buf();
 
     let mut pares: Vec<(PathBuf, PathBuf)> = vec![(prj, parent.join(format!("{nuevo}.PRJ")))];
-    for v in variant_files(&parent, &stem) {
+    for v in variant_files(&parent, &stem)? {
         if let Some(ext) = v.extension().and_then(|s| s.to_str()) {
             let destino = parent.join(format!("{nuevo}.{ext}"));
             pares.push((v.clone(), destino));

@@ -51,13 +51,10 @@ pub(crate) fn dimensionar(
 /// Whether the saved value is not the one PVsyst proposed in the form (compared as
 /// numbers; a proposal the form did not show cannot be compared).
 fn difiere(propuesto: &Value, guardado: Option<&str>) -> bool {
-    let numero = |t: &str| t.trim().replace(',', ".").parse::<f64>().ok();
-    let propuesto = match propuesto {
-        Value::Number(n) => n.as_f64(),
-        Value::String(t) => numero(t),
-        _ => return false,
-    };
-    propuesto != guardado.and_then(numero)
+    if !matches!(propuesto, Value::Number(_) | Value::String(_)) {
+        return false;
+    }
+    crate::format::numero_json(propuesto) != guardado.and_then(crate::format::numero_texto)
 }
 
 fn respuesta(

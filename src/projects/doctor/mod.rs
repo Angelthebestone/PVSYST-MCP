@@ -8,7 +8,7 @@ pub(crate) mod sintaxis;
 
 use crate::args::{self, flag, opt_str, req_str};
 use crate::config::Paths;
-use crate::error::{Error, Result};
+use crate::error::Result;
 use crate::projects::doctor::electrico::{revisar_electrico, ContextoElectrico};
 use crate::projects::doctor::referencias::{revisar_componentes, revisar_sitio};
 use crate::projects::doctor::seguidores::revisar_seguidor;
@@ -16,7 +16,6 @@ use crate::projects::doctor::sintaxis::{revisar_archivo, DestinoRevision};
 use crate::workspace::leer_bytes;
 use crate::workspace::Alcance;
 use serde_json::{json, Value};
-use std::fs;
 use std::path::{Path, PathBuf};
 
 /// Findings and repairs accumulated over one doctor run.
@@ -87,24 +86,17 @@ fn revisar_variante(ctx: &ContextoVariante<'_>, var: &Path, inf: &mut Informe) -
 fn variantes_de(prj: &Path, filtro: Option<&str>) -> Result<Vec<PathBuf>> {
     let dir = prj.parent().unwrap_or(Path::new("."));
     let stem = prj.file_stem().and_then(|s| s.to_str()).unwrap_or_default();
-    let mut out = Vec::new();
-    let entradas = fs::read_dir(dir)
-        .map_err(|e| Error::io(format!("No se pudo listar {}", dir.display()), e))?;
-    for entrada in entradas.flatten() {
-        let p = entrada.path();
-        let ext = p
-            .extension()
-            .and_then(|x| x.to_str())
-            .unwrap_or("")
-            .to_ascii_uppercase();
-        let es_variante = ext.len() == 3 && (ext.starts_with("VC") || ext.starts_with("CM"));
-        let coincide = filtro.is_none_or(|f| ext.eq_ignore_ascii_case(f));
-        if es_variante && coincide && p.file_stem().and_then(|s| s.to_str()) == Some(stem) {
-            out.push(p);
-        }
-    }
-    out.sort();
-    Ok(out)
+    let todas = crate::projects::lifecycle::variantes::variant_files(dir, stem)?;
+    Ok(todas
+        .into_iter()
+        .filter(|p| {
+            filtro.is_none_or(|f| {
+                p.extension()
+                    .and_then(|x| x.to_str())
+                    .is_some_and(|e| e.eq_ignore_ascii_case(f))
+            })
+        })
+        .collect())
 }
 
 /// `proyecto accion:doctor {proyecto, variante?, reparar?}`.

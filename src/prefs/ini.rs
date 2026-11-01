@@ -4,7 +4,6 @@
 
 use crate::adapters::gui::gui_running;
 use crate::args::{opt_str, req_str};
-use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::history::{escribir_atomico, raiz_usuario, snapshot_usuario};
 use serde_json::{json, Map, Value};
@@ -179,7 +178,7 @@ pub(crate) fn reemplazar_clave(
 /// Without `seccion` returns only the key count per section, so routine calls
 /// stay small; pass `seccion` to see its keys and values.
 /// Pass `clave` together with `seccion` to return only that key.
-pub(crate) fn preferencias(_paths: &Paths, args: &Value) -> Result<Value> {
+pub(crate) fn preferencias(args: &Value) -> Result<Value> {
     let ruta = ini_path()?;
     let (texto, _) = decodificar(&leer(&ruta)?);
     let mut secciones = parsear(&texto);

@@ -1,15 +1,22 @@
 use super::*;
 
 #[test]
-fn should_identify_variant_kind_when_stem_matches() {
-    let p = Path::new("Projects/DEMO.VC0");
-    assert_eq!(variant_kind(p, "DEMO"), Some("VC0".into()));
-}
+fn should_list_variants_of_the_project_only_when_names_match_the_rule() {
+    let dir = tempfile::tempdir().expect("dir");
+    for nombre in [
+        "DEMO.PRJ",
+        "DEMO.VC0",
+        "DEMO.cm1",
+        "DEMO.VC~",
+        "OTHER.VC0",
+        "DEMO.VC10",
+    ] {
+        std::fs::write(dir.path().join(nombre), "x").expect("archivo");
+    }
 
-#[test]
-fn should_reject_variant_kind_when_stem_differs() {
-    let p = Path::new("Projects/OTHER.VC0");
-    assert_eq!(variant_kind(p, "DEMO"), None);
+    let variantes = variantes_de(&dir.path().join("DEMO.PRJ"), "DEMO");
+
+    assert_eq!(variantes, ["CM1", "VC0"]);
 }
 
 #[test]

@@ -13,11 +13,7 @@ pub(crate) struct Cambio {
 }
 
 fn numero_de(valor: &Value) -> Option<f64> {
-    match valor {
-        Value::Number(n) => n.as_f64(),
-        Value::String(s) => s.trim().replace(',', ".").parse().ok(),
-        _ => None,
-    }
+    crate::format::numero_json(valor)
 }
 
 /// Text of `valor` for `campo`, or why it is not acceptable.

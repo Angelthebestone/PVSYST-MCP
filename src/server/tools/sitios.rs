@@ -131,7 +131,7 @@ fn ejecutar_sitio(paths: &Paths, args: &Value) -> Result<Value> {
             }
         }
         "convertir_meteo" => sites::convertir_meteo(paths, args),
-        "geometria_solar" => sites::solar::geometria_solar(paths, args),
+        "geometria_solar" => sites::solar::geometria_solar(args),
         "horizonte_pvgis" => sites::pvgis::horizonte(paths, args),
         "meteo_pvgis" => sites::pvgis::meteo_pvgis(paths, args),
         "escribir_horizonte" => crate::horizonte_archivo::escribir_horizonte(paths, args),

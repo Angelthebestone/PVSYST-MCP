@@ -18,47 +18,23 @@ use crate::workspace::{es_relativa_simple, resolver_ruta, walk_ext, Alcance};
 use serde_json::{json, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::time::SystemTime;
 
-fn mtime(path: &Path) -> Option<u64> {
-    fs::metadata(path)
-        .ok()
-        .and_then(|m| m.modified().ok())
-        .and_then(|t| t.duration_since(SystemTime::UNIX_EPOCH).ok())
-        .map(|d| d.as_secs())
-}
-
-/// Is `path` a variant/comparison file for project `stem`?
-fn variant_kind(path: &Path, stem: &str) -> Option<String> {
-    let file_stem = path.file_stem()?.to_str()?;
-    let ext = path.extension()?.to_str()?.to_uppercase();
-    if file_stem != stem {
-        return None;
-    }
-    let bytes = ext.as_bytes();
-    if bytes.len() == 3
-        && (ext.starts_with("VC") || ext.starts_with("CM"))
-        && bytes[2].is_ascii_alphanumeric()
-    {
-        Some(ext)
-    } else {
-        None
-    }
-}
-
-/// Variant extensions (`VC0`, `CM1`, ...) found next to `prj`, sorted.
+/// Variant extensions (`VC0`, `CM1`, ...) found next to `prj`, sorted; an unreadable
+/// folder lists none (logged): this only feeds listings and hints.
 pub(crate) fn variantes_de(prj: &Path, stem: &str) -> Vec<String> {
     let Some(parent) = prj.parent() else {
         return Vec::new();
     };
-    let mut variants: Vec<String> = fs::read_dir(parent)
-        .into_iter()
-        .flatten()
-        .flatten()
-        .filter_map(|e| variant_kind(&e.path(), stem))
+    let archivos = lifecycle::variantes::variant_files(parent, stem).unwrap_or_else(|e| {
+        tracing::warn!(error = %e, "no se pudieron listar las variantes");
+        Vec::new()
+    });
+    let mut variantes: Vec<String> = archivos
+        .iter()
+        .filter_map(|p| p.extension()?.to_str().map(str::to_uppercase))
         .collect();
-    variants.sort();
-    variants
+    variantes.sort();
+    variantes
 }
 
 /// Header metadata from the .PRJ: comment, version, meteo file, and parse error warning if any.
@@ -114,7 +90,7 @@ fn resumen_proyecto(workspace: &Path, prj: &Path, detalle: DetalleProyecto) -> V
     let mut item = json!({
         "name": stem,
         "prj": rel,
-        "modified_unix": mtime(prj),
+        "modified_unix": crate::workspace::mtime_unix(prj),
         "comment": comment,
         "version": version,
         "meteo_file": meteo,

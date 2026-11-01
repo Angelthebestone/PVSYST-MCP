@@ -10,7 +10,6 @@
 //! an interactive desktop.
 
 pub(crate) mod acciones;
-pub(crate) mod base64;
 pub(crate) mod campo_por_etiqueta;
 pub(crate) mod campos;
 pub(crate) mod captura;
@@ -56,9 +55,9 @@ pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Val
         .and_then(Value::as_str)
         .unwrap_or("ventanas")
     {
-        "ventanas" => ventanas::ventanas(paths, args),
+        "ventanas" => ventanas::ventanas(args),
         "controles" => uia_vista::controles_con_uia(paths, args),
-        "leer" => ventanas::leer(paths, args),
+        "leer" => ventanas::leer(args),
         "capturar" => captura::capturar(paths, args),
         "uia" => uia_vista::observar_uia(paths, args),
         "arbol" => uia_vista::observar_arbol(paths, args),
@@ -123,12 +122,12 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         .unwrap_or("click")
     {
         accion @ ("click" | "mensaje" | "cerrar" | "activar") => {
-            acciones::invocar(paths, args).map_err(|e| Error::Gui(format!("{e} (accion {accion})")))
+            acciones::invocar(args).map_err(|e| Error::Gui(format!("{e} (accion {accion})")))
         }
         "clic_texto" => clic_por_texto::clic_texto(args),
         "clic_fisico" => {
             acciones::exigir_escritorio()?;
-            acciones::invocar(paths, args)
+            acciones::invocar(args)
         }
         "teclas" => teclado::teclas(args),
         "fila" => fila::fila(args),
@@ -140,12 +139,12 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         "escena" => escena::crear(paths, args),
         "escena_leer" => escena::leer(paths, args),
         "escena_importar" => escena::importar(paths, args),
-        "escribir" => campos::escribir(paths, args),
-        "seleccionar" => campos::seleccionar(paths, args),
+        "escribir" => campos::escribir(args),
+        "seleccionar" => campos::seleccionar(args),
         "pagina" => campos::pagina(paths, args),
-        "esperar_cierre" => campos::esperar_cierre_accion(paths, args),
+        "esperar_cierre" => campos::esperar_cierre_accion(args),
         "lanzar" => proceso::lanzar(paths, args),
-        "cerrar_todo" => proceso::cerrar_todo(paths, args),
+        "cerrar_todo" => proceso::cerrar_todo(args),
         "secuencia" => secuencia::secuencia(paths, args),
         "reiniciar" => recuperacion::reiniciar(paths, args),
         "uia_invocar" => uia_vista::uia_invocar(args),

@@ -1,5 +1,3 @@
-#[cfg(test)]
-use super::key::ClaveCache;
 use crate::adapters::ledger::{ahora, carpeta_cache};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
@@ -128,17 +126,4 @@ pub(crate) fn buscar(
     out["cache"] = json!(true);
     out["cache_clave"] = json!(clave);
     Ok(Some(out))
-}
-
-#[cfg(test)]
-pub(crate) fn buscar_con_clave(
-    workspace: &Path,
-    clave: &ClaveCache,
-    ocf: Option<&Path>,
-    rpf: Option<&Path>,
-) -> Result<Option<Value>> {
-    match clave {
-        ClaveCache::Valida(k) => buscar(workspace, k, ocf, rpf),
-        ClaveCache::Inutilizable { .. } => Ok(None),
-    }
 }

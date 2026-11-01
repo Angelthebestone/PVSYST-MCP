@@ -130,7 +130,7 @@ pub(super) fn variantes_con_resultados(workspace: &Path, proyecto: &str) -> Vec<
                 .and_then(|e| e.to_str())
                 .map(str::to_uppercase)
         })
-        .filter(|e| e.starts_with("VC") || e.starts_with("CM"))
+        .filter(|e| crate::projects::lifecycle::variantes::es_variante_valida(e))
         .filter(|e| {
             matches!(
                 resultado_de(workspace, Some(proyecto), Some(e), None),

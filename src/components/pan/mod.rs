@@ -27,9 +27,9 @@ fn num(v: Option<&str>) -> Value {
     match v {
         Some(s) => {
             let t = s.trim();
-            match t.replace(',', ".").parse::<f64>() {
-                Ok(f) => json!(f),
-                Err(_) => json!(t),
+            match crate::format::numero_texto(t) {
+                Some(f) => json!(f),
+                None => json!(t),
             }
         }
         None => Value::Null,

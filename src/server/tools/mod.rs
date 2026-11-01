@@ -180,33 +180,3 @@ fn pares_a_objeto(pares: &[(&str, &str)]) -> Value {
     }
     Value::Object(obj)
 }
-
-#[cfg(test)]
-pub(crate) fn generar_bloque_alias_markdown() -> String {
-    let mut out = String::from("<!-- alias:inicio -->\n| Herramienta / Tool | Argumentos (alias → canónico) | Valores (alias → canónico) |\n|---|---|---|\n");
-    for h in con_sinonimos() {
-        let args_str = formatear_pares_markdown(h.sinonimos.argumentos);
-        let vals_str = formatear_pares_markdown(h.sinonimos.valores);
-
-        out.push_str(&format!(
-            "| `{}` | {} | {} |\n",
-            h.nombre, args_str, vals_str
-        ));
-    }
-    out.push_str("<!-- alias:fin -->");
-    out
-}
-
-#[cfg(test)]
-fn formatear_pares_markdown(pares: &[(&str, &str)]) -> String {
-    if pares.is_empty() {
-        "—".to_string()
-    } else {
-        let mut items: Vec<String> = pares
-            .iter()
-            .map(|(a, c)| format!("`{a}` → `{c}`"))
-            .collect();
-        items.sort();
-        items.join(", ")
-    }
-}

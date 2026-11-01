@@ -2,6 +2,7 @@
 //! other values (rounded beyond the tolerance, clamped, ignored) is reported, not
 //! passed off as the datasheet.
 
+use crate::format::numero_json;
 use crate::format::object::PvNode;
 use serde_json::{json, Map, Value};
 
@@ -10,17 +11,9 @@ use serde_json::{json, Map, Value};
 /// a value that was clamped or not taken.
 const TOLERANCIA_RELATIVA: f64 = 1e-3;
 
-fn numero(v: &Value) -> Option<f64> {
-    match v {
-        Value::Number(n) => n.as_f64(),
-        Value::String(t) => t.trim().replace(',', ".").parse().ok(),
-        _ => None,
-    }
-}
-
 fn coincide(enviado: &Value, guardado: &str) -> bool {
     let guardado_json = json!(guardado);
-    match (numero(enviado), numero(&guardado_json)) {
+    match (numero_json(enviado), numero_json(&guardado_json)) {
         (Some(e), Some(g)) => (e - g).abs() <= TOLERANCIA_RELATIVA * e.abs().max(1.0),
         _ => enviado.as_str().map(str::trim) == Some(guardado.trim()),
     }

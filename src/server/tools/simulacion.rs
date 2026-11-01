@@ -139,7 +139,7 @@ fn ejecutar_simular(
             Ok(Value::Object(preparados))
         }
         "estado" => simulation::estado_simulacion(paths, args),
-        "preestimar" => preestimate::preestimar(paths, args),
+        "preestimar" => preestimate::preestimar(args),
         "barrido" => preestimate::barrido(paths, args, seguimiento),
         _ => Err(Error::Invalid(format!(
             "Valor '{valor}' no soportado para simular"

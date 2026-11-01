@@ -60,12 +60,9 @@ pub(crate) fn limpiar_temporales(paths: &Paths, args: &Value) -> Result<Value> {
     let ws = args::workspace_of(paths, args);
     let mut movidos = Vec::new();
     let mut fallidos = Vec::new();
-    let mut vistos = std::collections::HashSet::new();
+    // Each folder is listed once, so no path can come up twice.
     for carpeta in CARPETAS {
         for origen in temporales_en(&ws.join(carpeta)) {
-            if !vistos.insert(origen.clone()) {
-                continue;
-            }
             let nombre = origen
                 .file_name()
                 .map_or_else(String::new, |n| n.to_string_lossy().into_owned());

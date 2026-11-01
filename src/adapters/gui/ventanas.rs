@@ -207,7 +207,7 @@ pub(crate) fn resolve(haystack: &[Hwnd], reference: &str) -> Option<Hwnd> {
 }
 
 /// Lists the top-level windows of the PVsyst process.
-pub(crate) fn ventanas(_paths: &crate::config::Paths, args: &Value) -> Result<Value> {
+pub(crate) fn ventanas(args: &Value) -> Result<Value> {
     let pids = target_pids(args)?;
     let compact = compact_default(args);
     let all = enum_windows();
@@ -237,7 +237,7 @@ pub(crate) fn ventanas(_paths: &crate::config::Paths, args: &Value) -> Result<Va
     }))
 }
 
-pub(crate) fn controles(_paths: &crate::config::Paths, args: &Value) -> Result<Value> {
+pub(crate) fn controles(args: &Value) -> Result<Value> {
     let scoped = ventanas_de(args)?;
     let reference = args
         .get("ventana")
@@ -267,7 +267,7 @@ pub(crate) fn controles(_paths: &crate::config::Paths, args: &Value) -> Result<V
     Ok(json!({ "count": controls.len(), "controls": controls }))
 }
 
-pub(crate) fn leer(_paths: &crate::config::Paths, args: &Value) -> Result<Value> {
+pub(crate) fn leer(args: &Value) -> Result<Value> {
     let h = hwnd_de(args, "ventana")?;
     Ok(json!({
         "hwnd": format!("0x{:X}", h),

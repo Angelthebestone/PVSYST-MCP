@@ -66,9 +66,6 @@ pub(crate) fn drain<R: Read + Send + 'static>(
                 }
                 Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
                 Err(e) => {
-                    if let Ok(mut guard) = sink.lock() {
-                        guard.error_io = Some(e.to_string());
-                    }
                     return Err(Error::io(
                         format!("Error leyendo pipe de {nombre_flujo}"),
                         e,

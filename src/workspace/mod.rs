@@ -17,11 +17,12 @@ mod rutas;
 mod tests;
 
 pub(crate) use crate::config::Alcance;
+pub(crate) use base64::base64 as codificar_base64;
 pub(crate) use escritura::{comprobar_coincidencia_exacta, escribir_archivo};
 pub(crate) use lectura::{leer_archivo, leer_bytes, leer_bytes_acotados, MAX_BYTES_MAXIMO};
-pub(crate) use listado::{listar_archivos, ResumenRecorrido};
+pub(crate) use listado::{listar_archivos, mtime_unix, ResumenRecorrido};
 pub(crate) use nombres::validar_nombre;
-pub(crate) use recorrido::walk_ext;
+pub(crate) use recorrido::{entradas_de, walk_ext};
 pub(crate) use rutas::{
     es_relativa_simple, mover_a_papelera, primer_existente_en_bases, primer_existente_en_workspace,
     resolver_archivo_con_fallback, resolver_ruta, PeticionResolucion,

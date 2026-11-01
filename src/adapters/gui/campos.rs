@@ -80,7 +80,7 @@ fn formulario(args: &Value) -> Result<Formulario> {
 }
 
 /// Types `texto` into a form field (`campo`) or directly into the target control.
-pub(crate) fn escribir(_paths: &crate::config::Paths, args: &Value) -> Result<Value> {
+pub(crate) fn escribir(args: &Value) -> Result<Value> {
     exigir_sin_etiqueta(args, "escribir")?;
     let texto = crate::args::req_str(args, &["texto"], "texto a escribir")?;
     if args.get("campo").is_some() {
@@ -115,7 +115,7 @@ fn exigir_sin_etiqueta(args: &Value, accion: &str) -> Result<()> {
 }
 
 /// Picks the first combo item that starts with `texto`.
-pub(crate) fn seleccionar(_paths: &crate::config::Paths, args: &Value) -> Result<Value> {
+pub(crate) fn seleccionar(args: &Value) -> Result<Value> {
     exigir_sin_etiqueta(args, "seleccionar")?;
     let texto = crate::args::req_str(args, &["texto"], "prefijo del item de la lista")?;
     let elegido = if args.get("campo").is_some() {
@@ -168,7 +168,7 @@ fn con_motivo_del_veto(paths: &crate::config::Paths, h: Hwnd, e: Error) -> Error
 }
 
 /// Waits until the target window is gone or hidden.
-pub(crate) fn esperar_cierre_accion(_paths: &crate::config::Paths, args: &Value) -> Result<Value> {
+pub(crate) fn esperar_cierre_accion(args: &Value) -> Result<Value> {
     let h = hwnd_de(args, "ventana")?;
     let espera_ms = args
         .get("timeout_ms")

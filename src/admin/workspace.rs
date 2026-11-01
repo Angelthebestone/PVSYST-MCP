@@ -128,7 +128,7 @@ pub(crate) fn exportar_workspace(paths: &Paths, args: &Value) -> Result<Value> {
         fs::create_dir_all(parent)
             .map_err(|e| Error::io(format!("Cannot create {}", parent.display()), e))?;
     }
-    let names: Vec<std::ffi::OsString> = super::entradas_de(&workspace)?
+    let names: Vec<std::ffi::OsString> = crate::workspace::entradas_de(&workspace)?
         .iter()
         .filter_map(|p| p.file_name().map(std::ffi::OsStr::to_os_string))
         .collect();

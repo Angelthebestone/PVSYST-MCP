@@ -154,8 +154,8 @@ fn ejecutar_entorno(paths: &Paths, args: &Value) -> Result<Value> {
         "licencia_activar" => Ok(comando_licencia("lic-activate -k:<TU_CLAVE>")),
         "licencia_desactivar" => Ok(comando_licencia("lic-deactivate -c:<TU_CUSTOMER_ID>")),
         "exportar_logs" => admin::exportar_logs(paths, args),
-        "logs_cli" => prefs::logs_cli(paths, args),
-        "preferencias" => prefs::preferencias(paths, args),
+        "logs_cli" => prefs::logs_cli(args),
+        "preferencias" => prefs::preferencias(args),
         "preferencias_editar" => prefs::preferencias_editar(args),
         _ => Err(Error::Invalid(format!(
             "Valor '{valor}' no soportado para entorno"

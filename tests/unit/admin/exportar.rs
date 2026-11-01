@@ -87,12 +87,12 @@ fn should_list_every_entry_of_a_folder() {
     fs::write(tmp.path().join("a.PRJ"), "a").expect("a");
     fs::create_dir(tmp.path().join("sub")).expect("sub");
 
-    let mut entradas = super::entradas_de(tmp.path()).expect("entradas");
+    let mut entradas = crate::workspace::entradas_de(tmp.path()).expect("entradas");
     entradas.sort();
 
     assert_eq!(entradas, [tmp.path().join("a.PRJ"), tmp.path().join("sub")]);
     assert!(matches!(
-        super::entradas_de(&tmp.path().join("no_existe")),
+        crate::workspace::entradas_de(&tmp.path().join("no_existe")),
         Err(crate::error::Error::Io { .. })
     ));
 }

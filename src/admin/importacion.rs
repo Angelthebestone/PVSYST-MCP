@@ -109,7 +109,7 @@ fn recolectar(
     directorios: &mut Vec<PathBuf>,
     archivos: &mut Vec<PathBuf>,
 ) -> Result<()> {
-    let mut entradas = super::entradas_de(dir)?;
+    let mut entradas = crate::workspace::entradas_de(dir)?;
     entradas.sort();
     for p in entradas {
         if p.is_dir() {

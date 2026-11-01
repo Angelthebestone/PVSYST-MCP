@@ -5,6 +5,7 @@ pub(crate) mod cierre;
 pub(crate) mod delete;
 pub(crate) mod edit;
 pub(crate) mod insert;
+mod lineas;
 pub(crate) mod object;
 pub(crate) mod real48;
 pub(crate) mod seccion;
@@ -17,6 +18,26 @@ pub(crate) const CRLF: &str = "\r\n";
 /// Decodes bytes as Latin-1 (ISO-8859-1) string.
 pub(crate) fn decodificar_latin1(b: &[u8]) -> String {
     b.iter().map(|&c| c as char).collect()
+}
+
+/// A number written by PVsyst or a user: trimmed, decimal comma accepted. `NaN` and
+/// infinities are refused, so no reading or comparison is built on them.
+pub(crate) fn numero_texto(texto: &str) -> Option<f64> {
+    texto
+        .trim()
+        .replace(',', ".")
+        .parse::<f64>()
+        .ok()
+        .filter(|n| n.is_finite())
+}
+
+/// [`numero_texto`] for a JSON value: a number, or a string holding one.
+pub(crate) fn numero_json(valor: &Value) -> Option<f64> {
+    match valor {
+        Value::Number(n) => n.as_f64(),
+        Value::String(t) => numero_texto(t),
+        _ => None,
+    }
 }
 
 /// Encodes text as Latin-1; `None` when a character is outside it (above U+00FF).

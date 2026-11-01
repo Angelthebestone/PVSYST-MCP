@@ -21,7 +21,7 @@ pub(crate) fn gui_running() -> bool {
 /// `gui_actuar accion:cerrar_todo`: closes every visible top window of the
 /// running PVsyst. It presses Cancelar/No before the default buttons unless the call
 /// passes `cancelar:false`, so a save prompt is never accepted by accident.
-pub(crate) fn cerrar_todo(_paths: &crate::config::Paths, args: &Value) -> Result<Value> {
+pub(crate) fn cerrar_todo(args: &Value) -> Result<Value> {
     let pids = pids_de_ejecutable("PVsyst.exe");
     let ventanas_vivas: Vec<ffi::Hwnd> = pids
         .iter()
@@ -123,7 +123,7 @@ fn ya_abierta(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
         .copied()
         .unwrap_or(0);
     cerrar_aviso_demo_si_pedido(pid, args);
-    let windows = ventanas(paths, &json!({ "visibles": true }))?;
+    let windows = ventanas(&json!({ "visibles": true }))?;
     Ok(json!({
         "pid": pid,
         "gui": paths.gui_exe.to_string_lossy(),
@@ -155,7 +155,7 @@ pub(crate) fn lanzar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         .min(MAX_LAUNCH_WAIT_SECS);
     let ready = esperar_formulario_principal(pid, wait);
     cerrar_aviso_demo_si_pedido(pid, args);
-    let wins = ventanas(paths, &json!({ "visibles": true }))?;
+    let wins = ventanas(&json!({ "visibles": true }))?;
     Ok(json!({
         "pid": pid,
         "gui": paths.gui_exe.to_string_lossy(),

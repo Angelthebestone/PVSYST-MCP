@@ -1,9 +1,9 @@
+use super::key::ClaveCache;
 use super::key::{absorber, argumentos_clave, referencias, OFFSET_FNV};
-use super::store::buscar_con_clave;
 use super::*;
 use serde_json::json;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 fn ws_temporal(nombre: &str) -> PathBuf {
     let dir = std::env::temp_dir().join("pvsyst_cache_test").join(nombre);
@@ -197,4 +197,17 @@ fn should_change_cache_key_when_site_content_changes() {
     assert_ne!(clave_a, clave_b);
     let igual = workspace_con_sitio("Latitude=4.6");
     assert_eq!(clave(igual.path(), &args).expect("misma clave"), clave_a);
+}
+
+/// A lookup that treats an unusable key as a miss, as `preparar` does.
+fn buscar_con_clave(
+    workspace: &Path,
+    clave: &ClaveCache,
+    ocf: Option<&Path>,
+    rpf: Option<&Path>,
+) -> crate::error::Result<Option<serde_json::Value>> {
+    match clave {
+        ClaveCache::Valida(k) => super::buscar(workspace, k, ocf, rpf),
+        ClaveCache::Inutilizable { .. } => Ok(None),
+    }
 }

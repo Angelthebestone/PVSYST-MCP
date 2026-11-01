@@ -68,13 +68,12 @@ pub(crate) fn entero_opcional(args: &Value, clave: &str) -> Result<Option<u64>> 
         .ok_or_else(|| Error::Invalid(format!("'{clave}' debe ser un entero positivo")))
 }
 
-/// Variant files `<stem>.VCn` / `<stem>.CMn` in `parent`, sorted.
-pub(crate) fn variant_files(parent: &Path, stem: &str) -> Vec<PathBuf> {
-    let mut v: Vec<PathBuf> = fs::read_dir(parent)
+/// Variant files `<stem>.VCn` / `<stem>.CMn` in `parent`, sorted: the one rule for
+/// what a variant is. An unreadable folder is an error, so a rename or a delete
+/// never skips variants it could not see.
+pub(crate) fn variant_files(parent: &Path, stem: &str) -> Result<Vec<PathBuf>> {
+    let mut v: Vec<PathBuf> = crate::workspace::entradas_de(parent)?
         .into_iter()
-        .flatten()
-        .flatten()
-        .map(|e| e.path())
         .filter(|p| p.file_stem().and_then(|s| s.to_str()) == Some(stem))
         .filter(|p| {
             p.extension()
@@ -83,12 +82,13 @@ pub(crate) fn variant_files(parent: &Path, stem: &str) -> Vec<PathBuf> {
         })
         .collect();
     v.sort();
-    v
+    Ok(v)
 }
 
 /// "Variant not found" error listing the variants that do exist beside the project.
 pub(crate) fn variante_no_encontrada(parent: &Path, stem: &str, pedido: &str) -> Error {
     let opciones: Vec<String> = variant_files(parent, stem)
+        .unwrap_or_default()
         .iter()
         .filter_map(|p| {
             p.extension()
@@ -202,7 +202,7 @@ pub(crate) fn crear_variante(paths: &Paths, args: &Value) -> Result<Value> {
     let bytes = fs::read(&src)
         .map_err(|e| Error::io(format!("Cannot read variant {}", src.display()), e))?;
     let historial_id = history::reemplazar(&workspace, &dst, &bytes, "crear_variante")?;
-    let todas: Vec<String> = variant_files(&parent, &stem)
+    let todas: Vec<String> = variant_files(&parent, &stem)?
         .iter()
         .filter_map(|p| p.file_name().and_then(|s| s.to_str()).map(str::to_string))
         .collect();

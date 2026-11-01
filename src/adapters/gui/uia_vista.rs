@@ -99,7 +99,7 @@ pub(crate) fn fusionar(ventanas_win: Vec<Value>, arbol: &Value) -> Value {
 }
 
 pub(crate) fn controles_con_uia(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
-    let mut r = super::ventanas::controles(paths, args)?;
+    let mut r = super::ventanas::controles(args)?;
     if flag(args, &["incluir_uia"]) {
         let h = match args.get("ventana").and_then(Value::as_str) {
             Some(_) => hwnd_de(args, "ventana")?,

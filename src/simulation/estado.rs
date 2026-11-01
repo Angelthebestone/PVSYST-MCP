@@ -3,17 +3,10 @@ use crate::config::Paths;
 use crate::error::{Error, Result};
 pub(crate) use crate::state::Pendiente;
 use serde_json::{json, Value};
-use std::fs;
-use std::time::UNIX_EPOCH;
 
+/// Modification time of an optional output path, in Unix seconds.
 pub(crate) fn mtime(path: Option<&str>) -> Option<u64> {
-    fs::metadata(path?)
-        .ok()?
-        .modified()
-        .ok()?
-        .duration_since(UNIX_EPOCH)
-        .ok()
-        .map(|d| d.as_secs())
+    crate::workspace::mtime_unix(std::path::Path::new(path?))
 }
 
 pub(crate) fn final_de(paths: &Paths, id: &str, out: &cli::CliOutput) -> Result<Value> {

@@ -42,10 +42,7 @@ fn tomado(resultado: &Value) -> bool {
     if resultado["estado"] == "ok" {
         return true;
     }
-    let numero = |v: &Value| {
-        v.as_str()
-            .and_then(|t| t.trim().replace(',', ".").parse::<f64>().ok())
-    };
+    let numero = |v: &Value| v.as_str().and_then(crate::format::numero_texto);
     match (numero(&resultado["pedido"]), numero(&resultado["despues"])) {
         (Some(pedido), Some(leido)) => (pedido - leido).abs() <= pedido.abs() * REDONDEO_DE_PVSYST,
         _ => false,
