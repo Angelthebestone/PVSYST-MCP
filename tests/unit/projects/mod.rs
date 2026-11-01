@@ -16,7 +16,7 @@ fn should_reject_variant_kind_when_stem_differs() {
 fn should_reject_escape_when_confinement_is_workspace() {
     let ws = std::env::temp_dir();
     let res = resolve_project_file_con_alcance(&ws, "../../secret.PRJ", Alcance::Workspace);
-    assert!(res.is_err());
+    assert!(matches!(res, Err(crate::error::Error::Invalid(_))));
 }
 
 /// `\dir\X.PRJ` written without its drive letter: rooted, not absolute on Windows.

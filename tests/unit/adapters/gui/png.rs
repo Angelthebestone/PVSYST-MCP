@@ -36,5 +36,5 @@ fn png_has_signature_header_and_decodable_pixels() {
 #[test]
 fn should_reject_zero_dimensions_without_panic() {
     let res = png_rgb(0, 0, &[]);
-    assert!(res.is_err());
+    assert!(matches!(res, Err(crate::error::Error::Gui(_))));
 }

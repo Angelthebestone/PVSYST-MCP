@@ -24,3 +24,25 @@ fn io_error_keeps_its_source_and_context() {
     assert!(std::error::Error::source(&e).is_some());
     assert_eq!(e.kind(), "io");
 }
+
+#[test]
+fn should_give_every_variant_its_own_kind_code() {
+    let casos = [
+        (
+            Error::MissingArgs {
+                claves: vec!["a".into()],
+                ejemplo: String::new(),
+            },
+            KIND_MISSING_ARG,
+        ),
+        (Error::NotFound("x".into()), "not_found"),
+        (Error::Format("x".into()), "format"),
+        (Error::Cli("x".into()), "cli"),
+        (Error::Gui("x".into()), "gui"),
+        (Error::Network("x".into()), "network"),
+        (Error::Invalid("x".into()), "invalid"),
+    ];
+    for (error, esperado) in casos {
+        assert_eq!(error.kind(), esperado, "{error:?}");
+    }
+}

@@ -103,3 +103,12 @@ fn should_read_the_result_vars_line_when_it_is_not_the_first() {
 fn should_write_a_fresh_template_when_there_is_no_file() {
     assert_eq!(reescribir_rvt("", &["PR".to_string()]), "  ResultVars=PR\n");
 }
+
+#[test]
+fn should_not_duplicate_a_variable_already_in_the_template() {
+    let actuales = vec!["HSol".to_string()];
+
+    let resultado = anadir_variables(&actuales, &["hsol", "E_Grid"]).expect("añadidas");
+
+    assert_eq!(resultado, ["HSol", "E_Grid"]);
+}

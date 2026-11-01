@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn should_reject_missing_required_arg() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let err = call(&paths, "leer", &json!({})).expect_err("should reject missing required arg");
     let msg = err.to_string();
     assert!(
@@ -13,7 +13,7 @@ fn should_reject_missing_required_arg() {
 
 #[test]
 fn should_name_every_missing_required_arg_of_the_action() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let err = call(&paths, "sitio", &json!({ "accion": "meteo_pvgis" }))
         .expect_err("meteo_pvgis needs latitud, longitud and nombre_sitio");
     let msg = err.to_string();
@@ -29,7 +29,7 @@ fn should_name_every_missing_required_arg_of_the_action() {
 
 #[test]
 fn should_require_operacion_for_editar_rvt() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let err = call(&paths, "editar", &json!({ "accion": "rvt" }))
         .expect_err("rvt without operacion must not default to listar");
     assert!(err.to_string().contains("operacion"), "{err}");
@@ -37,7 +37,7 @@ fn should_require_operacion_for_editar_rvt() {
 
 #[test]
 fn should_reject_wrong_type_arg_mentioning_tipo() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let err = call(
         &paths,
         "leer",
@@ -55,7 +55,7 @@ fn should_reject_wrong_type_arg_mentioning_tipo() {
 
 #[test]
 fn should_reject_wrong_type_for_numeric_property() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let err = call(
         &paths,
         "proyecto",
@@ -73,7 +73,7 @@ fn should_reject_wrong_type_for_numeric_property() {
 
 #[test]
 fn should_reject_missing_discriminator_when_required() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let err = call(&paths, "proyecto", &json!({})).expect_err("should require accion");
     let msg = err.to_string();
     assert!(
@@ -84,14 +84,14 @@ fn should_reject_missing_discriminator_when_required() {
 
 #[test]
 fn should_apply_default_discriminator_when_omitted() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let res = call(&paths, "entorno", &json!({})).expect("should succeed with default diagnostico");
     assert!(res.get("entorno").is_some());
 }
 
 #[test]
 fn should_reject_wrong_type_for_discriminator() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let err = call(&paths, "entorno", &json!({ "accion": 12345 }))
         .expect_err("should reject number for accion");
     let msg = err.to_string();
@@ -113,12 +113,16 @@ fn should_accept_compatible_union_types() {
 
     let val_bad =
         json!({ "accion": "crear", "plantilla": "P", "nombre_nuevo": "N", "n_mod_serie": false });
-    assert!(h.validar(&val_bad, false).is_err());
+    assert!(matches!(
+        h.validar(&val_bad, false),
+        Err(crate::error::Error::Invalid(_))
+    ));
 }
 
 #[test]
+#[ignore = "necesita Currency.dat de la instalación de PVsyst (DataRO): ejecutar con --ignored"]
 fn should_dispatch_leer_for_currency_mef_and_3d_scenes() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
 
     let res = call(&paths, "leer", &json!({ "archivo": "Currency.dat" }));
     assert!(
@@ -148,18 +152,21 @@ fn should_dispatch_leer_for_currency_mef_and_3d_scenes() {
 
 #[test]
 fn should_not_demand_an_id_when_a_menu_command_is_named_by_position() {
-    let paths = Paths::resolve();
+    // Only the argument check: calling the tool would send a menu command to window 0x1.
+    let h = REGISTRO
+        .iter()
+        .find(|h| h.nombre == "gui_actuar")
+        .expect("gui_actuar registrada");
     let args = json!({ "accion": "menu", "ventana": "0x1", "menu": 0, "item": 0 });
-    let err = call(&paths, "gui_actuar", &args).unwrap_err().to_string();
-    assert!(
-        !err.contains("Missing required argument 'id'"),
-        "unexpected 'id' requirement in: {err}"
-    );
+
+    let accion = h.validar(&h.preparar_args(&args).expect("args"), false);
+
+    assert_eq!(accion.expect("argumentos válidos sin 'id'"), "menu");
 }
 
 #[test]
 fn should_demand_the_window_when_a_menu_command_names_none() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let error = call(&paths, "gui_actuar", &json!({ "accion": "menu", "id": 70 }))
         .unwrap_err()
         .to_string();

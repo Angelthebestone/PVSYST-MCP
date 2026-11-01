@@ -28,19 +28,16 @@ fn should_preserve_bom_across_strip_and_wrap() {
 
 #[test]
 fn should_reject_objects_in_valor_texto() {
-    assert!(valor_texto("Model", &json!({"a": 1})).is_err());
+    assert!(matches!(
+        valor_texto("Model", &json!({"a": 1})),
+        Err(crate::error::Error::Invalid(_))
+    ));
     assert_eq!(valor_texto("NbMPPT", &json!(2)).unwrap(), "2");
 }
 
 #[test]
+#[ignore = "necesita la instalación de PVsyst 8.1 (DataRO): ejecutar con --ignored"]
 fn should_apply_fields_to_respective_objects_in_ond() {
-    if !crate::config::compos_ro()
-        .join("Inverters")
-        .join("Generic_50kW.OND")
-        .exists()
-    {
-        return;
-    }
     let ws = std::env::temp_dir().join(format!("pvsyst_ficha_{}", std::process::id()));
     let _ = fs::remove_dir_all(&ws);
     let datos = json!({"Manufacturer": "Acme", "Model": "AC-20K", "PNomConv": 20, "VMppMin": 250})

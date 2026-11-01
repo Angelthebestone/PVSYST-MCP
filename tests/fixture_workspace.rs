@@ -305,6 +305,6 @@ fn leer_accepts_project_paths_written_with_projects_prefix_and_backslashes() {
     let mut c = start(&ws);
     for ruta in ["Projects/SYNTH_Plant.VC0", "Projects\\SYNTH_Plant.VC0"] {
         let resp = c.call(2, "leer", json!({ "archivo": ruta }));
-        assert_ne!(resp["result"]["isError"], json!(true), "{ruta}: {resp}");
+        assert_eq!(resp["result"]["isError"], json!(false), "{ruta}: {resp}");
     }
 }

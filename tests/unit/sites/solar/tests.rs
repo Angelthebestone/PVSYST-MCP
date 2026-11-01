@@ -60,8 +60,14 @@ fn should_point_north_at_noon_in_southern_hemisphere() {
 #[test]
 fn should_convert_valid_date_to_day_of_year() {
     assert_eq!(dia_del_anio("2021-06-21").ok(), Some(172));
-    assert!(dia_del_anio("2021-02-30").is_err());
-    assert!(dia_del_anio("21/06/2021").is_err());
+    assert!(matches!(
+        dia_del_anio("2021-02-30"),
+        Err(crate::error::Error::Invalid(_))
+    ));
+    assert!(matches!(
+        dia_del_anio("21/06/2021"),
+        Err(crate::error::Error::Invalid(_))
+    ));
 }
 
 #[test]
@@ -69,8 +75,14 @@ fn should_support_gregorian_leap_years_in_day_of_year() {
     assert_eq!(dia_del_anio("2024-02-29").ok(), Some(60));
     assert_eq!(dia_del_anio("2024-03-01").ok(), Some(61));
     assert_eq!(dia_del_anio("2023-03-01").ok(), Some(60));
-    assert!(dia_del_anio("2023-02-29").is_err());
-    assert!(dia_del_anio("1900-02-29").is_err());
+    assert!(matches!(
+        dia_del_anio("2023-02-29"),
+        Err(crate::error::Error::Invalid(_))
+    ));
+    assert!(matches!(
+        dia_del_anio("1900-02-29"),
+        Err(crate::error::Error::Invalid(_))
+    ));
     assert_eq!(dia_del_anio("2000-02-29").ok(), Some(60));
 }
 
@@ -96,7 +108,10 @@ fn should_calculate_power_at_stc_with_system_losses() {
 
 #[test]
 fn should_reject_clima_with_wrong_month_count() {
-    assert!(Clima::nuevo(vec![5.0; 11], vec![2.0; 12], vec![25.0; 12]).is_err());
+    assert!(matches!(
+        Clima::nuevo(vec![5.0; 11], vec![2.0; 12], vec![25.0; 12]),
+        Err(crate::error::Error::Invalid(_))
+    ));
 }
 
 #[test]
@@ -104,7 +119,10 @@ fn should_reject_clima_with_nan_value() {
     let mut ghi = vec![5.0; 12];
     ghi[2] = f64::NAN;
     let res = Clima::nuevo(ghi, vec![2.0; 12], vec![20.0; 12]);
-    assert!(res.is_err(), "debe fallar si GHI contiene NaN");
+    assert!(
+        matches!(res, Err(crate::error::Error::Invalid(_))),
+        "debe fallar si GHI contiene NaN"
+    );
 }
 
 #[test]
@@ -112,7 +130,10 @@ fn should_reject_clima_with_negative_ghi() {
     let mut ghi = vec![5.0; 12];
     ghi[4] = -1.0;
     let res = Clima::nuevo(ghi, vec![2.0; 12], vec![20.0; 12]);
-    assert!(res.is_err(), "debe fallar si GHI es negativo");
+    assert!(
+        matches!(res, Err(crate::error::Error::Invalid(_))),
+        "debe fallar si GHI es negativo"
+    );
 }
 
 #[test]
@@ -121,7 +142,10 @@ fn should_reject_clima_when_diffuse_exceeds_global() {
     let mut dif = vec![2.0; 12];
     dif[3] = 4.5;
     let res = Clima::nuevo(ghi, dif, vec![20.0; 12]);
-    assert!(res.is_err(), "debe fallar si DIF > GHI");
+    assert!(
+        matches!(res, Err(crate::error::Error::Invalid(_))),
+        "debe fallar si DIF > GHI"
+    );
 }
 
 #[test]
@@ -130,10 +154,16 @@ fn should_reject_clima_with_temperature_out_of_bounds() {
     let dif = vec![2.0; 12];
     let mut temp = vec![20.0; 12];
     temp[0] = 85.0;
-    assert!(Clima::nuevo(ghi.clone(), dif.clone(), temp).is_err());
+    assert!(matches!(
+        Clima::nuevo(ghi.clone(), dif.clone(), temp),
+        Err(crate::error::Error::Invalid(_))
+    ));
     let mut temp_fria = vec![20.0; 12];
     temp_fria[0] = -120.0;
-    assert!(Clima::nuevo(ghi, dif, temp_fria).is_err());
+    assert!(matches!(
+        Clima::nuevo(ghi, dif, temp_fria),
+        Err(crate::error::Error::Invalid(_))
+    ));
 }
 
 #[test]
@@ -153,13 +183,25 @@ fn should_reject_site_with_timezone_out_of_bounds() {
 #[test]
 fn should_reject_site_with_nan_coordinates_or_timezone() {
     let args_str_nan_lat = json!({ "latitud": "NaN", "longitud": 0.0 });
-    assert!(sitio_de(&args_str_nan_lat).is_err());
+    assert!(matches!(
+        sitio_de(&args_str_nan_lat),
+        Err(crate::error::Error::Invalid(_))
+    ));
     let args_null_lat = json!({ "latitud": f64::NAN, "longitud": 0.0 });
-    assert!(sitio_de(&args_null_lat).is_err());
+    assert!(matches!(
+        sitio_de(&args_null_lat),
+        Err(crate::error::Error::MissingArg { .. } | crate::error::Error::MissingArgs { .. })
+    ));
     let args_str_nan_tz = json!({ "latitud": 0.0, "longitud": 0.0, "timezone": "NaN" });
-    assert!(sitio_de(&args_str_nan_tz).is_err());
+    assert!(matches!(
+        sitio_de(&args_str_nan_tz),
+        Err(crate::error::Error::Invalid(_))
+    ));
     let args_null_tz = json!({ "latitud": 0.0, "longitud": 0.0, "timezone": f64::NAN });
-    assert!(sitio_de(&args_null_tz).is_err());
+    assert!(matches!(
+        sitio_de(&args_null_tz),
+        Err(crate::error::Error::Invalid(_))
+    ));
 }
 
 #[test]

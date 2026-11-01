@@ -65,7 +65,10 @@ fn summary_reads_values_when_labels_and_values_are_in_separate_rows() {
 
 #[test]
 fn missing_loss_diagram_is_an_error() {
-    assert!(perdidas(&["Something else".to_string()]).is_err());
+    assert!(matches!(
+        perdidas(&["Something else".to_string()]),
+        Err(crate::error::Error::Format(_))
+    ));
 }
 
 #[test]

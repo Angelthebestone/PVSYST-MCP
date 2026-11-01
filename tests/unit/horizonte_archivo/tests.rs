@@ -10,7 +10,7 @@ fn ruta_muestra_real() -> PathBuf {
     if fixture.exists() {
         return fixture.to_path_buf();
     }
-    PathBuf::from(r"C:\Program Files\PVsyst8.1.7\DataRO\PVsyst8.1_Data\Shadings\DEMO_Geneve.HOR")
+    crate::config::data_ro().join(r"PVsyst8.1_Data\Shadings\DEMO_Geneve.HOR")
 }
 
 #[test]
@@ -90,15 +90,27 @@ fn should_roundtrip_synthetic_horizon() {
 
 #[test]
 fn should_reject_truncated_input() {
-    assert!(parse_horizonte(&[]).is_err());
-    assert!(parse_horizonte(&[0xd7, 0x04]).is_err());
+    assert!(matches!(
+        parse_horizonte(&[]),
+        Err(crate::error::Error::Format(_))
+    ));
+    assert!(matches!(
+        parse_horizonte(&[0xd7, 0x04]),
+        Err(crate::error::Error::Format(_))
+    ));
 
     let ruta = ruta_muestra_real();
     let bytes = fs::read(&ruta).expect("Lectura de muestra");
     // Truncate halfway through header
-    assert!(parse_horizonte(&bytes[..40]).is_err());
+    assert!(matches!(
+        parse_horizonte(&bytes[..40]),
+        Err(crate::error::Error::Format(_))
+    ));
     // Truncate in binary body
-    assert!(parse_horizonte(&bytes[..100]).is_err());
+    assert!(matches!(
+        parse_horizonte(&bytes[..100]),
+        Err(crate::error::Error::Format(_))
+    ));
 }
 
 #[test]
@@ -196,8 +208,7 @@ fn should_reject_too_few_points() {
 #[test]
 fn should_read_and_write_via_application() {
     let temp = tempfile::tempdir().expect("tempdir");
-    let mut paths = Paths::resolve();
-    paths.workspace = temp.path().to_path_buf();
+    let paths = Paths::para_test(temp.path().to_path_buf());
 
     let args_escribir = json!({
         "archivo": "TestHorizonte.HOR",
@@ -250,8 +261,7 @@ fn invocar_tool_json(
 #[test]
 fn should_execute_tools_e2e_via_server() {
     let temp = tempfile::tempdir().expect("tempdir");
-    let mut paths = Paths::resolve();
-    paths.workspace = temp.path().to_path_buf();
+    let paths = Paths::para_test(temp.path().to_path_buf());
     let server = crate::Server::new(paths);
 
     invocar_tool_json(

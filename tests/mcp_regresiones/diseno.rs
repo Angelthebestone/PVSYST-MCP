@@ -140,13 +140,11 @@ fn should_bound_the_module_power_at_the_sizing_boundary() {
 }
 
 #[test]
+#[ignore = "necesita PVsyst instalado (PVsyst.ini y logs de PVsystCLI): ejecutar con --ignored"]
 fn should_report_preference_sections_as_counts() {
     let mut c = Client::start(None);
     c.initialize();
     let resp = c.call(50, "entorno", json!({ "accion": "preferencias" }));
-    if resp["result"]["isError"] == json!(true) {
-        return; // sin instalación de PVsyst no hay PVsyst.ini que leer
-    }
     let data = tool_text(&resp);
     let secciones = data["secciones"].as_object().expect("secciones");
     assert!(!secciones.is_empty());
@@ -159,13 +157,11 @@ fn should_report_preference_sections_as_counts() {
 }
 
 #[test]
+#[ignore = "necesita PVsyst instalado (PVsyst.ini y logs de PVsystCLI): ejecutar con --ignored"]
 fn should_keep_cli_logs_compact() {
     let mut c = Client::start(None);
     c.initialize();
     let resp = c.call(84, "entorno", json!({ "accion": "logs_cli", "n": 2 }));
-    if resp["result"]["isError"] == json!(true) {
-        return; // sin instalación de PVsyst no hay logs que resumir
-    }
     let data = tool_text(&resp);
     for log in data["logs"].as_array().expect("logs") {
         let avisos = log["lineas_no_norm"].as_array().expect("lineas_no_norm");

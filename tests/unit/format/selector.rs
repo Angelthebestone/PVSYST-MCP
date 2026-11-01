@@ -70,8 +70,14 @@ fn should_reject_empty_segment_when_slashes_are_consecutive() {
 
 #[test]
 fn should_reject_leading_or_trailing_slash() {
-    assert!(parse_selector("/pvProject").is_err());
-    assert!(parse_selector("pvProject/").is_err());
+    assert!(matches!(
+        parse_selector("/pvProject"),
+        Err(crate::error::Error::Invalid(_))
+    ));
+    assert!(matches!(
+        parse_selector("pvProject/"),
+        Err(crate::error::Error::Invalid(_))
+    ));
 }
 
 #[test]

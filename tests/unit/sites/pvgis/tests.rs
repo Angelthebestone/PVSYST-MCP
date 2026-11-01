@@ -72,7 +72,13 @@ fn should_reject_incomplete_duplicated_or_out_of_range_tmy() {
         ("fecha", &fecha_mala[..]),
         ("irradiancia", &irradiancia_mala[..]),
     ] {
-        assert!(parsear_tmy(&json_tmy(filas), 0).is_err(), "{caso}");
+        assert!(
+            matches!(
+                parsear_tmy(&json_tmy(filas), 0),
+                Err(crate::error::Error::Format(_))
+            ),
+            "{caso}"
+        );
     }
 }
 
@@ -217,7 +223,10 @@ fn should_restore_previous_met_when_csv_publication_fails() {
     fs::write(&staging.csv_path, "csv_nuevo").expect("csv");
     fs::write(&staging.staging_met_path, "met_nuevo").expect("met");
 
-    assert!(staging.commit().is_err());
+    assert!(matches!(
+        staging.commit(),
+        Err(crate::error::Error::Invalid(_))
+    ));
     assert_eq!(
         fs::read_to_string(&cfg.final_met).expect("MET"),
         "met_anterior"
@@ -257,14 +266,13 @@ fn should_isolate_mef_filename_per_run() {
 }
 
 #[test]
+#[ignore = "necesita la instalación de PVsyst 8.1 (DataRO): ejecutar con --ignored"]
 fn should_not_touch_unrelated_bytes_in_horizon_profile_edit() {
     let ruta = crate::config::data_ro()
         .join("PVsyst8.1_Data")
         .join("Projects")
         .join("_DEMO_Residential.VC1");
-    let Ok(bytes) = fs::read(&ruta) else {
-        return;
-    };
+    let bytes = fs::read(&ruta).expect("demo de PVsyst");
     let existentes = normalizacion::puntos_existentes(&bytes);
     assert!(!existentes.is_empty(), "la demo trae un horizonte");
     let puntos = [(-180.0, 1.0), (0.0, 2.0), (180.0, 1.0)];

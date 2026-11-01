@@ -5,7 +5,7 @@ use serde_json::json;
 
 /// The `claves_validas` of the `vista` of a call that fails for a missing argument.
 fn claves_de(tool: &str, args: &Value) -> Vec<String> {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let seguimiento = SeguimientoTarea::inerte();
     let solicitud = Solicitud {
         paths: &paths,

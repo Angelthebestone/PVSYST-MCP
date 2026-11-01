@@ -31,7 +31,8 @@ fn should_map_every_function_key_to_consecutive_virtual_keys() {
 fn should_send_home_end_and_page_keys_to_move_through_a_list() {
     assert_eq!(vk_for("HOME"), Some(0x24));
     assert_eq!(vk_for("end"), Some(0x23));
-    assert_eq!(vk_for("PGUP"), vk_for("PageUp"));
+    assert_eq!(vk_for("PGUP"), Some(0x21));
+    assert_eq!(vk_for("PageUp"), Some(0x21));
     assert_eq!(vk_for("PGDN"), Some(0x22));
 }
 

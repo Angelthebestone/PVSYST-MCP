@@ -66,5 +66,8 @@ fn should_read_logical_values_in_spanish_and_english() {
     assert!(valor_logico(" TRUE ").unwrap());
     assert!(!valor_logico("no").unwrap());
     assert!(!valor_logico("0").unwrap());
-    assert!(valor_logico("quizá").is_err());
+    assert!(matches!(
+        valor_logico("quizá"),
+        Err(crate::error::Error::Invalid(_))
+    ));
 }

@@ -21,7 +21,6 @@ use tempfile::tempdir;
 
 const DEMO_MET: &str =
     r"C:\Program Files\PVsyst8.1.8\DataRO\PVsyst8.1_Data\Meteo\Abu Dhabi DEMO Project_MN82_SYN.MET";
-const DEMO_DAM: &str = r"C:\Program Files\PVsyst8.1.8\DataRO\PVsyst8.1_Data\DataMeas\N13GlobH.DAM";
 
 fn server_con_workspace(ws: &std::path::Path) -> Server {
     let mut paths = pvsyst_mcp::Paths::resolve();
@@ -46,10 +45,8 @@ fn call_tool(server: &Server, id: u64, name: &str, args: &serde_json::Value) -> 
 }
 
 #[test]
+#[ignore = "necesita la instalación de PVsyst 8.1 (DataRO): ejecutar con --ignored"]
 fn should_read_hourly_series_via_mcp_leer_when_requested() {
-    if !std::path::Path::new(DEMO_MET).exists() {
-        return;
-    }
     let tmp = tempdir().expect("tempdir");
     let server = server_con_workspace(tmp.path());
 
@@ -82,10 +79,8 @@ fn should_read_hourly_series_via_mcp_leer_when_requested() {
 }
 
 #[test]
+#[ignore = "necesita la instalación de PVsyst 8.1 (DataRO): ejecutar con --ignored"]
 fn should_preserve_default_leer_summary_when_serie_is_not_requested() {
-    if !std::path::Path::new(DEMO_MET).exists() {
-        return;
-    }
     let tmp = tempdir().expect("tempdir");
     let meteo_dir = tmp.path().join("Meteo");
     fs::create_dir_all(&meteo_dir).expect("create Meteo");
@@ -110,10 +105,8 @@ fn should_preserve_default_leer_summary_when_serie_is_not_requested() {
 }
 
 #[test]
+#[ignore = "necesita la instalación de PVsyst 8.1 (DataRO): ejecutar con --ignored"]
 fn should_read_dam_measured_series_via_mcp_leer() {
-    if !std::path::Path::new(DEMO_DAM).exists() {
-        return;
-    }
     let tmp = tempdir().expect("tempdir");
     let server = server_con_workspace(tmp.path());
 
@@ -137,10 +130,8 @@ fn should_read_dam_measured_series_via_mcp_leer() {
 }
 
 #[test]
+#[ignore = "necesita la instalación de PVsyst 8.1 (DataRO): ejecutar con --ignored"]
 fn should_write_hourly_series_via_sitio_escribir_serie_and_verify_with_history() {
-    if !std::path::Path::new(DEMO_MET).exists() {
-        return;
-    }
     let tmp = tempdir().expect("tempdir");
     let meteo_dir = tmp.path().join("Meteo");
     fs::create_dir_all(&meteo_dir).expect("create Meteo dir");

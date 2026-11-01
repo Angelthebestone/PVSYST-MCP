@@ -11,6 +11,9 @@ fn should_round_trip_every_padding_length() {
 #[test]
 fn should_reject_non_canonical_base64() {
     for malo in ["YWJ", "YQ=", "Y=Q=", "YQ===", "YR==", "YW Jj", "YWJj=AAA"] {
-        assert!(decode_base64(malo).is_err(), "aceptó {malo:?}");
+        assert!(
+            matches!(decode_base64(malo), Err(crate::error::Error::Invalid(_))),
+            "aceptó {malo:?}"
+        );
     }
 }

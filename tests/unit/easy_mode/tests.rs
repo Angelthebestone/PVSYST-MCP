@@ -184,7 +184,7 @@ fn should_reject_invalid_kwp_at_input_parse() {
 
 #[test]
 fn should_reject_unreadable_or_nonexistent_module_in_sizing() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let params = DisenoParametros::parse(&json!({
         "latitud": 10.0,
         "longitud": -70.0,
@@ -292,7 +292,7 @@ fn should_reject_zero_battery_counts() {
 
 #[test]
 fn disenar_sistema_rejects_the_mcp_sizing_without_flag() {
-    let mut paths = Paths::resolve();
+    let mut paths = Paths::para_test(std::env::temp_dir());
     paths.aproximaciones = false;
     let args = json!({
         "latitud": 7.07,
@@ -312,7 +312,7 @@ fn disenar_sistema_rejects_the_mcp_sizing_without_flag() {
 
 #[test]
 fn leer_kpis_extracts_from_pdf_fixture() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let pdf_path = concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/tests/fixtures/results/MCP_E2E.pdf"
@@ -342,7 +342,7 @@ fn should_report_given_csv_and_no_always_null_kwp_when_extracting_kpis() {
 
 #[test]
 fn leer_kpis_returns_error_when_pdf_missing() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let err = super::simulacion::leer_kpis(&paths, &json!({ "report_pdf": "inexistente.pdf" }))
         .unwrap_err();
     assert!(err.to_string().contains("Informe PDF"));
@@ -361,10 +361,7 @@ fn vincular_sitio_replaces_the_template_site_in_the_project() {
         "PVObject_=pvSite\n  Comment=Sitio creado;\nEnd of PVObject pvSite\n",
     )
     .unwrap();
-    let paths = Paths {
-        workspace: ws.path().to_path_buf(),
-        ..Paths::resolve()
-    };
+    let paths = Paths::para_test(ws.path().to_path_buf());
     proyecto::vincular_sitio(&paths, "SYNTH_Plant", &sit.to_string_lossy()).unwrap();
     let prj = std::fs::read_to_string(projects.join("SYNTH_Plant.PRJ")).unwrap();
     assert!(prj.contains("Comment=Sitio creado;"), "prj={prj}");

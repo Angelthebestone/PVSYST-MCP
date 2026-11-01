@@ -233,6 +233,7 @@ fn should_classify_missing_confirmation_as_ambiguous() {
 }
 
 #[test]
+#[ignore = "necesita las rejillas NASA de la instalación de PVsyst (DataRO\\*_World.*): ejecutar con --ignored"]
 fn should_write_ledger_cache_to_requested_workspace_not_server_default() {
     let default_ws = workspace();
     let target_ws = workspace();

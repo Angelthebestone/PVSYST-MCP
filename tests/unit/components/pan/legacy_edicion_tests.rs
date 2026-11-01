@@ -63,6 +63,12 @@ fn should_roundtrip_encode_decode_for_edge_values() {
     for &v in &test_values {
         let enc = encode_real48(v).unwrap_or_else(|e| panic!("failed to encode {v}: {e}"));
         let dec = real48(&enc);
+        // The decoded number must be the one encoded (Real48 keeps a 39-bit mantissa,
+        // about 1.8e-12 relative): a constant encoder would pass the byte check alone.
+        assert!(
+            (dec - v).abs() <= v.abs() * 1e-11,
+            "Edge value {v} decodes as {dec} (enc={enc:?})"
+        );
         let re_enc =
             encode_real48(dec).unwrap_or_else(|e| panic!("failed to re-encode {dec}: {e}"));
         assert_eq!(
@@ -189,7 +195,7 @@ fn should_edit_legacy_pan_via_editar_objeto() {
     let pan_path = mods_dir.join("Synth_Legacy_300W.PAN");
     std::fs::write(&pan_path, FIXTURE_LEGACY_PAN).expect("write");
 
-    let paths = crate::config::Paths::resolve();
+    let paths = crate::config::Paths::para_test(std::env::temp_dir());
     let args = serde_json::json!({
         "workspace": temp.path().to_string_lossy(),
         "archivo": "ComposPV/PVModules/Synth_Legacy_300W.PAN",

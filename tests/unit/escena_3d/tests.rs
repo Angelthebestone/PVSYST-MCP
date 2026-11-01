@@ -29,28 +29,28 @@ fn should_parse_golden_synthetic_3d_scene() {
 #[test]
 fn should_reject_unsupported_3d_file_extension() {
     let err = TipoArchivoEscena::de_extension("XYZ");
-    assert!(err.is_err());
+    assert!(matches!(err, Err(crate::error::Error::Invalid(_))));
 }
 
 #[test]
 fn should_reject_invalid_root_class_in_3d_scene() {
     let raw = b"pvInvalido;Desc;\r\nVersion 4.0; Calcul=$00;\r\n";
     let err = parse_escena_3d(raw, TipoArchivoEscena::Shd);
-    assert!(err.is_err());
+    assert!(matches!(err, Err(crate::error::Error::Invalid(_))));
 }
 
 #[test]
 fn should_reject_mismatched_extension_and_root_class() {
     let raw = b"pvShading;Desc;\r\nVersion 4.0; Calcul=$00;\r\n";
     let err = parse_escena_3d(raw, TipoArchivoEscena::Bld);
-    assert!(err.is_err());
+    assert!(matches!(err, Err(crate::error::Error::Invalid(_))));
 }
 
 #[test]
 fn should_reject_invalid_root_version_line() {
     let raw = b"pvShading;Desc;\r\nbasura;\r\n";
     let err = parse_escena_3d(raw, TipoArchivoEscena::Shd);
-    assert!(err.is_err());
+    assert!(matches!(err, Err(crate::error::Error::Invalid(_))));
 }
 
 #[test]
@@ -113,7 +113,7 @@ fn should_reject_scene_without_extension() {
     fs::write(shadings_dir.join("SinExtension"), FIXTURE_ESCENA_SINTETICA).expect("Escritura");
     let paths = paths_de_test(ws.path());
     let err = leer_escena(&paths, &json!({ "archivo": "SinExtension" }));
-    assert!(err.is_err());
+    assert!(matches!(err, Err(crate::error::Error::Invalid(_))));
     assert!(err.unwrap_err().to_string().contains("extensión"));
 }
 
@@ -122,7 +122,7 @@ fn should_reject_path_traversal_when_reading_scene() {
     let ws = tempfile::tempdir().expect("Directorio temporal");
     let paths = paths_de_test(ws.path());
     let err = leer_escena(&paths, &json!({ "archivo": "../../Escena.SHD" }));
-    assert!(err.is_err());
+    assert!(matches!(err, Err(crate::error::Error::Invalid(_))));
 }
 
 #[test]
@@ -135,7 +135,7 @@ fn should_reject_external_absolute_path_without_permission() {
         "/etc/hosts"
     };
     let err = leer_escena(&paths, &json!({ "archivo": ruta_externa }));
-    assert!(err.is_err());
+    assert!(matches!(err, Err(crate::error::Error::Invalid(_))));
 }
 
 #[test]

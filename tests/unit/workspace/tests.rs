@@ -276,11 +276,26 @@ fn should_mark_listing_as_truncated_when_depth_or_count_limit_hit() {
 
 #[test]
 fn should_reject_invalid_filenames_and_reserved_names() {
-    assert!(validar_nombre("").is_err());
-    assert!(validar_nombre("con").is_err());
-    assert!(validar_nombre("AUX.txt").is_err());
-    assert!(validar_nombre("a/b").is_err());
-    assert!(validar_nombre("..").is_err());
+    assert!(matches!(
+        validar_nombre(""),
+        Err(crate::error::Error::Invalid(_))
+    ));
+    assert!(matches!(
+        validar_nombre("con"),
+        Err(crate::error::Error::Invalid(_))
+    ));
+    assert!(matches!(
+        validar_nombre("AUX.txt"),
+        Err(crate::error::Error::Invalid(_))
+    ));
+    assert!(matches!(
+        validar_nombre("a/b"),
+        Err(crate::error::Error::Invalid(_))
+    ));
+    assert!(matches!(
+        validar_nombre(".."),
+        Err(crate::error::Error::Invalid(_))
+    ));
     assert!(validar_nombre("valido_123.txt").is_ok());
 }
 

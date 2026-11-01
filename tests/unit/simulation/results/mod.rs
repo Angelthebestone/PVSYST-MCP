@@ -16,7 +16,7 @@ fn should_read_only_the_csv_whose_metadata_matches_project_and_variant() {
 
     let args =
         json!({ "workspace": ws.path(), "proyecto": "mcp_e2e", "variante": "vc0", "count": 5 });
-    let out = leer_resultados(&Paths::resolve(), &args).expect("read");
+    let out = leer_resultados(&Paths::para_test(std::env::temp_dir()), &args).expect("read");
     assert_eq!(out["count"], 1);
     assert!(out["results"][0]["path"]
         .as_str()
@@ -36,7 +36,10 @@ fn should_truncate_csv_text_on_a_character_boundary() {
 fn should_reject_missing_csv_file_when_reading_results() {
     let ws = tempfile::tempdir().expect("ws");
     let args = json!({ "archivo": "no_existe.csv", "workspace": ws.path() });
-    assert!(leer_resultados(&Paths::resolve(), &args).is_err());
+    assert!(matches!(
+        leer_resultados(&Paths::para_test(std::env::temp_dir()), &args),
+        Err(crate::error::Error::NotFound(_))
+    ));
 }
 
 #[test]
@@ -45,7 +48,10 @@ fn should_reject_results_dir_outside_workspace_by_default() {
     let fuera = tempfile::tempdir().expect("fuera");
     fs::write(fuera.path().join("x.csv"), resultado("P", "VC0")).expect("x");
     let args = json!({ "workspace": ws.path(), "dir": fuera.path() });
-    assert!(leer_resultados(&Paths::resolve(), &args).is_err());
+    assert!(matches!(
+        leer_resultados(&Paths::para_test(std::env::temp_dir()), &args),
+        Err(crate::error::Error::Invalid(_))
+    ));
 }
 
 #[test]

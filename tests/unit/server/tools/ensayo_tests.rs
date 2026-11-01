@@ -4,7 +4,7 @@ use crate::server::tools::{call_seguido, Solicitud};
 use serde_json::json;
 
 fn call(name: &str, args: &Value) -> crate::error::Result<Value> {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let seguimiento = SeguimientoTarea::inerte();
     call_seguido(&Solicitud {
         paths: &paths,
@@ -52,7 +52,7 @@ fn should_refuse_simular_on_the_close_all_action_because_it_would_close_windows(
 fn should_not_read_a_request_dry_run_as_one_when_the_answer_does_not_say_so() {
     let args = json!({ "accion": "preferencias_editar", "dry_run": true });
     let mut salida = json!({ "ok": true });
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let contexto = Contexto {
         tool: "entorno",
         accion: "preferencias_editar",

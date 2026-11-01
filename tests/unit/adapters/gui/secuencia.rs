@@ -3,7 +3,10 @@ use super::*;
 #[test]
 fn should_reject_an_empty_step_list() {
     let args = json!({"pasos": []});
-    assert!(pasos_de(&args).is_err());
+    assert!(matches!(
+        pasos_de(&args),
+        Err(crate::error::Error::Invalid(_))
+    ));
 }
 
 #[test]

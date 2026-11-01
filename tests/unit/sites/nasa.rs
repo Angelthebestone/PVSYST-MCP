@@ -21,7 +21,10 @@ fn should_return_none_when_cell_is_missing() {
 fn should_reject_row_with_unparseable_monthly_value() {
     let sample_con_abc = "Lat Lon Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec Ann\n7 -74 5.34 abc 5.28 4.96 5.01 5.16 5.57 5.55 5.27 4.80 4.72 4.86 5.16\n";
     let res = parse_grid_at(sample_con_abc, 7, -74);
-    assert!(res.is_err(), "debe fallar con valor no numérico");
+    assert!(
+        matches!(res, Err(crate::error::Error::Format(_))),
+        "debe fallar con valor no numérico"
+    );
     let err = res.unwrap_err().to_string();
     assert!(err.contains("abc"), "debe reportar 'abc': {err}");
     assert!(
@@ -34,7 +37,10 @@ fn should_reject_row_with_unparseable_monthly_value() {
 fn should_reject_row_with_nan_monthly_value() {
     let sample_con_nan = "Lat Lon Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec Ann\n7 -74 5.34 NaN 5.28 4.96 5.01 5.16 5.57 5.55 5.27 4.80 4.72 4.86 5.16\n";
     let res = parse_grid_at(sample_con_nan, 7, -74);
-    assert!(res.is_err(), "debe fallar con NaN");
+    assert!(
+        matches!(res, Err(crate::error::Error::Format(_))),
+        "debe fallar con NaN"
+    );
 }
 
 #[test]

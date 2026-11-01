@@ -1,5 +1,5 @@
 //! End-to-end smoke tests: drive the compiled `pvsyst-mcp` server over stdio.
-//! Tests needing a real PVsyst install skip (early return) when it is absent.
+//! Tests needing a real PVsyst install are `#[ignore]`: run them with `--ignored`.
 #![expect(
     clippy::excessive_nesting,
     clippy::indexing_slicing,
@@ -28,3 +28,6 @@ mod gui;
 
 #[path = "mcp_smoke/workspace_y_diseno.rs"]
 mod workspace_y_diseno;
+
+#[path = "mcp_smoke/admin.rs"]
+mod admin;

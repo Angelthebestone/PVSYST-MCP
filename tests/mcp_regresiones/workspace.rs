@@ -214,6 +214,7 @@ fn should_restore_replaced_files_when_import_publication_fails() {
 }
 
 #[test]
+#[ignore = "necesita las rejillas NASA de la instalación de PVsyst (DataRO\\*_World.*): ejecutar con --ignored"]
 fn should_not_pollute_default_workspace_when_creating_site_with_explicit_workspace() {
     let default_ws = tempfile::tempdir().expect("default ws");
     let target_ws = tempfile::tempdir().expect("target ws");

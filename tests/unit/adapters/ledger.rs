@@ -71,3 +71,10 @@ fn should_not_ask_for_confirmation_before_the_first_run() {
 
     assert!(requiere_confirmacion(tmp.path(), &json!({}), 3, &["x".to_owned()]).is_none());
 }
+
+#[test]
+fn should_read_remaining_executions_when_banner_has_no_days() {
+    let banner = "PVsystCLI is running in TRIAL mode, remaining executions: 12";
+
+    assert_eq!(parsear_banner(banner), Some((None, 12)));
+}

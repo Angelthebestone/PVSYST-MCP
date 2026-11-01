@@ -65,7 +65,7 @@ fn should_fail_gracefully_when_crop_result_is_zero_dimension_for_png() {
     let (out, cw, ch) = recortar_rgb(&[], &dims);
     assert_eq!((cw, ch), (0, 0));
     let png_res = png_rgb(cw as u32, ch as u32, &out);
-    assert!(png_res.is_err());
+    assert!(matches!(png_res, Err(crate::error::Error::Gui(_))));
 }
 
 #[test]
@@ -76,7 +76,10 @@ fn should_reject_capture_output_path_outside_workspace_by_default() {
         "ruta": "../../escaped_capture.png"
     });
     let res = ruta_salida(&paths, &args, 0);
-    assert!(res.is_err(), "Must reject escaping path by default");
+    assert!(
+        matches!(res, Err(crate::error::Error::Invalid(_))),
+        "Must reject escaping path by default"
+    );
 }
 
 #[test]

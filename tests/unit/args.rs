@@ -156,5 +156,8 @@ fn should_name_the_key_when_an_optional_number_is_out_of_range() {
     let error = rango_opcional(Some(10.5), 10.0, "tasa").expect_err("fuera de rango");
 
     assert!(error.to_string().contains("'tasa'"), "{error}");
-    assert!(rango_opcional(Some(-0.1), 10.0, "tasa").is_err());
+    assert!(matches!(
+        rango_opcional(Some(-0.1), 10.0, "tasa"),
+        Err(crate::error::Error::Invalid(_))
+    ));
 }

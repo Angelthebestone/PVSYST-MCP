@@ -147,5 +147,5 @@ fn should_compare_variants_when_workspace_override_differs_from_default() {
 
     let msg = resp["result"]["content"][0]["text"].as_str().unwrap();
     assert!(!msg.contains("fuera del workspace"), "msg={msg}");
-    assert_ne!(resp["result"]["isError"], true, "msg={msg}");
+    assert_eq!(resp["result"]["isError"], false, "msg={msg}");
 }

@@ -1,8 +1,9 @@
 use super::*;
 
 #[test]
+#[ignore = "necesita Currency.dat de la instalación de PVsyst (DataRO): ejecutar con --ignored"]
 fn should_accept_file_as_alias_for_archivo_in_leer() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let res = call(&paths, "leer", &json!({ "file": "Currency.dat" }));
     assert!(
         res.is_ok(),
@@ -60,7 +61,7 @@ fn should_reject_conflicting_alias_and_canonical_with_different_values() {
 
 #[test]
 fn should_reject_unknown_discriminator_value_and_list_admitted() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let err = call(&paths, "entorno", &json!({ "accion": "inexistente" }))
         .expect_err("unknown discriminator value should be rejected");
     let msg = err.to_string();
@@ -76,7 +77,7 @@ fn should_reject_unknown_discriminator_value_and_list_admitted() {
 
 #[test]
 fn should_announce_every_declared_alias_in_schema() {
-    let mut paths = Paths::resolve();
+    let mut paths = Paths::para_test(std::env::temp_dir());
     paths.aproximaciones = true;
     let schemas = list(&paths);
 
@@ -186,7 +187,10 @@ fn should_normalize_simulation_short_flags_and_reject_conflicting_values() {
     assert_eq!(cli_args, vec!["-ocf:out.csv", "-rpf:out.pdf", "-s:Demo"]);
 
     let conflict = json!({ "output_csv": "a.csv", "csv": "b.csv" });
-    assert!(tool_sim.preparar_args(&conflict).is_err());
+    assert!(matches!(
+        tool_sim.preparar_args(&conflict),
+        Err(crate::error::Error::Invalid(_))
+    ));
 }
 
 #[test]

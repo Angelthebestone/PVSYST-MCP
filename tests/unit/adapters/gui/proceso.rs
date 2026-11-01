@@ -20,5 +20,8 @@ fn should_reject_project_outside_workspace_by_default() {
     let paths = crate::config::Paths::para_test(ws);
     let args = json!({});
     let res = resolver_proyecto(&paths, &args, "../../secret.PRJ");
-    assert!(res.is_err(), "Must reject escaping project path by default");
+    assert!(
+        matches!(res, Err(crate::error::Error::Invalid(_))),
+        "Must reject escaping project path by default"
+    );
 }

@@ -15,7 +15,10 @@ fn should_validate_variant_identifier_format() {
 #[test]
 fn should_reject_path_escape_in_variant_route() {
     let parent = Path::new("proj");
-    assert!(ruta_variante(parent, "Planta", "..\\x").is_err());
+    assert!(matches!(
+        ruta_variante(parent, "Planta", "..\\x"),
+        Err(crate::error::Error::Invalid(_))
+    ));
     assert_eq!(
         ruta_variante(parent, "Planta", "VC1").expect("valid"),
         parent.join("Planta.VC1")

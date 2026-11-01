@@ -150,7 +150,7 @@ fn should_resolve_an_entity_from_its_window_class() {
 #[test]
 fn should_reject_an_unknown_schema_entity_instead_of_listing_all() {
     let r = crate::vista_agente::listar_esquemas(&json!({ "entidad": "zzz" }));
-    assert!(r.is_err());
+    assert!(matches!(r, Err(crate::error::Error::Invalid(_))));
 }
 
 #[test]

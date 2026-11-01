@@ -34,8 +34,14 @@ fn should_surface_error_when_mutex_is_poisoned() {
     })
     .join();
 
-    assert!(texto_sink(&sink).is_err());
-    assert!(es_truncado(&sink).is_err());
+    assert!(matches!(
+        texto_sink(&sink),
+        Err(crate::error::Error::Cli(_))
+    ));
+    assert!(matches!(
+        es_truncado(&sink),
+        Err(crate::error::Error::Cli(_))
+    ));
 }
 
 #[test]

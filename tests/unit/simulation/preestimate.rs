@@ -35,14 +35,29 @@ fn el_ranking_va_de_mayor_a_menor_rendimiento_especifico() {
 fn numero_de_orientaciones_acepta_solo_enteros_en_el_rango() {
     assert_eq!(numero_de_orientaciones(&json!({})).ok(), Some(3));
     assert_eq!(numero_de_orientaciones(&json!({"n": 5})).ok(), Some(5));
-    assert!(numero_de_orientaciones(&json!({"n": 0})).is_err());
-    assert!(numero_de_orientaciones(&json!({"n": 2.5})).is_err());
-    assert!(numero_de_orientaciones(&json!({"n": 170})).is_err());
+    assert!(matches!(
+        numero_de_orientaciones(&json!({"n": 0})),
+        Err(crate::error::Error::Invalid(_))
+    ));
+    assert!(matches!(
+        numero_de_orientaciones(&json!({"n": 2.5})),
+        Err(crate::error::Error::Invalid(_))
+    ));
+    assert!(matches!(
+        numero_de_orientaciones(&json!({"n": 170})),
+        Err(crate::error::Error::Invalid(_))
+    ));
 }
 
 #[test]
 fn kwp_debe_ser_positivo_y_admite_texto_numerico() {
-    assert!(kwp_de(&json!({"kwp": 0})).is_err());
-    assert!(kwp_de(&json!({"kwp": -3})).is_err());
+    assert!(matches!(
+        kwp_de(&json!({"kwp": 0})),
+        Err(crate::error::Error::Invalid(_))
+    ));
+    assert!(matches!(
+        kwp_de(&json!({"kwp": -3})),
+        Err(crate::error::Error::Invalid(_))
+    ));
     assert_eq!(kwp_de(&json!({"kwp": "9"})).ok(), Some(9.0));
 }

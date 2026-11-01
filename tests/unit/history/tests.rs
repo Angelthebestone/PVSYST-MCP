@@ -129,7 +129,10 @@ fn should_reject_restore_when_copia_contains_parent_dir() {
         &json!([{ "original": inside_file.to_string_lossy(), "copia": "../secret.txt", "existia": true }]),
     );
     let resultado = restaurar(&ws, "snap_copia");
-    assert!(resultado.is_err(), "Debe rechazar copia con '..'");
+    assert!(
+        matches!(resultado, Err(crate::error::Error::Invalid(_))),
+        "Debe rechazar copia con '..'"
+    );
     assert_eq!(fs::read_to_string(&inside_file).expect("read"), "v1");
     let _ = fs::remove_dir_all(&ws);
 }
@@ -153,7 +156,10 @@ fn should_reject_restore_when_copia_is_absolute() {
         &json!([{ "original": inside_file.to_string_lossy(), "copia": abs, "existia": true }]),
     );
     let resultado = restaurar(&ws, "snap_copia_abs");
-    assert!(resultado.is_err(), "Debe rechazar copia absoluta");
+    assert!(
+        matches!(resultado, Err(crate::error::Error::Invalid(_))),
+        "Debe rechazar copia absoluta"
+    );
     assert_eq!(fs::read_to_string(&inside_file).expect("read"), "v1");
     let _ = fs::remove_dir_all(&ws);
 }
@@ -169,7 +175,10 @@ fn should_reject_restore_when_manifest_fields_are_missing_or_invalid() {
         &json!([{"original": "local.txt"}]),
     );
 
-    assert!(restaurar(&ws, "snap_missing").is_err());
+    assert!(matches!(
+        restaurar(&ws, "snap_missing"),
+        Err(crate::error::Error::Format(_))
+    ));
     let _ = fs::remove_dir_all(&ws);
 }
 

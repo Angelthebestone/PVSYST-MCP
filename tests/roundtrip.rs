@@ -26,10 +26,10 @@ fn root_type(text: &str) -> Option<String> {
         .and_then(|l| l.split_once('=').map(|(_, t)| t.trim().to_string()))
 }
 
-fn scratch_workspace(tag: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("mcp_tmp_roundtrip_{tag}"));
-    let _ = fs::remove_dir_all(&dir);
-    fs::create_dir_all(dir.join("Projects")).expect("create temp workspace");
+/// A private workspace with an empty `Projects` folder, removed when dropped.
+fn scratch_workspace() -> tempfile::TempDir {
+    let dir = tempfile::tempdir().expect("create temp workspace");
+    fs::create_dir_all(dir.path().join("Projects")).expect("create Projects");
     dir
 }
 
@@ -45,7 +45,7 @@ fn editing_one_field_changes_only_that_line_and_restores_exactly() {
     files.sort();
 
     let mut procesados = 0usize;
-    for (n, original) in files.iter().enumerate() {
+    for original in &files {
         let bytes = fs::read(original).expect("read demo file");
         // Demo files may hold cp1252 bytes: decode lossily just to find the root type.
         let text = String::from_utf8_lossy(&bytes).into_owned();
@@ -53,7 +53,8 @@ fn editing_one_field_changes_only_that_line_and_restores_exactly() {
             continue;
         };
         procesados += 1;
-        let ws = scratch_workspace(&n.to_string());
+        let tmp = scratch_workspace();
+        let ws = tmp.path();
         let name = original.file_name().expect("file name");
         let copy = ws.join("Projects").join(name);
         fs::copy(original, &copy).expect("copy demo file");
@@ -90,8 +91,10 @@ fn editing_one_field_changes_only_that_line_and_restores_exactly() {
             .zip(&after_lines)
             .filter(|(a, b)| a != b)
             .count();
-        assert!(
-            changed <= 1,
+        // Exactly one: zero would mean the edit did not take (no demo has Comment=X).
+        assert_eq!(
+            changed,
+            1,
             "{changed} lines changed for {}",
             name.to_string_lossy()
         );
@@ -109,7 +112,6 @@ fn editing_one_field_changes_only_that_line_and_restores_exactly() {
             name.to_string_lossy()
         );
         drop(client);
-        let _ = fs::remove_dir_all(&ws);
     }
     assert!(
         procesados * 2 >= files.len() && procesados > 0,
@@ -120,7 +122,8 @@ fn editing_one_field_changes_only_that_line_and_restores_exactly() {
 
 #[test]
 fn escribir_archivo_rejects_traversal_and_writes_nothing_outside() {
-    let ws = scratch_workspace("traversal");
+    let tmp = scratch_workspace();
+    let ws = tmp.path();
     let outside = ws
         .parent()
         .expect("parent")
@@ -138,6 +141,4 @@ fn escribir_archivo_rejects_traversal_and_writes_nothing_outside() {
         "traversal must be rejected: {resp}"
     );
     assert!(!outside.exists(), "file escaped the workspace");
-    drop(client);
-    let _ = fs::remove_dir_all(&ws);
 }

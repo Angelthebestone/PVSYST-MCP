@@ -69,6 +69,10 @@ fn should_list_whole_menu_when_key_is_a_prefix() {
 fn should_not_match_a_longer_area_name_when_prefix_shares_leading_letters() {
     // "inicio" must not pull in a hypothetical "inicio_rapido.x": the dot is part of the prefix.
     let halladas = buscar(funciones(), "inicio");
+    assert!(
+        !halladas.is_empty(),
+        "el catálogo tiene funciones de inicio"
+    );
     assert!(halladas.iter().all(|f| f.clave.starts_with("inicio.")));
 }
 
@@ -188,7 +192,13 @@ fn should_reject_a_subitem_when_the_request_has_no_position_or_also_an_id() {
         json!({ "menu": 0, "subitem": 1 }),
         json!({ "id": 3, "subitem": 1 }),
     ] {
-        assert!(pedido_de_menu(&pedido).is_err(), "{pedido}");
+        assert!(
+            matches!(
+                pedido_de_menu(&pedido),
+                Err(crate::error::Error::Invalid(_))
+            ),
+            "{pedido}"
+        );
     }
 }
 
@@ -200,7 +210,13 @@ fn should_reject_the_request_when_it_gives_half_a_position_both_kinds_or_nothing
         json!({ "id": 1, "menu": 0, "item": 0 }),
         json!({}),
     ] {
-        assert!(pedido_de_menu(&pedido).is_err(), "{pedido}");
+        assert!(
+            matches!(
+                pedido_de_menu(&pedido),
+                Err(crate::error::Error::Invalid(_))
+            ),
+            "{pedido}"
+        );
     }
 }
 
@@ -211,7 +227,13 @@ fn should_reject_the_request_when_a_number_is_negative_fractional_or_too_big() {
         json!({ "id": 1.5 }),
         json!({ "menu": -1, "item": 0 }),
     ] {
-        assert!(pedido_de_menu(&pedido).is_err(), "{pedido}");
+        assert!(
+            matches!(
+                pedido_de_menu(&pedido),
+                Err(crate::error::Error::Invalid(_))
+            ),
+            "{pedido}"
+        );
     }
 }
 

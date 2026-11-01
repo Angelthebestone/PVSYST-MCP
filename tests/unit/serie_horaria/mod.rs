@@ -4,7 +4,6 @@ use super::decodificar::decodificar;
 use super::dominio::*;
 use crate::error::Error;
 use std::fs;
-use std::path::PathBuf;
 
 const LINEA_DAY_ABU_DHABI: &str =
     "Day_0101=+0+0+0+0+0+0+0+2E+Tz+10e+1P8+11v+1L8+17U+1Oc+p1+K7+P+0+0+0+0+0+0";
@@ -39,17 +38,38 @@ fn should_reencode_real_day_byte_identically() {
 
 #[test]
 fn should_reject_malformed_base62_alphabet() {
-    assert!(decodificar_b62("").is_err());
-    assert!(decodificar_b62("12@4").is_err());
-    assert!(decodificar_b62("abc!").is_err());
-    assert!(decodificar_linea_dia("Day_0101=+0+12?+4").is_err());
+    assert!(matches!(
+        decodificar_b62(""),
+        Err(crate::error::Error::Format(_))
+    ));
+    assert!(matches!(
+        decodificar_b62("12@4"),
+        Err(crate::error::Error::Format(_))
+    ));
+    assert!(matches!(
+        decodificar_b62("abc!"),
+        Err(crate::error::Error::Format(_))
+    ));
+    assert!(matches!(
+        decodificar_linea_dia("Day_0101=+0+12?+4"),
+        Err(crate::error::Error::Format(_))
+    ));
 }
 
 #[test]
 fn should_reject_invalid_day_line_length() {
-    assert!(decodificar_linea_dia("Day_0101=+0+1").is_err());
-    assert!(decodificar_linea_dia("NotADay=+0").is_err());
-    assert!(decodificar_linea_dia("Day_abcd=+0").is_err());
+    assert!(matches!(
+        decodificar_linea_dia("Day_0101=+0+1"),
+        Err(crate::error::Error::Format(_))
+    ));
+    assert!(matches!(
+        decodificar_linea_dia("NotADay=+0"),
+        Err(crate::error::Error::Format(_))
+    ));
+    assert!(matches!(
+        decodificar_linea_dia("Day_abcd=+0"),
+        Err(crate::error::Error::Format(_))
+    ));
 }
 
 #[test]
@@ -64,10 +84,16 @@ fn should_reject_invalid_series_length() {
 fn should_reject_out_of_range_physical_values() {
     let vars = vec!["GlobHor".to_string(), "T_Amb".to_string()];
     let vals_neg = vec![vec![-5.0; 8760], vec![20.0; 8760]];
-    assert!(validar_serie(&vars, &vals_neg).is_err());
+    assert!(matches!(
+        validar_serie(&vars, &vals_neg),
+        Err(crate::error::Error::Invalid(_))
+    ));
 
     let vals_hot = vec![vec![100.0; 8760], vec![120.0; 8760]];
-    assert!(validar_serie(&vars, &vals_hot).is_err());
+    assert!(matches!(
+        validar_serie(&vars, &vals_hot),
+        Err(crate::error::Error::Invalid(_))
+    ));
 }
 
 #[test]
@@ -105,13 +131,10 @@ fn should_roundtrip_synthetic_series() {
 }
 
 #[test]
+#[ignore = "necesita la instalación de PVsyst 8.1 (DataRO): ejecutar con --ignored"]
 fn should_decode_real_met_matching_annual_monthly_totals() {
-    let ro_path = PathBuf::from(
-        r"C:\Program Files\PVsyst8.1.7\DataRO\PVsyst8.1_Data\Meteo\Abu Dhabi DEMO Project_MN82_SYN.MET",
-    );
-    if !ro_path.exists() {
-        return;
-    }
+    let ro_path =
+        crate::config::data_ro().join(r"PVsyst8.1_Data\Meteo\Abu Dhabi DEMO Project_MN82_SYN.MET");
     let content = fs::read_to_string(&ro_path).expect("read MET");
     let serie = decodificar(&content).expect("decode MET");
 
@@ -141,13 +164,10 @@ fn should_decode_real_met_matching_annual_monthly_totals() {
 }
 
 #[test]
+#[ignore = "necesita la instalación de PVsyst 8.1 (DataRO): ejecutar con --ignored"]
 fn should_reencode_entire_met_body_byte_identically() {
-    let ro_path = PathBuf::from(
-        r"C:\Program Files\PVsyst8.1.7\DataRO\PVsyst8.1_Data\Meteo\Abu Dhabi DEMO Project_MN82_SYN.MET",
-    );
-    if !ro_path.exists() {
-        return;
-    }
+    let ro_path =
+        crate::config::data_ro().join(r"PVsyst8.1_Data\Meteo\Abu Dhabi DEMO Project_MN82_SYN.MET");
     let content = fs::read_to_string(&ro_path).expect("read MET");
     let pos_start = content.find("  VarMeteo, list of=").unwrap();
     let end_marker = "  End of the List VarMeteo\r\n";

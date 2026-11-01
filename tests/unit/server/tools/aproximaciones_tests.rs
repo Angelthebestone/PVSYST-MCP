@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn should_reject_in_house_actions_without_aproximaciones_flag_mentioning_env_var() {
-    let mut paths = Paths::resolve();
+    let mut paths = Paths::para_test(std::env::temp_dir());
     paths.aproximaciones = false;
 
     let err = call(&paths, "simular", &json!({ "accion": "preestimar" }))
@@ -45,7 +45,7 @@ fn should_reject_in_house_actions_without_aproximaciones_flag_mentioning_env_var
 
 #[test]
 fn should_hide_in_house_actions_without_the_flag() {
-    let mut paths = Paths::resolve();
+    let mut paths = Paths::para_test(std::env::temp_dir());
     paths.aproximaciones = false;
     let schemas = list(&paths);
     let simular = schemas
@@ -102,7 +102,7 @@ fn should_filter_approximated_synonyms_from_coverage_resource_when_flag_is_off()
 
 #[test]
 fn should_keep_native_default_actions_and_hide_the_via_route_without_the_flag() {
-    let mut paths = Paths::resolve();
+    let mut paths = Paths::para_test(std::env::temp_dir());
     paths.aproximaciones = false;
     let schemas = list(&paths);
     let sitio = schemas
@@ -127,7 +127,7 @@ fn should_keep_native_default_actions_and_hide_the_via_route_without_the_flag() 
 
 #[test]
 fn should_show_in_house_actions_and_the_via_route_with_the_flag() {
-    let mut paths = Paths::resolve();
+    let mut paths = Paths::para_test(std::env::temp_dir());
     paths.aproximaciones = true;
     let schemas = list(&paths);
     let simular = schemas
@@ -154,7 +154,7 @@ fn should_show_in_house_actions_and_the_via_route_with_the_flag() {
 
 #[test]
 fn should_reject_unknown_via_route() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let err = call(
         &paths,
         "sitio",
@@ -166,7 +166,7 @@ fn should_reject_unknown_via_route() {
 
 #[test]
 fn should_not_name_in_house_actions_anywhere_in_the_catalogue_without_the_flag() {
-    let mut paths = Paths::resolve();
+    let mut paths = Paths::para_test(std::env::temp_dir());
     paths.aproximaciones = false;
     let catalogo = serde_json::to_string(&list(&paths)).expect("catalogue serializes");
     for palabra in [

@@ -55,13 +55,19 @@ fn should_tolerate_unknown_keys_in_modern_mef_and_roundtrip_identically() {
 #[test]
 fn should_reject_modern_mef_missing_closing_tag_or_required_fields() {
     let sin_cierre = b"PVObject_=pvMeteoFormat\r\nComment=Test\r\nVersion=8.1\r\n";
-    assert!(parse_mef(sin_cierre).is_err());
+    assert!(matches!(
+        parse_mef(sin_cierre),
+        Err(crate::error::Error::Invalid(_))
+    ));
 }
 
 #[test]
 fn should_reject_modern_mef_with_count_mismatch_in_var_list() {
     let mismatch = b"PVObject_=pvMeteoFormat\r\n  Comment=T\r\n  Version=8.1\r\n  DateFmtType=MM_DD\r\n  Separ=$003B\r\n  MeasureStep=60\r\n  AlbedoSolMF=0.2\r\n  NoFieldDate=1,2,0,\r\n  VarASCIIList, list of=2 tVarASCII\r\n    VarASCII=1\r\n      VarIdent=GlobHor\r\n      VarType=Irrad\r\n      NoField=3\r\n      FieldMult=1.0\r\n      UnitId=W_m2\r\n    End of TVarASCII\r\n  End of List VarASCIIList\r\nEnd of PVObject pvMeteoFormat\r\n";
-    assert!(parse_mef(mismatch).is_err());
+    assert!(matches!(
+        parse_mef(mismatch),
+        Err(crate::error::Error::Invalid(_))
+    ));
 }
 
 #[test]
@@ -78,7 +84,10 @@ fn should_reject_invalid_albedo_values() {
 #[test]
 fn should_reject_duplicate_positive_columns_in_no_field_date() {
     let dup = b"PVObject_=pvMeteoFormat\r\n  Comment=T\r\n  Version=8.1\r\n  DateFmtType=MM_DD\r\n  Separ=$003B\r\n  MeasureStep=60\r\n  AlbedoSolMF=0.2\r\n  NoFieldDate=2,2,3,0,\r\n  VarASCIIList, list of=1 tVarASCII\r\n    VarASCII=1\r\n      VarIdent=GlobHor\r\n      VarType=Irrad\r\n      NoField=4\r\n      FieldMult=1.0\r\n      UnitId=W_m2\r\n    End of TVarASCII\r\n  End of List VarASCIIList\r\nEnd of PVObject pvMeteoFormat\r\n";
-    assert!(parse_mef(dup).is_err());
+    assert!(matches!(
+        parse_mef(dup),
+        Err(crate::error::Error::Invalid(_))
+    ));
 }
 
 #[test]
@@ -105,7 +114,7 @@ fn should_reject_invalid_variable_column() {
         multiplicador: 1.0,
         unidad: "W_m2".into(),
     });
-    assert!(err.is_err());
+    assert!(matches!(err, Err(crate::error::Error::Invalid(_))));
 }
 
 #[test]
@@ -171,7 +180,7 @@ fn should_reject_path_traversal_when_reading_mef() {
     let ws = tempfile::tempdir().expect("Directorio temporal");
     let paths = paths_de_test(ws.path());
     let err = leer_mef(&paths, &json!({ "archivo": "../../Meteo.MEF" }));
-    assert!(err.is_err());
+    assert!(matches!(err, Err(crate::error::Error::Invalid(_))));
 }
 
 #[test]
@@ -184,19 +193,20 @@ fn should_reject_external_absolute_path_without_permission() {
         "/etc/hosts"
     };
     let err = leer_mef(&paths, &json!({ "archivo": ruta_externa }));
-    assert!(err.is_err());
+    assert!(matches!(err, Err(crate::error::Error::Invalid(_))));
 }
 
 #[test]
 #[ignore = "necesita la instalación de PVsyst"]
 fn should_roundtrip_exact_bytes_on_real_modern_mef_samples() {
     let muestras = [
-        r"C:\Program Files\PVsyst8.1.7\DataRO\PVsyst8.1_Data\Meteo\PVsyst_ANE-NEDO.MEF",
-        r"C:\Program Files\PVsyst8.1.7\DataRO\PVsyst8.1_Data\CLI\Ressources\Examples\Sources\WeatherData\Hawaii_2020_hourly.MEF",
+        r"PVsyst8.1_Data\Meteo\PVsyst_ANE-NEDO.MEF",
+        r"PVsyst8.1_Data\CLI\Ressources\Examples\Sources\WeatherData\Hawaii_2020_hourly.MEF",
     ];
 
     for ruta_str in muestras {
-        let ruta = Path::new(ruta_str);
+        let ruta = crate::config::data_ro().join(ruta_str);
+        let ruta = ruta.as_path();
         if !ruta.exists() {
             panic!(
                 "Falta el archivo requerido de la instalación de PVsyst: {}",
@@ -219,12 +229,13 @@ fn should_roundtrip_exact_bytes_on_real_modern_mef_samples() {
 #[ignore = "necesita la instalación de PVsyst"]
 fn should_parse_and_reject_writing_on_real_legacy_mef_samples() {
     let muestras_legacy = [
-        r"C:\Program Files\PVsyst8.1.7\DataRO\PVsyst8.1_Data\Meteo\PVsyst_Standard_GHI_DNI.MEF",
-        r"C:\Program Files\PVsyst8.1.7\DataRO\PVsyst8.1_Data\Meteo\PVsyst_Standard_GHI_DHI.MEF",
-        r"C:\Program Files\PVsyst8.1.7\DataRO\PVsyst8.1_Data\Meteo\SIG_Geneva.MEF",
+        r"PVsyst8.1_Data\Meteo\PVsyst_Standard_GHI_DNI.MEF",
+        r"PVsyst8.1_Data\Meteo\PVsyst_Standard_GHI_DHI.MEF",
+        r"PVsyst8.1_Data\Meteo\SIG_Geneva.MEF",
     ];
     for ruta_str in muestras_legacy {
-        let ruta = Path::new(ruta_str);
+        let ruta = crate::config::data_ro().join(ruta_str);
+        let ruta = ruta.as_path();
         if !ruta.exists() {
             panic!(
                 "Falta el archivo requerido de la instalación de PVsyst: {}",

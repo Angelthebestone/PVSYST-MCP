@@ -73,3 +73,29 @@ fn should_refuse_to_read_or_edit_a_truncated_component() {
         OND_TRUNCADO
     );
 }
+
+#[test]
+fn should_refuse_to_create_a_component_with_an_invalid_name_or_over_an_existing_one() {
+    let ws = tempfile::tempdir().expect("ws");
+    let dir = ws.path().join("ComposPV").join("Inverters");
+    std::fs::create_dir_all(&dir).expect("dir");
+    std::fs::write(dir.join("Base.OND"), OND).expect("base");
+    std::fs::write(dir.join("Ya.OND"), b"previo").expect("existente");
+    let paths = Paths::para_test(ws.path());
+
+    let invalido = json!({ "plantilla": "Base.OND", "tipo": "OND", "nombre_nuevo": "a/b" });
+    let existente = json!({ "plantilla": "Base.OND", "tipo": "OND", "nombre_nuevo": "Ya.OND" });
+
+    assert!(matches!(
+        crate::components::crear_componente(&paths, &invalido),
+        Err(Error::Invalid(_))
+    ));
+    assert!(matches!(
+        crate::components::crear_componente(&paths, &existente),
+        Err(Error::Invalid(m)) if m.contains("sobrescribir")
+    ));
+    assert_eq!(
+        std::fs::read(dir.join("Ya.OND")).expect("existente"),
+        b"previo"
+    );
+}

@@ -63,7 +63,7 @@ fn should_leave_no_project_when_the_site_cannot_be_linked() {
 
     let res = crear_proyecto(&paths, &args);
 
-    assert!(res.is_err());
+    assert!(matches!(res, Err(crate::error::Error::NotFound(_))));
     assert!(!ws.path().join("Projects").join("Nuevo.PRJ").exists());
     assert!(!ws.path().join("Projects").join("Nuevo.VC0").exists());
 }

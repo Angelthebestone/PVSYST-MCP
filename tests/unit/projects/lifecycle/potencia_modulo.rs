@@ -36,7 +36,10 @@ fn should_report_unreadable_module_instead_of_inferring_its_power() {
 
     let res = pnom_del_modulo(&consulta, "Roto_300W.PAN");
 
-    assert!(res.is_err(), "{res:?}");
+    assert!(
+        matches!(res, Err(crate::error::Error::Invalid(_))),
+        "{res:?}"
+    );
 }
 
 #[test]

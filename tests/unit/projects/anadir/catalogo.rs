@@ -55,8 +55,7 @@ fn should_have_parent_in_demo_for_every_element() {
 
 #[test]
 fn should_list_valid_elements_when_unknown_element_requested() {
-    let mut paths = Paths::resolve();
-    paths.workspace = std::env::temp_dir();
+    let paths = Paths::para_test(std::env::temp_dir());
     let args = json!({"proyecto": "x", "elemento": "nada"});
     let err = anadir(&paths, &args).unwrap_err();
     assert!(err.to_string().contains("baterias"));
@@ -142,8 +141,7 @@ fn should_not_flag_errors_in_doctor_when_domo_added_to_variant_copy() {
     std::fs::write(projects_dir.join("TestDoctor.PRJ"), demo_prj).expect("write PRJ");
     std::fs::write(projects_dir.join("TestDoctor.VC0"), demo_vc0).expect("write VC0");
 
-    let mut paths = Paths::resolve();
-    paths.workspace = tmp.path().to_path_buf();
+    let paths = Paths::para_test(tmp.path().to_path_buf());
 
     let args_anadir = json!({
         "proyecto": "TestDoctor",

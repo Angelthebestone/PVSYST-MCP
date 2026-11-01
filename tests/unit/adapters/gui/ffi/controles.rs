@@ -22,8 +22,14 @@ fn should_return_false_when_selecting_item_on_invalid_handle() {
 
 #[test]
 fn should_fail_when_typing_or_changing_page_on_invalid_handle() {
-    assert!(teclear_en(0, "test").is_err());
-    assert!(mostrar_pagina(0, 2).is_err());
+    assert!(matches!(
+        teclear_en(0, "test"),
+        Err(crate::error::Error::Gui(_))
+    ));
+    assert!(matches!(
+        mostrar_pagina(0, 2),
+        Err(crate::error::Error::Gui(_))
+    ));
 }
 
 #[test]

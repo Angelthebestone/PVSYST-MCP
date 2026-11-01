@@ -12,8 +12,7 @@ fn crear_workspace_temporal() -> (tempfile::TempDir, Paths) {
     let ws = tmp.path().join("PVsyst8.1_Data");
     fs::create_dir_all(ws.join("Projects")).expect("create Projects");
     fs::create_dir_all(ws.join("ComposPV")).expect("create ComposPV");
-    let mut paths = Paths::resolve();
-    paths.workspace = ws;
+    let paths = Paths::para_test(ws);
     (tmp, paths)
 }
 
@@ -54,14 +53,14 @@ fn should_allow_export_outside_workspace_with_explicit_flag() {
         "permitir_fuera_del_workspace": true
     });
 
-    let res = exportar_proyecto(&paths, &args);
-    if let Err(err) = res {
-        let s = err.to_string();
-        assert!(
-            !s.contains("Ruta fuera del workspace"),
-            "Boundary check must pass when flag is given; failed with: {s}"
-        );
-    }
+    let res = exportar_proyecto(&paths, &args).expect("exportación permitida fuera del workspace");
+
+    assert_eq!(res["count"], 1);
+    assert!(
+        dest_fuera.is_file(),
+        "el zip debe existir en {}",
+        dest_fuera.display()
+    );
 }
 
 #[test]
@@ -115,11 +114,29 @@ fn should_reject_zip_entries_escaping_the_destination() {
 #[test]
 fn should_reject_links_and_oversized_archives() {
     let (n, d) = listado(&[('l', 0, "Projects/enlace.PRJ")]);
-    assert!(validar_listado_zip(&n, &d).is_err(), "symlink");
+    assert!(
+        matches!(
+            validar_listado_zip(&n, &d),
+            Err(crate::error::Error::Invalid(_))
+        ),
+        "symlink"
+    );
     let (n, d) = listado(&[('h', 0, "Projects/duro.PRJ")]);
-    assert!(validar_listado_zip(&n, &d).is_err(), "hardlink");
+    assert!(
+        matches!(
+            validar_listado_zip(&n, &d),
+            Err(crate::error::Error::Invalid(_))
+        ),
+        "hardlink"
+    );
     let (n, d) = listado(&[('-', u64::MAX / 2, "a.bin"), ('-', u64::MAX / 2, "b.bin")]);
-    assert!(validar_listado_zip(&n, &d).is_err(), "bomba");
+    assert!(
+        matches!(
+            validar_listado_zip(&n, &d),
+            Err(crate::error::Error::Invalid(_))
+        ),
+        "bomba"
+    );
 }
 
 #[test]

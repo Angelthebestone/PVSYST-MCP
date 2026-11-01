@@ -16,7 +16,7 @@ fn should_reject_reading_component_with_absolute_path_outside_workspace() {
     )
     .expect("write");
 
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let args = json!({
         "workspace": temp.path().to_string_lossy(),
         "componente": outside_file.to_string_lossy(),
@@ -37,7 +37,7 @@ fn should_reject_deleting_component_with_absolute_path_outside_workspace() {
     let outside_file = outside_dir.path().join("external.OND");
     fs::write(&outside_file, b"test").expect("write");
 
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let args = json!({
         "workspace": temp.path().to_string_lossy(),
         "componente": outside_file.to_string_lossy(),
@@ -53,16 +53,14 @@ fn should_reject_deleting_component_with_absolute_path_outside_workspace() {
 }
 
 #[test]
+#[ignore = "necesita la instalación de PVsyst 8.1 (DataRO): ejecutar con --ignored"]
 fn should_reject_deleting_component_from_read_only_database() {
     let temp = tempdir().expect("tempdir");
     let ro_ond = crate::config::compos_ro()
         .join("Inverters")
         .join("Generic_50kW.OND");
-    if !ro_ond.exists() {
-        return;
-    }
-
-    let paths = Paths::resolve();
+    assert!(ro_ond.is_file(), "falta {}", ro_ond.display());
+    let paths = Paths::para_test(std::env::temp_dir());
     let args = json!({
         "workspace": temp.path().to_string_lossy(),
         "componente": ro_ond.to_string_lossy(),
@@ -89,7 +87,8 @@ fn should_reject_component_file_larger_than_any_real_component() {
     file.set_len(64 * 1024 * 1024).expect("set_len");
 
     let args = json!({ "workspace": temp.path(), "componente": "huge.OND", "tipo": "OND" });
-    let err = leer_componente(&Paths::resolve(), &args).expect_err("demasiado grande");
+    let err = leer_componente(&Paths::para_test(std::env::temp_dir()), &args)
+        .expect_err("demasiado grande");
     assert!(err.to_string().contains("como máximo"), "err={err}");
 }
 
@@ -104,7 +103,7 @@ fn should_allow_reading_component_outside_when_explicitly_permitted() {
     )
     .expect("write");
 
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let args = json!({
         "workspace": temp.path().to_string_lossy(),
         "componente": outside_file.to_string_lossy(),
@@ -125,7 +124,8 @@ fn should_resolve_relative_component_path_inside_the_workspace() {
     )
     .expect("write");
     let args = json!({ "workspace": temp.path(), "componente": "propios/mio.OND", "tipo": "OND" });
-    let res = leer_componente(&Paths::resolve(), &args).expect("ruta relativa al workspace");
+    let res = leer_componente(&Paths::para_test(std::env::temp_dir()), &args)
+        .expect("ruta relativa al workspace");
     assert_eq!(res["is_text"], true);
 }
 
@@ -141,7 +141,7 @@ fn should_edit_legacy_component_in_place_with_history() {
     ));
     fs::write(&pan_path, fixture).expect("write fixture");
 
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let args = json!({
         "workspace": temp.path().to_string_lossy(),
         "componente": "Synth_Legacy_300W.PAN",
@@ -170,7 +170,7 @@ fn should_create_legacy_component_from_template_with_applied_changes() {
     ));
     fs::write(&pan_path, fixture).expect("write fixture");
 
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let args = json!({
         "workspace": temp.path().to_string_lossy(),
         "plantilla": "Synth_Legacy_300W.PAN",
@@ -208,7 +208,7 @@ fn should_reject_editing_legacy_component_with_unknown_field() {
     ));
     fs::write(&pan_path, fixture).expect("write fixture");
 
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let args = json!({
         "workspace": temp.path().to_string_lossy(),
         "componente": "Synth_Legacy_300W.PAN",
@@ -223,15 +223,14 @@ fn should_reject_editing_legacy_component_with_unknown_field() {
 }
 
 #[test]
+#[ignore = "necesita la instalación de PVsyst 8.1 (DataRO): ejecutar con --ignored"]
 fn should_reject_editing_legacy_component_in_read_only_database() {
     let temp = tempdir().expect("tempdir");
     let ro_pan = crate::config::compos_ro()
         .join("PVModules")
         .join("Concentrix_CPV_Gen_II.PAN");
-    if !ro_pan.exists() {
-        return;
-    }
-    let paths = Paths::resolve();
+    assert!(ro_pan.is_file(), "falta {}", ro_pan.display());
+    let paths = Paths::para_test(std::env::temp_dir());
     let args = json!({
         "workspace": temp.path().to_string_lossy(),
         "componente": "Concentrix_CPV_Gen_II.PAN",

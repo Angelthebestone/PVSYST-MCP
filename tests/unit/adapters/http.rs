@@ -20,5 +20,8 @@ fn should_fail_when_the_body_is_one_byte_over_the_limit() {
 fn should_read_only_past_the_limit_when_the_source_never_ends() {
     let infinito = std::io::repeat(b'x');
 
-    assert!(leer_acotado(infinito, 1024).is_err());
+    assert!(matches!(
+        leer_acotado(infinito, 1024),
+        Err(crate::error::Error::Network(_))
+    ));
 }

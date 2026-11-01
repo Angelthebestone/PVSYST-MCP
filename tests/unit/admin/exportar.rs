@@ -91,5 +91,8 @@ fn should_list_every_entry_of_a_folder() {
     entradas.sort();
 
     assert_eq!(entradas, [tmp.path().join("a.PRJ"), tmp.path().join("sub")]);
-    assert!(super::entradas_de(&tmp.path().join("no_existe")).is_err());
+    assert!(matches!(
+        super::entradas_de(&tmp.path().join("no_existe")),
+        Err(crate::error::Error::Io { .. })
+    ));
 }

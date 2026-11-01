@@ -82,7 +82,7 @@ fn should_not_read_simular_as_a_dry_run_when_the_tool_uses_it_to_run_the_simulat
 
 #[test]
 fn should_not_offer_to_apply_a_dry_run_that_failed() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let args = json!({ "accion": "ejecutar", "proyecto": "No_existe", "dry_run": true });
     let error = Error::NotFound("Proyecto no encontrado".into());
     let vista = vista_del_error(&paths, ("simular", &args), &error).expect("known tool");

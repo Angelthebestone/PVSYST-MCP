@@ -65,13 +65,13 @@ fn should_refuse_writing_windows_device_or_control_chars() {
         &paths,
         &json!({ "archivo": "Meteo/CON.MEF", "contenido": "x" }),
     );
-    assert!(err_con.is_err());
+    assert!(matches!(err_con, Err(crate::error::Error::Invalid(_))));
 
     let err_ctrl = escribir_archivo(
         &paths,
         &json!({ "archivo": "Meteo/foo\u{0007}.MEF", "contenido": "x" }),
     );
-    assert!(err_ctrl.is_err());
+    assert!(matches!(err_ctrl, Err(crate::error::Error::Invalid(_))));
 }
 
 #[test]
@@ -84,7 +84,7 @@ fn should_refuse_writing_content_exceeding_max_bytes_limit() {
         &paths,
         &json!({ "archivo": "Meteo/Grande.MEF", "contenido": oversize }),
     );
-    assert!(err.is_err());
+    assert!(matches!(err, Err(crate::error::Error::Invalid(_))));
     assert!(err
         .unwrap_err()
         .to_string()

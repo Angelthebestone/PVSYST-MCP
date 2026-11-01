@@ -2,13 +2,13 @@ use super::*;
 
 #[test]
 fn should_expose_all_fifteen_pvsyst_tools_by_default() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     assert_eq!(list(&paths).len(), 15);
 }
 
 #[test]
 fn should_include_permitir_fuera_del_workspace_property() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let schemas = list(&paths);
     for tool_name in [
         "entorno",
@@ -38,7 +38,7 @@ fn should_include_permitir_fuera_del_workspace_property() {
 
 #[test]
 fn should_list_the_required_keys_of_each_action_in_the_discriminator() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let schemas = list(&paths);
     let editar = schemas
         .iter()
@@ -56,7 +56,7 @@ fn should_list_the_required_keys_of_each_action_in_the_discriminator() {
 
 #[test]
 fn should_accept_either_spelling_of_leer_archivo_in_the_schema() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let schemas = list(&paths);
     let leer = schemas
         .iter()
@@ -124,7 +124,7 @@ fn should_annotate_phase_three_schema_constraints() {
 
 #[test]
 fn should_expose_the_new_gui_field_actions() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let schemas = list(&paths);
     let tool = |name: &str| {
         schemas
@@ -198,7 +198,7 @@ fn should_match_manifest_tools_and_declarations() {
 
 #[test]
 fn should_declare_items_for_all_array_schemas() {
-    let mut paths = Paths::resolve();
+    let mut paths = Paths::para_test(std::env::temp_dir());
     paths.aproximaciones = false;
     for tool in list(&paths) {
         let name = tool["name"].as_str().unwrap_or("unknown");

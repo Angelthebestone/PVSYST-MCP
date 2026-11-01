@@ -46,7 +46,11 @@ fn contexto<'a>(tool: &'a str, accion: &'a str, args: &'a Value) -> Contexto<'a>
 
 pub(super) fn con_vista((tool, accion): (&str, &str), args: &Value, salida: Value) -> Value {
     let mut v = salida;
-    anadir_vista(&Paths::resolve(), &contexto(tool, accion, args), &mut v);
+    anadir_vista(
+        &Paths::para_test(std::env::temp_dir()),
+        &contexto(tool, accion, args),
+        &mut v,
+    );
     v["vista"].clone()
 }
 
@@ -71,7 +75,7 @@ fn should_not_keep_catalogue_entries_for_actions_that_no_longer_exist() {
 
 #[test]
 fn should_give_state_summary_and_an_executable_next_step_for_every_action() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     for (tool, accion) in acciones_declaradas() {
         let vista = con_vista((tool, accion), &json!({}), json!({}));
         assert_eq!(vista["estado"], "ok", "{tool} {accion}");
@@ -173,7 +177,7 @@ fn should_report_what_the_detail_level_cut_and_how_to_ask_for_the_rest() {
     };
     recorte::decorar(&mut v, &args, respuesta);
     anadir_vista(
-        &Paths::resolve(),
+        &Paths::para_test(std::env::temp_dir()),
         &contexto("listar", "archivos", &args),
         &mut v,
     );
@@ -190,7 +194,7 @@ fn should_cap_the_form_fields_of_the_view_and_say_the_answer_keeps_them_all() {
         .collect();
     let mut respuesta = json!({ "campos": campos });
     anadir_vista(
-        &Paths::resolve(),
+        &Paths::para_test(std::env::temp_dir()),
         &contexto("gui_observar", "vista", &json!({})),
         &mut respuesta,
     );
@@ -204,7 +208,7 @@ fn should_cap_the_form_fields_of_the_view_and_say_the_answer_keeps_them_all() {
 
 #[test]
 fn should_give_a_failed_call_a_code_a_cause_and_the_keys_it_needs() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let args = json!({ "accion": "doctor" });
     let error = call(&paths, "proyecto", &args).expect_err("doctor needs a project");
     let vista = vista_del_error(&paths, ("proyecto", &args), &error).expect("known tool");
@@ -219,7 +223,7 @@ fn should_give_a_failed_call_a_code_a_cause_and_the_keys_it_needs() {
 
 #[test]
 fn should_list_every_declared_key_when_the_value_of_an_argument_is_invalid() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let args = json!({ "que": "nada" });
     let error = call(&paths, "resultados", &args).expect_err("unknown value");
     let vista = vista_del_error(&paths, ("resultados", &args), &error).expect("known tool");
@@ -232,7 +236,7 @@ fn should_list_every_declared_key_when_the_value_of_an_argument_is_invalid() {
 
 #[test]
 fn should_build_no_vista_for_an_unknown_tool() {
-    let paths = Paths::resolve();
+    let paths = Paths::para_test(std::env::temp_dir());
     let error = Error::NotFound("Unknown tool".into());
     assert!(vista_del_error(&paths, ("no_existe", &json!({})), &error).is_none());
 }

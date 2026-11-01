@@ -21,6 +21,8 @@ use serde_json::{json, Value};
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
+use std::time::Duration;
 
 pub const DEMO_WS: &str = r"C:\Program Files\PVsyst8.1.8\DataRO\PVsyst8.1_Data";
 
@@ -44,11 +46,27 @@ pub fn protocol_call(line: &str) -> Value {
     serde_json::from_str(&out).expect("valid json")
 }
 
+/// Longest wait for one server answer: a hung server fails the test instead of blocking it.
+const PLAZO_RESPUESTA: Duration = Duration::from_secs(120);
+
 pub struct Client {
     stdin: ChildStdin,
-    reader: BufReader<ChildStdout>,
+    lineas: Receiver<String>,
     child: Child,
     _temp_ws: Option<tempfile::TempDir>,
+}
+
+/// Reads the server's stdout on its own thread, one line per message.
+fn lector_de_lineas(stdout: ChildStdout) -> Receiver<String> {
+    let (tx, rx) = mpsc::channel();
+    std::thread::spawn(move || {
+        // Stops at EOF, at a read error, or when the client is gone.
+        let _ = BufReader::new(stdout)
+            .lines()
+            .map_while(Result::ok)
+            .try_for_each(|linea| tx.send(linea));
+    });
+    rx
 }
 
 impl Client {
@@ -82,17 +100,21 @@ impl Client {
         for (k, v) in env {
             cmd.env(k, v);
         }
-        let mut child = cmd
+        let child = cmd
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
             .spawn()
             .expect("spawn pvsyst-mcp");
+        Client::conectar(child, temp_ws)
+    }
+
+    fn conectar(mut child: Child, temp_ws: Option<tempfile::TempDir>) -> Client {
         let stdin = child.stdin.take().unwrap();
         let stdout = child.stdout.take().unwrap();
         Client {
             stdin,
-            reader: BufReader::new(stdout),
+            lineas: lector_de_lineas(stdout),
             child,
             _temp_ws: temp_ws,
         }
@@ -109,20 +131,13 @@ impl Client {
         if let Some(w) = workspace {
             cmd.env("PVSYST_WORKSPACE", w);
         }
-        let mut child = cmd
+        let child = cmd
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
             .spawn()
             .expect("spawn pvsyst-mcp");
-        let stdin = child.stdin.take().unwrap();
-        let stdout = child.stdout.take().unwrap();
-        Client {
-            stdin,
-            reader: BufReader::new(stdout),
-            child,
-            _temp_ws: None,
-        }
+        Client::conectar(child, None)
     }
 
     pub fn send(&mut self, v: &Value) {
@@ -130,10 +145,14 @@ impl Client {
         self.stdin.flush().unwrap();
     }
 
-    pub fn recv(&mut self) -> Value {
-        let mut line = String::new();
-        self.reader.read_line(&mut line).expect("read line");
-        assert!(!line.is_empty(), "server closed stdout unexpectedly");
+    pub fn recv(&self) -> Value {
+        let line = match self.lineas.recv_timeout(PLAZO_RESPUESTA) {
+            Ok(l) => l,
+            Err(RecvTimeoutError::Timeout) => {
+                panic!("no answer from the server in {PLAZO_RESPUESTA:?}")
+            }
+            Err(RecvTimeoutError::Disconnected) => panic!("server closed stdout unexpectedly"),
+        };
         serde_json::from_str(&line).unwrap_or_else(|e| panic!("bad json: {e} in {line}"))
     }
 
