@@ -73,3 +73,12 @@ fn should_roundtrip_serialize_and_parse() {
     let parsed = parse_rvt(&serializado).expect("roundtrip parse");
     assert_eq!(parsed, vars);
 }
+
+#[test]
+fn should_remove_variable_when_name_has_surrounding_spaces() {
+    let actuales = vec!["HSol".to_string(), "AzSol".to_string()];
+
+    let resultado = eliminar_variables(&actuales, &[" azsol "]).expect("eliminado");
+
+    assert_eq!(resultado, ["HSol"]);
+}

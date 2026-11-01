@@ -185,9 +185,18 @@ pub(super) fn valores_de(t: &Tipo, datos: &Map<String, Value>, nombre: &str) -> 
     valores
 }
 
+/// Types the datasheet; a field that failed or reads back differently stops before saving.
 fn rellenar(paths: &Paths, t: &Tipo, valores: &Map<String, Value>) -> Result<()> {
     let pedido = json!({ "entidad": t.entidad, "valores": valores, "ventana": t.formulario });
-    crate::vista_agente::rellenar(paths, &pedido).map(|_| ())
+    let hecho = crate::vista_agente::rellenar(paths, &pedido)?;
+    let difieren = hecho["campos_que_difieren"].as_u64().unwrap_or(0);
+    if hecho["completo"] == false || difieren > 0 {
+        return Err(Error::Gui(format!(
+            "La ficha no quedó como se pidió ({difieren} campo(s) distinto(s), errores {}): no se guarda",
+            hecho["errores"]
+        )));
+    }
+    Ok(())
 }
 
 fn guardar(s: &Sesion, f: &Formulario) -> Result<()> {
@@ -252,11 +261,15 @@ pub(crate) fn crear(
         rellenar(paths, t, &valores_de(t, datos, nombre))?;
         guardar(s, &f)?;
         let avisos = s.mensajes();
-        leer_guardado(t, &destino, &avisos)
+        leer_guardado(t, &destino, (datos, &avisos))
     })
 }
 
-fn leer_guardado(t: &Tipo, destino: &Path, avisos: &[String]) -> Result<Value> {
+fn leer_guardado(
+    t: &Tipo,
+    destino: &Path,
+    (enviados, avisos): (&Map<String, Value>, &[String]),
+) -> Result<Value> {
     if !destino.exists() {
         return Err(Error::Gui(format!(
             "PVsyst no guardó {}",
@@ -271,10 +284,16 @@ fn leer_guardado(t: &Tipo, destino: &Path, avisos: &[String]) -> Result<Value> {
         .iter()
         .filter_map(|k| raiz.find_deep(k).map(|v| ((*k).to_string(), json!(v))))
         .collect();
-    Ok(json!({
+    let diferencias = super::contraste::diferencias(&raiz, t.leidas, enviados);
+    let mut salida = json!({
         "origen": "pvsyst",
         "archivo": destino.display().to_string(),
         "valores_pvsyst": valores,
         "avisos_pvsyst": avisos,
-    }))
+    });
+    if !diferencias.is_empty() {
+        salida["completo"] = json!(false);
+        salida["diferencias_con_la_ficha"] = Value::Array(diferencias);
+    }
+    Ok(salida)
 }

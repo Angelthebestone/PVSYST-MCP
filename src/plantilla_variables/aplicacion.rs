@@ -37,7 +37,14 @@ fn extraer_variables(args: &Value) -> Result<Vec<&str>> {
         .get("variables")
         .and_then(Value::as_array)
         .ok_or_else(|| Error::Invalid("Se requiere el campo 'variables' como arreglo".into()))?;
-    let vars: Vec<&str> = arr.iter().filter_map(Value::as_str).collect();
+    let vars = arr
+        .iter()
+        .map(|v| {
+            v.as_str().ok_or_else(|| {
+                Error::Invalid(format!("'variables' solo admite nombres (recibido {v})"))
+            })
+        })
+        .collect::<Result<Vec<&str>>>()?;
     if vars.is_empty() {
         return Err(Error::Invalid(
             "El arreglo 'variables' no puede estar vacío".into(),

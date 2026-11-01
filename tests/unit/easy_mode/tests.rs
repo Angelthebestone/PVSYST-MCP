@@ -324,6 +324,23 @@ fn leer_kpis_extracts_from_pdf_fixture() {
 }
 
 #[test]
+fn should_report_given_csv_and_no_always_null_kwp_when_extracting_kpis() {
+    let ws = tempfile::tempdir().expect("ws");
+    let paths = Paths::para_test(ws.path());
+    let pdf = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/results/MCP_E2E.pdf"
+    );
+
+    let kpis = super::simulacion::extraer_kpis(&paths, "Results/X.csv", pdf).expect("kpis");
+    let json = serde_json::to_value(&kpis).expect("json");
+
+    assert_eq!(json["csv"], "Results/X.csv");
+    assert!(json.get("kwp").is_none(), "{json}");
+    assert_eq!(json["energia_producida_kwh"], 14299.0);
+}
+
+#[test]
 fn leer_kpis_returns_error_when_pdf_missing() {
     let paths = Paths::resolve();
     let err = super::simulacion::leer_kpis(&paths, &json!({ "report_pdf": "inexistente.pdf" }))
@@ -387,5 +404,8 @@ fn exigir_tolerancia_kwp_rejects_a_realised_kwp_beyond_the_tolerance() {
     let msg = err.to_string();
     assert!(msg.contains("tolerancia_kwp_pct"), "msg={msg}");
     assert!(super::exigir_tolerancia_kwp(10.0, 20.0, Some(11.5)).is_ok());
-    assert!(super::exigir_tolerancia_kwp(10.0, 20.0, None).is_ok());
+    assert!(matches!(
+        super::exigir_tolerancia_kwp(10.0, 20.0, None),
+        Err(crate::error::Error::Format(_))
+    ));
 }

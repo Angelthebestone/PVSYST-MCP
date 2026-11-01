@@ -180,14 +180,15 @@ pub(crate) fn extraer_kpis(paths: &Paths, csv_path: &str, pdf_path: &str) -> Res
         paths,
         &json!({ "archivo": csv_path, "report_pdf": pdf_path }),
     )?;
+    // `leer_kpis` reads the PDF only: the CSV is the one given, and the kWp is the
+    // design's `kwp_realizado`, not a KPI of the report.
     Ok(KpisSalida {
-        csv: k_val.get("csv").cloned().unwrap_or(json!(csv_path)),
+        csv: json!(csv_path),
         energia_producida_kwh: k_val.get("energia_anual_kwh").and_then(Value::as_f64),
         produccion_especifica_kwh_kwp: k_val
             .get("produccion_especifica_kwh_kwp")
             .and_then(Value::as_f64),
         pr_pct: k_val.get("pr_pct").and_then(Value::as_f64),
-        kwp: k_val.get("kwp").and_then(Value::as_f64),
     })
 }
 

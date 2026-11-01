@@ -10,6 +10,31 @@ fn should_list_elements_when_aplicar_elemento_gets_an_unknown_name() {
     assert!(error.to_string().contains("baterias"));
 }
 
+const VARIANTE: &[u8] = b"PVObject_=pvVCalcul\r\n  PVObject_Horizon=pvHorizon\r\n    NPtsEff=0\r\n  End of PVObject pvHorizon\r\nEnd of PVObject pvVCalcul\r\n";
+const BLOQUE: &[u8] = b"PVObject_=pvHorizon\r\n  NPtsEff=12\r\nEnd of PVObject pvHorizon\r\n";
+
+#[test]
+fn should_not_report_type_as_inserted_when_variant_already_has_it() {
+    let (bytes, insertado) =
+        insertar_si_falta(VARIANTE.to_vec(), ("pvHorizon", "pvVCalcul"), BLOQUE)
+            .expect("sin cambio");
+
+    assert!(!insertado);
+    assert_eq!(bytes, VARIANTE);
+}
+
+#[test]
+fn should_insert_type_when_variant_lacks_it() {
+    let variante = b"PVObject_=pvVCalcul\r\n  Comment=x\r\nEnd of PVObject pvVCalcul\r\n";
+
+    let (bytes, insertado) =
+        insertar_si_falta(variante.to_vec(), ("pvHorizon", "pvVCalcul"), BLOQUE)
+            .expect("insertado");
+
+    assert!(insertado);
+    assert!(String::from_utf8_lossy(&bytes).contains("NPtsEff=12"));
+}
+
 #[test]
 #[ignore = "needs the PVsyst 8.1.7 demo data: run with --ignored"]
 fn should_have_parent_in_demo_for_every_element() {

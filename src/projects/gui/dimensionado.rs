@@ -48,6 +48,18 @@ pub(crate) fn dimensionar(
     })
 }
 
+/// Whether the saved value is not the one PVsyst proposed in the form (compared as
+/// numbers; a proposal the form did not show cannot be compared).
+fn difiere(propuesto: &Value, guardado: Option<&str>) -> bool {
+    let numero = |t: &str| t.trim().replace(',', ".").parse::<f64>().ok();
+    let propuesto = match propuesto {
+        Value::Number(n) => n.as_f64(),
+        Value::String(t) => numero(t),
+        _ => return false,
+    };
+    propuesto != guardado.and_then(numero)
+}
+
 fn respuesta(
     raiz: &crate::format::object::PvNode,
     kwp: f64,
@@ -59,7 +71,22 @@ fn respuesta(
     let realizado = raiz
         .find_deep("PNomSizing")
         .and_then(|v| v.trim().parse::<f64>().ok());
-    json!({
+    let mut errores: Vec<String> = [("n_mod_serie", "NModSerie"), ("n_strings", "NStringCh")]
+        .iter()
+        .filter(|(p, g)| difiere(&propuesta[*p], campo(g).as_deref()))
+        .map(|(p, g)| {
+            format!(
+                "PVsyst guardó {g}={:?}, distinto de lo propuesto ({p}={})",
+                campo(g),
+                propuesta[*p]
+            )
+        })
+        .collect();
+    if realizado.is_none() {
+        errores
+            .push("La variante guardada no tiene PNomSizing: no se sabe el kWp realizado".into());
+    }
+    let mut salida = json!({
         "origen": "pvsyst",
         "metodo": "pre-dimensionado de PVsyst (ventana Sistema, potencia planeada)",
         "kwp_planeado": kwp,
@@ -72,5 +99,14 @@ fn respuesta(
             "PNomSizing": raiz.find_deep("PNomSizing"),
         },
         "avisos_pvsyst": avisos,
-    })
+    });
+    if !errores.is_empty() {
+        salida["completo"] = json!(false);
+        salida["errores"] = json!(errores);
+    }
+    salida
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/projects/gui/dimensionado.rs"]
+mod tests;

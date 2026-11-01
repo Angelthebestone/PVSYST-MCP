@@ -75,7 +75,11 @@ fn abrir_funcion(args: &Value, funcion: &Funcion) -> Result<Value> {
         )?,
     };
     let efecto_json = funcion.efecto.nombre();
-    Ok(json!({
+    let ausente = match funcion.efecto {
+        Efecto::Cierra => None,
+        _ => visto.clase_ausente(funcion.abre),
+    };
+    let mut respuesta = json!({
         "funcion": funcion.clave,
         "etiqueta": funcion.etiqueta,
         "efecto": efecto_json,
@@ -83,7 +87,17 @@ fn abrir_funcion(args: &Value, funcion: &Funcion) -> Result<Value> {
         "ya_abiertas": visto.ya_abiertas_json(),
         "nota": funcion.nota,
         "resumen": visto.primera_nueva().map(resumen_de_ventana),
-    }))
+    });
+    if let (Some(clase), Some(o)) = (ausente, respuesta.as_object_mut()) {
+        o.insert("completo".into(), json!(false));
+        o.insert(
+            "error".into(),
+            json!(format!(
+                "PVsyst no abrió la ventana esperada ({clase}) en el plazo de espera"
+            )),
+        );
+    }
+    Ok(respuesta)
 }
 
 fn anfitrion_de(args: &Value, funcion: &Funcion) -> Result<Hwnd> {

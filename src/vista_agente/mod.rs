@@ -9,6 +9,7 @@ mod cobertura;
 pub(crate) mod contrato;
 mod dominio;
 mod esquemas;
+mod informe_relleno;
 mod plan;
 mod relleno;
 mod ventana;

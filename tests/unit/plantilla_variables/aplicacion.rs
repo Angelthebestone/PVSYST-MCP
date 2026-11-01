@@ -182,3 +182,13 @@ fn should_prefer_models_folder_when_bare_name_exists_there() {
         models.join("Plantilla.RVT")
     );
 }
+
+#[test]
+fn should_reject_variables_that_are_not_names() {
+    let (_tmp, paths) = workspace_temporal();
+    let args = json!({ "archivo": "X.RVT", "operacion": "crear", "variables": ["HSol", 7] });
+
+    let res = gestionar_rvt(&paths, &args);
+
+    assert!(matches!(res, Err(Error::Invalid(m)) if m.contains("variables")));
+}

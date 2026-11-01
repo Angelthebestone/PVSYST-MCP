@@ -8,7 +8,9 @@ use super::plan::es_valido;
 use super::ventana::ventana_de;
 use crate::adapters::gui::ffi;
 use crate::adapters::gui::ocr;
-use crate::adapters::gui::ventanas::{class_of, compact_default, hwnd_de, text_of};
+use crate::adapters::gui::ventanas::{
+    class_of, compact_default, hwnd_de, text_of, ventanas_de, visible,
+};
 use crate::args::{flag, opt_str};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
@@ -103,10 +105,16 @@ fn entidad_pedida(args: &Value) -> Result<Option<&'static Entidad>> {
     if args.get("ventana").is_some() {
         return Ok(de_formulario(&class_of(hwnd_de(args, "ventana")?)));
     }
+    // One enumeration for every entity, and a failed one is an error, not "nothing open".
+    let clases: Vec<String> = ventanas_de(args)?
+        .into_iter()
+        .filter(|h| visible(*h))
+        .map(class_of)
+        .collect();
     Ok(todas()
         .iter()
         .copied()
-        .find(|e| ventana_de(args, e).is_ok()))
+        .find(|e| clases.iter().any(|c| c == e.formulario)))
 }
 
 /// A registered window without a schema: its fields by position, or why it is capture-only.

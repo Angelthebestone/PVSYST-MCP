@@ -194,7 +194,7 @@ pub(crate) fn eliminar_variables(actuales: &[String], a_eliminar: &[&str]) -> Re
     }
     let resultado = actuales
         .iter()
-        .filter(|v| !a_eliminar.iter().any(|d| d.eq_ignore_ascii_case(v)))
+        .filter(|v| !a_eliminar.iter().any(|d| d.trim().eq_ignore_ascii_case(v)))
         .cloned()
         .collect();
     Ok(resultado)

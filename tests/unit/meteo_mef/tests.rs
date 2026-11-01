@@ -139,6 +139,31 @@ fn should_list_columns_when_reading_mef_from_workspace() {
     let leido = leer_mef(&paths, &json!({ "archivo": "Mio.MEF" })).expect("Lectura de MEF");
     assert_eq!(leido["comentario"], "ANE-NEDO known format");
     assert_eq!(leido["total_variables"], 4);
+    assert!(leido.get("completo").is_none());
+}
+
+#[test]
+fn should_mark_reading_incomplete_when_legacy_mef_has_no_readable_variables() {
+    let ws = tempfile::tempdir().expect("Directorio temporal");
+    let meteo_dir = ws.path().join("Meteo");
+    fs::create_dir_all(&meteo_dir).expect("Crear directorio Meteo");
+    fs::write(
+        meteo_dir.join("Binario.MEF"),
+        b"pvMeteoFormat;Sin Variables;\r\nVersion 5.0; Calcul=$00;\r\n",
+    )
+    .expect("Escritura del MEF");
+
+    let leido = leer_mef(
+        &paths_de_test(ws.path()),
+        &json!({ "archivo": "Binario.MEF" }),
+    )
+    .expect("Lectura de MEF");
+
+    assert_eq!(leido["total_variables"], 0);
+    assert_eq!(leido["completo"], false);
+    assert!(leido["aviso"]
+        .as_str()
+        .is_some_and(|a| a.contains("binarios")));
 }
 
 #[test]

@@ -1,10 +1,11 @@
 //! The fields a form shows right now, read from the controls themselves: no
 //! OCR and no captions, so it works at any DPI and costs milliseconds.
 
-use super::dominio::{Ancla, CampoEsquema, TOLERANCIA_ANCLA_PX};
+use super::dominio::{Ancla, CampoEsquema, Entidad, TOLERANCIA_ANCLA_PX};
 use crate::adapters::gui::ffi::{self, Hwnd};
 use crate::adapters::gui::ocr::esta_marcado;
 use crate::adapters::gui::ventanas::{hijos_visibles_con_clase, rect_of};
+use serde_json::{json, Value};
 
 const CLASES_TEXTO: &[&str] = &[
     "TEdit",
@@ -85,4 +86,29 @@ pub(crate) fn localizar<'v>(campo: &CampoEsquema, vivos: &'v [CampoVivo]) -> Opt
         .filter(|(_, distancia)| *distancia <= TOLERANCIA_ANCLA_PX)
         .min_by_key(|(_, distancia)| *distancia)
         .map(|(v, _)| v)
+}
+
+/// Fields PVsyst recomputed on its own: mapped or not, those not asked for
+/// whose text changed. O(controls).
+pub(super) fn recalculados(entidad: &Entidad, antes: &[CampoVivo], pedidos: &[Hwnd]) -> Vec<Value> {
+    con_texto_actual(antes)
+        .into_iter()
+        .filter(|(a, _)| !pedidos.contains(&a.hwnd))
+        .filter(|(a, ahora)| a.texto != *ahora)
+        .map(|(a, ahora)| {
+            let clave = entidad
+                .campos
+                .iter()
+                .find(|c| localizar(c, std::slice::from_ref(a)).is_some())
+                .map(|c| c.clave);
+            json!({ "clave": clave, "hwnd": format!("0x{:X}", a.hwnd), "antes": a.texto, "despues": ahora })
+        })
+        .collect()
+}
+
+fn con_texto_actual(antes: &[CampoVivo]) -> Vec<(&CampoVivo, String)> {
+    antes
+        .iter()
+        .map(|a| (a, valor_de(a.hwnd, &a.clase)))
+        .collect()
 }

@@ -249,7 +249,7 @@ pub(crate) fn ejecutar_paso_dimensionado(
         kwp_realizado: realised_kwp,
         criterio: disp.criterio,
         avisos: disp.avisos,
-        ok: true,
+        ok: realised_kwp.is_some(),
         detalle,
     })
 }

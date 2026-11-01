@@ -3,6 +3,7 @@
 //! Covers every component kind PVsyst uses, keyed by extension.
 
 pub(crate) mod buscar;
+mod cambios;
 pub(crate) mod ficha;
 pub(crate) mod pan;
 mod resolucion;
@@ -19,7 +20,6 @@ pub(crate) use resolucion::{
 use crate::args::{missing, req_str, tipo_de, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
-use crate::format::edit;
 use crate::format::object;
 use crate::history;
 use crate::workspace::{mover_a_papelera, validar_nombre, Alcance};
@@ -163,55 +163,6 @@ pub(crate) fn leer_componente(paths: &Paths, args: &Value) -> Result<Value> {
     Ok(out)
 }
 
-/// Apply `args.cambios` to the root object of a component, in place.
-fn aplicar_cambios(bytes: &mut Vec<u8>, args: &Value) -> Result<Vec<Value>> {
-    let text = String::from_utf8_lossy(bytes);
-    if !object::is_pvobject(&text) {
-        if pan::es_pan_legacy(bytes) {
-            let Some(cambios) = args
-                .get("cambios")
-                .or_else(|| args.get("campos"))
-                .and_then(|v| v.as_object())
-            else {
-                return Ok(Vec::new());
-            };
-            let changes = edit::changes_from_json(cambios);
-            edit::reject_invalid_keys(&changes)?;
-            if changes.is_empty() {
-                return Ok(Vec::new());
-            }
-            let (new_bytes, outcomes) = pan::parchear_campos_legacy(bytes, &changes)?;
-            *bytes = new_bytes;
-            return Ok(outcomes.iter().map(edit::ChangeOutcome::to_json).collect());
-        }
-        let cambios_vacios = args
-            .get("cambios")
-            .and_then(|v| v.as_object())
-            .is_none_or(|m| m.is_empty());
-        return if cambios_vacios {
-            Ok(Vec::new())
-        } else {
-            Err(Error::Invalid(
-                "Target component is binary; field editing is not supported.".into(),
-            ))
-        };
-    }
-    let (Some(root), Some(cambios)) = (
-        object::parse_first(&text),
-        args.get("cambios").and_then(|v| v.as_object()),
-    ) else {
-        return Ok(Vec::new());
-    };
-    let changes = edit::changes_from_json(cambios);
-    edit::reject_invalid_keys(&changes)?;
-    if changes.is_empty() {
-        return Ok(Vec::new());
-    }
-    let (new_bytes, outcomes) = edit::edit_fields(bytes, &root.obj_type, &changes)?;
-    *bytes = new_bytes;
-    Ok(outcomes.iter().map(edit::ChangeOutcome::to_json).collect())
-}
-
 /// Edit an existing component in place with history snapshot.
 pub(crate) fn editar_componente(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
@@ -225,7 +176,13 @@ pub(crate) fn editar_componente(paths: &Paths, args: &Value) -> Result<Value> {
         )));
     }
     let mut bytes = leer_bytes_componente(&path)?;
-    let applied = aplicar_cambios(&mut bytes, args)?;
+    let applied = cambios::aplicar_cambios(&mut bytes, args)?;
+    if applied.is_empty() {
+        return Err(Error::Invalid(
+            "editar necesita 'cambios' (o 'campos') con al menos un campo: no se escribió nada"
+                .into(),
+        ));
+    }
     let historial_id =
         history::snapshot(&workspace, std::slice::from_ref(&path), "editar_componente")?;
     history::escribir_atomico(&path, &bytes)?;
@@ -250,7 +207,7 @@ pub(crate) fn crear_componente(paths: &Paths, args: &Value) -> Result<Value> {
     let src = resolve_component(&workspace, &consulta(&kind, plantilla, args))?;
     let mut bytes = leer_bytes_componente(&src)?;
 
-    let applied = aplicar_cambios(&mut bytes, args)?;
+    let applied = cambios::aplicar_cambios(&mut bytes, args)?;
 
     let out_dir = compos_dir(&workspace, folder);
     fs::create_dir_all(&out_dir)

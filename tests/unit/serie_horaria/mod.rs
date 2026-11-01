@@ -206,3 +206,48 @@ fn should_reject_series_outside_workspace_when_name_escapes() {
         assert!(matches!(res, Err(Error::Invalid(_))), "{nombre}: {res:?}");
     }
 }
+
+#[test]
+fn should_refuse_paging_argument_that_is_not_a_non_negative_integer() {
+    use super::aplicacion::entero_paginacion;
+    for valor in [
+        serde_json::json!("24"),
+        serde_json::json!(-1),
+        serde_json::json!(2.5),
+    ] {
+        let args = serde_json::json!({ "limite": valor });
+        assert!(
+            matches!(
+                entero_paginacion(&args, "limite", 24),
+                Err(Error::Invalid(_))
+            ),
+            "{args}"
+        );
+    }
+}
+
+#[test]
+fn should_default_paging_argument_when_absent_or_null() {
+    use super::aplicacion::entero_paginacion;
+    assert_eq!(
+        entero_paginacion(&serde_json::json!({}), "limite", 24).expect("defecto"),
+        24
+    );
+    assert_eq!(
+        entero_paginacion(&serde_json::json!({ "limite": null }), "limite", 24).expect("nulo"),
+        24
+    );
+    assert_eq!(
+        entero_paginacion(&serde_json::json!({ "limite": 48 }), "limite", 24).expect("dado"),
+        48
+    );
+}
+
+#[test]
+fn should_refuse_repeated_variable_names() {
+    let args = serde_json::json!({ "variables": ["GlobHor", "T_Amb", "GlobHor"] });
+
+    let res = super::aplicacion::extraer_nombres_variables(&args);
+
+    assert!(matches!(res, Err(Error::Invalid(m)) if m.contains("GlobHor") && m.contains('3')));
+}

@@ -1,10 +1,13 @@
 //! `gui_actuar accion:rellenar`: types several values into a form by their
 //! schema keys and reports what each field holds afterwards.
 
-use super::campos_vivos::{campos_vivos, localizar, valor_de, CampoVivo};
+use super::campos_vivos::{campos_vivos, localizar, recalculados, valor_de, CampoVivo};
 use super::dominio::{CampoEsquema, Entidad, TipoValor};
 use super::esquemas::entidad;
-use super::plan::{coincide, planificar, Cambio};
+use super::informe_relleno::{
+    es_fallido, pagina_fallida, paso_fallido, paso_json, resumir_relleno,
+};
+use super::plan::{planificar, Cambio};
 use super::ventana::ventana_de;
 use crate::adapters::gui::conduccion::Formulario;
 use crate::adapters::gui::ffi::{self, Hwnd};
@@ -133,45 +136,22 @@ fn resultado_del_paso(
     ))
 }
 
-fn paso_json(campo: &CampoEsquema, (pedido, antes): (&str, &str), despues: Option<&str>) -> Value {
-    let estado = match despues {
-        None => "simulado",
-        Some(d) if coincide(campo, pedido, d) => "ok",
-        Some(_) => "distinto",
-    };
-    json!({
-        "clave": campo.clave,
-        "unidad": campo.unidad,
-        "pedido": pedido,
-        "antes": antes,
-        "despues": despues,
-        "estado": estado,
-    })
-}
-
-/// Fields PVsyst recomputed on its own: mapped or not, those not asked for
-/// whose text changed. O(controls).
-fn recalculados(entidad: &Entidad, antes: &[CampoVivo], pedidas: &[Paso]) -> Vec<Value> {
-    con_texto_actual(antes)
-        .into_iter()
-        .filter(|(a, _)| !pedidas.iter().any(|p| p.control.hwnd == a.hwnd))
-        .filter(|(a, ahora)| a.texto != *ahora)
-        .map(|(a, ahora)| {
-            let clave = entidad
-                .campos
-                .iter()
-                .find(|c| localizar(c, std::slice::from_ref(a)).is_some())
-                .map(|c| c.clave);
-            json!({ "clave": clave, "hwnd": format!("0x{:X}", a.hwnd), "antes": a.texto, "despues": ahora })
-        })
-        .collect()
-}
-
-fn con_texto_actual(antes: &[CampoVivo]) -> Vec<(&CampoVivo, String)> {
-    antes
-        .iter()
-        .map(|a| (a, valor_de(a.hwnd, &a.clase)))
-        .collect()
+/// Each step in order; the first that fails is reported as such and ends the batch.
+fn escribir_hasta_fallo(
+    formulario: &Formulario,
+    pasos: &[Paso<'_>],
+    modo: ModoEjecucion,
+) -> Vec<Value> {
+    let mut resultados = Vec::with_capacity(pasos.len());
+    for p in pasos {
+        let paso = resultado_del_paso(formulario, p, modo);
+        let fallo = paso.is_err();
+        resultados.push(paso.unwrap_or_else(|e| paso_fallido(p.cambio.campo.clave, &e)));
+        if fallo {
+            break;
+        }
+    }
+    resultados
 }
 
 /// What a fill acts on: the form, its schema and whether it types or only reports.
@@ -200,16 +180,15 @@ impl Aplicacion<'_> {
         Ok((resultados, recalculados))
     }
 
-    /// One batch against a single reading of the form.
+    /// One batch against a single reading of the form. A field that fails stops the
+    /// batch and is reported as `estado: error`, after the fields already typed.
     fn aplicar_lote(&self, grupo: &[&Cambio]) -> Result<Producido> {
         let vivos = campos_vivos(self.formulario.h);
         let pasos = emparejar(grupo, &vivos)?;
         verificar_listas(&pasos)?;
-        let resultados = pasos
-            .iter()
-            .map(|p| resultado_del_paso(self.formulario, p, self.modo))
-            .collect::<Result<Vec<_>>>()?;
-        Ok((resultados, recalculados(self.ent, &vivos, &pasos)))
+        let resultados = escribir_hasta_fallo(self.formulario, &pasos, self.modo);
+        let pedidos: Vec<Hwnd> = pasos.iter().map(|p| p.control.hwnd).collect();
+        Ok((resultados, recalculados(self.ent, &vivos, &pedidos)))
     }
 
     /// A simulation does not leave tab 0, so fields of other tabs are only reported.
@@ -250,16 +229,23 @@ fn recorrer_paginas(
     let escribe = app.modo == ModoEjecucion::Aplicar;
     let (mut resultados, mut recalc) = (Vec::new(), Vec::new());
     for (pagina, grupo) in grupos {
-        let (r, rec) = match (*pagina, escribe) {
-            (0, _) => app.aplicar(grupo)?,
-            (_, false) => Aplicacion::simular_otra_pagina(grupo),
-            (n, true) => {
-                app.formulario.pagina(n)?;
-                app.aplicar(grupo)?
-            }
+        let producido = match (*pagina, escribe) {
+            (0, _) => app.aplicar(grupo),
+            (_, false) => Ok(Aplicacion::simular_otra_pagina(grupo)),
+            (n, true) => app.formulario.pagina(n).and_then(|()| app.aplicar(grupo)),
         };
+        // Nothing typed yet: a plain error. Otherwise the fields already typed are kept.
+        let (r, rec) = match producido {
+            Ok(hecho) => hecho,
+            Err(e) if resultados.is_empty() => return Err(e),
+            Err(e) => (vec![pagina_fallida(*pagina, &e)], Vec::new()),
+        };
+        let fallo = r.iter().any(es_fallido);
         resultados.extend(r);
         recalc.extend(rec);
+        if fallo {
+            break;
+        }
     }
     Ok((resultados, recalc))
 }
@@ -289,16 +275,25 @@ pub(crate) fn rellenar(paths: &crate::config::Paths, args: &Value) -> Result<Val
         modo,
     };
     let (resultados, recalculados) = por_paginas(&aplicacion, &cambios)?;
+    // The values are typed already: a failed read-back is reported, not turned into an error.
     let vista = super::vista::vista(
         paths,
         &json!({"entidad": ent.clave, "ventana": format!("0x{h:X}")}),
-    )?;
-    Ok(json!({
+    );
+    let mut salida = json!({
         "entidad": ent.clave,
         "ventana": format!("0x{h:X}"),
         "simulado": modo == ModoEjecucion::Simular,
         "resultados": resultados,
         "recalculados": recalculados,
-        "formulario": vista,
-    }))
+    });
+    resumir_relleno(&mut salida);
+    let (clave, valor) = match vista {
+        Ok(v) => ("formulario", v),
+        Err(e) => ("formulario_error", json!(e.to_string())),
+    };
+    if let Some(o) = salida.as_object_mut() {
+        o.insert(clave.into(), valor);
+    }
+    Ok(salida)
 }

@@ -52,6 +52,13 @@ pub(crate) fn leer_mef(paths: &Paths, args: &Value) -> Result<Value> {
     if let Some(calcul) = mef.calcul() {
         res["calcul"] = json!(calcul);
     }
+    if mef.variables().is_empty() {
+        // Binary legacy formats keep their columns in Real48 records the MCP does not decode.
+        res["completo"] = json!(false);
+        res["aviso"] = json!(
+            "No se leyó ninguna variable: el formato guarda las columnas en registros binarios que el MCP no decodifica"
+        );
+    }
     Ok(res)
 }
 fn variables_a_json(mef: &MeteoMef) -> Vec<Value> {

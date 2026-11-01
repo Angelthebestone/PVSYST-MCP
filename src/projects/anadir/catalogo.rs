@@ -126,6 +126,20 @@ fn elementos_pendientes(
     Ok(pendientes)
 }
 
+/// `bloque` inserted under `padre` unless the variant already has a `tipo`; the flag
+/// says whether it was inserted.
+fn insertar_si_falta(
+    actual: Vec<u8>,
+    (tipo, padre): (&str, &str),
+    bloque: &[u8],
+) -> Result<(Vec<u8>, bool)> {
+    if edit::find_span(&edit::spans_of(&actual), tipo).is_some() {
+        return Ok((actual, false));
+    }
+    let nuevo = insert::insertar_objeto(&actual, padre, bloque, None, insert::SiExiste::Rechazar)?;
+    Ok((nuevo, true))
+}
+
 fn insertar_elemento(nuevo: Vec<u8>, elem: &Elemento) -> Result<(Vec<u8>, Vec<Value>)> {
     let ruta = crate::config::proyectos_demo_ro().join(elem.demo);
     let fuente = leer_bytes(&ruta).map_err(|e| {
@@ -151,19 +165,11 @@ fn insertar_elemento(nuevo: Vec<u8>, elem: &Elemento) -> Result<(Vec<u8>, Vec<Va
             } else {
                 bloque
             };
-            let actual = if edit::find_span(&edit::spans_of(&actual), tipo).is_some() {
-                actual
-            } else {
-                insert::insertar_objeto(&actual, &padre, &bloque, None, insert::SiExiste::Rechazar)?
-            };
-            let insertado = json!({"tipo": tipo, "padre": padre, "campos": campos_de(&bloque)});
-            Ok((
-                actual,
-                insertados
-                    .into_iter()
-                    .chain(std::iter::once(insertado))
-                    .collect(),
-            ))
+            let (actual, insertado) = insertar_si_falta(actual, (tipo, &padre), &bloque)?;
+            // A type already in the variant was not inserted: it is not reported as such.
+            let nuevo = insertado
+                .then(|| json!({"tipo": tipo, "padre": padre, "campos": campos_de(&bloque)}));
+            Ok((actual, insertados.into_iter().chain(nuevo).collect()))
         },
     )
 }

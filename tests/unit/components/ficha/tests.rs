@@ -83,3 +83,19 @@ fn should_type_the_inverter_efficiencies_and_choose_the_phase_by_the_schema_keys
     assert_eq!(valores["fase_trifasica"], true);
     assert!(!valores.contains_key("MonoTri") && valores.len() == 5);
 }
+
+#[test]
+fn should_refuse_inverter_power_that_is_not_a_positive_number() {
+    let ws = tempfile::tempdir().expect("ws");
+    for pnom in [json!("cincuenta"), json!(0), json!(-5), json!(null)] {
+        let datos = json!({ "PNomConv": pnom })
+            .as_object()
+            .cloned()
+            .expect("mapa");
+        let res = inversor::ond(ws.path(), "Inv", &datos);
+        assert!(
+            matches!(&res, Err(crate::error::Error::Invalid(m)) if m.contains("PNomConv")),
+            "{pnom}: {res:?}"
+        );
+    }
+}

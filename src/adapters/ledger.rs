@@ -78,15 +78,34 @@ pub(crate) fn registrar(workspace: &Path, stdout: &str, ejecuciones_usadas: u32)
     costo
 }
 
-/// Last recorded licence state, or `None` before the first registration.
+/// Last recorded licence state, or `None` before the first registration or when
+/// the ledger cannot be read (logged; see [`estado_leido`]).
 pub(crate) fn estado(workspace: &Path) -> Option<Estado> {
-    let texto = fs::read_to_string(ruta(workspace)).ok()?;
-    let v: Value = serde_json::from_str(&texto).ok()?;
-    Some(Estado {
-        modo: v["modo"].as_str()?.to_owned(),
+    estado_leido(workspace).unwrap_or_else(|e| {
+        tracing::warn!(error = %e, "ledger ilegible");
+        None
+    })
+}
+
+/// The ledger as stored: `Ok(None)` when it does not exist yet, an error when it
+/// exists but is unreadable or corrupt, so the caller does not mistake it for "no data".
+fn estado_leido(workspace: &Path) -> Result<Option<Estado>> {
+    let ruta = ruta(workspace);
+    let texto = match fs::read_to_string(&ruta) {
+        Ok(t) => t,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(Error::io(format!("No se pudo leer {}", ruta.display()), e)),
+    };
+    let v: Value = serde_json::from_str(&texto)
+        .map_err(|e| Error::Format(format!("Ledger corrupto {}: {e}", ruta.display())))?;
+    let modo = v["modo"]
+        .as_str()
+        .ok_or_else(|| Error::Format(format!("Ledger sin 'modo': {}", ruta.display())))?;
+    Ok(Some(Estado {
+        modo: modo.to_owned(),
         dias: v["dias"].as_u64(),
         restantes: v["restantes"].as_u64(),
-    })
+    }))
 }
 
 fn guardar(workspace: &Path, estado: &Estado) -> Result<()> {
@@ -98,8 +117,8 @@ fn guardar(workspace: &Path, estado: &Estado) -> Result<()> {
         "restantes": estado.restantes,
         "actualizado": ahora(),
     });
-    fs::write(ruta(workspace), v.to_string())
-        .map_err(|e| Error::io("No se puede escribir el ledger", e))
+    // Atomic: a write cut half way must not leave a corrupt ledger behind.
+    crate::history::escribir_atomico(&ruta(workspace), v.to_string().as_bytes())
 }
 
 /// Confirmation gate for runs that would spend several trial executions.
@@ -110,13 +129,19 @@ pub(crate) fn requiere_confirmacion(
     ejecuciones_estimadas: u32,
     plan: &[String],
 ) -> Option<Value> {
-    let estado = estado(workspace)?;
-    if estado.modo != "trial"
-        || ejecuciones_estimadas < UMBRAL_CONFIRMACION
-        || flag(args, &[CONFIRMAR])
-    {
+    if ejecuciones_estimadas < UMBRAL_CONFIRMACION || flag(args, &[CONFIRMAR]) {
         return None;
     }
+    // An unreadable ledger may hide a trial licence: ask rather than spend blindly.
+    let estado = match estado_leido(workspace) {
+        Ok(Some(e)) if e.modo == "trial" => e,
+        Ok(_) => return None,
+        Err(e) => Estado {
+            modo: format!("desconocido ({e})"),
+            dias: None,
+            restantes: None,
+        },
+    };
     Some(json!({
         "requiere_confirmacion": true,
         "ejecuciones_estimadas": ejecuciones_estimadas,

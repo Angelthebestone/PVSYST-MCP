@@ -54,3 +54,17 @@ fn should_reject_compared_variant_that_is_not_text_or_identifier() {
         );
     }
 }
+
+#[test]
+fn should_list_report_sections_left_out_with_their_reason() {
+    let falta = crate::error::Error::NotFound("sin página de balance de carbono".into());
+
+    let omitidas =
+        super::entregable::secciones_omitidas(&[("carbono", Some(&falta)), ("economia", None)]);
+
+    assert_eq!(omitidas.len(), 1);
+    assert_eq!(omitidas[0]["seccion"], "carbono");
+    assert!(omitidas[0]["motivo"]
+        .as_str()
+        .is_some_and(|m| m.contains("carbono")));
+}

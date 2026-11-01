@@ -78,7 +78,6 @@ pub(crate) struct KpisSalida {
     pub(crate) energia_producida_kwh: Option<f64>,
     pub(crate) produccion_especifica_kwh_kwp: Option<f64>,
     pub(crate) pr_pct: Option<f64>,
-    pub(crate) kwp: Option<f64>,
 }
 
 /// Complete typed state of an end-to-end execution run.

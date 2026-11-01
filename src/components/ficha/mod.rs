@@ -7,6 +7,7 @@
 //!   datasheet values are applied and the DC efficiency profile is rescaled.
 //! * **PAN** modules clone an existing text `.PAN` template in the workspace or DataRO.
 
+mod contraste;
 pub(crate) mod inversor;
 pub(crate) mod modulo;
 pub(crate) mod pvsyst;

@@ -175,8 +175,13 @@ pub(crate) fn entregable(paths: &Paths, args: &Value) -> Result<Value> {
     let perd = report_pdf::perdidas(&c.tokens)?;
     let mens = report_pdf::mensual(&c.tokens)?;
     let resumen = report_pdf::resumen(&c.tokens)?;
-    let carbono = report_pdf::carbono(&c.tokens).ok();
-    let economia = report_pdf::economia(&c.tokens).ok();
+    let carbono = report_pdf::carbono(&c.tokens);
+    let economia = report_pdf::economia(&c.tokens);
+    let omitidas = secciones_omitidas(&[
+        ("carbono", carbono.as_ref().err()),
+        ("economia", economia.as_ref().err()),
+    ]);
+    let (carbono, economia) = (carbono.ok(), economia.ok());
     let (p50, aviso) = calcular_p50(paths, &c, args)?;
     let texto = markdown(
         &c,
@@ -207,5 +212,19 @@ pub(crate) fn entregable(paths: &Paths, args: &Value) -> Result<Value> {
     if let Some(a) = aviso {
         payload["aviso"] = json!(a);
     }
+    if !omitidas.is_empty() {
+        payload["secciones_omitidas"] = Value::Array(omitidas);
+    }
     Ok(con_cabecera(&c, payload))
+}
+
+/// Optional report pages (carbon balance, economics) the PDF does not carry: the
+/// deliverable leaves them out and says so, with the reason.
+pub(super) fn secciones_omitidas(secciones: &[(&str, Option<&Error>)]) -> Vec<Value> {
+    secciones
+        .iter()
+        .filter_map(|(seccion, error)| {
+            error.map(|e| json!({ "seccion": seccion, "motivo": e.to_string() }))
+        })
+        .collect()
 }

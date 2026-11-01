@@ -37,11 +37,8 @@ pub(crate) fn leer_serie(paths: &Paths, args: &Value) -> Result<Value> {
 
     let serie = decodificar(&text)?;
     let total_horas = serie.horas.len();
-    let offset = args.get("offset").and_then(Value::as_u64).unwrap_or(0) as usize;
-    let limite = args
-        .get("limite")
-        .and_then(Value::as_u64)
-        .unwrap_or(LIMITE_HORAS_DEFECTO as u64) as usize;
+    let offset = entero_paginacion(args, "offset", 0)?;
+    let limite = entero_paginacion(args, "limite", LIMITE_HORAS_DEFECTO)?;
 
     let horas_paginadas: Vec<_> = serie
         .horas
@@ -121,20 +118,49 @@ fn resolver_archivo(paths: &Paths, args: &Value, modo: ModoResolucion) -> Result
     en_ro.ok_or_else(|| Error::NotFound(format!("Archivo de serie '{nombre}' no encontrado")))
 }
 
-fn extraer_nombres_variables(args: &Value) -> Result<Vec<String>> {
+/// A paging argument: absent or null takes `defecto`; anything but a non-negative
+/// integer is refused instead of silently replaced by the default.
+pub(super) fn entero_paginacion(args: &Value, clave: &str, defecto: usize) -> Result<usize> {
+    let Some(valor) = args.get(clave).filter(|v| !v.is_null()) else {
+        return Ok(defecto);
+    };
+    valor
+        .as_u64()
+        .and_then(|n| usize::try_from(n).ok())
+        .ok_or_else(|| {
+            Error::Invalid(format!(
+                "'{clave}' debe ser un entero no negativo (recibido {valor})"
+            ))
+        })
+}
+
+pub(super) fn extraer_nombres_variables(args: &Value) -> Result<Vec<String>> {
     let arr = args
         .get("variables")
         .and_then(Value::as_array)
         .ok_or_else(|| {
             Error::Invalid("Argumento 'variables' debe ser un arreglo de cadenas".into())
         })?;
-    arr.iter()
+    let nombres: Vec<String> = arr
+        .iter()
         .map(|v| {
             v.as_str()
                 .map(ToString::to_string)
                 .ok_or_else(|| Error::Invalid("Elemento de 'variables' no es cadena".into()))
         })
-        .collect()
+        .collect::<Result<_>>()?;
+    // A repeated name would have its second column silently overwrite the first. O(n²), n small.
+    if let Some((i, n)) = nombres
+        .iter()
+        .enumerate()
+        .find(|(i, n)| nombres[..*i].contains(n))
+    {
+        return Err(Error::Invalid(format!(
+            "La variable '{n}' aparece repetida en 'variables' (posición {})",
+            i + 1
+        )));
+    }
+    Ok(nombres)
 }
 
 fn extraer_valores(args: &Value, variables: &[String]) -> Result<Vec<Vec<f64>>> {

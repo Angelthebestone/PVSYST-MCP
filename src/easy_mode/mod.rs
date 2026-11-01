@@ -19,6 +19,9 @@ mod sitio;
 #[cfg(test)]
 #[path = "../../tests/unit/easy_mode/tests.rs"]
 mod tests;
+#[cfg(test)]
+#[path = "../../tests/unit/easy_mode/pasos.rs"]
+mod tests_pasos;
 
 pub(crate) use diagnostico::preflight;
 pub(crate) use simulacion::leer_kpis;
@@ -176,6 +179,7 @@ fn correr_pasos(
         &params.proyecto.nombre,
         sitio_origen,
     )?;
+    exigir_sitio_creado(&paso_sitio)?;
     let paso_proyecto = proyecto::ejecutar_paso_proyecto(paths, params)?;
     proyecto::vincular_sitio(paths, &params.proyecto.nombre, &paso_sitio.sit_file)?;
     let paso_orientacion = proyecto::ejecutar_paso_orientacion(paths, params)?;
@@ -260,13 +264,27 @@ fn desviacion_pct(objetivo: f64, real: f64) -> f64 {
 }
 
 /// Rejects a realised kWp further from the target than the tolerance allows.
+/// A site step that created nothing stops the run before a project is linked to it.
+pub(crate) fn exigir_sitio_creado(paso: &pasos::PasoSitioSalida) -> Result<()> {
+    if paso.ok && !paso.sit_file.is_empty() {
+        return Ok(());
+    }
+    Err(Error::Cli(format!(
+        "PVsystCLI no creó el sitio '{}': revisa el paso de sitio antes de crear el proyecto",
+        paso.site_name.as_deref().unwrap_or("?")
+    )))
+}
+
 pub(crate) fn exigir_tolerancia_kwp(
     objetivo: f64,
     tolerancia_pct: f64,
     realizado: Option<f64>,
 ) -> Result<()> {
     let Some(real) = realizado else {
-        return Ok(());
+        return Err(Error::Format(
+            "El dimensionado no devolvió 'realised_kwp': no se puede comprobar el kWp objetivo"
+                .into(),
+        ));
     };
     let pct = desviacion_pct(objetivo, real);
     if pct.abs() <= tolerancia_pct {
