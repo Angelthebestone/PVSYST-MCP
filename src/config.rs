@@ -8,6 +8,9 @@ use std::ffi::OsString;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+/// Environment variable that enables the MCP's own approximations.
+pub(crate) const VARIABLE_APROXIMACIONES: &str = "PVSYST_MCP_APROXIMACIONES";
+
 /// Where PVsyst lives on this machine and how the server may drive it.
 #[derive(Debug, Clone)]
 pub struct Paths {
@@ -41,7 +44,7 @@ impl Paths {
             workspace: resolve_workspace(),
             cli_exe: resolve_cli(),
             gui_exe: resolve_gui(),
-            aproximaciones: bandera_de_entorno(crate::aproximaciones::VARIABLE_ENTORNO),
+            aproximaciones: bandera_de_entorno(VARIABLE_APROXIMACIONES),
             estado: Arc::default(),
         }
     }

@@ -5,7 +5,7 @@ use super::pasos::{PasoOrientacionSalida, PasoProyectoSalida};
 use super::simulacion::meteo_de_metadatos;
 use crate::config::{self, Paths};
 use crate::error::{Error, Result};
-use crate::format::{edit, insert};
+use crate::format::edit;
 use crate::history;
 use crate::projects::lifecycle;
 use serde_json::{json, Map, Value};
@@ -106,19 +106,6 @@ pub(crate) fn ejecutar_paso_orientacion(
 }
 
 /// Reads the `.SIT` and returns the project path with its bytes, `SitePrj` replaced by that site.
-/// `prj` with its `SitePrj` object replaced by the `pvSite` of the `.SIT` at `sit_file`.
-pub(crate) fn insertar_sitio(prj: &[u8], sit_file: &Path) -> Result<Vec<u8>> {
-    let sit = crate::workspace::leer_bytes(sit_file)?;
-    let bloque = insert::extraer_objeto(&sit, "pvSite")?;
-    insert::insertar_objeto(
-        prj,
-        "pvProject",
-        &bloque,
-        Some("SitePrj"),
-        insert::SiExiste::Reemplazar,
-    )
-}
-
 fn prj_con_sitio(paths: &Paths, nombre: &str, sit_file: &str) -> Result<(PathBuf, Vec<u8>)> {
     let prj_path = paths
         .workspace
@@ -126,7 +113,7 @@ fn prj_con_sitio(paths: &Paths, nombre: &str, sit_file: &str) -> Result<(PathBuf
         .join(format!("{nombre}.PRJ"));
     let prj = std::fs::read(&prj_path)
         .map_err(|e| Error::io(format!("leer {}", prj_path.display()), e))?;
-    let nuevo = insertar_sitio(&prj, Path::new(sit_file))?;
+    let nuevo = lifecycle::sitio::insertar_sitio(&prj, Path::new(sit_file))?;
     Ok((prj_path, nuevo))
 }
 

@@ -10,8 +10,7 @@ use crate::error::{Error, Result};
 use serde_json::{json, Value};
 use std::path::Path;
 
-/// Environment variable that enables the MCP's own approximations.
-pub(crate) const VARIABLE_ENTORNO: &str = "PVSYST_MCP_APROXIMACIONES";
+pub(crate) use crate::config::VARIABLE_APROXIMACIONES as VARIABLE_ENTORNO;
 
 /// Value of the `origen` field on every approximated result.
 pub(crate) const ORIGEN_APROXIMACION: &str = "aproximacion_mcp";

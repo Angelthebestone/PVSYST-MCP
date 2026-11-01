@@ -159,7 +159,7 @@ pub(crate) fn crear_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     // The site goes into the project before the pair is written: a site that cannot be
     // linked leaves nothing behind, and it lands in this call's workspace and folder.
     if let Some(sit) = &sit {
-        nuevo.prj = crate::easy_mode::proyecto::insertar_sitio(&nuevo.prj, sit)?;
+        nuevo.prj = super::sitio::insertar_sitio(&nuevo.prj, sit)?;
     }
 
     let historial_id = escribir_par(

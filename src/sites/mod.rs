@@ -51,7 +51,7 @@ fn ejecutar<F: FnOnce(Value) -> Value>(
 ) -> Result<Value> {
     let mut cli_args = vec![peticion.comando.to_string()];
     cli_args.extend(peticion.opciones);
-    crate::simulation::opciones::validar_log_level(args)?;
+    cli::validar_log_level(args)?;
     if let Some(v) = args.get("log_level").and_then(serde_json::Value::as_i64) {
         cli_args.push(format!("-ll:{v}"));
     }
