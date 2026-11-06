@@ -239,6 +239,24 @@ fn paso_completo(padre: &Value, paso: &Value, idioma: Idioma) -> Result<Value> {
     Ok(Value::Object(completo))
 }
 
+/// Validates one step's values without touching the variant.
+///
+/// Each action owns its range checks; running them all up front makes
+/// `configurar` all-or-nothing for bad values, not just for bad structure.
+fn validar_valores_de_paso(accion: &str, args: &Value) -> Result<()> {
+    match accion {
+        "dimensionar" => crate::projects::lifecycle::validar_dimensionado(args),
+        "anadir" => crate::projects::anadir::catalogo::validar_elemento(args),
+        "seguidor" => crate::seguidores::validar_parametros(args),
+        "limite_inyeccion" => crate::inyeccion::validar_parametros(args),
+        "almacenamiento" => crate::almacenamiento::validar_parametros(args),
+        "perdidas" => crate::perdidas::validar_parametros(args),
+        "bombeo" => crate::bombeo::validar_parametros(args),
+        "economia" => crate::evaluacion_economica::validar_parametros(args),
+        _ => Ok(()),
+    }
+}
+
 /// Applies several variant changes in one call, in order. All steps are validated before
 /// the first one runs; if one fails the earlier ones stay applied (each is in the history).
 fn configurar_variante(paths: &Paths, args: &Value) -> Result<Value> {
@@ -255,6 +273,12 @@ fn configurar_variante(paths: &Paths, args: &Value) -> Result<Value> {
             let llamada = TOOL_PROYECTO
                 .preparar_args(&paso_completo(args, p, paths.idioma)?, paths.idioma)?;
             TOOL_PROYECTO.validar(&llamada, paths).map_err(|e| {
+                con_prefijo(
+                    e,
+                    &PASO_INVALIDO.texto_con(paths.idioma, &[("n", &(i + 1).to_string())]),
+                )
+            })?;
+            validar_valores_de_paso(TOOL_PROYECTO.accion(&llamada), &llamada).map_err(|e| {
                 con_prefijo(
                     e,
                     &PASO_INVALIDO.texto_con(paths.idioma, &[("n", &(i + 1).to_string())]),

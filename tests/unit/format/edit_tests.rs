@@ -124,6 +124,18 @@ fn should_apply_every_object_edition_and_collect_their_outcomes() {
 }
 
 #[test]
+fn should_report_sin_cambio_and_keep_the_bytes_when_the_value_is_already_set() {
+    let (out, outcomes) = edit_fields(
+        DOC.as_bytes(),
+        "pvSubArray",
+        &[("NModSerie".into(), Some("10".into()))],
+    )
+    .expect("el valor ya era ese");
+    assert_eq!(outcomes[0].action, "sin_cambio");
+    assert_eq!(out, DOC.as_bytes());
+}
+
+#[test]
 fn should_keep_bytes_identical_when_there_are_no_object_editions() {
     let (out, outcomes) = editar_objetos(DOC.as_bytes(), &[]).expect("sin ediciones");
     assert_eq!(out, DOC.as_bytes());

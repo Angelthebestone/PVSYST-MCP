@@ -187,6 +187,11 @@ fn catalogo_de(nombre: &str) -> Result<&'static Elemento> {
         })
 }
 
+/// Validates the catalogue element name without reading any file.
+pub(crate) fn validar_elemento(args: &Value) -> Result<()> {
+    catalogo_de(req_str(args, &["elemento"], "elemento")?).map(|_| ())
+}
+
 /// Bytes after inserting catalogue element `nombre`, plus what was inserted.
 #[derive(Debug)]
 pub(crate) struct ElementoAplicado {

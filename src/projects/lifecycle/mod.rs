@@ -10,7 +10,9 @@ mod transacciones;
 pub(crate) mod variantes;
 
 pub(crate) use creacion::{crear_proyecto, eliminar_proyecto, renombrar_proyecto};
-pub(crate) use dimensionamiento::dimensionar_variante;
+pub(crate) use dimensionamiento::{
+    dimensionar_variante, validar_parametros as validar_dimensionado,
+};
 pub(crate) use edicion::editar_variante;
 pub(crate) use potencia_modulo::pnom_from_name;
 pub(crate) use variantes::{

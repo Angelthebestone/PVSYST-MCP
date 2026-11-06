@@ -56,6 +56,11 @@ pub(crate) struct ParametrosEconomicos {
     tarifa_venta_kwh: Option<f64>,
 }
 
+/// Validates the action's arguments without touching any file.
+pub(crate) fn validar_parametros(args: &Value) -> Result<()> {
+    ParametrosEconomicos::nuevo(EntradaEconomicos::de_args(args)?).map(|_| ())
+}
+
 impl ParametrosEconomicos {
     pub(crate) fn nuevo(entrada: EntradaEconomicos<'_>) -> Result<Self> {
         if entrada.moneda.is_none()

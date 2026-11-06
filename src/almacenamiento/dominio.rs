@@ -104,6 +104,11 @@ pub(crate) struct ParametrosAlmacenamiento {
     soc_inicial: f64,
 }
 
+/// Validates the action's arguments without touching any file.
+pub(crate) fn validar_parametros(args: &Value) -> Result<()> {
+    ParametrosAlmacenamiento::nuevo(EntradaAlmacenamiento::de_args(args)?).map(|_| ())
+}
+
 impl ParametrosAlmacenamiento {
     pub(crate) fn nuevo(entrada: EntradaAlmacenamiento) -> Result<Self> {
         let estrategia = entrada

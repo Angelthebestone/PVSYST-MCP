@@ -36,7 +36,9 @@ impl FinDeLinea {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ChangeOutcome {
     pub key: String,
-    pub action: String, // "replaced" | "inserted" | "deleted"
+    /// `replaced`, `inserted`, `deleted`, `sin_cambio` (the field already held
+    /// that value, so its line is left untouched) or `not-found`.
+    pub action: String,
     pub old_value: Option<String>,
     pub new_value: Option<String>,
 }
@@ -202,6 +204,9 @@ fn apply_field_change(
 ) -> Result<ChangeOutcome> {
     let found = find_field_line(doc, span, in_child, key);
     match (found, value) {
+        (Some((_, old)), Some(new)) if old.trim() == new.trim() => {
+            Ok(outcome(key, "sin_cambio", Some(old), Some(new)))
+        }
         (Some((i, old)), Some(new)) => {
             let fin = FinDeLinea::de(&doc.lines[i]);
             let indent = indent_width(&doc.lines[i]);

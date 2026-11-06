@@ -380,6 +380,34 @@ fn should_apply_every_step_when_configurar_chains_variant_changes() {
 }
 
 #[test]
+fn should_validate_all_step_values_before_applying_any() {
+    let ws = synthetic_workspace();
+    let antes = leer_proyecto(ws.path(), "SYNTH_Plant.VC0");
+    let mut c = cliente(ws.path());
+    let resp = c.call(
+        1,
+        "proyecto",
+        json!({
+            "accion": "configurar", "proyecto": "SYNTH_Plant", "variante": "VC0",
+            "pasos": [
+                { "accion": "dimensionar", "kwp": 6.0, "n_mod_serie": 8, "n_strings": 3 },
+                { "accion": "perdidas", "suciedad_pct": 150 },
+            ],
+        }),
+    );
+    let msg = error_text(&resp);
+    assert!(
+        msg.contains("suciedad_pct"),
+        "nombra el valor inválido: {msg}"
+    );
+    assert_eq!(
+        leer_proyecto(ws.path(), "SYNTH_Plant.VC0"),
+        antes,
+        "el paso 1 no se aplicó"
+    );
+}
+
+#[test]
 fn should_reject_a_configurar_step_that_is_not_a_variant_change_before_running_any() {
     let ws = synthetic_workspace();
     let antes = leer_proyecto(ws.path(), "SYNTH_Plant.VC0");

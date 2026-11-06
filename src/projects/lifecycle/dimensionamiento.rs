@@ -193,6 +193,18 @@ fn deducir_disposicion(c: &ConsultaModulo<'_>, pnom: f64) -> Result<DisposicionC
 /// Size a variant's sub-array: as given (`n_mod_serie` + `n_strings`), by
 /// PVsyst's pre-sizing for a target `kwp`, or with the MCP's own rule when
 /// `via: "aproximacion"` is asked for.
+/// Validates the sizing arguments without opening the variant.
+pub(crate) fn validar_parametros(args: &Value) -> Result<()> {
+    leer_kwp_opcional(args)?;
+    if let Some(n) = entero_opcional(args, "n_mod_serie")? {
+        validar_n_serie(n)?;
+    }
+    if let Some(n) = entero_opcional(args, "n_strings")? {
+        validar_n_strings(n)?;
+    }
+    Ok(())
+}
+
 pub(crate) fn dimensionar_variante(paths: &Paths, args: &Value) -> Result<Value> {
     let manual = entero_opcional(args, "n_mod_serie")?.is_some()
         && entero_opcional(args, "n_strings")?.is_some();

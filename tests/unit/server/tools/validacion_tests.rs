@@ -193,7 +193,7 @@ fn should_validate_every_configured_step_before_applying_the_first() {
         "accion": "configurar",
         "proyecto": "Planta",
         "pasos": [
-            { "accion": "perdidas" },
+            { "accion": "perdidas", "suciedad_pct": 2 },
             { "accion": "limite_inyeccion" }
         ]
     });

@@ -95,6 +95,12 @@ fn aplicar_cambio(
         };
     };
     match cambio.valor {
+        Some(nuevo) if viejo.trim() == nuevo.trim() => Ok(outcome(
+            cambio.clave,
+            "sin_cambio",
+            Some(viejo.clone()),
+            Some(nuevo),
+        )),
         Some(nuevo) => {
             for (i, _) in indices {
                 let fin = fin_de(&doc.lines[*i], cambio.fin);
