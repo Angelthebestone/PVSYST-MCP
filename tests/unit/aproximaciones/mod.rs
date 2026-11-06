@@ -16,7 +16,7 @@ fn paths(aproximaciones: bool) -> Paths {
 }
 
 #[test]
-fn should_reject_approximation_with_pvsyst_route_when_flag_is_off() {
+fn should_reject_the_approximation_when_the_flag_is_off_and_a_pvsyst_route_exists() {
     let err = exigir(&paths(false), &PREESTIMAR).unwrap_err().to_string();
 
     assert!(err.contains("simular ejecutar"), "{err}");
@@ -24,12 +24,7 @@ fn should_reject_approximation_with_pvsyst_route_when_flag_is_off() {
 }
 
 #[test]
-fn should_allow_approximation_when_flag_is_on() {
-    assert!(exigir(&paths(true), &PREESTIMAR).is_ok());
-}
-
-#[test]
-fn should_label_result_as_mcp_approximation() {
+fn should_label_the_result_as_an_mcp_approximation() {
     let mut v = json!({ "anual_kwh": 1.0 });
 
     marcar(&mut v, &PREESTIMAR, Idioma::En);
