@@ -66,10 +66,10 @@ fn should_list_where_the_geometry_was_measured_when_the_control_is_unknown() {
     .unwrap_err()
     .to_string();
     assert!(
-        texto.contains("TVirtualStringTree de TProjectLoadForm"),
+        texto.contains("TVirtualStringTree of TProjectLoadForm"),
         "{texto}"
     );
-    assert!(texto.contains("TListBox de TChoixObjetPVForm"), "{texto}");
+    assert!(texto.contains("TListBox of TChoixObjetPVForm"), "{texto}");
 }
 
 #[test]
