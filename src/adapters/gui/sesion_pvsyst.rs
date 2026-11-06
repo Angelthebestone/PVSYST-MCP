@@ -30,18 +30,40 @@ pub(crate) struct Sesion {
     pub(crate) pid: u32,
     pub(crate) inicio: Formulario,
     marca: Option<Marca>,
+    /// The process this session started, if it did: only that one may be closed
+    /// when the step fails, never a PVsyst the user already had open.
+    lanzada: Option<u32>,
 }
 
 fn pid_activo() -> Option<u32> {
     ffi::pids_de_ejecutable(EJECUTABLE).into_iter().next()
 }
 
-fn arrancar(paths: &Paths) -> Result<u32> {
+/// The running PVsyst and, when this call started it, its pid.
+fn arrancar(paths: &Paths) -> Result<(u32, Option<u32>)> {
     if let Some(pid) = pid_activo() {
-        return Ok(pid);
+        return Ok((pid, None));
     }
     super::proceso::lanzar(paths, &serde_json::json!({}))?;
-    pid_activo().ok_or_else(|| Error::Gui("PVsyst no arrancó".into()))
+    let pid = pid_activo().ok_or_else(|| Error::Gui("PVsyst did not start".into()))?;
+    Ok((pid, Some(pid)))
+}
+
+/// The pid to end: only a process this call started and that is still running.
+/// O(n) in the running processes.
+fn debe_recogerse(lanzada: Option<u32>, vivos: &[u32]) -> Option<u32> {
+    let pid = lanzada?;
+    vivos.contains(&pid).then_some(pid)
+}
+
+/// Ends the PVsyst this call started, so a failed step leaves no orphan GUI.
+/// Returns the note to add to the error when it did.
+fn recoger(lanzada: Option<u32>) -> Option<String> {
+    let pid = debe_recogerse(lanzada, &ffi::pids_de_ejecutable(EJECUTABLE))?;
+    ffi::terminar_proceso(pid);
+    Some(format!(
+        "PVsyst (pid {pid}) was closed because this call started it"
+    ))
 }
 
 /// Forms open in PVsyst other than the home screen and helpers.
@@ -57,7 +79,14 @@ impl Sesion {
     /// Starts (or finds) PVsyst and checks it is idle on its home screen.
     pub(crate) fn abrir(paths: &Paths) -> Result<Self> {
         acciones::exigir_escritorio()?;
-        let pid = arrancar(paths)?;
+        let (pid, lanzada) = arrancar(paths)?;
+        Self::en_inicio(pid, lanzada).map_err(|e| match recoger(lanzada) {
+            None => e,
+            Some(nota) => Error::Gui(format!("{e}. {nota}")),
+        })
+    }
+
+    fn en_inicio(pid: u32, lanzada: Option<u32>) -> Result<Self> {
         let inicio = esperar(pid, INICIO, ARRANQUE)?;
         if let Ok(aviso) = esperar(pid, AVISO_PRUEBA, Duration::ZERO) {
             aviso.pulsar(ROTULOS.cerrar)?;
@@ -65,7 +94,7 @@ impl Sesion {
         let abiertos = formularios_de_usuario(pid);
         if !abiertos.is_empty() {
             return Err(Error::Invalid(format!(
-                "PVsyst tiene ventanas abiertas ({}): ciérralas y vuelve a la pantalla de inicio",
+                "PVsyst has windows open ({}): close them and return to the home screen",
                 abiertos.join(", ")
             )));
         }
@@ -73,6 +102,7 @@ impl Sesion {
             pid,
             inicio,
             marca: registro_pvsyst::marcar(),
+            lanzada,
         })
     }
 
@@ -130,10 +160,14 @@ impl Sesion {
         r.map_err(|e| self.error_con_causa(e))
     }
 
-    /// `e` with PVsyst's own log turned into the cause the caller can act on.
+    /// `e` with PVsyst's own log turned into the cause the caller can act on,
+    /// and the process this session started closed when the step failed.
     fn error_con_causa(&self, e: Error) -> Error {
-        let mensajes = self.mensajes();
-        let texto = causa_pvsyst::explicar(&e.to_string(), &mensajes);
+        let texto = causa_pvsyst::explicar(&e.to_string(), &self.mensajes());
+        let texto = match recoger(self.lanzada) {
+            None => texto,
+            Some(nota) => format!("{texto}. {nota}"),
+        };
         if texto == e.to_string() {
             return e;
         }
@@ -147,3 +181,7 @@ fn cerrar_con_boton(f: &Formulario, botones: &[&str]) {
         ffi::post_message(f.h, ffi::Mensaje::simple(ffi::WM_CLOSE));
     }
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/adapters/gui/sesion_pvsyst.rs"]
+mod tests;
