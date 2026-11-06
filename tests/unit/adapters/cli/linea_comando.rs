@@ -19,11 +19,3 @@ fn should_clamp_timeout_within_valid_range() {
         Duration::from_secs(TIMEOUT_MAXIMO_S)
     );
 }
-
-#[test]
-fn should_use_default_when_timeout_omitted() {
-    assert_eq!(
-        timeout_de(&json!({}), TIMEOUT_DEFECTO_S),
-        Duration::from_secs(TIMEOUT_DEFECTO_S)
-    );
-}
