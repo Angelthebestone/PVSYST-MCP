@@ -3,6 +3,7 @@
 //! undeclared arguments are reported back instead of being silently dropped.
 
 use super::declaracion::{extraer_aliases, Herramienta};
+use super::redaccion::PREFIJO_REQUERIDOS_POR_ACCION;
 use crate::error::{Error, Result};
 use serde_json::{json, Map, Value};
 
@@ -43,7 +44,7 @@ impl Herramienta {
             return;
         }
         let previo = prop["description"].as_str().unwrap_or_default().to_owned();
-        prop["description"] = json!(format!("{previo} Requeridos por acción: {detalle}."));
+        prop["description"] = json!(format!("{previo}{PREFIJO_REQUERIDOS_POR_ACCION}{detalle}."));
     }
 
     /// Top-level `required` keeps the keys without aliases. Each aliased required key
