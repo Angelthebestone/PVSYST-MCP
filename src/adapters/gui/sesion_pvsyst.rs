@@ -2,6 +2,7 @@
 //! sure the user has nothing open, answer PVsyst's message boxes and leave the
 //! home screen as it was found, also when a step fails.
 
+use super::causa_pvsyst;
 use super::conduccion::{esperar, formularios, Formulario, ESPERA_FORMULARIO};
 use super::registro_pvsyst::{self, Marca};
 use super::rotulos::{rotulos_sesion, Idioma, RotulosSesion};
@@ -9,6 +10,7 @@ use super::ventanas::class_of;
 use super::{acciones, ffi};
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma as IdiomaCliente, Texto};
 use std::time::Duration;
 
 const EJECUTABLE: &str = "PVsyst.exe";
@@ -29,18 +31,49 @@ pub(crate) struct Sesion {
     pub(crate) pid: u32,
     pub(crate) inicio: Formulario,
     marca: Option<Marca>,
+    /// The process this session started, if it did: only that one may be closed
+    /// when the step fails, never a PVsyst the user already had open.
+    lanzada: Option<u32>,
+    idioma: IdiomaCliente,
 }
 
 fn pid_activo() -> Option<u32> {
     ffi::pids_de_ejecutable(EJECUTABLE).into_iter().next()
 }
 
-fn arrancar(paths: &Paths) -> Result<u32> {
+/// The running PVsyst and, when this call started it, its pid.
+fn arrancar(paths: &Paths) -> Result<(u32, Option<u32>)> {
     if let Some(pid) = pid_activo() {
-        return Ok(pid);
+        return Ok((pid, None));
     }
     super::proceso::lanzar(paths, &serde_json::json!({}))?;
-    pid_activo().ok_or_else(|| Error::Gui("PVsyst no arrancó".into()))
+    let no_arranca = Texto {
+        es: "PVsyst no arrancó",
+        en: "PVsyst did not start",
+    };
+    let pid = pid_activo().ok_or_else(|| Error::Gui(no_arranca.en_idioma(paths.idioma).into()))?;
+    Ok((pid, Some(pid)))
+}
+
+/// The pid to end: only a process this call started and that is still running.
+/// O(n) in the running processes.
+fn debe_recogerse(lanzada: Option<u32>, vivos: &[u32]) -> Option<u32> {
+    let pid = lanzada?;
+    vivos.contains(&pid).then_some(pid)
+}
+
+/// Ends the PVsyst this call started, so a failed step leaves no orphan GUI.
+/// Returns the note to add to the error when it did.
+fn recoger(lanzada: Option<u32>, idioma: IdiomaCliente) -> Option<String> {
+    let pid = debe_recogerse(lanzada, &ffi::pids_de_ejecutable(EJECUTABLE))?;
+    ffi::terminar_proceso(pid);
+    Some(
+        Texto {
+            es: "PVsyst (pid {pid}) se cerró porque lo arrancó esta llamada",
+            en: "PVsyst (pid {pid}) was closed because this call started it",
+        }
+        .texto_con(idioma, &[("pid", &pid.to_string())]),
+    )
 }
 
 /// Forms open in PVsyst other than the home screen and helpers.
@@ -56,22 +89,35 @@ impl Sesion {
     /// Starts (or finds) PVsyst and checks it is idle on its home screen.
     pub(crate) fn abrir(paths: &Paths) -> Result<Self> {
         acciones::exigir_escritorio()?;
-        let pid = arrancar(paths)?;
+        let idioma = paths.idioma;
+        let (pid, lanzada) = arrancar(paths)?;
+        Self::en_inicio(pid, lanzada, idioma).map_err(|e| match recoger(lanzada, idioma) {
+            None => e,
+            Some(nota) => Error::Gui(format!("{e}. {nota}")),
+        })
+    }
+
+    fn en_inicio(pid: u32, lanzada: Option<u32>, idioma: IdiomaCliente) -> Result<Self> {
         let inicio = esperar(pid, INICIO, ARRANQUE)?;
         if let Ok(aviso) = esperar(pid, AVISO_PRUEBA, Duration::ZERO) {
             aviso.pulsar(ROTULOS.cerrar)?;
         }
         let abiertos = formularios_de_usuario(pid);
         if !abiertos.is_empty() {
-            return Err(Error::Invalid(format!(
-                "PVsyst tiene ventanas abiertas ({}): ciérralas y vuelve a la pantalla de inicio",
-                abiertos.join(", ")
-            )));
+            return Err(Error::Invalid(
+                Texto {
+                    es: "PVsyst tiene ventanas abiertas ({ventanas}): ciérralas y vuelve a la pantalla de inicio",
+                    en: "PVsyst has windows open ({ventanas}): close them and return to the home screen",
+                }
+                .texto_con(idioma, &[("ventanas", &abiertos.join(", "))]),
+            ));
         }
         Ok(Self {
             pid,
             inicio,
             marca: registro_pvsyst::marcar(),
+            lanzada,
+            idioma,
         })
     }
 
@@ -91,12 +137,15 @@ impl Sesion {
         n
     }
 
-    /// Messages and warnings PVsyst logged since the session started.
+    /// Messages and warnings PVsyst logged since the session started, without
+    /// the parse notices every load emits.
     pub(crate) fn mensajes(&self) -> Vec<String> {
-        self.marca
+        let registrados = self
+            .marca
             .as_ref()
             .map(registro_pvsyst::mensajes_desde)
-            .unwrap_or_default()
+            .unwrap_or_default();
+        causa_pvsyst::filtrar(registrados)
     }
 
     /// Closes every form back to the home screen without saving.
@@ -123,10 +172,21 @@ impl Sesion {
     pub(crate) fn ejecutar<T>(&self, paso: impl FnOnce(&Self) -> Result<T>) -> Result<T> {
         let r = paso(self);
         self.volver_al_inicio();
-        r.map_err(|e| match self.mensajes() {
-            m if m.is_empty() => e,
-            m => Error::Gui(format!("{e}. PVsyst dijo: {}", m.join(" | "))),
-        })
+        r.map_err(|e| self.error_con_causa(e))
+    }
+
+    /// `e` with PVsyst's own log turned into the cause the caller can act on,
+    /// and the process this session started closed when the step failed.
+    fn error_con_causa(&self, e: Error) -> Error {
+        let texto = causa_pvsyst::explicar(&e.to_string(), &self.mensajes(), self.idioma);
+        let texto = match recoger(self.lanzada, self.idioma) {
+            None => texto,
+            Some(nota) => format!("{texto}. {nota}"),
+        };
+        if texto == e.to_string() {
+            return e;
+        }
+        Error::Gui(texto)
     }
 }
 
@@ -136,3 +196,7 @@ fn cerrar_con_boton(f: &Formulario, botones: &[&str]) {
         ffi::post_message(f.h, ffi::Mensaje::simple(ffi::WM_CLOSE));
     }
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/adapters/gui/sesion_pvsyst.rs"]
+mod tests;

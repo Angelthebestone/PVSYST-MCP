@@ -86,3 +86,45 @@ fn should_replace_the_template_site_when_linking_a_site() {
     assert!(prj.contains("Comment=Sitio creado;"), "prj={prj}");
     assert!(!prj.contains("Comment=Synthetic;Nowhere;"), "prj={prj}");
 }
+#[test]
+fn should_resume_the_design_when_the_project_exists_with_the_same_parameters() {
+    // Given: a design run that already created the project
+    let (_ws, paths) = workspace_con_plantilla();
+    let params = diseno(&json!({}));
+    proyecto::ejecutar_paso_proyecto(&paths, &params).expect("primer proyecto");
+
+    // When: the same design is retried after a failed step
+    let segundo = proyecto::ejecutar_paso_proyecto(&paths, &params).expect("reintento");
+
+    // Then: it continues instead of demanding a rebuild
+    assert_eq!(segundo.raw_response["reutilizado"], json!(true));
+    assert_eq!(segundo.nombre, "Diseno");
+}
+
+#[test]
+fn should_reject_the_design_when_the_existing_project_holds_other_parameters() {
+    // Given: a project created with 10 modules in series and 2 strings
+    let (_ws, paths) = workspace_con_plantilla();
+    proyecto::ejecutar_paso_proyecto(&paths, &diseno(&json!({}))).expect("primer proyecto");
+
+    // When: the retry asks for a different layout
+    let err = proyecto::ejecutar_paso_proyecto(&paths, &diseno(&json!({ "n_strings": 4 })))
+        .expect_err("parámetros distintos");
+
+    // Then: the difference and the two ways out are named
+    let msg = err.to_string();
+    assert!(msg.contains("NStringCh"), "msg={msg}");
+    assert!(msg.contains("sobrescribir"), "msg={msg}");
+}
+
+#[test]
+fn should_rebuild_the_project_when_sobrescribir_is_asked_for() {
+    let (_ws, paths) = workspace_con_plantilla();
+    proyecto::ejecutar_paso_proyecto(&paths, &diseno(&json!({}))).expect("primer proyecto");
+    let otro = proyecto::ejecutar_paso_proyecto(
+        &paths,
+        &diseno(&json!({ "n_strings": 4, "sobrescribir": true })),
+    )
+    .expect("sobrescritura");
+    assert!(otro.raw_response.get("reutilizado").is_none(), "{otro:?}");
+}

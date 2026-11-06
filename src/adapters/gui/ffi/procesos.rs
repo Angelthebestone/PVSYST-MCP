@@ -30,12 +30,33 @@ impl ProcessEntry32W {
     }
 }
 
+/// Access right `TerminateProcess` needs.
+const PROCESS_TERMINATE: u32 = 0x0001;
+
 #[link(name = "kernel32")]
 extern "system" {
     fn CreateToolhelp32Snapshot(flags: u32, pid: u32) -> isize;
     fn Process32FirstW(snap: isize, pe: *mut ProcessEntry32W) -> i32;
     fn Process32NextW(snap: isize, pe: *mut ProcessEntry32W) -> i32;
+    fn OpenProcess(access: u32, heredable: i32, pid: u32) -> isize;
+    fn TerminateProcess(handle: isize, code: u32) -> i32;
     fn CloseHandle(h: isize) -> i32;
+}
+
+/// Ends process `pid`; `false` when it could not be opened or terminated.
+pub(crate) fn terminar_proceso(pid: u32) -> bool {
+    // SAFETY: plain integer arguments; a null handle means the process is gone
+    // or not ours, which is reported as `false`.
+    let handle = unsafe { OpenProcess(PROCESS_TERMINATE, 0, pid) };
+    if handle == 0 {
+        return false;
+    }
+    // SAFETY: `handle` was opened above with `PROCESS_TERMINATE` and is closed
+    // exactly once below.
+    let terminado = unsafe { TerminateProcess(handle, 1) } != 0;
+    // SAFETY: same handle, closed once.
+    unsafe { CloseHandle(handle) };
+    terminado
 }
 
 /// PIDs of the running processes whose executable is `ejecutable`

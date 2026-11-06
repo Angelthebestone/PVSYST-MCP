@@ -15,8 +15,10 @@ const PRUEBA_CONFIRMAR: &str =
 /// The argument that makes a call a dry run, per tool. It is not the same name
 /// everywhere: in `disenar_sistema`, `simular` means "run the simulation".
 const CLAVE_DE_ENSAYO: &[(&str, &str)] = &[
+    ("disenar_sistema", "dry_run"),
     ("entorno", "dry_run"),
     ("pvsyst_cli", "dry_run"),
+    ("proyecto", "dry_run"),
     ("simular", "dry_run"),
     ("sitio", "dry_run"),
     ("gui_actuar", "simular"),

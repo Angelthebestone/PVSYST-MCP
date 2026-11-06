@@ -68,6 +68,8 @@ pub(crate) struct PasoSimulacionSalida {
     pub(crate) sitio_proyecto_detalle: Option<Value>,
     /// Warnings PVsyst logged during the run (`avisos_pvsyst` of `simular`).
     pub(crate) avisos_pvsyst: Vec<String>,
+    /// Why the run could not start, when PVsyst's output names a known cause.
+    pub(crate) detalle_error: Option<String>,
 }
 
 /// Key performance indicators extracted from simulation outputs.
@@ -124,6 +126,7 @@ impl Corrida {
                 "ok": sim.sim_ok,
                 "csv": sim.csv_path,
                 "pdf": sim.pdf_path,
+                "detail": sim.detalle_error,
             }));
             if sim.sim_ok {
                 pasos.push(json!({

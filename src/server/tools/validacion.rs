@@ -14,6 +14,10 @@ const VALOR_NO_VALIDO: Texto = Texto {
     es: "Valor '{valor}' no válido para {tool} ({campo}); valores: {valores}",
     en: "Value '{valor}' not valid for {tool} ({campo}); values: {valores}",
 };
+const ACCION_GATEADA: Texto = Texto {
+    es: "Valor '{valor}' no válido para {tool} ({campo}): es una acción del MCP que solo existe con {variable}=1. Valores: {valores}",
+    en: "Value '{valor}' not valid for {tool} ({campo}): it is an MCP in-house action that only exists with {variable}=1. Values: {valores}",
+};
 const TIPO_INCORRECTO: Texto = Texto {
     es: "Tipo incorrecto para '{campo}' (esperado {esperado}, recibido {recibido})",
     en: "Wrong type for '{campo}' (expected {esperado}, got {recibido})",
@@ -103,6 +107,7 @@ impl Herramienta {
         if disc.valores.contains(&valor.as_str()) {
             return Ok(valor);
         }
+        rechazar_accion_gateada(self, &valor, paths)?;
         let visibles: Vec<&str> = disc
             .valores
             .iter()
@@ -180,6 +185,27 @@ impl Herramienta {
         }
         Ok(())
     }
+}
+
+/// An action the server hides behind `PVSYST_MCP_APROXIMACIONES` is named as
+/// such, so the caller can tell it from a typo.
+fn rechazar_accion_gateada(h: &Herramienta, valor: &str, paths: &Paths) -> Result<()> {
+    let Some(disc) = &h.discriminador else {
+        return Ok(());
+    };
+    if super::aproximadas::de(h.nombre, valor).is_none() {
+        return Ok(());
+    }
+    Err(Error::Invalid(ACCION_GATEADA.texto_con(
+        paths.idioma,
+        &[
+            ("valor", valor),
+            ("tool", h.nombre),
+            ("campo", disc.campo),
+            ("variable", crate::aproximaciones::VARIABLE_ENTORNO),
+            ("valores", &disc.valores.join(", ")),
+        ],
+    )))
 }
 
 fn normalizar_alias_argumentos(

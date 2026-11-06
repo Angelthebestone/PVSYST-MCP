@@ -66,6 +66,7 @@ pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
         ("tarifa_venta_kwh", TipoDato::Number),
         ("workspace", TipoDato::String),
         ("permitir_fuera_del_workspace", TipoDato::Boolean),
+        ("dry_run", TipoDato::Boolean),
         ("via", TipoDato::String),
         ("pasos", TipoDato::Array),
     ],
@@ -313,5 +314,8 @@ fn configurar_p50(paths: &Paths, args: &Value) -> Result<Value> {
     let proyecto = crate::args::req_str(args, &["proyecto"], "")?;
     let proyecto = proyecto.strip_suffix(".PRJ").unwrap_or(proyecto);
     let variante = crate::args::opt_str(args, &["variante"]).unwrap_or("VC0");
+    if crate::args::flag(args, &["dry_run"]) {
+        return Ok(projects::gui::p50::plan(paths, proyecto, variante));
+    }
     projects::gui::p50::configurar(paths, proyecto, variante)
 }

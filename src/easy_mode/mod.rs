@@ -8,7 +8,9 @@
 mod baterias;
 mod diagnostico;
 mod dimensionado;
+mod fallo_simulacion;
 mod lectura_argumentos;
+mod meteonorm;
 mod parametros;
 mod pasos;
 pub(crate) mod proyecto;
@@ -33,6 +35,7 @@ use crate::adapters::ledger;
 use crate::aproximaciones;
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::idioma::Texto;
 use crate::sites;
 use pasos::{Corrida, Fases, OrigenSitioDiseno};
 use serde_json::{json, Value};
@@ -46,6 +49,11 @@ const MAX_DEVIATION_PCT: f64 = 5.0;
 pub(crate) fn disenar_sistema(paths: &Paths, args: &Value) -> Result<Value> {
     let params = DisenoParametros::parse(args)?;
     exigir_dimensionado_sin_gui(&params)?;
+    meteonorm::exigir_si_sintetica(
+        meteonorm::bases_de_instalacion(paths).as_deref(),
+        params.simulacion.simular && params.simulacion.synthetic_weather,
+        paths.idioma,
+    )?;
     let paths = &Paths {
         workspace: params
             .workspace
@@ -70,9 +78,7 @@ pub(crate) fn disenar_sistema(paths: &Paths, args: &Value) -> Result<Value> {
         crear_sitio: !reusable,
         simular: params.simulacion.simular,
     };
-    let ejecuciones = u32::from(fases.crear_sitio) + u32::from(fases.simular);
-    let plan = plan_de(&params.proyecto.nombre, &params.variante, &fases);
-    if let Some(aviso) = ledger::requiere_confirmacion(&paths.workspace, args, ejecuciones, &plan) {
+    if let Some(aviso) = aviso_previo(paths, args, &params, &fases) {
         return Ok(aviso);
     }
     proyecto::ensure_template(paths, &params.proyecto.plantilla)?;
@@ -200,6 +206,47 @@ fn correr_pasos(
         orientacion: paso_orientacion,
         dimensionado: paso_dimensionado,
         simulacion: paso_simulacion,
+    })
+}
+
+/// The answer to give instead of running: a dry run's plan, or the trial
+/// confirmation gate. `None` when the run may proceed.
+fn aviso_previo(
+    paths: &Paths,
+    args: &Value,
+    params: &DisenoParametros,
+    fases: &Fases,
+) -> Option<Value> {
+    let ejecuciones = u32::from(fases.crear_sitio) + u32::from(fases.simular);
+    let plan = plan_de(&params.proyecto.nombre, &params.variante, fases);
+    if crate::args::flag(args, &["dry_run"]) {
+        return Some(plan_de_ejecucion(
+            paths,
+            &plan,
+            ejecuciones,
+            !fases.crear_sitio,
+        ));
+    }
+    ledger::requiere_confirmacion(&paths.workspace, args, ejecuciones, &plan)
+}
+
+/// What the call would do and what it would cost, without doing any of it.
+fn plan_de_ejecucion(
+    paths: &Paths,
+    plan: &[String],
+    ejecuciones: u32,
+    sitio_reutilizado: bool,
+) -> Value {
+    json!({
+        "dry_run": true,
+        "plan": plan,
+        "sitio_reutilizado": sitio_reutilizado,
+        "costo_estimado": ledger::costo_estimado(&paths.workspace, ejecuciones),
+        "siguiente_paso": Texto {
+            es: "repite la misma llamada sin dry_run",
+            en: "repeat the same call without dry_run",
+        }
+        .en_idioma(paths.idioma),
     })
 }
 

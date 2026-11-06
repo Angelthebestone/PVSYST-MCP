@@ -118,6 +118,7 @@ pub(crate) const TOOL_DISENAR_SISTEMA: Herramienta = Herramienta {
         ("report_pdf", TipoDato::String),
         ("sobrescribir", TipoDato::Boolean),
         ("synthetic_weather", TipoDato::Boolean),
+        ("dry_run", TipoDato::Boolean),
         ("confirmar", TipoDato::Boolean),
         ("via", TipoDato::String),
         ("permitir_fuera_del_workspace", TipoDato::Boolean),
