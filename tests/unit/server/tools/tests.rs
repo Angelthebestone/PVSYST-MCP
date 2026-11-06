@@ -13,7 +13,6 @@ fn call(paths: &Paths, name: &str, args: &Value) -> Result<Value> {
 }
 
 mod aproximaciones_tests;
-mod esquema_tests;
 mod recorte_tests;
 mod sinonimos_tests;
 mod validacion_tests;

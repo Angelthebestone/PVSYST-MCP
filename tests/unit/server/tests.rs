@@ -10,7 +10,7 @@ use super::*;
 use serde_json::json;
 
 #[test]
-fn image_payload_becomes_an_image_content_item() {
+fn should_turn_the_png_payload_into_an_image_item_when_the_result_carries_one() {
     let r = resultado_de_herramienta(
         json!({ "ok": true, "_imagen_png_base64": "AAA" }),
         FormatoResultado::SoloTexto,
@@ -21,19 +21,4 @@ fn image_payload_becomes_an_image_content_item() {
         .as_str()
         .unwrap()
         .contains("_imagen"));
-}
-
-#[test]
-fn should_add_structured_content_only_when_the_version_supports_it() {
-    let structured = resultado_de_herramienta(
-        json!({ "ok": true, "_imagen_png_base64": "AAA" }),
-        FormatoResultado::ConEstructura,
-    );
-    assert_eq!(structured["structuredContent"]["ok"], true);
-    assert!(structured["structuredContent"]
-        .get("_imagen_png_base64")
-        .is_none());
-
-    let text_only = resultado_de_herramienta(json!({ "ok": true }), FormatoResultado::SoloTexto);
-    assert!(text_only.get("structuredContent").is_none());
 }

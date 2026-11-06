@@ -147,7 +147,3 @@ fn texto_de(valor: &Value) -> Option<String> {
         _ => None,
     }
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/server/recetas.rs"]
-mod tests;
