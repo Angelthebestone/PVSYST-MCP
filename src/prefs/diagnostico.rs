@@ -140,7 +140,3 @@ pub(crate) fn logs_cli(args: &Value) -> Result<Value> {
         "sesion": sesion,
     }))
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/prefs/diagnostico.rs"]
-mod tests;

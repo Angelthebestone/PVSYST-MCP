@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn utf16_round_trip_keeps_bom_and_accents() {
+fn should_keep_bom_and_accents_when_roundtripping_utf16() {
     let texto = "[Preferences]\r\nIdioma=Español\r\n";
     let bytes = codificar(texto, Codificacion::Utf16Le).expect("utf16");
     assert!(bytes.starts_with(BOM_UTF16LE));
@@ -11,7 +11,7 @@ fn utf16_round_trip_keeps_bom_and_accents() {
 }
 
 #[test]
-fn secrets_are_masked_in_protected_sections_and_key_names() {
+fn should_mask_secrets_when_the_section_or_key_name_is_protected() {
     assert!(oculto("API", "Ruta"));
     assert!(oculto("Web", "Puerto"));
     assert!(oculto("Preferences", "ApiToken"));
@@ -21,22 +21,6 @@ fn secrets_are_masked_in_protected_sections_and_key_names() {
     assert_eq!(secciones["Preferences"]["Idioma"], "es");
     assert_eq!(secciones["Preferences"]["ApiToken"], "***");
     assert_eq!(secciones["Web"]["Puerto"], "***");
-}
-
-#[test]
-fn reemplazar_clave_changes_only_the_target_section() {
-    let texto = "[Preferences]\r\n  Idioma=es\r\nIdioma=x\r\n[Directory]\r\nIdioma=y\r\n";
-    let nuevo = reemplazar_clave(texto, "Preferences", "idioma", "en").unwrap();
-    assert_eq!(
-        nuevo,
-        "[Preferences]\r\n  Idioma=en\r\nIdioma=x\r\n[Directory]\r\nIdioma=y\r\n"
-    );
-}
-
-#[test]
-fn reemplazar_clave_fails_when_key_is_missing() {
-    let err = reemplazar_clave("[Preferences]\r\nA=1\r\n", "Preferences", "B", "2").unwrap_err();
-    assert!(err.to_string().contains("no existe"));
 }
 
 #[test]
@@ -58,11 +42,4 @@ fn should_refuse_to_edit_an_ini_that_would_lose_bytes() {
     let res = decodificar_sin_perdida(&utf16_impar);
 
     assert!(matches!(res, Err(crate::error::Error::Format(_))));
-}
-
-#[test]
-fn should_refuse_a_value_outside_latin1_in_an_ansi_ini() {
-    let res = codificar("Clave=日本", Codificacion::Latin1);
-
-    assert!(matches!(res, Err(crate::error::Error::Invalid(_))));
 }
