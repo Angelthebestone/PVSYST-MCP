@@ -7,7 +7,7 @@ use super::workspace_ejecucion::{
 
 pub(crate) const TOOL_WORKSPACE: Herramienta = Herramienta {
     nombre: "workspace",
-    descripcion: "Workspace: crear, exportar, importar, exportar proyecto, historial de cambios y restaurar. / EN: Workspace: create, export, import, export project, change history and restore.",
+    descripcion: "Workspace: create, export, import, export project, change history and restore.",
     anotaciones: Anotaciones {
         titulo: "Workspace",
         es_solo_lectura: false,
@@ -66,9 +66,9 @@ const SINONIMOS_WORKSPACE: Sinonimos = Sinonimos {
 
 pub(crate) const TOOL_ESCRIBIR_ARCHIVO: Herramienta = Herramienta {
     nombre: "escribir_archivo",
-    descripcion: "Escribe un archivo dentro del workspace (con historial). / EN: Writes a file inside the workspace (with history).",
+    descripcion: "Writes a file inside the workspace (with history).",
     anotaciones: Anotaciones {
-        titulo: "Escribir archivo / Write file",
+        titulo: "Write file",
         es_solo_lectura: false,
         es_destructiva: true,
         es_idempotente: true,
@@ -95,9 +95,9 @@ const SINONIMOS_ESCRIBIR_ARCHIVO: Sinonimos = Sinonimos {
 
 pub(crate) const TOOL_LEER: Herramienta = Herramienta {
     nombre: "leer",
-    descripcion: "Lee cualquier archivo PVsyst: proyecto, modulo, sitio, meteo, componente, objeto o bytes crudos (detectado por archivo). / EN: Reads any PVsyst file: project, module, site, weather, component, object or raw bytes (detected from the file).",
+    descripcion: "Reads any PVsyst file: project, module, site, weather, component, object or raw bytes (detected from the file).",
     anotaciones: Anotaciones {
-        titulo: "Leer / Read",
+        titulo: "Read",
         es_solo_lectura: true,
         es_destructiva: false,
         es_idempotente: true,
@@ -137,9 +137,9 @@ const SINONIMOS_LEER: Sinonimos = Sinonimos {
 
 pub(crate) const TOOL_EDITAR: Herramienta = Herramienta {
     nombre: "editar",
-    descripcion: "Edita campos, inserta o elimina objetos PVObject (byte-preserving, con historial). accion:campos acepta archivo+objeto+campos (objeto PVObject) o proyecto+variante+ediciones (variante de proyecto). / EN: Edits fields, inserts or removes PVObject objects (byte-preserving, with history). accion:campos takes archivo+objeto+campos (PVObject) or proyecto+variante+ediciones (project variant).",
+    descripcion: "Edits fields, inserts or removes PVObject objects (byte-preserving, with history). accion:campos takes archivo+objeto+campos (PVObject) or proyecto+variante+ediciones (project variant).",
     anotaciones: Anotaciones {
-        titulo: "Editar / Edit",
+        titulo: "Edit",
         es_solo_lectura: false,
         es_destructiva: true,
         es_idempotente: false,
@@ -203,9 +203,9 @@ const SINONIMOS_EDITAR: Sinonimos = Sinonimos {
 
 pub(crate) const TOOL_LISTAR: Herramienta = Herramienta {
     nombre: "listar",
-    descripcion: "Lista proyectos, componentes, modulos, archivos u objetos. / EN: Lists projects, components, modules, files or objects.",
+    descripcion: "Lists projects, components, modules, files or objects.",
     anotaciones: Anotaciones {
-        titulo: "Listar / List",
+        titulo: "List",
         es_solo_lectura: true,
         es_destructiva: false,
         es_idempotente: true,
