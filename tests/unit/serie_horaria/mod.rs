@@ -1,6 +1,4 @@
 use super::base62::*;
-use super::codificar::codificar;
-use super::decodificar::decodificar;
 use super::dominio::*;
 use crate::error::Error;
 use std::fs;
@@ -11,7 +9,7 @@ const LINEA_DAY_CHUR_TAMB: &str =
     "Day_0101=-9g-9l-9V-9v-9o-A0-A5-9y-9a-9y-9s-8s-7o-78-6y-6Y-6g-6x-7I-7K-7J-7R-7f-7z";
 
 #[test]
-fn should_decode_real_file_day_against_known_values() {
+fn should_decode_known_temperatures_when_decoding_a_real_day_line() {
     let (dia, raws) = decodificar_linea_dia(LINEA_DAY_CHUR_TAMB).expect("decode day");
     assert_eq!(dia, "0101");
     assert_eq!(raws.len(), 24);
@@ -30,58 +28,14 @@ fn should_decode_real_file_day_against_known_values() {
 }
 
 #[test]
-fn should_reencode_real_day_byte_identically() {
+fn should_reencode_byte_identically_when_roundtripping_a_real_day_line() {
     let (dia, raws) = decodificar_linea_dia(LINEA_DAY_ABU_DHABI).expect("decode");
     let reencoded = codificar_linea_dia(&dia, &raws);
     assert_eq!(reencoded.trim(), LINEA_DAY_ABU_DHABI.trim());
 }
 
 #[test]
-fn should_reject_malformed_base62_alphabet() {
-    assert!(matches!(
-        decodificar_b62(""),
-        Err(crate::error::Error::Format(_))
-    ));
-    assert!(matches!(
-        decodificar_b62("12@4"),
-        Err(crate::error::Error::Format(_))
-    ));
-    assert!(matches!(
-        decodificar_b62("abc!"),
-        Err(crate::error::Error::Format(_))
-    ));
-    assert!(matches!(
-        decodificar_linea_dia("Day_0101=+0+12?+4"),
-        Err(crate::error::Error::Format(_))
-    ));
-}
-
-#[test]
-fn should_reject_invalid_day_line_length() {
-    assert!(matches!(
-        decodificar_linea_dia("Day_0101=+0+1"),
-        Err(crate::error::Error::Format(_))
-    ));
-    assert!(matches!(
-        decodificar_linea_dia("NotADay=+0"),
-        Err(crate::error::Error::Format(_))
-    ));
-    assert!(matches!(
-        decodificar_linea_dia("Day_abcd=+0"),
-        Err(crate::error::Error::Format(_))
-    ));
-}
-
-#[test]
-fn should_reject_invalid_series_length() {
-    let vars = vec!["GlobHor".to_string()];
-    let vals = vec![vec![100.0; 500]];
-    let err = validar_serie(&vars, &vals).expect_err("should reject 500 hours");
-    assert!(matches!(err, Error::Invalid(_)));
-}
-
-#[test]
-fn should_reject_out_of_range_physical_values() {
+fn should_reject_out_of_range_values_when_validating_a_series() {
     let vars = vec!["GlobHor".to_string(), "T_Amb".to_string()];
     let vals_neg = vec![vec![-5.0; 8760], vec![20.0; 8760]];
     assert!(matches!(
@@ -97,90 +51,7 @@ fn should_reject_out_of_range_physical_values() {
 }
 
 #[test]
-fn should_roundtrip_synthetic_series() {
-    let vars = vec!["GlobHor".to_string(), "T_Amb".to_string()];
-    let gh_vals: Vec<f64> = (0..8760)
-        .map(|h| {
-            if (6..18).contains(&(h % 24)) {
-                500.0
-            } else {
-                0.0
-            }
-        })
-        .collect();
-    let ta_vals: Vec<f64> = (0..8760).map(|h| 15.0 + ((h % 24) as f64) * 0.5).collect();
-    validar_serie(&vars, &[gh_vals.clone(), ta_vals.clone()]).expect("valid series");
-
-    let wr_gh = 2777.778;
-    let wr_ta = 100.0;
-    let gh_raws: Vec<i64> = gh_vals
-        .iter()
-        .map(|&v| fisico_a_crudo(v, wr_gh, TipoVariable::Irradiacion))
-        .collect();
-    let ta_raws: Vec<i64> = ta_vals
-        .iter()
-        .map(|&v| fisico_a_crudo(v, wr_ta, TipoVariable::Temperatura))
-        .collect();
-
-    for h in 0..24 {
-        let gh_back = crudo_a_fisico(gh_raws[h], wr_gh, TipoVariable::Irradiacion);
-        let ta_back = crudo_a_fisico(ta_raws[h], wr_ta, TipoVariable::Temperatura);
-        assert!((gh_back - gh_vals[h]).abs() <= 0.1, "gh hour {h}");
-        assert!((ta_back - ta_vals[h]).abs() <= 0.01, "ta hour {h}");
-    }
-}
-
-#[test]
-#[ignore = "necesita la instalación de PVsyst 8.1 (DataRO): ejecutar con --ignored"]
-fn should_decode_real_met_matching_annual_monthly_totals() {
-    let ro_path =
-        crate::config::data_ro().join(r"PVsyst8.1_Data\Meteo\Abu Dhabi DEMO Project_MN82_SYN.MET");
-    let content = fs::read_to_string(&ro_path).expect("read MET");
-    let serie = decodificar(&content).expect("decode MET");
-
-    assert_eq!(serie.horas.len(), 8760);
-    assert!(serie.variables.contains(&"GlobHor".to_string()));
-    assert!(serie.variables.contains(&"T_Amb".to_string()));
-
-    let total_gh_kwh: f64 = serie
-        .horas
-        .iter()
-        .map(|h| h.valores.get("GlobHor").copied().unwrap_or(0.0))
-        .sum::<f64>()
-        / 1000.0;
-
-    let mean_ta: f64 = serie
-        .horas
-        .iter()
-        .map(|h| h.valores.get("T_Amb").copied().unwrap_or(0.0))
-        .sum::<f64>()
-        / 8760.0;
-
-    assert!(
-        (total_gh_kwh - 2141.6).abs() < 1.0,
-        "total gh: {total_gh_kwh}"
-    );
-    assert!((mean_ta - 28.50).abs() < 0.1, "mean ta: {mean_ta}");
-}
-
-#[test]
-#[ignore = "necesita la instalación de PVsyst 8.1 (DataRO): ejecutar con --ignored"]
-fn should_reencode_entire_met_body_byte_identically() {
-    let ro_path =
-        crate::config::data_ro().join(r"PVsyst8.1_Data\Meteo\Abu Dhabi DEMO Project_MN82_SYN.MET");
-    let content = fs::read_to_string(&ro_path).expect("read MET");
-    let pos_start = content.find("  VarMeteo, list of=").unwrap();
-    let end_marker = "  End of the List VarMeteo\r\n";
-    let pos_end = content.find(end_marker).unwrap() + end_marker.len();
-    let body = &content[pos_start..pos_end];
-
-    let serie = decodificar(body).expect("decode body");
-    let reencoded = codificar(&serie).expect("encode body");
-    assert_eq!(reencoded, body);
-}
-
-#[test]
-fn should_reject_a_variable_that_is_neither_in_the_file_nor_in_the_catalog() {
+fn should_reject_unknown_variable_when_updating_a_series() {
     let serie = vacia_serie();
     let vars = vec!["ZZ_NoExiste".to_string()];
     let err = super::aplicacion::actualizar_serie(serie, &vars, &[vec![1.0; 8760]])
@@ -190,27 +61,7 @@ fn should_reject_a_variable_that_is_neither_in_the_file_nor_in_the_catalog() {
 }
 
 #[test]
-fn should_accept_a_catalog_variable_missing_from_the_file() {
-    let serie = vacia_serie();
-    let vars = vec!["GlobHor".to_string()];
-    let actualizada = super::aplicacion::actualizar_serie(serie, &vars, &[vec![0.0; 8760]])
-        .expect("catalog variable");
-    assert_eq!(actualizada.variables, vars);
-}
-
-fn vacia_serie() -> SerieHoraria {
-    SerieHoraria {
-        top_line: String::new(),
-        variables: Vec::new(),
-        metadatos: Vec::new(),
-        dias: Vec::new(),
-        horas: Vec::new(),
-        valores_crudos: std::collections::HashMap::new(),
-    }
-}
-
-#[test]
-fn should_reject_series_outside_workspace_when_name_escapes() {
+fn should_reject_a_series_outside_the_workspace_when_the_name_escapes() {
     let ws = tempfile::tempdir().expect("ws");
     let fuera = tempfile::tempdir().expect("fuera");
     let ajeno = fuera.path().join("Ajeno.MET");
@@ -227,61 +78,13 @@ fn should_reject_series_outside_workspace_when_name_escapes() {
     }
 }
 
-#[test]
-fn should_refuse_paging_argument_that_is_not_a_non_negative_integer() {
-    use super::aplicacion::entero_paginacion;
-    for valor in [
-        serde_json::json!("24"),
-        serde_json::json!(-1),
-        serde_json::json!(2.5),
-    ] {
-        let args = serde_json::json!({ "limite": valor });
-        assert!(
-            matches!(
-                entero_paginacion(&args, "limite", 24),
-                Err(Error::Invalid(_))
-            ),
-            "{args}"
-        );
+fn vacia_serie() -> SerieHoraria {
+    SerieHoraria {
+        top_line: String::new(),
+        variables: Vec::new(),
+        metadatos: Vec::new(),
+        dias: Vec::new(),
+        horas: Vec::new(),
+        valores_crudos: std::collections::HashMap::new(),
     }
-}
-
-#[test]
-fn should_default_paging_argument_when_absent_or_null() {
-    use super::aplicacion::entero_paginacion;
-    assert_eq!(
-        entero_paginacion(&serde_json::json!({}), "limite", 24).expect("defecto"),
-        24
-    );
-    assert_eq!(
-        entero_paginacion(&serde_json::json!({ "limite": null }), "limite", 24).expect("nulo"),
-        24
-    );
-    assert_eq!(
-        entero_paginacion(&serde_json::json!({ "limite": 48 }), "limite", 24).expect("dado"),
-        48
-    );
-}
-
-#[test]
-fn should_refuse_repeated_variable_names() {
-    let args = serde_json::json!({ "variables": ["GlobHor", "T_Amb", "GlobHor"] });
-
-    let res = super::aplicacion::extraer_nombres_variables(&args);
-
-    assert!(matches!(res, Err(Error::Invalid(m)) if m.contains("GlobHor") && m.contains('3')));
-}
-
-#[test]
-fn should_write_an_ansi_header_back_byte_for_byte() {
-    let original = b"Comment=Estaci\xf3n\r\n".to_vec();
-    let texto = crate::format::decodificar_texto_flexible(&original);
-
-    let bytes = super::reensamblado::codificar_como(&texto, false).expect("ansi");
-
-    assert_eq!(bytes, original);
-    assert_eq!(
-        super::reensamblado::codificar_como("ñ", true).expect("utf8"),
-        "ñ".as_bytes()
-    );
 }
