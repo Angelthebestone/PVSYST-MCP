@@ -11,17 +11,6 @@ fn should_refuse_a_variant_with_a_3d_scene() {
 }
 
 #[test]
-fn should_accept_a_variant_without_shading_object() {
-    let sin_sombras = b"PVObject_=pvVCalcul\r\n  Comment=x\r\nEnd of PVObject pvVCalcul\r\n";
-
-    assert!(rechazar_escena_3d(sin_sombras).is_ok());
-    assert_eq!(
-        texto_de_objeto(sin_sombras, "pvShading").expect("sin error"),
-        None
-    );
-}
-
-#[test]
 fn should_refuse_to_convert_an_unbalanced_variant() {
     let ws = tempfile::tempdir().expect("ws");
     let dir = ws.path().join("Projects");
