@@ -1,10 +1,12 @@
 //! Window actions: clicks, messages, physical inputs and desktop interactivity.
 
-use super::conduccion::esperar_cierre;
+use super::conduccion::{esperar_cierre, formularios};
 use super::ffi::{self, Hwnd, BM_CLICK, GA_ROOT, SW_RESTORE, WM_CLOSE};
 use super::modal;
 use super::rotulos::{rotulos_acciones, Idioma, RotulosAcciones};
-use super::ventanas::{class_of, rect_of, resolve, text_of, ventanas_de, visible, window_json};
+use super::ventanas::{
+    class_of, pid_of, rect_of, resolve, text_of, ventanas_de, visible, window_json,
+};
 use crate::args::{opt_i32, opt_u32, req_str};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
@@ -21,6 +23,10 @@ pub(crate) const CLASE_MENSAJE: &str = "TMessageForm";
 pub(crate) const CLASE_EXCEPCION: &str = "madExceptWndClass";
 /// Longest wait for a form to disappear after asking it to close.
 const ESPERA_CIERRE: Duration = Duration::from_secs(2);
+/// Time PVsyst takes to show the parent form again after an editor closes.
+const ESPERA_REAPARICION: Duration = Duration::from_millis(400);
+/// The home screen is always behind: it is not a form the close reopened.
+const INICIO: &str = "THomeForm";
 
 /// How a control is clicked through messages. Exactly one mechanism is used:
 /// a button handles both `BM_CLICK` and mouse messages, so sending both would
@@ -45,9 +51,7 @@ pub(crate) fn clic_por_mensajes(h: Hwnd) -> Result<()> {
         MecanismoClic::Raton => {
             let cr = ffi::rect_cliente(h);
             if cr.right <= 0 || cr.bottom <= 0 {
-                return Err(Error::Gui(format!(
-                    "El control 0x{h:X} no tiene área visible"
-                )));
+                return Err(Error::Gui(format!("Control 0x{h:X} has no visible area")));
             }
             ffi::clic_en_cliente(h, (cr.right / 2, cr.bottom / 2))
         }
@@ -56,7 +60,7 @@ pub(crate) fn clic_por_mensajes(h: Hwnd) -> Result<()> {
         Ok(())
     } else {
         Err(Error::Gui(format!(
-            "PostMessage falló para el control 0x{h:X}"
+            "PostMessage failed for control 0x{h:X}"
         )))
     }
 }
@@ -68,14 +72,14 @@ fn enviar_mensaje(h: Hwnd, args: &Value) -> Result<()> {
     let lparam = args.get("lparam").map_or(Ok(0), |v| {
         v.as_i64()
             .and_then(|n| isize::try_from(n).ok())
-            .ok_or_else(|| Error::Invalid("'lparam' debe ser un entero".into()))
+            .ok_or_else(|| Error::Invalid("'lparam' must be an integer".into()))
     })?;
     ffi::send_message_timeout(
         h,
         ffi::Mensaje::nuevo(msg, wparam, lparam),
         ffi::TIMEOUT_MENSAJE_MS,
     )
-    .ok_or_else(|| Error::Gui("PVsyst no respondió en 3 s al enviar mensaje".into()))?;
+    .ok_or_else(|| Error::Gui("PVsyst did not answer in 3 s to the message".into()))?;
     Ok(())
 }
 
@@ -111,7 +115,7 @@ pub(crate) fn cerrar_ventana(h: Hwnd, args: &Value) -> Result<()> {
         Some(b) => clic_por_mensajes(b)?,
         None if class_of(h) == CLASE_MENSAJE => {
             return Err(Error::Gui(format!(
-                "El mensaje 0x{h:X} es una pregunta: léela con gui_observar que:formulario o controles y responde con click sobre el botón elegido"
+                "Message 0x{h:X} is a question: read it with gui_observar que:formulario or controles and answer with click on the chosen button"
             )))
         }
         None => {
@@ -128,7 +132,7 @@ fn desplazamiento(args: &Value) -> Result<Option<(i32, i32)>> {
         (Some(dx), Some(dy)) => Ok(Some((dx, dy))),
         (None, None) => Ok(None),
         _ => Err(Error::Invalid(
-            "'dx' y 'dy' van juntos (enteros, px a 96 DPI desde la esquina del control)".into(),
+            "'dx' and 'dy' go together (integers, px at 96 DPI from the control corner)".into(),
         )),
     }
 }
@@ -156,7 +160,7 @@ fn ejecutar_accion(h: Hwnd, action: &str, args: &Value) -> Result<()> {
     match action {
         "click" => match desplazamiento(args)? {
             Some(punto) if ffi::clic_en_cliente(h, punto) => {}
-            Some(_) => return Err(Error::Gui(format!("PostMessage falló para 0x{h:X}"))),
+            Some(_) => return Err(Error::Gui(format!("PostMessage failed for 0x{h:X}"))),
             None => clic_por_mensajes(h)?,
         },
         "cerrar" => cerrar_ventana(h, args)?,
@@ -183,8 +187,59 @@ pub(crate) fn exigir_escritorio() -> Result<()> {
     if escritorio_interactivo() {
         Ok(())
     } else {
-        Err(Error::Gui("Escritorio no interactivo".into()))
+        Err(Error::Gui("Desktop is not interactive".into()))
     }
+}
+
+/// A visible top-level window of the process, as seen before and after a close.
+struct VentanaViva {
+    h: Hwnd,
+    clase: String,
+    titulo: String,
+}
+
+fn ventanas_vivas(h: Hwnd) -> Vec<VentanaViva> {
+    formularios(pid_of(h))
+        .into_iter()
+        .map(|v| VentanaViva {
+            h: v,
+            clase: class_of(v),
+            titulo: text_of(v),
+        })
+        .collect()
+}
+
+/// Forms the close made visible again: an editor can reopen its parent selector
+/// as a modal, and a bare `closed:true` would hide it from the caller.
+fn formas_reabiertas(antes: &[VentanaViva], despues: &[VentanaViva], cerrada: Hwnd) -> Vec<Value> {
+    despues
+        .iter()
+        .filter(|v| v.h != cerrada && v.clase != INICIO && !antes.iter().any(|a| a.h == v.h))
+        .map(|v| {
+            json!({
+                "hwnd": format!("0x{:X}", v.h),
+                "class": v.clase,
+                "title": v.titulo,
+            })
+        })
+        .collect()
+}
+
+/// Names the reopened form and the `cerrar` that closes it, so the caller does
+/// not have to discover the class with another observation.
+fn aviso_de_reaparicion(reabiertas: &[Value]) -> Option<String> {
+    let primera = reabiertas.first()?;
+    let clase = primera["class"].as_str().unwrap_or_default();
+    let hwnd = primera["hwnd"].as_str().unwrap_or_default();
+    let resto = reabiertas.len().saturating_sub(1);
+    let extra = if resto == 0 {
+        String::new()
+    } else {
+        format!(" (and {resto} more)")
+    };
+    Some(format!(
+        "Closing reopened {clase}{extra}: close it too with gui_actuar accion:cerrar ventana:{hwnd}"
+    ))
 }
 
 pub(crate) fn invocar(args: &Value) -> Result<Value> {
@@ -202,12 +257,18 @@ pub(crate) fn invocar(args: &Value) -> Result<Value> {
     if !matches!(action, "activar" | "mensaje") {
         modal::exigir_habilitada(h, modal::PARA_ACTUAR)?;
     }
+    let cerrar = action == "cerrar";
+    let antes = cerrar.then(|| ventanas_vivas(h));
     ffi::traer_al_frente(ffi::get_ancestor(h, GA_ROOT));
     ejecutar_accion(h, action, args)?;
 
-    let cerrar = action == "cerrar";
+    let mut reabiertas = Vec::new();
     if cerrar {
         exigir_cerrada(h)?;
+        std::thread::sleep(ESPERA_REAPARICION);
+        if let Some(antes) = antes {
+            reabiertas = formas_reabiertas(&antes, &ventanas_vivas(h), h);
+        }
     }
     let mut window = window_json(h);
     if cerrar {
@@ -220,6 +281,8 @@ pub(crate) fn invocar(args: &Value) -> Result<Value> {
         "hwnd": format!("0x{:X}", h),
         "action": action,
         "window": window,
+        "reabiertas": reabiertas,
+        "aviso": aviso_de_reaparicion(&reabiertas),
     }))
 }
 
@@ -227,9 +290,7 @@ pub(crate) fn invocar(args: &Value) -> Result<Value> {
 /// (the trial dialog); it stays an error so a mistyped name is not taken for success.
 fn no_encontrado(referencia: &str, accion: &str) -> Error {
     if accion == "cerrar" {
-        return Error::Gui(format!(
-            "Ventana '{referencia}' no encontrada (¿ya cerrada?)"
-        ));
+        return Error::Gui(format!("Window '{referencia}' not found (already closed?)"));
     }
     Error::Gui(format!("Control '{referencia}' not found"))
 }
@@ -241,7 +302,7 @@ fn exigir_cerrada(h: Hwnd) -> Result<()> {
         return Ok(());
     }
     Err(Error::Gui(format!(
-        "{} sigue abierta tras pedir el cierre: puede haber abierto una confirmación (gui_observar que:ventanas)",
+        "{} is still open after asking it to close: it may have opened a confirmation (gui_observar que:ventanas)",
         class_of(h)
     )))
 }
