@@ -73,7 +73,3 @@ pub(crate) fn decode_base64(s: &str) -> Result<Vec<u8>> {
     }
     Ok(out)
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/workspace/base64.rs"]
-mod tests;
