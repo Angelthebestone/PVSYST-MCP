@@ -379,3 +379,81 @@ fn exigir_tolerancia_kwp_rejects_a_realised_kwp_beyond_the_tolerance() {
         Err(crate::error::Error::Format(_))
     ));
 }
+
+/// A workspace with the synthetic project as a template to copy from.
+fn workspace_con_plantilla() -> (tempfile::TempDir, Paths) {
+    let ws = tempfile::tempdir().unwrap();
+    let projects = ws.path().join("Projects");
+    std::fs::create_dir_all(&projects).unwrap();
+    let prj = include_bytes!("../../fixtures/workspace/Projects/SYNTH_Plant.PRJ");
+    let vc0 = include_bytes!("../../fixtures/workspace/Projects/SYNTH_Plant.VC0");
+    std::fs::write(projects.join("SYNTH_Plant.PRJ"), prj).unwrap();
+    std::fs::write(projects.join("SYNTH_Plant.VC0"), vc0).unwrap();
+    let paths = Paths {
+        workspace: ws.path().to_path_buf(),
+        ..Paths::resolve()
+    };
+    (ws, paths)
+}
+
+fn diseno(extra: serde_json::Value) -> DisenoParametros {
+    let mut args = json!({
+        "latitud": 10.0,
+        "longitud": -70.0,
+        "kwp": 8.0,
+        "plantilla": "SYNTH_Plant",
+        "nombre": "Diseno",
+        "modulo": "Synth_400W.PAN",
+        "inversor": "Synth_10kW.OND",
+        "n_mod_serie": 10,
+        "n_strings": 2,
+        "simular": false,
+    });
+    for (k, v) in extra.as_object().expect("objeto") {
+        args[k.as_str()] = v.clone();
+    }
+    DisenoParametros::parse(&args).expect("parámetros")
+}
+
+#[test]
+fn should_resume_the_design_when_the_project_exists_with_the_same_parameters() {
+    // Given: a design run that already created the project
+    let (_ws, paths) = workspace_con_plantilla();
+    let params = diseno(json!({}));
+    proyecto::ejecutar_paso_proyecto(&paths, &params).expect("primer proyecto");
+
+    // When: the same design is retried after a failed step
+    let segundo = proyecto::ejecutar_paso_proyecto(&paths, &params).expect("reintento");
+
+    // Then: it continues instead of demanding a rebuild
+    assert_eq!(segundo.raw_response["reutilizado"], json!(true));
+    assert_eq!(segundo.nombre, "Diseno");
+}
+
+#[test]
+fn should_reject_the_design_when_the_existing_project_holds_other_parameters() {
+    // Given: a project created with 10 modules in series and 2 strings
+    let (_ws, paths) = workspace_con_plantilla();
+    proyecto::ejecutar_paso_proyecto(&paths, &diseno(json!({}))).expect("primer proyecto");
+
+    // When: the retry asks for a different layout
+    let err = proyecto::ejecutar_paso_proyecto(&paths, &diseno(json!({ "n_strings": 4 })))
+        .expect_err("parámetros distintos");
+
+    // Then: the difference and the two ways out are named
+    let msg = err.to_string();
+    assert!(msg.contains("NStringCh"), "msg={msg}");
+    assert!(msg.contains("sobrescribir"), "msg={msg}");
+}
+
+#[test]
+fn should_rebuild_the_project_when_sobrescribir_is_asked_for() {
+    let (_ws, paths) = workspace_con_plantilla();
+    proyecto::ejecutar_paso_proyecto(&paths, &diseno(json!({}))).expect("primer proyecto");
+    let otro = proyecto::ejecutar_paso_proyecto(
+        &paths,
+        &diseno(json!({ "n_strings": 4, "sobrescribir": true })),
+    )
+    .expect("sobrescritura");
+    assert!(otro.raw_response.get("reutilizado").is_none(), "{otro:?}");
+}
