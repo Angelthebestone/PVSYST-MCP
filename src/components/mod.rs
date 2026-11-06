@@ -73,6 +73,17 @@ pub(crate) fn folder_for(kind: &str) -> Option<&'static str> {
     tipo_canonico(kind).map(|(_, f)| f)
 }
 
+/// Component file name with the kind's extension when the caller left it out.
+///
+/// `listar componentes` filters by extension, so a component without one would
+/// be invisible to every later call.
+pub(crate) fn nombre_con_extension(nombre: &str, kind: &str) -> String {
+    if Path::new(nombre).extension().is_some() {
+        return nombre.to_string();
+    }
+    format!("{nombre}.{}", kind.to_uppercase())
+}
+
 /// Resolve the workspace ComposPV sub-folder, honouring PVsyst's casing.
 pub(crate) fn compos_dir(workspace: &Path, folder: &str) -> PathBuf {
     let base = workspace.join("ComposPV");
@@ -213,10 +224,7 @@ pub(crate) fn crear_componente(paths: &Paths, args: &Value) -> Result<Value> {
     let out_dir = compos_dir(&workspace, folder);
     fs::create_dir_all(&out_dir)
         .map_err(|e| Error::io(format!("Cannot create {}", out_dir.display()), e))?;
-    let mut name = nuevo.to_string();
-    if Path::new(&name).extension().is_none() {
-        name = format!("{}.{}", name, kind.to_uppercase());
-    }
+    let name = nombre_con_extension(nuevo, &kind);
     let target = out_dir.join(&name);
     sobrescritura::exigir_sobrescribir(&target, args)?;
     let historial_id = history::reemplazar(&workspace, &target, &bytes, "crear_componente")?;

@@ -253,6 +253,48 @@ fn should_reject_overwriting_an_existing_component_without_sobrescribir() {
 }
 
 #[test]
+fn should_append_the_kind_extension_when_importing_a_component_without_one() {
+    let ws = synthetic_workspace();
+    let origen = ws.path().join("Ext.PAN");
+    fs::write(&origen, [0x00u8, 0x01]).expect("origen");
+    let mut c = cliente(ws.path());
+
+    let resp = c.call(
+        20,
+        "componente",
+        json!({
+            "accion": "importar", "origen": origen.to_string_lossy(),
+            "nombre_nuevo": "Importado_Sin_Extension", "tipo": "PAN",
+        }),
+    );
+    let out = tool_text(&resp);
+    assert_eq!(
+        out["nombre_normalizado"],
+        json!("Importado_Sin_Extension.PAN")
+    );
+    assert!(
+        out["aviso"]
+            .as_str()
+            .is_some_and(|a| a.contains("extension")),
+        "resp={out}"
+    );
+    assert!(ws
+        .path()
+        .join("ComposPV")
+        .join("PVModules")
+        .join("Importado_Sin_Extension.PAN")
+        .is_file());
+
+    let listado = tool_text(&c.call(21, "listar", json!({ "que": "componentes", "tipo": "PAN" })));
+    assert!(
+        listado["components"]
+            .to_string()
+            .contains("Importado_Sin_Extension.PAN"),
+        "listar lo ve: {listado}"
+    );
+}
+
+#[test]
 fn should_reject_destino_when_importing_a_component() {
     let ws = synthetic_workspace();
     let externo = tempfile::tempdir().expect("tempdir");
