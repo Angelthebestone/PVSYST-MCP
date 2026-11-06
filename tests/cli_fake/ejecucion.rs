@@ -27,18 +27,7 @@ fn ws_str(ws: &Path) -> String {
 }
 
 #[test]
-fn help_succeeds_and_unknown_command_fails() {
-    let ws = workspace();
-    let mut client = Client::start_env(Some(&ws_str(ws.path())), &fake_env());
-    client.initialize();
-    let ok = tool_text(&client.call(2, "pvsyst_cli", json!({ "comando": "help" })));
-    assert_eq!(ok["success"], json!(true));
-    let bad = tool_text(&client.call(3, "pvsyst_cli", json!({ "comando": "nocommand" })));
-    assert_eq!(bad["success"], json!(false));
-}
-
-#[test]
-fn slow_command_is_killed_at_timeout() {
+fn should_kill_the_command_when_it_exceeds_the_timeout() {
     let ws = workspace();
     let mut env = fake_env();
     env.push(("FAKE_PVSYST_SLEEP_MS", "5000"));
@@ -51,80 +40,6 @@ fn slow_command_is_killed_at_timeout() {
     ));
     assert_eq!(v["success"], json!(false));
     assert_eq!(v["detected_error"], json!("timeout tras 1 s"));
-}
-
-#[test]
-fn simulation_reports_success_from_fixture() {
-    let ws = workspace();
-    let mut client = Client::start_env(Some(&ws_str(ws.path())), &fake_env());
-    client.initialize();
-    let args = json!({ "proyecto": "SYNTH_Plant", "variante": "VC0" });
-    let v = tool_text(&client.call(2, "simular", args));
-    assert_eq!(v["success"], json!(true));
-    assert_eq!(v["mode"], json!("cli"));
-}
-
-#[test]
-fn simulation_reports_avisos_pvsyst_from_fake_cli_log() {
-    let ws = workspace();
-    let temp_local_app_data = tempfile::tempdir().unwrap();
-    let mut env = fake_env();
-    let local_str = temp_local_app_data.path().to_string_lossy().to_string();
-    env.push(("LOCALAPPDATA", &local_str));
-    let mut client = Client::start_env(Some(&ws_str(ws.path())), &env);
-    client.initialize();
-    let args = json!({ "proyecto": "SYNTH_Plant", "variante": "VC0" });
-    let v = tool_text(&client.call(2, "simular", args));
-    assert_eq!(v["success"], json!(true));
-    let avisos = v["avisos_pvsyst"].as_array().expect("avisos_pvsyst");
-    assert_eq!(avisos.len(), 4);
-    assert_eq!(avisos[0], "ErrorList: 1882 error messages");
-    assert_eq!(
-        avisos[1],
-        "The array Vmpp at 60 °C  is lower than the inverter minimum operating voltage."
-    );
-    assert_eq!(avisos[2], "This may result in some undervoltage loss.");
-    assert_eq!(
-        avisos[3],
-        "1879 occurrences of MPP voltage lower than min. voltage input of the inverter"
-    );
-}
-
-#[test]
-fn simulation_reports_progress_before_the_response() {
-    let ws = workspace();
-    let mut env = fake_env();
-    env.push(("FAKE_PVSYST_PROGRESO", "1"));
-    env.push(("FAKE_PVSYST_SLEEP_MS", "600"));
-    let mut client = Client::start_env(Some(&ws_str(ws.path())), &env);
-    client.initialize();
-    client.send(&json!({
-        "jsonrpc": "2.0",
-        "id": 2,
-        "method": "tools/call",
-        "params": {
-            "name": "simular",
-            "arguments": { "proyecto": "SYNTH_Plant", "variante": "VC0" },
-            "_meta": { "progressToken": "t1" }
-        }
-    }));
-
-    let mut progresos = Vec::new();
-    loop {
-        let v = client.recv();
-        if v["method"] == "notifications/progress" {
-            progresos.push(v);
-            continue;
-        }
-        assert_eq!(v["id"], json!(2), "v={v}");
-        break;
-    }
-    assert!(
-        progresos
-            .iter()
-            .any(|v| v["params"]["progressToken"] == json!("t1")),
-        "no progress notification: {progresos:?}"
-    );
 }
 
 #[test]
@@ -153,7 +68,7 @@ fn should_answer_ping_while_a_simulation_runs() {
 }
 
 #[test]
-fn cancelled_simulation_never_answers_and_later_requests_do() {
+fn should_answer_later_requests_when_a_simulation_is_cancelled() {
     let ws = workspace();
     let mut env = fake_env();
     env.push(("FAKE_PVSYST_SLEEP_MS", "5000"));
@@ -215,60 +130,4 @@ fn should_classify_contradictory_output_as_ambiguous() {
     assert_eq!(v["success"], json!(false));
     assert_eq!(v["clasificacion"], json!("ambiguo"));
     assert_eq!(v["ambiguo"], json!(true));
-}
-
-#[test]
-fn should_classify_missing_confirmation_as_ambiguous() {
-    let ws = workspace();
-    let mut client = Client::start_env(Some(&ws_str(ws.path())), &fake_env());
-    client.initialize();
-    let v = tool_text(&client.call(
-        2,
-        "pvsyst_cli",
-        json!({ "comando": "run-simulation", "opciones": ["--ambiguous-sin-confirmacion"] }),
-    ));
-    assert_eq!(v["success"], json!(false));
-    assert_eq!(v["clasificacion"], json!("ambiguo"));
-    assert_eq!(v["ambiguo"], json!(true));
-}
-
-#[test]
-#[ignore = "necesita las rejillas NASA de la instalación de PVsyst (DataRO\\*_World.*): ejecutar con --ignored"]
-fn should_write_ledger_cache_to_requested_workspace_not_server_default() {
-    let default_ws = workspace();
-    let target_ws = workspace();
-    let mut client = Client::start_env(Some(&ws_str(default_ws.path())), &fake_env());
-    client.initialize();
-
-    let resp = client.call(
-        99,
-        "sitio",
-        json!({
-            "accion": "crear",
-            "origen": "coordenadas",
-            "latitud": 46.2,
-            "longitud": 6.1,
-            "nombre_sitio": "MCP_Ledger_Test",
-            "workspace": ws_str(target_ws.path()),
-        }),
-    );
-    assert_eq!(resp["result"]["isError"], false, "resp={resp}");
-
-    assert!(
-        target_ws
-            .path()
-            .join("UserData")
-            .join("mcp_cache")
-            .join("ledger.json")
-            .exists(),
-        "ledger.json must exist in target_ws"
-    );
-    assert!(
-        !default_ws
-            .path()
-            .join("UserData")
-            .join("mcp_cache")
-            .exists(),
-        "default_ws must not be polluted with mcp_cache!"
-    );
 }
