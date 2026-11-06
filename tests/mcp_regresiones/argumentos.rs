@@ -39,10 +39,7 @@ fn should_publish_aliases_a_validating_client_accepts() {
         "required={requeridos:?}"
     );
     let descripcion = leer["inputSchema"]["properties"]["archivo"]["description"].as_str();
-    assert!(
-        descripcion.unwrap().contains("Requerido"),
-        "{descripcion:?}"
-    );
+    assert!(descripcion.unwrap().contains("Required"), "{descripcion:?}");
 }
 
 #[test]
