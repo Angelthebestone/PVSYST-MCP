@@ -2,6 +2,7 @@
 //! sure the user has nothing open, answer PVsyst's message boxes and leave the
 //! home screen as it was found, also when a step fails.
 
+use super::causa_pvsyst;
 use super::conduccion::{esperar, formularios, Formulario, ESPERA_FORMULARIO};
 use super::registro_pvsyst::{self, Marca};
 use super::rotulos::{rotulos_sesion, Idioma, RotulosSesion};
@@ -91,12 +92,15 @@ impl Sesion {
         n
     }
 
-    /// Messages and warnings PVsyst logged since the session started.
+    /// Messages and warnings PVsyst logged since the session started, without
+    /// the parse notices every load emits.
     pub(crate) fn mensajes(&self) -> Vec<String> {
-        self.marca
+        let registrados = self
+            .marca
             .as_ref()
             .map(registro_pvsyst::mensajes_desde)
-            .unwrap_or_default()
+            .unwrap_or_default();
+        causa_pvsyst::filtrar(registrados)
     }
 
     /// Closes every form back to the home screen without saving.
@@ -123,10 +127,17 @@ impl Sesion {
     pub(crate) fn ejecutar<T>(&self, paso: impl FnOnce(&Self) -> Result<T>) -> Result<T> {
         let r = paso(self);
         self.volver_al_inicio();
-        r.map_err(|e| match self.mensajes() {
-            m if m.is_empty() => e,
-            m => Error::Gui(format!("{e}. PVsyst dijo: {}", m.join(" | "))),
-        })
+        r.map_err(|e| self.error_con_causa(e))
+    }
+
+    /// `e` with PVsyst's own log turned into the cause the caller can act on.
+    fn error_con_causa(&self, e: Error) -> Error {
+        let mensajes = self.mensajes();
+        let texto = causa_pvsyst::explicar(&e.to_string(), &mensajes);
+        if texto == e.to_string() {
+            return e;
+        }
+        Error::Gui(texto)
     }
 }
 
