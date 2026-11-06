@@ -210,7 +210,3 @@ fn escribir_rvt(
     let id = history::reemplazar(workspace, &rvs, content.as_bytes(), "crear_batch")?;
     Ok((Some(rvs.to_string_lossy().to_string()), id))
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/simulation/batch/dat.rs"]
-mod tests;

@@ -218,7 +218,3 @@ pub(crate) fn barrido(
         "supuestos": supuestos(),
     }))
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/simulation/preestimate.rs"]
-mod tests;

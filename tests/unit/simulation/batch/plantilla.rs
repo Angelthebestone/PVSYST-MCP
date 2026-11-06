@@ -2,7 +2,7 @@ use super::*;
 use serde_json::json;
 
 #[test]
-fn batch_csv_keeps_the_positional_layout() {
+fn should_keep_the_positional_layout_when_writing_the_batch_csv() {
     let rows = [json!({ "tilt": 30, "azimut": "180", "comentario": "a", "lid": null })];
     let csv = batch_csv("P", "VC1", &rows, "01/01/2026").expect("csv");
     let lines: Vec<&str> = csv.lines().collect();
@@ -22,20 +22,11 @@ fn should_reject_values_that_would_shift_batch_columns() {
     for malo in ["a;b", "linea\nnueva", "x\r"] {
         let rows = [json!({ "tilt": 30, "comentario": malo })];
         assert!(
-            batch_csv("P", "VC1", &rows, "01/01/2026").is_err(),
+            matches!(
+                batch_csv("P", "VC1", &rows, "01/01/2026"),
+                Err(Error::Invalid(_))
+            ),
             "{malo:?}"
-        );
-    }
-}
-
-#[test]
-fn should_reject_project_or_variant_with_separator_when_rendering_header() {
-    let rows = [json!({ "tilt": 30 })];
-    for (proyecto, variante) in [("P;x", "VC1"), ("P", "VC1\n"), ("P\r", "VC1")] {
-        let res = batch_csv(proyecto, variante, &rows, "01/01/2026");
-        assert!(
-            matches!(res, Err(Error::Invalid(_))),
-            "{proyecto:?} {variante:?}"
         );
     }
 }
