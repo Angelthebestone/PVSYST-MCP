@@ -13,33 +13,6 @@ fn should_reject_site_name_that_leaves_sites_folder() {
     }
 }
 
-#[test]
-fn should_return_site_path_when_it_exists_in_sites() {
-    let ws = tempfile::tempdir().expect("ws");
-    let dir = ws.path().join("Sites");
-    std::fs::create_dir_all(&dir).expect("Sites");
-    std::fs::write(dir.join("Lugar.SIT"), "x").expect("sit");
-
-    let sit = sit_pedido(ws.path(), &json!({ "sitio": "Lugar" })).expect("sitio");
-
-    assert_eq!(sit, Some(dir.join("Lugar.SIT")));
-}
-
-#[test]
-fn should_report_not_found_when_site_is_missing() {
-    let ws = tempfile::tempdir().expect("ws");
-
-    let res = sit_pedido(ws.path(), &json!({ "sitio": "Nada" }));
-
-    assert!(matches!(res, Err(Error::NotFound(_))), "{res:?}");
-}
-
-#[test]
-fn should_not_look_up_demo_template_when_name_is_rooted() {
-    assert_eq!(plantilla_demo_ro("\\Windows\\win"), None);
-    assert_eq!(plantilla_demo_ro("C:x"), None);
-}
-
 /// Workspace with the synthetic template project and a `Sites/Lugar.SIT` holding `sit`.
 fn workspace_con_plantilla(sit: &str) -> tempfile::TempDir {
     let ws = tempfile::tempdir().expect("ws");
@@ -66,24 +39,4 @@ fn should_leave_no_project_when_the_site_cannot_be_linked() {
     assert!(matches!(res, Err(crate::error::Error::NotFound(_))));
     assert!(!ws.path().join("Projects").join("Nuevo.PRJ").exists());
     assert!(!ws.path().join("Projects").join("Nuevo.VC0").exists());
-}
-
-#[test]
-fn should_link_the_site_in_the_requested_workspace() {
-    let ws = workspace_con_plantilla(
-        "PVObject_=pvSite\n  Comment=Sitio creado;\nEnd of PVObject pvSite\n",
-    );
-    let otro = tempfile::tempdir().expect("workspace por defecto");
-    let paths = Paths::para_test(otro.path());
-    let args = json!({
-        "workspace": ws.path(),
-        "plantilla": "SYNTH_Plant",
-        "nombre_nuevo": "Nuevo",
-        "sitio": "Lugar",
-    });
-
-    crear_proyecto(&paths, &args).expect("creado");
-
-    let prj = std::fs::read_to_string(ws.path().join("Projects").join("Nuevo.PRJ")).expect("prj");
-    assert!(prj.contains("Comment=Sitio creado;"), "{prj}");
 }

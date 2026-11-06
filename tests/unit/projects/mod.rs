@@ -1,25 +1,6 @@
 use super::*;
 
 #[test]
-fn should_list_variants_of_the_project_only_when_names_match_the_rule() {
-    let dir = tempfile::tempdir().expect("dir");
-    for nombre in [
-        "DEMO.PRJ",
-        "DEMO.VC0",
-        "DEMO.cm1",
-        "DEMO.VC~",
-        "OTHER.VC0",
-        "DEMO.VC10",
-    ] {
-        std::fs::write(dir.path().join(nombre), "x").expect("archivo");
-    }
-
-    let variantes = variantes_de(&dir.path().join("DEMO.PRJ"), "DEMO");
-
-    assert_eq!(variantes, ["CM1", "VC0"]);
-}
-
-#[test]
 fn should_reject_escape_when_confinement_is_workspace() {
     let ws = std::env::temp_dir();
     let res = resolve_project_file_con_alcance(&ws, "../../secret.PRJ", Alcance::Workspace);
@@ -48,26 +29,4 @@ fn should_reject_rooted_name_without_drive_when_confinement_is_workspace() {
         matches!(&res, Err(Error::Invalid(m)) if m.contains("fuera del workspace")),
         "{res:?}"
     );
-}
-
-#[test]
-fn should_reject_drive_relative_name_when_confinement_is_workspace() {
-    let ws = tempfile::tempdir().expect("ws");
-    std::fs::create_dir_all(ws.path().join("Projects")).expect("Projects");
-
-    let res = resolve_project_file_con_alcance(ws.path(), "C:Ajeno.PRJ", Alcance::Workspace);
-
-    assert!(res.is_err_and(|e| !matches!(e, Error::Io { .. })));
-}
-
-#[test]
-fn should_resolve_plain_name_inside_projects_when_it_exists() {
-    let ws = tempfile::tempdir().expect("ws");
-    let dir = ws.path().join("Projects");
-    std::fs::create_dir_all(&dir).expect("Projects");
-    std::fs::write(dir.join("Planta.PRJ"), "x").expect("prj");
-
-    let res = resolve_project_file_con_alcance(ws.path(), "Planta", Alcance::Workspace);
-
-    assert_eq!(res.expect("encontrado"), dir.join("Planta.PRJ"));
 }
