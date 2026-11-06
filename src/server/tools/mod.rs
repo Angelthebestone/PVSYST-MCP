@@ -17,6 +17,7 @@ pub(crate) mod entorno;
 pub(crate) mod nativos;
 pub(crate) mod proyectos;
 pub(crate) mod recorte;
+mod redaccion;
 mod requeridos;
 mod restricciones_esquema;
 pub(crate) mod resultados;

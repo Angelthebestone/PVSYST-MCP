@@ -1,6 +1,7 @@
 //! MCP tool declarations: schemas, property types and discriminator rules.
 //! Boundary validation lives in [`validacion`].
 
+use super::redaccion::{DESCRIPCION_WORKSPACE, PREFIJO_VALORES, SUFIJO_REQUERIDO};
 use crate::config::Paths;
 use crate::error::Result;
 use crate::progreso::SeguimientoTarea;
@@ -220,10 +221,10 @@ impl Herramienta {
         let arg_aliases = extraer_aliases(self.sinonimos.argumentos, disc.campo);
 
         let mut desc = if arg_aliases.is_empty() {
-            format!("Valores: {valores_texto}")
+            format!("{PREFIJO_VALORES}{valores_texto}")
         } else {
             format!(
-                "{} (alias: {}). Valores: {valores_texto}",
+                "{} (alias: {}). {PREFIJO_VALORES}{valores_texto}",
                 disc.campo,
                 arg_aliases.join(", ")
             )
@@ -253,14 +254,9 @@ fn anotar_workspace_si_aplica(prop_val: &mut Value, clave: &str) {
         return;
     }
     if let Some(obj) = prop_val.as_object_mut() {
-        obj.insert(
-            "description".to_string(),
-            json!("Ruta del workspace que reemplaza la raíz de confinamiento para esta llamada. Requiere cliente MCP de confianza."),
-        );
+        obj.insert("description".to_string(), json!(DESCRIPCION_WORKSPACE));
     }
 }
-
-const SUFIJO_REQUERIDO: &str = " Requerido.";
 
 /// Discriminator schema: canonical values plus their aliases, so a client that
 /// validates enums accepts the alias spellings `preparar_args` normalizes.

@@ -39,7 +39,7 @@ pub(crate) fn anotar_restricciones(prop_val: &mut Value, herramienta: &str, clav
         "potencia_kw" => {
             obj.insert(
                 "description".to_string(),
-                json!("Potencia límite de inyección en kW. Para quitar el límite, usa editar con PLimGrid: null."),
+                json!("Injection power limit in kW. To remove the limit, use editar with PLimGrid: null."),
             );
         }
         "estrategia" => {
@@ -52,13 +52,13 @@ pub(crate) fn anotar_restricciones(prop_val: &mut Value, herramienta: &str, clav
             obj.insert("enum".to_string(), json!(["pvsyst", "aproximacion"]));
             obj.insert(
                 "description".to_string(),
-                json!("pvsyst (defecto): la ruta de PVsyst. aproximacion: cálculo propio del MCP, oculto salvo con PVSYST_MCP_APROXIMACIONES=1."),
+                json!("pvsyst (default): the PVsyst route. aproximacion: the MCP's own calculation, hidden unless PVSYST_MCP_APROXIMACIONES=1."),
             );
         }
         "n_baterias_serie" | "n_baterias_paralelo" => {
             obj.insert(
                 "description".to_string(),
-                json!("Solo aplica a tipo_sistema:aislado."),
+                json!("Only applies to tipo_sistema:aislado."),
             );
         }
         _ if herramienta.starts_with("gui_") => anotar_gui(obj, clave),
@@ -111,7 +111,7 @@ fn anotar_gui(obj: &mut serde_json::Map<String, Value>, clave: &str) {
         "campo" => {
             obj.insert(
                 "description".to_string(),
-                json!("Campo sin rótulo: clase VCL y centro en px a 96 DPI dentro del formulario."),
+                json!("Unlabeled field: VCL class and center in px at 96 DPI inside the form."),
             );
             obj.insert(
                 "properties".to_string(),
@@ -130,14 +130,14 @@ fn anotar_gui(obj: &mut serde_json::Map<String, Value>, clave: &str) {
         "texto" => {
             obj.insert(
                 "description".to_string(),
-                json!("Texto a escribir, o prefijo del ítem del combo a seleccionar."),
+                json!("Text to type, or prefix of the combo item to select."),
             );
         }
         "pids" => {
             obj.insert("items".to_string(), json!({ "type": "integer" }));
             obj.insert(
                 "description".to_string(),
-                json!("Procesos objetivo; si se omite, se usa PVsyst.exe."),
+                json!("Target processes; if omitted, PVsyst.exe is used."),
             );
         }
         _ => {}

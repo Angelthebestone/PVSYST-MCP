@@ -163,7 +163,7 @@ fn unknown_method_errors() {
 }
 
 #[test]
-fn tools_list_exposes_annotations_and_bilingual_descriptions() {
+fn tools_list_exposes_annotations_and_english_descriptions() {
     let out = server_with()
         .handle_line(r#"{"jsonrpc":"2.0","id":1,"method":"tools/list"}"#)
         .expect("response");
@@ -182,8 +182,8 @@ fn tools_list_exposes_annotations_and_bilingual_descriptions() {
         assert!(t["title"].is_string(), "missing title in {t}");
         let description = t["description"].as_str().expect("description");
         assert!(
-            description.contains(" / EN: "),
-            "description is not bilingual: {description}"
+            !description.is_empty() && !description.contains(" / EN: "),
+            "description is not english-only: {description}"
         );
     }
 }

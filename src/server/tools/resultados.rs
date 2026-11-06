@@ -11,9 +11,9 @@ use serde_json::{json, Value};
 
 pub(crate) const TOOL_RESULTADOS: Herramienta = Herramienta {
     nombre: "resultados",
-    descripcion: "Resultados: KPIs, resumen, CSV, perdidas, mensual, comparacion, medido_vs_simulado, P50/P90, carbono, economia y entregable. / EN: Results: KPIs, summary, CSV, losses, monthly, comparison, measured vs simulated, P50/P90, carbon, economics and deliverable.",
+    descripcion: "Results: KPIs, summary, CSV, losses, monthly, comparison, measured vs simulated, P50/P90, carbon, economics and deliverable.",
     anotaciones: Anotaciones {
-        titulo: "Resultados / Results",
+        titulo: "Results",
         es_solo_lectura: false,
         es_destructiva: false,
         es_idempotente: true,
