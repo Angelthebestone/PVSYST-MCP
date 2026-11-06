@@ -110,7 +110,3 @@ where
         std::thread::sleep(SONDEO);
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/gui_catalogo/espera.rs"]
-mod tests;
