@@ -8,8 +8,12 @@ use std::cell::{Cell, RefCell};
 
 const MS_POR_SEGUNDO: u64 = 1_000;
 const DEFAULT_TIMEOUT_MS: u64 = 10_000;
+/// A slow load can finish just after the deadline: one short retry tells
+/// "never appeared" from "appeared late" without a second full wait.
+const ESPERA_REINTENTO_MS: u64 = 1_500;
 
 /// Window-matching criteria for `esperar`, checked from the hook callback.
+#[derive(Clone)]
 pub(crate) struct Criterio {
     pub(crate) pids: Vec<u32>,
     pub(crate) clase: Option<String>,
@@ -97,9 +101,63 @@ pub(crate) struct EsperarParams<'a> {
     pub(crate) timeout_ms: u64,
 }
 
+/// What a wait found, so "appeared late" is not reported as a plain timeout.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Hallazgo<T> {
+    ATiempo(T),
+    Tarde(T),
+    Nada,
+}
+
+/// The retry policy: the deadline first, one immediate re-read, then one short
+/// extra wait. A window that shows up in any of them is not a failure.
+fn clasificar_espera<T>(
+    hallado: Option<T>,
+    relectura: impl FnOnce() -> Option<T>,
+    reintento: impl FnOnce() -> Option<T>,
+) -> Hallazgo<T> {
+    if let Some(h) = hallado {
+        return Hallazgo::ATiempo(h);
+    }
+    if let Some(h) = relectura() {
+        return Hallazgo::Tarde(h);
+    }
+    match reintento() {
+        Some(h) => Hallazgo::Tarde(h),
+        None => Hallazgo::Nada,
+    }
+}
+
+/// The wait that produced the window, for the answer.
+struct Espera<'a> {
+    tarde: bool,
+    timeout_ms: u64,
+    etiqueta: &'a str,
+}
+
+/// Adds the wait verdict to the window, so a late arrival is visible in the answer.
+fn marcar_espera(window: &mut Value, espera: &Espera<'_>) {
+    let Some(mapa) = window.as_object_mut() else {
+        return;
+    };
+    mapa.insert("tarde".into(), serde_json::json!(espera.tarde));
+    if espera.tarde {
+        mapa.insert("esperado_ms".into(), serde_json::json!(espera.timeout_ms));
+        mapa.insert(
+            "aviso".into(),
+            serde_json::json!(format!(
+                "{} appeared after the {} ms deadline: use a longer esperar_segundos next time",
+                espera.etiqueta, espera.timeout_ms
+            )),
+        );
+    }
+}
+
 pub(crate) fn esperar_ventana(args: &Value, params: &EsperarParams) -> Result<Value> {
     if params.clase.is_none() && params.titulo.is_none() {
-        return Err(Error::Gui("Indique 'clase' o 'titulo' para esperar".into()));
+        return Err(Error::Gui(
+            "Pass 'clase' or 'titulo' to wait for a window".into(),
+        ));
     }
     let criterio = Criterio {
         pids: target_pids(args)?,
@@ -114,9 +172,30 @@ pub(crate) fn esperar_ventana(args: &Value, params: &EsperarParams) -> Result<Va
         .or(params.titulo)
         .unwrap_or_default()
         .to_string();
-    let h = esperar_evento(criterio, params.timeout_ms)
-        .ok_or_else(|| Error::Gui(format!("timeout esperando {etiqueta}")))?;
-    Ok(window_json(h))
+    let resultado = clasificar_espera(
+        esperar_evento(criterio.clone(), params.timeout_ms),
+        || enum_windows().into_iter().find(|h| criterio.coincide(*h)),
+        || esperar_evento(criterio.clone(), ESPERA_REINTENTO_MS),
+    );
+    match resultado {
+        Hallazgo::ATiempo(h) => Ok(window_json(h)),
+        Hallazgo::Tarde(h) => {
+            let mut window = window_json(h);
+            marcar_espera(
+                &mut window,
+                &Espera {
+                    tarde: true,
+                    timeout_ms: params.timeout_ms,
+                    etiqueta: &etiqueta,
+                },
+            );
+            Ok(window)
+        }
+        Hallazgo::Nada => Err(Error::Gui(format!(
+            "timeout waiting for {etiqueta}: it did not appear in {} ms nor in the {ESPERA_REINTENTO_MS} ms recheck",
+            params.timeout_ms
+        ))),
+    }
 }
 
 /// `esperar_segundos` wins over `timeout_ms`; neither gives the default timeout.
