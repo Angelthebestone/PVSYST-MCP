@@ -30,7 +30,7 @@ fn should_map_the_supported_vcl_classes() {
 fn should_reject_an_unsupported_control_class() {
     let err = campo_de(&json!({ "campo": { "clase": "TTreeView", "x": 1, "y": 2 } }))
         .expect_err("unsupported class");
-    assert!(err.to_string().contains("Clase de campo no soportada"));
+    assert!(err.to_string().contains("Unsupported field class"));
 }
 
 #[test]
@@ -51,10 +51,10 @@ fn should_refuse_typing_into_a_class_that_is_not_a_text_control() {
         .unwrap_err()
         .to_string();
     assert!(
-        err.contains("'escribir' sobre la clase TProjectLoadForm"),
+        err.contains("'escribir' on class TProjectLoadForm"),
         "{err}"
     );
-    assert!(err.contains("indique 'campo'"), "{err}");
+    assert!(err.contains("pass 'campo'"), "{err}");
 }
 
 #[test]
@@ -67,10 +67,40 @@ fn should_refuse_etiqueta_on_a_plain_write_naming_the_parameter() {
     let err = exigir_sin_etiqueta(&json!({"etiqueta": "Nombre"}), "escribir")
         .unwrap_err()
         .to_string();
-    assert!(err.contains("'etiqueta' no aplica a 'escribir'"), "{err}");
+    assert!(
+        err.contains("'etiqueta' does not apply to 'escribir'"),
+        "{err}"
+    );
 }
 
 #[test]
 fn should_accept_a_write_without_etiqueta() {
     assert!(exigir_sin_etiqueta(&json!({"texto": "x"}), "escribir").is_ok());
+}
+
+#[test]
+fn should_treat_an_already_closed_window_as_a_trivial_success() {
+    let args = json!({"ventana": "TPVModuleForm", "proceso": "PVsyst.exe"});
+
+    let respuesta = esperar_cierre_con(&args, |_| {
+        Err(Error::NotFound("Window 'TPVModuleForm' not found".into()))
+    })
+    .expect("an already closed window is a success");
+
+    assert_eq!(respuesta["cerrado"], true);
+    assert_eq!(respuesta["ya_cerrada"], true);
+    assert!(respuesta["aviso"]
+        .as_str()
+        .unwrap_or_default()
+        .contains("already closed"));
+}
+
+#[test]
+fn should_not_mask_an_error_that_is_not_a_missing_window() {
+    let args = json!({"ventana": "x", "proceso": "PVsyst.exe"});
+
+    let error = esperar_cierre_con(&args, |_| Err(Error::Invalid("bad reference".into())))
+        .expect_err("a real error is not a trivial success");
+
+    assert!(error.to_string().contains("bad reference"));
 }
