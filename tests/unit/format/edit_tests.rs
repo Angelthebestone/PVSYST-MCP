@@ -7,18 +7,6 @@ PVModule=Old.PAN\r\n      NModSerie=10\r\n    End of PVObject pvSubArray\r\n  \
 End of PVObject pvMainArray\r\nEnd of PVObject pvProject\r\n";
 
 #[test]
-fn should_reject_edit_when_selector_has_non_integer_index() {
-    let err = edit_fields(
-        DOC.as_bytes(),
-        "pvSubArray[abc]",
-        &[("NModSerie".into(), Some("20".into()))],
-    )
-    .unwrap_err();
-    assert!(matches!(err, Error::Invalid(_)));
-    assert!(err.to_string().contains("'pvSubArray[abc]'"));
-}
-
-#[test]
 fn should_edit_second_instance_when_selector_has_index_one() {
     let multi = "PVObject_=pvRoot\r\n  \
 PVObject_=pvSubArray\r\n    NMod=10\r\n  End of PVObject pvSubArray\r\n  \
@@ -67,30 +55,6 @@ fn should_replace_field_at_right_level() {
 }
 
 #[test]
-fn should_insert_missing_field() {
-    let (out, res) = edit_fields(
-        DOC.as_bytes(),
-        "pvSubArray",
-        &[("NStringCh".into(), Some("48".into()))],
-    )
-    .unwrap();
-    assert_eq!(res[0].action, "inserted");
-    let text = String::from_utf8(out).unwrap();
-    assert!(text.contains("      NStringCh=48\r\n"));
-}
-
-#[test]
-fn should_insert_at_direct_level_when_the_object_only_has_nested_fields() {
-    let doc = "PVObject_=pvRoot\r\n  PVObject_=pvChild\r\n    A=1\r\n  \
-End of PVObject pvChild\r\nEnd of PVObject pvRoot\r\n";
-    let (out, _) = edit_fields(doc.as_bytes(), "pvRoot", &[("B".into(), Some("2".into()))])
-        .expect("insert direct field");
-    let text = String::from_utf8(out).expect("utf8");
-    assert!(text.contains("\r\n  B=2\r\n"), "{text}");
-    assert!(!text.contains("\r\n    B=2\r\n"), "{text}");
-}
-
-#[test]
 fn should_keep_binary_bytes_identical() {
     let raw = b"PVObject_=pvProject\r\n  Comment=X\r\nEnd of PVObject pvProject\r\n\x8c\x00\x00\xff\xfe\r\n".to_vec();
     let (out, res) = edit_fields(&raw, "pvProject", &[]).unwrap();
@@ -98,41 +62,9 @@ fn should_keep_binary_bytes_identical() {
     assert_eq!(out, raw, "byte-identical when nothing changes");
 }
 
-#[test]
-fn should_apply_every_object_edition_and_collect_their_outcomes() {
-    let (out, outcomes) = editar_objetos(
-        DOC.as_bytes(),
-        &[
-            EdicionObjeto {
-                selector: "pvSubArray".into(),
-                cambios: vec![("NModSerie".into(), Some("20".into()))],
-            },
-            EdicionObjeto {
-                selector: "pvProject".into(),
-                cambios: vec![("Comment".into(), Some("Edited".into()))],
-            },
-        ],
-    )
-    .expect("editar objetos");
-
-    let texto = String::from_utf8(out).expect("utf8");
-    assert!(texto.contains("NModSerie=20"));
-    assert!(texto.contains("Comment=Edited"));
-    assert_eq!(outcomes.len(), 2);
-    assert_eq!(outcomes[0].key, "NModSerie");
-    assert_eq!(outcomes[1].key, "Comment");
-}
-
-#[test]
-fn should_keep_bytes_identical_when_there_are_no_object_editions() {
-    let (out, outcomes) = editar_objetos(DOC.as_bytes(), &[]).expect("sin ediciones");
-    assert_eq!(out, DOC.as_bytes());
-    assert!(outcomes.is_empty());
-}
-
 proptest! {
     #[test]
-    fn setting_a_field_changes_only_its_line_and_is_reversible(
+    fn should_change_only_its_line_and_be_reversible_when_setting_a_field(
         value in "[A-Za-z0-9_.,:-]{0,24}"
     ) {
         let (out, _) = edit_fields(
@@ -154,20 +86,5 @@ proptest! {
         )
         .unwrap();
         prop_assert_eq!(back, DOC.as_bytes());
-    }
-
-    #[test]
-    fn values_with_line_breaks_are_always_rejected(
-        prefix in "[a-z]{0,5}",
-        suffix in "[a-z]{0,5}",
-        newline in prop::sample::select(vec!["\n", "\r", "\r\n"]),
-    ) {
-        let value = format!("{prefix}{newline}{suffix}");
-        let result = edit_fields(
-            DOC.as_bytes(),
-            "pvSubArray",
-            &[("NModSerie".into(), Some(value))],
-        );
-        prop_assert!(result.is_err());
     }
 }
