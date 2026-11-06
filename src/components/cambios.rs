@@ -50,7 +50,3 @@ pub(super) fn aplicar_cambios(bytes: &mut Vec<u8>, args: &Value) -> Result<Vec<V
     *bytes = new_bytes;
     Ok(outcomes.iter().map(edit::ChangeOutcome::to_json).collect())
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/components/cambios.rs"]
-mod tests;

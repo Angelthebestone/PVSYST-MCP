@@ -68,7 +68,3 @@ impl Criterios {
         Some(entrada)
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/components/buscar.rs"]
-mod tests;

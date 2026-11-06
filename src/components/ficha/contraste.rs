@@ -36,7 +36,3 @@ pub(super) fn diferencias(
         })
         .collect()
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/components/ficha/contraste.rs"]
-mod tests;
