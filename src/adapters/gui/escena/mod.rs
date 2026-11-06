@@ -69,7 +69,7 @@ pub(crate) fn leer(paths: &Paths, args: &Value) -> Result<Value> {
         &["escena"],
         "nombre con el que PVsyst exporta la escena, p.ej. 'Lectura_1'",
     )?)?;
-    exigir_editor_abierto("leer la escena")?;
+    exigir_editor_abierto("reading the scene")?;
     let (mut escena, temporal) = exportar_y_leer(paths, nombre)?;
     exportar::borrar(&temporal);
     if let Some(mapa) = escena.as_object_mut() {
@@ -123,7 +123,7 @@ pub(crate) fn importar(paths: &Paths, args: &Value) -> Result<Value> {
         &["escena"],
         "nombre con el que PVsyst exporta la escena importada, p.ej. 'Malla_1'",
     )?)?;
-    exigir_editor_abierto("importar una malla")?;
+    exigir_editor_abierto("importing a mesh")?;
     let resultado = importar::abrir_resultado(&ruta)?;
     let unidades = pasos::con_descarte(&resultado, || {
         if let Some(unidades) = opt_str(args, &["unidades"]) {
@@ -173,7 +173,7 @@ fn exigir_editor_abierto(para: &str) -> Result<()> {
 /// into rows 0..N would move objects that were already there. The object table has no controls to
 /// count, so PVsyst exports the scene under a throwaway name and the file is read and deleted.
 fn exigir_editor_vacio(paths: &Paths, nombre: &str, pedidos: &[ObjetoPedido]) -> Result<()> {
-    exigir_editor_abierto("crear la escena")?;
+    exigir_editor_abierto("creating the scene")?;
     if pedidos.len() > lista::MAX_FILAS_VISIBLES {
         return Err(Error::Invalid(format!(
             "At most {} objects per scene created in the editor",
