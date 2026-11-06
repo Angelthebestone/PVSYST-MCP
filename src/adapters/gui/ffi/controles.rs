@@ -96,14 +96,16 @@ pub(crate) fn opciones_de_combo(h: Hwnd) -> Vec<String> {
 /// form sees every change (VCL recalculates on each keystroke).
 pub(crate) fn teclear_en(h: Hwnd, texto: &str) -> Result<()> {
     send_message_timeout(h, Mensaje::nuevo(EM_SETSEL, 0, -1), TIMEOUT_MENSAJE_MS)
-        .ok_or_else(|| Error::Gui("PVsyst no respondió en 3 s al seleccionar texto".into()))?;
+        .ok_or_else(|| Error::Gui("PVsyst did not answer in 3 s when selecting the text".into()))?;
     for unidad in texto.encode_utf16() {
         send_message_timeout(
             h,
             Mensaje::nuevo(WM_CHAR, usize::from(unidad), 0),
             TIMEOUT_MENSAJE_MS,
         )
-        .ok_or_else(|| Error::Gui("PVsyst no respondió en 3 s al enviar carácter".into()))?;
+        .ok_or_else(|| {
+            Error::Gui("PVsyst did not answer in 3 s when sending a character".into())
+        })?;
     }
     Ok(())
 }
@@ -115,7 +117,7 @@ pub(crate) fn mostrar_pagina(h: Hwnd, indice: usize) -> Result<()> {
         Mensaje::nuevo(TCM_SETCURFOCUS, indice, 0),
         TIMEOUT_MENSAJE_MS,
     )
-    .ok_or_else(|| Error::Gui("PVsyst no respondió en 3 s al cambiar de pestaña".into()))?;
+    .ok_or_else(|| Error::Gui("PVsyst did not answer in 3 s when changing the tab".into()))?;
     Ok(())
 }
 
@@ -142,7 +144,7 @@ pub(crate) fn exigir_indice_pagina(indice: usize, total: usize, titulo: &str) ->
 pub(crate) fn exigir_cambio_de_pestana(pedido: usize, actual: Option<usize>) -> Result<()> {
     match actual {
         Some(a) if a != pedido => Err(Error::Gui(format!(
-            "PVsyst no cambió a la pestaña {pedido}: sigue en la {a}. El formulario vetó el cambio (validación de los campos de la pestaña actual); el motivo está en gui_observar que:vista ocr:true (textos)"
+            "PVsyst did not switch to tab {pedido}: it is still on {a}. The form vetoed the change (validation of the current tab fields); the reason is in gui_observar que:vista ocr:true (textos)"
         ))),
         _ => Ok(()),
     }
@@ -186,17 +188,17 @@ fn es_multiseleccion(h: Hwnd) -> bool {
 /// ignored, so the previous selection is cleared and the item set explicitly.
 fn marcar_indice(h: Hwnd, mensajes: &MensajesLista, indice: usize) -> Result<()> {
     if !es_ventana(h) {
-        return Err(Error::Gui("La ventana ya no existe".into()));
+        return Err(Error::Gui("The window no longer exists".into()));
     }
     if mensajes.elegir == LB_SETCURSEL && es_multiseleccion(h) {
         send_message_timeout(h, Mensaje::nuevo(LB_SETSEL, 0, -1), TIMEOUT_MENSAJE_MS)
-            .ok_or_else(|| Error::Gui("PVsyst no respondió en 3 s".into()))?;
+            .ok_or_else(|| Error::Gui("PVsyst did not answer in 3 s".into()))?;
         send_message_timeout(
             h,
             Mensaje::nuevo(LB_SETSEL, 1, isize::try_from(indice).unwrap_or(0)),
             TIMEOUT_MENSAJE_MS,
         )
-        .ok_or_else(|| Error::Gui("PVsyst no respondió en 3 s".into()))?;
+        .ok_or_else(|| Error::Gui("PVsyst did not answer in 3 s".into()))?;
         return Ok(());
     }
     send_message_timeout(
@@ -204,7 +206,7 @@ fn marcar_indice(h: Hwnd, mensajes: &MensajesLista, indice: usize) -> Result<()>
         Mensaje::nuevo(mensajes.elegir, indice, 0),
         TIMEOUT_MENSAJE_MS,
     )
-    .ok_or_else(|| Error::Gui("PVsyst no respondió en 3 s".into()))?;
+    .ok_or_else(|| Error::Gui("PVsyst did not answer in 3 s".into()))?;
     Ok(())
 }
 
@@ -218,7 +220,7 @@ fn elegir_item(h: Hwnd, mensajes: &MensajesLista, prefijo: &str) -> Result<bool>
         Mensaje::nuevo(mensajes.buscar, DESDE_EL_PRINCIPIO, texto.as_ptr() as isize),
         TIMEOUT_MENSAJE_MS,
     )
-    .ok_or_else(|| Error::Gui("PVsyst no respondió en 3 s al buscar elemento".into()))?;
+    .ok_or_else(|| Error::Gui("PVsyst did not answer in 3 s when searching the item".into()))?;
     if indice_res == CB_ERR {
         return Ok(false);
     }
@@ -235,7 +237,9 @@ fn elegir_item(h: Hwnd, mensajes: &MensajesLista, prefijo: &str) -> Result<bool>
             Mensaje::nuevo(WM_COMMAND, (CBN_SELCHANGE << 16) | id, h),
             TIMEOUT_MENSAJE_MS,
         )
-        .ok_or_else(|| Error::Gui("PVsyst no respondió en 3 s al notificar cambio".into()))?;
+        .ok_or_else(|| {
+            Error::Gui("PVsyst did not answer in 3 s when notifying the change".into())
+        })?;
     }
     Ok(true)
 }

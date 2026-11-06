@@ -2,7 +2,9 @@
 
 use super::escritorio;
 use super::ffi::{self, enum_windows, pids_de_ejecutable};
-use super::ventanas::{class_of, enum_windows_de, pid_of, ventanas, visible, window_brief};
+use super::ventanas::{
+    class_of, enum_windows_de, pid_of, ventanas, visible, window_brief, window_json,
+};
 use crate::args::flag;
 use crate::error::{Error, Result};
 use crate::workspace::{resolver_ruta, Alcance};
@@ -13,6 +15,9 @@ const DEFAULT_LAUNCH_WAIT_SECS: u64 = 30;
 const MAX_LAUNCH_WAIT_SECS: u64 = 120;
 const AVISO_DEMO: &str = "TDEMOForm";
 const POLL_INTERVAL_MS: u64 = 250;
+/// Closing an editor can reopen its parent, so the list is read again each round.
+const MAX_RONDAS_CIERRE: usize = 12;
+const ESPERA_RONDA: std::time::Duration = std::time::Duration::from_millis(300);
 
 pub(crate) fn gui_running() -> bool {
     !pids_de_ejecutable("PVsyst.exe").is_empty()
@@ -21,24 +26,46 @@ pub(crate) fn gui_running() -> bool {
 /// `gui_actuar accion:cerrar_todo`: closes every visible top window of the
 /// running PVsyst. It presses Cancelar/No before the default buttons unless the call
 /// passes `cancelar:false`, so a save prompt is never accepted by accident.
-pub(crate) fn cerrar_todo(args: &Value) -> Result<Value> {
-    let pids = pids_de_ejecutable("PVsyst.exe");
-    let ventanas_vivas: Vec<ffi::Hwnd> = pids
-        .iter()
+fn visibles_de(pids: &[u32]) -> Vec<ffi::Hwnd> {
+    pids.iter()
         .flat_map(|p| enum_windows_de(*p))
         .filter(|h| visible(*h))
-        .collect();
+        .collect()
+}
+
+/// Whether another round is needed: the list is re-read after each one, because
+/// closing an editor can reopen the selector it came from.
+fn otra_ronda(quedan: usize, rondas: usize) -> bool {
+    quedan > 0 && rondas < MAX_RONDAS_CIERRE
+}
+
+pub(crate) fn cerrar_todo(args: &Value) -> Result<Value> {
+    let pids = pids_de_ejecutable("PVsyst.exe");
     let mut con_cancelar = args.clone();
     if let Some(argumentos) = con_cancelar.as_object_mut() {
         argumentos.entry("cancelar").or_insert(json!(true));
     }
-    for h in &ventanas_vivas {
-        super::acciones::cerrar_ventana(*h, &con_cancelar)?;
+    let mut cerradas = 0;
+    let mut rondas = 0;
+    loop {
+        let vivas = visibles_de(&pids);
+        if !otra_ronda(vivas.len(), rondas) {
+            break;
+        }
+        for h in &vivas {
+            super::acciones::cerrar_ventana(*h, &con_cancelar)?;
+            cerradas += 1;
+        }
+        rondas += 1;
+        std::thread::sleep(ESPERA_RONDA);
     }
+    let quedan = visibles_de(&pids);
     Ok(json!({
         "accion": "cerrar_todo",
         "pids": pids,
-        "cerradas": ventanas_vivas.len(),
+        "cerradas": cerradas,
+        "rondas": rondas,
+        "quedan": quedan.iter().map(|h| window_json(*h)).collect::<Vec<_>>(),
     }))
 }
 

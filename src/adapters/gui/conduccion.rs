@@ -51,7 +51,7 @@ pub(crate) fn esperar(pid: u32, clase: &str, espera: Duration) -> Result<Formula
     .map(Formulario::de)
     .ok_or_else(|| {
         Error::Gui(format!(
-            "PVsyst no abrió '{clase}' en {} s",
+            "PVsyst did not open '{clase}' in {} s",
             espera.as_secs()
         ))
     })
@@ -98,7 +98,7 @@ impl Formulario {
             .find(|c| text_of(*c) == rotulo)
             .ok_or_else(|| {
                 Error::Gui(format!(
-                    "'{rotulo}' no está en '{}' de PVsyst",
+                    "'{rotulo}' is not in '{}' of PVsyst",
                     self.titulo()
                 ))
             })
@@ -140,7 +140,7 @@ impl Formulario {
             })
             .ok_or_else(|| {
                 Error::Gui(format!(
-                    "No hay {} en ({}, {}) de '{}': ¿cambió la versión de PVsyst?",
+                    "No {} at ({}, {}) of '{}': did the PVsyst version change?",
                     campo.clase,
                     campo.x,
                     campo.y,
@@ -167,7 +167,7 @@ impl Formulario {
         match (it.next(), it.next()) {
             (Some(c), None) => Ok(c),
             _ => Err(Error::Gui(format!(
-                "'{}' no tiene un único {clase}",
+                "'{}' does not have a single {clase}",
                 self.titulo()
             ))),
         }
@@ -213,7 +213,7 @@ impl Formulario {
         let c = self.control(campo)?;
         if !ffi::elegir_en_combo(c, prefijo)? {
             return Err(Error::Invalid(format!(
-                "PVsyst no ofrece '{prefijo}' en esa lista de '{}'",
+                "PVsyst offers no '{prefijo}' in that list of '{}' (items are matched by prefix, not by substring)",
                 self.titulo()
             )));
         }
@@ -228,7 +228,7 @@ impl Formulario {
         let pc = self
             .hijos_visibles()
             .find(|c| class_of(*c) == ffi::CLASE_PESTANAS)
-            .ok_or_else(|| Error::Gui(format!("'{}' no tiene pestañas", self.titulo())))?;
+            .ok_or_else(|| Error::Gui(format!("'{}' has no tab pages", self.titulo())))?;
         let total = ffi::paginas_de(pc).unwrap_or(usize::MAX);
         ffi::exigir_indice_pagina(indice, total, &self.titulo())?;
         ffi::mostrar_pagina(pc, indice)?;

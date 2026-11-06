@@ -57,6 +57,6 @@ fn should_refuse_a_tab_change_the_form_vetoed_naming_both_tabs() {
     let err = exigir_cambio_de_pestana(2, Some(0))
         .unwrap_err()
         .to_string();
-    assert!(err.contains("no cambió a la pestaña 2"), "{err}");
-    assert!(err.contains("sigue en la 0"), "{err}");
+    assert!(err.contains("did not switch to tab 2"), "{err}");
+    assert!(err.contains("still on 0"), "{err}");
 }
