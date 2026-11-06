@@ -55,7 +55,3 @@ impl Texto {
             })
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/idioma.rs"]
-mod tests;

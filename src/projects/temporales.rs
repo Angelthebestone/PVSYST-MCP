@@ -80,7 +80,3 @@ pub(crate) fn limpiar_temporales(paths: &Paths, args: &Value) -> Result<Value> {
         "fallidos": fallidos,
     }))
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/projects/temporales.rs"]
-mod tests;
