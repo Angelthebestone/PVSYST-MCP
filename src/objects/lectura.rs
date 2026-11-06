@@ -7,10 +7,39 @@ use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::edit;
 use crate::format::object;
+use crate::idioma::{Idioma, Texto};
 use crate::objects::resolucion::resolve_file;
 use serde_json::{json, Value};
 use std::fs;
 use std::path::Path;
+
+/// Objects an error lists before pointing at `listar`: enough to pick one, short
+/// enough to read in a single line.
+const MAX_OBJETOS_EN_ERROR: usize = 13;
+
+const OBJETO_NO_ENCONTRADO: Texto = Texto {
+    es: "Objeto '{objeto}' no encontrado. Disponibles: {disponibles}",
+    en: "Object '{objeto}' not found. Available: {disponibles}",
+};
+
+/// Object names of the file, truncated with a count when there are many.
+fn objetos_disponibles(spans: &[edit::ObjSpan]) -> String {
+    let nombres: Vec<String> = spans
+        .iter()
+        .map(|s| match &s.role {
+            Some(role) => format!("{} ({role})", s.ty),
+            None => s.ty.clone(),
+        })
+        .collect();
+    if nombres.len() <= MAX_OBJETOS_EN_ERROR {
+        return nombres.join(", ");
+    }
+    format!(
+        "{}, … ({} in total)",
+        nombres[..MAX_OBJETOS_EN_ERROR].join(", "),
+        nombres.len()
+    )
+}
 
 /// Root nodes to return: the whole tree (which must be complete), or just the object
 /// named by `objeto` (same selector as editar; a .VCi is ~1.5 MB, so the full tree is ~15k tokens).
@@ -22,7 +51,13 @@ fn raices_a_leer(args: &Value, text: &str, origen: &Path) -> Result<Vec<object::
     let sp = edit::find_span(&spans, sel)
         .map(|i| &spans[i])
         .ok_or_else(|| {
-            Error::NotFound(format!("Object '{sel}' not found; see listar que:objetos"))
+            Error::NotFound(OBJETO_NO_ENCONTRADO.texto_con(
+                Idioma::de_entorno(),
+                &[
+                    ("objeto", sel),
+                    ("disponibles", &objetos_disponibles(&spans)),
+                ],
+            ))
         })?;
     let slice: Vec<&str> = text
         .lines()
