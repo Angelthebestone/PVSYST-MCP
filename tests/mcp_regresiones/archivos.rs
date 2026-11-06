@@ -50,7 +50,7 @@ fn should_reject_eliminar_of_a_variant_that_does_not_exist_without_touching_the_
 }
 
 #[test]
-fn should_write_an_empty_file_when_escribir_archivo_gets_empty_contenido() {
+fn should_reject_empty_contenido_unless_base64_is_explicit() {
     let ws = synthetic_workspace();
     let ws_str = ws.path().to_string_lossy().to_string();
     let mut c = Client::start(Some(&ws_str));
@@ -60,10 +60,20 @@ fn should_write_an_empty_file_when_escribir_archivo_gets_empty_contenido() {
         "escribir_archivo",
         json!({ "archivo": "vacio.txt", "contenido": "" }),
     );
+    let msg = error_text(&resp);
+    assert!(msg.contains("must not be empty"), "{msg}");
+    assert!(!ws.path().join("vacio.txt").exists());
+
+    let resp = c.call(
+        13,
+        "escribir_archivo",
+        json!({ "archivo": "vacio.txt", "contenido": "", "base64": true }),
+    );
     let out = tool_text(&resp);
     assert_eq!(out["bytes_written"], json!(0), "resp={out}");
-    let escrito = fs::read(ws.path().join("vacio.txt")).expect("archivo creado");
-    assert!(escrito.is_empty());
+    assert!(fs::read(ws.path().join("vacio.txt"))
+        .expect("archivo")
+        .is_empty());
 }
 
 #[test]
@@ -236,5 +246,47 @@ fn should_explain_that_tipo_is_a_component_kind_when_listing_objects() {
     assert!(
         error_text(&resp).contains("tipo de componente"),
         "resp={resp}"
+    );
+}
+
+#[test]
+fn should_not_list_applied_params_in_ignorados() {
+    let ws = synthetic_workspace();
+    let ws_str = ws.path().to_string_lossy().to_string();
+    let mut c = Client::start(Some(&ws_str));
+    c.initialize();
+
+    let editado = c.call(
+        60,
+        "componente",
+        json!({
+            "accion": "editar", "componente": "Synth_400W.PAN", "tipo": "PAN",
+            "campos": { "Model": "Synth 405W" },
+        }),
+    );
+    let out = tool_text(&editado);
+    assert_eq!(
+        out["changes_applied"][0]["new"],
+        json!("Synth 405W"),
+        "resp={out}"
+    );
+    assert!(
+        out.get("ignorados").is_none(),
+        "'campos' se aplicó, no es ignorado: {out}"
+    );
+
+    let escrito = c.call(
+        61,
+        "escribir_archivo",
+        json!({
+            "archivo": "UserData/Nota.txt", "contenido": "primera",
+            "sobrescribir": true,
+        }),
+    );
+    let out = tool_text(&escrito);
+    assert!(out["historial_id"].is_string(), "resp={out}");
+    assert!(
+        out.get("ignorados").is_none(),
+        "'sobrescribir' se consumió, no es ignorado: {out}"
     );
 }

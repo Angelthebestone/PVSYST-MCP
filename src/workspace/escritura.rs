@@ -17,6 +17,24 @@ const CONTENIDO_VACIO: Texto = Texto {
     en: "'contenido' must not be empty: a 0-byte file has nothing to verify. Pass 'base64': true if the empty content is deliberate.",
 };
 
+/// Overwriting is this tool's default; an explicit `sobrescribir: false` vetoes it.
+fn exigir_sobrescritura(path: &Path, args: &Value) -> Result<()> {
+    let pide = args.get("sobrescribir").and_then(Value::as_bool);
+    if pide != Some(false) || !path.exists() {
+        return Ok(());
+    }
+    Err(Error::Invalid(SOBRESCRITURA_RECHAZADA.texto_con(
+        Idioma::de_entorno(),
+        &[("archivo", &path.to_string_lossy())],
+    )))
+}
+
+/// Refusal of an overwrite vetoed by the caller.
+const SOBRESCRITURA_RECHAZADA: Texto = Texto {
+    es: "'{archivo}' ya existe y se pidió 'sobrescribir': false: no se escribió nada",
+    en: "'{archivo}' already exists and 'sobrescribir': false was requested: nothing was written",
+};
+
 pub(crate) fn escribir_archivo(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
     let p = req_str(args, &["archivo"], "")?;
@@ -25,6 +43,7 @@ pub(crate) fn escribir_archivo(paths: &Paths, args: &Value) -> Result<Value> {
 
     validar_formato_pvsyst(&path, &bytes)?;
 
+    exigir_sobrescritura(&path, args)?;
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
             .map_err(|e| Error::io(format!("Cannot create {}", parent.display()), e))?;

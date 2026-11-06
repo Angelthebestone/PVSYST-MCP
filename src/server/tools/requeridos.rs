@@ -80,15 +80,29 @@ impl Herramienta {
         json!({ "anyOf": alternativas })
     }
 
-    /// Argument keys the tool does not declare; the handler would never read them.
-    pub(crate) fn desconocidos(&self, args: &Value) -> Vec<String> {
+    /// Argument keys the tool does not declare and `accion` does not read; the
+    /// handler never looks at them.
+    pub(crate) fn desconocidos(&self, args: &Value, accion: &str) -> Vec<String> {
         let Value::Object(mapa) = args else {
             return Vec::new();
         };
+        let consumidos = self.consumidos(accion);
         mapa.keys()
-            .filter(|clave| !self.declara(clave))
+            .filter(|clave| !self.declara(clave) && !consumidos.contains(&clave.as_str()))
             .cloned()
             .collect()
+    }
+
+    /// Keys `accion` reads that the tool declares for its other actions only.
+    ///
+    /// The declaration is per tool, but a key such as `campos` belongs to
+    /// `componente crear`/`editar`; reporting it as ignored would contradict what
+    /// the action did.
+    fn consumidos(&self, accion: &str) -> &'static [&'static str] {
+        match (self.nombre, accion) {
+            ("componente", "crear" | "editar") => &["campos"],
+            _ => &[],
+        }
     }
 
     /// Every required key of `accion`: the tool-wide ones first, then the action's own.

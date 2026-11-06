@@ -7,6 +7,18 @@ use serde_json::{json, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// Restore one entry: rewrite the file, or delete it when it did not exist yet.
+fn aplicar_entrada(e: &EntradaRestauracion) -> Result<()> {
+    if e.existia {
+        return restaurar_archivo(e);
+    }
+    if !e.original.is_file() {
+        return Ok(());
+    }
+    fs::remove_file(&e.original)
+        .map_err(|err| Error::io(format!("No se pudo borrar {}", e.original.display()), err))
+}
+
 /// Write the snapshot copy of one entry back to its original path.
 fn restaurar_archivo(e: &EntradaRestauracion) -> Result<()> {
     if let Some(parent) = e.original.parent() {
@@ -135,22 +147,17 @@ pub(crate) fn restaurar(peticion: &PeticionRestauracion<'_>) -> Result<Value> {
     if peticion.dry_run {
         return Ok(ensayar(id, &validadas));
     }
+    aplicar(ws, id, &validadas)
+}
 
+/// Apply a validated manifest, reverting what was already written when an entry fails.
+fn aplicar(ws: &Path, id: &str, validadas: &[EntradaRestauracion]) -> Result<Value> {
     let originales: Vec<PathBuf> = validadas.iter().map(|e| e.original.clone()).collect();
     let previo = super::snapshot::snapshot(ws, &originales, &format!("antes de restaurar {id}"))?;
 
     let mut restaurados = Vec::with_capacity(validadas.len());
     for (i, e) in validadas.iter().enumerate() {
-        let resultado = if e.existia {
-            restaurar_archivo(e)
-        } else if e.original.is_file() {
-            fs::remove_file(&e.original).map_err(|err| {
-                Error::io(format!("No se pudo borrar {}", e.original.display()), err)
-            })
-        } else {
-            Ok(())
-        };
-        if let Err(err) = resultado {
+        if let Err(err) = aplicar_entrada(e) {
             let (reversion, fallos) = revertir_aplicadas(ws, &previo, &validadas[..i]);
             let detalle = if fallos.is_empty() {
                 reversion

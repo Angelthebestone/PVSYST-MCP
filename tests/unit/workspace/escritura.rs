@@ -151,6 +151,30 @@ fn should_reject_empty_content_unless_base64_is_explicit() {
 }
 
 #[test]
+fn should_refuse_overwriting_when_sobrescribir_is_explicitly_false() {
+    let ws = tempdir().expect("ws");
+    let paths = dummy_paths(ws.path());
+    let destino = ws.path().join("UserData").join("Nota.txt");
+    fs::create_dir_all(destino.parent().expect("carpeta")).expect("carpeta");
+    fs::write(&destino, "original").expect("previo");
+
+    let err = escribir_archivo(
+        &paths,
+        &json!({ "archivo": "UserData/Nota.txt", "contenido": "nuevo", "sobrescribir": false }),
+    )
+    .expect_err("sobrescribir:false veta el reemplazo");
+    assert!(err.to_string().contains("already exists"), "{err}");
+    assert_eq!(fs::read_to_string(&destino).expect("leer"), "original");
+
+    escribir_archivo(
+        &paths,
+        &json!({ "archivo": "UserData/Nota.txt", "contenido": "nuevo" }),
+    )
+    .expect("sin el veto se sobrescribe como siempre");
+    assert_eq!(fs::read_to_string(&destino).expect("leer"), "nuevo");
+}
+
+#[test]
 fn should_record_history_when_creating_a_new_file() {
     let ws = tempdir().expect("ws");
     let paths = dummy_paths(ws.path());

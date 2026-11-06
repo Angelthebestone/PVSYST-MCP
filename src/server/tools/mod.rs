@@ -153,7 +153,7 @@ pub(crate) fn call_seguido(solicitud: &Solicitud<'_>) -> Result<Value> {
         herramienta: name,
         accion: &accion,
         ms,
-        ignorados: h.desconocidos(&args_efectivos),
+        ignorados: h.desconocidos(&args_efectivos, &accion),
     };
     recorte::decorar(&mut v, args, respuesta);
     let contexto = Contexto {

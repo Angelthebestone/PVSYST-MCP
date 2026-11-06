@@ -88,6 +88,7 @@ pub(crate) const TOOL_ESCRIBIR_ARCHIVO: Herramienta = Herramienta {
         ("archivo", TipoDato::String),
         ("contenido", TipoDato::String),
         ("base64", TipoDato::Boolean),
+        ("sobrescribir", TipoDato::Boolean),
         ("permitir_fuera_del_workspace", TipoDato::Boolean),
         ("workspace", TipoDato::String),
     ],
