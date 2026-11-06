@@ -2,6 +2,9 @@
 
 const TH32CS_SNAPPROCESS: u32 = 0x0000_0002;
 const HANDLE_INVALIDO: isize = -1;
+const HANDLE_NULO: isize = 0;
+/// `PROCESS_TERMINATE`: the only right the forced kill needs.
+const PROCESS_TERMINATE: u32 = 0x0001;
 /// `MAX_PATH`: size of `PROCESSENTRY32W::szExeFile`.
 const LARGO_RUTA: usize = 260;
 
@@ -35,7 +38,24 @@ extern "system" {
     fn CreateToolhelp32Snapshot(flags: u32, pid: u32) -> isize;
     fn Process32FirstW(snap: isize, pe: *mut ProcessEntry32W) -> i32;
     fn Process32NextW(snap: isize, pe: *mut ProcessEntry32W) -> i32;
+    fn OpenProcess(access: u32, heredar: i32, pid: u32) -> isize;
+    fn TerminateProcess(h: isize, codigo: u32) -> i32;
     fn CloseHandle(h: isize) -> i32;
+}
+
+/// Ends process `pid` without asking it to save: the last resort when a crash
+/// dialog's own button did not end it. `false` when Windows refused.
+pub(crate) fn matar_proceso(pid: u32) -> bool {
+    // SAFETY: plain integer arguments; the returned handle is checked below.
+    let h = unsafe { OpenProcess(PROCESS_TERMINATE, 0, pid) };
+    if h == HANDLE_NULO {
+        return false;
+    }
+    // SAFETY: `h` was opened with PROCESS_TERMINATE and is closed exactly once.
+    let terminado = unsafe { TerminateProcess(h, 1) } != 0;
+    // SAFETY: same handle, closed once after the call above.
+    unsafe { CloseHandle(h) };
+    terminado
 }
 
 /// PIDs of the running processes whose executable is `ejecutable`

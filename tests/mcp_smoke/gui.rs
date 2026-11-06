@@ -24,7 +24,7 @@ fn gui_tools_report_when_pvsyst_not_running() {
     assert_eq!(resp["result"]["isError"], true);
     let msg = resp["result"]["content"][0]["text"].as_str().unwrap();
     assert!(
-        msg.contains("PVsyst no está en ejecución"),
+        msg.contains("is not running"),
         "unexpected error message: {msg}"
     );
 }
