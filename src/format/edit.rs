@@ -224,6 +224,7 @@ pub(crate) fn edit_fields(
     let segs = parse_selector(selector)?;
     reject_line_breaks(changes)?;
     reject_invalid_keys(changes)?;
+    super::campos_numericos::validar_valores(changes)?;
 
     let mut doc = Lines::split(bytes);
     let spans = spans_of(bytes);

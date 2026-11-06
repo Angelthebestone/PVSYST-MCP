@@ -133,7 +133,7 @@ fn should_keep_bytes_identical_when_there_are_no_object_editions() {
 proptest! {
     #[test]
     fn setting_a_field_changes_only_its_line_and_is_reversible(
-        value in "[A-Za-z0-9_.,:-]{0,24}"
+        value in "-?[0-9]{1,4}([.,][0-9]{1,3})?"
     ) {
         let (out, _) = edit_fields(
             DOC.as_bytes(),

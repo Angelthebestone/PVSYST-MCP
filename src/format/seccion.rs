@@ -128,6 +128,7 @@ pub(crate) fn editar_campos_seccion(
     cambios: &[(String, Option<String>)],
 ) -> Result<(Vec<u8>, Vec<ChangeOutcome>)> {
     reject_line_breaks(cambios)?;
+    super::campos_numericos::validar_valores(cambios)?;
     let mut doc = Lines::split(bytes);
     let seccion = buscar_seccion(&doc, clave)
         .ok_or_else(|| Error::NotFound(format!("Sección '{clave}' no encontrada")))?;
