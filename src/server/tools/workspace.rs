@@ -27,6 +27,7 @@ pub(crate) const TOOL_WORKSPACE: Herramienta = Herramienta {
         ("workspace", TipoDato::String),
         ("n", TipoDato::Integer),
         ("id", TipoDato::String),
+        ("dry_run", TipoDato::Boolean),
         ("permitir_fuera_del_workspace", TipoDato::Boolean),
     ],
     requeridos: &[],

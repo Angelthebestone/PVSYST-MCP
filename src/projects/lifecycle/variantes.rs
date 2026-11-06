@@ -147,7 +147,7 @@ pub(crate) fn guardar_variante(v: &VarianteAbierta, nuevo: &[u8], motivo: &str) 
 pub(crate) fn respuesta_de_edicion(
     v: &VarianteAbierta,
     parametros: &Value,
-    (cambios, historial_id): (&[ChangeOutcome], Option<String>),
+    (cambios, historial_id): (&[ChangeOutcome], String),
 ) -> Map<String, Value> {
     let mut respuesta = Map::new();
     respuesta.insert("proyecto".into(), json!(v.stem));

@@ -63,6 +63,38 @@ fn should_reject_met_and_sit_files_above_the_read_limit() {
 }
 
 #[test]
+fn should_not_touch_files_when_restaurar_asks_dry_run() {
+    let ws = synthetic_workspace();
+    let ws_str = ws.path().to_string_lossy().to_string();
+    let mut c = Client::start(None);
+    c.initialize();
+
+    let prj = ws.path().join("Projects").join("SYNTH_Plant.PRJ");
+    let original = fs::read(&prj).expect("PRJ original");
+    let editado = c.call(
+        90,
+        "escribir_archivo",
+        json!({ "archivo": "Projects/SYNTH_Plant.PRJ", "contenido": "PVObject_=pvProject\n  Comment=editado\nEnd of PVObject pvProject\n", "workspace": ws_str }),
+    );
+    let id = tool_text(&editado)["historial_id"]
+        .as_str()
+        .expect("historial_id")
+        .to_string();
+    let tras_editar = fs::read(&prj).expect("PRJ editado");
+
+    let resp = c.call(
+        91,
+        "workspace",
+        json!({ "accion": "restaurar", "id": id, "dry_run": true, "workspace": ws_str }),
+    );
+    let data = tool_text(&resp);
+    assert_eq!(data["simulado"], json!(true), "data={data}");
+    assert_eq!(data["cambiarian"], json!(1), "data={data}");
+    assert_eq!(fs::read(&prj).expect("PRJ tras el ensayo"), tras_editar);
+    assert_ne!(tras_editar, original, "el archivo sigue editado");
+}
+
+#[test]
 fn should_revert_applied_entries_when_a_later_restore_entry_fails() {
     let ws = synthetic_workspace();
     let ws_str = ws.path().to_string_lossy().to_string();

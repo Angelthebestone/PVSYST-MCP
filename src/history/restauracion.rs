@@ -53,13 +53,63 @@ fn revertir_aplicadas(
     (reversion, fallos)
 }
 
-/// Restore every file recorded in snapshot `id`.
+/// One restore request: which snapshot, under which path scope, and whether to rehearse it.
+pub(crate) struct PeticionRestauracion<'a> {
+    pub(crate) ws: &'a Path,
+    pub(crate) id: &'a str,
+    pub(crate) alcance: Alcance,
+    pub(crate) dry_run: bool,
+}
+
+/// What restoring one entry would do to its file.
+fn accion_prevista(e: &EntradaRestauracion) -> &'static str {
+    if !e.existia {
+        return if e.original.is_file() {
+            "borrar"
+        } else {
+            "sin_cambio"
+        };
+    }
+    let iguales = fs::read(&e.original)
+        .is_ok_and(|actual| fs::read(&e.copia).is_ok_and(|copia| actual == copia));
+    if iguales {
+        "sin_cambio"
+    } else {
+        "restaurar"
+    }
+}
+
+/// Rehearsal of [`restaurar`]: validates everything and reports what would change.
+fn ensayar(id: &str, validadas: &[EntradaRestauracion]) -> Value {
+    let acciones: Vec<Value> = validadas
+        .iter()
+        .map(|e| {
+            json!({
+                "archivo": e.original.to_string_lossy(),
+                "accion": accion_prevista(e),
+            })
+        })
+        .collect();
+    let cambiarian: Vec<&Value> = acciones
+        .iter()
+        .filter(|a| a["accion"] != "sin_cambio")
+        .collect();
+    json!({
+        "simulado": true,
+        "restauraria": id,
+        "cambiarian": cambiarian.len(),
+        "acciones": acciones,
+    })
+}
+
+/// Restore every file recorded in snapshot `id`, or report what a restore would do.
 ///
 /// The entire manifest is validated BEFORE any side effect or pre-restore snapshot:
 /// - Every `original` must resolve inside the workspace, unless `alcance == Alcance::Libre`.
 /// - Every `copia` must be a relative path strictly inside the snapshot directory.
 /// - Any missing or invalid fields abort immediately with zero changes to disk.
-pub(crate) fn restaurar(ws: &Path, id: &str, alcance: Alcance) -> Result<Value> {
+pub(crate) fn restaurar(peticion: &PeticionRestauracion<'_>) -> Result<Value> {
+    let (ws, id, alcance) = (peticion.ws, peticion.id, peticion.alcance);
     validar_id(id)?;
 
     let dir = super::snapshot::history_root(ws).join(id);
@@ -81,6 +131,10 @@ pub(crate) fn restaurar(ws: &Path, id: &str, alcance: Alcance) -> Result<Value> 
     // Crucial: Complete manifest validation occurs BEFORE any side effect.
     let validador = ValidadorManifiesto { ws, id, alcance };
     let validadas = validador.validar_entradas(&dir, entradas)?;
+
+    if peticion.dry_run {
+        return Ok(ensayar(id, &validadas));
+    }
 
     let originales: Vec<PathBuf> = validadas.iter().map(|e| e.original.clone()).collect();
     let previo = super::snapshot::snapshot(ws, &originales, &format!("antes de restaurar {id}"))?;

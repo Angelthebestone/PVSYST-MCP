@@ -32,7 +32,22 @@ pub(super) fn escribir_manifiesto(dir: &Path, id: &str, archivos: &serde_json::V
 
 /// Restore confined to the workspace, as every tool call does by default.
 pub(super) fn restaurar(ws: &Path, id: &str) -> crate::error::Result<serde_json::Value> {
-    super::restaurar(ws, id, crate::config::Alcance::Workspace)
+    super::restaurar(&super::PeticionRestauracion {
+        ws,
+        id,
+        alcance: crate::config::Alcance::Workspace,
+        dry_run: false,
+    })
+}
+
+/// Rehearsal of the same restore: nothing on disk may change.
+pub(super) fn ensayar(ws: &Path, id: &str) -> crate::error::Result<serde_json::Value> {
+    super::restaurar(&super::PeticionRestauracion {
+        ws,
+        id,
+        alcance: crate::config::Alcance::Workspace,
+        dry_run: true,
+    })
 }
 
 #[test]
@@ -78,6 +93,30 @@ fn should_record_a_snapshot_for_a_creation_and_restore_it_as_absent() {
 
     restaurar(&ws, &creacion).expect("restore creation");
     assert!(!f.exists(), "restaurar la creación vuelve a 'no existía'");
+    let _ = fs::remove_dir_all(&ws);
+}
+
+#[test]
+fn should_not_touch_files_when_the_restore_is_a_rehearsal() {
+    let ws = crear_workspace_temporal("dry_run");
+    let cambiado = ws.join("cambiado.txt");
+    let creado = ws.join("creado.txt");
+    fs::write(&cambiado, "antes").expect("write");
+    let id = snapshot(&ws, &[cambiado.clone(), creado.clone()], "test").expect("snap");
+    fs::write(&cambiado, "despues").expect("write");
+    fs::write(&creado, "nuevo").expect("write");
+
+    let ensayo = ensayar(&ws, &id).expect("ensayo");
+
+    assert_eq!(ensayo["simulado"], json!(true));
+    assert_eq!(ensayo["cambiarian"], json!(2));
+    assert_eq!(fs::read_to_string(&cambiado).expect("read"), "despues");
+    assert_eq!(fs::read_to_string(&creado).expect("read"), "nuevo");
+    assert_eq!(
+        sorted_dirs(&ws.join("UserData").join("mcp_history")).len(),
+        1,
+        "el ensayo no crea el snapshot previo a la restauración"
+    );
     let _ = fs::remove_dir_all(&ws);
 }
 
