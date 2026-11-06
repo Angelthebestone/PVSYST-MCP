@@ -188,7 +188,7 @@ fn should_reject_a_count_below_its_declared_minimum() {
     let ws = synthetic_workspace();
     let mut c = servidor(&ws);
     let msg = error_text(&c.call(2, "workspace", json!({ "accion": "historial", "n": -1 })));
-    assert!(msg.contains("fuera de rango para 'n'"), "{msg}");
+    assert!(msg.contains("out of range for 'n'"), "{msg}");
 }
 
 #[test]
