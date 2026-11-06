@@ -10,8 +10,6 @@ mod dominio;
 pub(crate) use aplicacion::{escribir_horizonte, leer_horizonte};
 #[cfg(test)]
 pub(crate) use codec::{encode_horizonte, parse_horizonte};
-#[cfg(test)]
-pub(crate) use dominio::{Horizonte, PuntoHorizonte};
 
 #[cfg(test)]
 #[path = "../../tests/unit/horizonte_archivo/tests.rs"]
