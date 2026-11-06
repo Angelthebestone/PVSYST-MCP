@@ -31,6 +31,7 @@ mod tools;
 
 use crate::config::Paths;
 use crate::error::Error;
+use crate::idioma::{Idioma, Texto};
 use crate::progreso::SeguimientoTarea;
 use respuesta::{err_response, error_de_herramienta, ok_response, resultado_de_herramienta};
 use serde_json::{json, Value};
@@ -127,21 +128,27 @@ impl Server {
             "logging/setLevel" | "completion/complete" | "ping" => reply(json!({})),
             "tools/list" => reply(json!({ "tools": tools::list(&self.paths) })),
             "tools/call" => reply(self.ejecutar_herramienta(params, &SeguimientoTarea::inerte())),
-            "resources/list" => reply(resources::list()),
+            "resources/list" => reply(resources::list(self.paths.idioma)),
             "resources/read" => Some(self.read_resource(params, id)),
             "resources/templates/list" => reply(json!({ "resourceTemplates": [] })),
-            "prompts/list" => reply(recetas::listar_prompts(self.paths.aproximaciones)),
-            "prompts/get" => match recetas::obtener_prompt(params, self.paths.aproximaciones) {
-                Ok(value) => reply(value),
-                Err(e) => Some(err_response(id, -32602, &e.to_string())),
-            },
+            "prompts/list" => reply(recetas::listar_prompts(
+                self.paths.aproximaciones,
+                self.paths.idioma,
+            )),
+            "prompts/get" => {
+                match recetas::obtener_prompt(params, self.paths.aproximaciones, self.paths.idioma)
+                {
+                    Ok(value) => reply(value),
+                    Err(e) => Some(err_response(id, -32602, &e.to_string())),
+                }
+            }
             _ => Some(err_response(id, -32601, "Method not found")),
         }
     }
 
     fn read_resource(&self, params: &Value, id: &Value) -> String {
         let uri = params.get("uri").and_then(Value::as_str).unwrap_or("");
-        match resources::read(uri, self.paths.aproximaciones) {
+        match resources::read(uri, self.paths.aproximaciones, self.paths.idioma) {
             Ok(value) => ok_response(id, &value),
             Err(e) => {
                 tracing::warn!(uri, kind = e.kind(), error = %e, "resource read failed");
@@ -152,7 +159,7 @@ impl Server {
 
     fn ejecutar_herramienta(&self, params: &Value, seguimiento: &SeguimientoTarea<'_>) -> Value {
         let Some(name) = params.get("name").and_then(Value::as_str) else {
-            let e = Error::Invalid("Falta 'name' (string) en tools/call".into());
+            let e = Error::Invalid(FALTA_NAME.texto_con(self.paths.idioma, &[]));
             return error_de_herramienta(&e, self.formato_resultado(), None);
         };
         // Missing arguments behave like `{}`: `Value::get` on Null yields None.
@@ -202,20 +209,35 @@ impl Server {
                 "name": "pvsyst-mcp",
                 "version": env!("CARGO_PKG_VERSION"),
             },
-            "instructions": instrucciones(self.paths.aproximaciones)
+            "instructions": instrucciones(self.paths.aproximaciones, self.paths.idioma)
         })
     }
 }
 
-const INSTRUCCIONES_BASE: &str = "Operate PVsyst 8.1 (measured on 8.1.7 and 8.1.8) through its data files, its CLI and its GUI. Every PVsyst-native tool is available by default: the domain tools (entorno, leer, editar, listar, proyecto, componente, sitio, simular, resultados, workspace), the raw PVsystCLI passthrough (pvsyst_cli) and the GUI automation tools (gui_observar, gui_actuar). Every figure comes from PVsyst. Recipes, coverage, format and CLI reference are in the pvsyst:// resources. Operational notes: (1) the workspace argument is a per-call override and some actions ignore it; (2) sitio crear, sitio convertir_meteo, sitio meteo_pvgis and simular spend PVsyst TRIAL executions (meteo_pvgis is free when its coordinates are cached); (3) lists are truncated to 13 items by default: pass detalle:normal (50 items) or detalle:completo (all); (4) truncated answers carry truncado:true and hint, ignored parameters are listed in ignorados, and siguiente suggests the next call; (5) the GUI is single-instance and gui_actuar accion:funcion resolves its prerequisites itself; (6) every answer, errors included, carries a vista block (estado, resumen, campos, error, siguiente): each siguiente step is a call that can be sent as written, and a dry run says nothing was applied.";
-const INSTRUCCIONES_APROXIMACIONES: &str = " The MCP's own approximations (labelled origen:aproximacion_mcp) are enabled by PVSYST_MCP_APROXIMACIONES=1.";
+const INSTRUCCIONES_BASE: Texto = Texto {
+    es: "Opera PVsyst 8.1 (verificado en 8.1.7 y 8.1.8) a través de sus ficheros de datos, su CLI y su GUI. Todas las tools nativas de PVsyst están disponibles por defecto: las tools de dominio (entorno, leer, editar, listar, proyecto, componente, sitio, simular, resultados, workspace), el passthrough directo a PVsystCLI (pvsyst_cli) y las tools de automatización de la GUI (gui_observar, gui_actuar). Cada cifra proviene de PVsyst. Las recetas, la cobertura, el formato y la referencia CLI están en los recursos pvsyst://. Notas operativas: (1) el argumento workspace es un override por llamada y algunas acciones lo ignoran; (2) sitio crear, sitio convertir_meteo, sitio meteo_pvgis y simular consumen ejecuciones TRIAL de PVsyst (meteo_pvgis es gratis cuando sus coordenadas están en caché); (3) las listas se truncan a 13 elementos por defecto: pasa detalle:normal (50 elementos) o detalle:completo (todos); (4) las respuestas truncadas llevan truncado:true y hint, los parámetros ignorados se listan en ignorados, y siguiente sugiere la siguiente llamada; (5) la GUI es de instancia única y gui_actuar accion:funcion resuelve sus prerrequisitos por sí mismo; (6) toda respuesta, errores incluidos, lleva un bloque vista (estado, resumen, campos, error, siguiente): cada paso de siguiente es una llamada que puede enviarse tal cual, y un dry run indica que no se aplicó nada.",
+    en: "Operate PVsyst 8.1 (measured on 8.1.7 and 8.1.8) through its data files, its CLI and its GUI. Every PVsyst-native tool is available by default: the domain tools (entorno, leer, editar, listar, proyecto, componente, sitio, simular, resultados, workspace), the raw PVsystCLI passthrough (pvsyst_cli) and the GUI automation tools (gui_observar, gui_actuar). Every figure comes from PVsyst. Recipes, coverage, format and CLI reference are in the pvsyst:// resources. Operational notes: (1) the workspace argument is a per-call override and some actions ignore it; (2) sitio crear, sitio convertir_meteo, sitio meteo_pvgis and simular spend PVsyst TRIAL executions (meteo_pvgis is free when its coordinates are cached); (3) lists are truncated to 13 items by default: pass detalle:normal (50 items) or detalle:completo (all); (4) truncated answers carry truncado:true and hint, ignored parameters are listed in ignorados, and siguiente suggests the next call; (5) the GUI is single-instance and gui_actuar accion:funcion resolves its prerequisites itself; (6) every answer, errors included, carries a vista block (estado, resumen, campos, error, siguiente): each siguiente step is a call that can be sent as written, and a dry run says nothing was applied.",
+};
+const INSTRUCCIONES_APROXIMACIONES: Texto = Texto {
+    es: " Las aproximaciones propias del MCP (marcadas con origen:aproximacion_mcp) se activan con PVSYST_MCP_APROXIMACIONES=1.",
+    en: " The MCP's own approximations (labelled origen:aproximacion_mcp) are enabled by PVSYST_MCP_APROXIMACIONES=1.",
+};
+
+const FALTA_NAME: Texto = Texto {
+    es: "Falta 'name' (string) en tools/call",
+    en: "Missing 'name' (string) in tools/call",
+};
 
 /// Instructions sent at initialize; the approximation note appears only when its gate is on.
-fn instrucciones(aproximaciones: bool) -> String {
+fn instrucciones(aproximaciones: bool, idioma: Idioma) -> String {
     if aproximaciones {
-        format!("{INSTRUCCIONES_BASE}{INSTRUCCIONES_APROXIMACIONES}")
+        format!(
+            "{}{}",
+            INSTRUCCIONES_BASE.en_idioma(idioma),
+            INSTRUCCIONES_APROXIMACIONES.en_idioma(idioma)
+        )
     } else {
-        INSTRUCCIONES_BASE.to_owned()
+        INSTRUCCIONES_BASE.en_idioma(idioma).to_owned()
     }
 }
 

@@ -7,9 +7,12 @@ use super::workspace_ejecucion::{
 
 pub(crate) const TOOL_WORKSPACE: Herramienta = Herramienta {
     nombre: "workspace",
-    descripcion: "Workspace: create, export, import, export project, change history and restore.",
+    descripcion: crate::idioma::Texto { es: "Workspace: crear, exportar, importar, exportar proyecto, historial de cambios y restaurar.", en: "Workspace: create, export, import, export project, change history and restore." },
     anotaciones: Anotaciones {
-        titulo: "Workspace",
+        titulo: crate::idioma::Texto {
+            es: "Workspace",
+            en: "Workspace",
+        },
         es_solo_lectura: false,
         es_destructiva: true,
         es_idempotente: false,
@@ -66,9 +69,15 @@ const SINONIMOS_WORKSPACE: Sinonimos = Sinonimos {
 
 pub(crate) const TOOL_ESCRIBIR_ARCHIVO: Herramienta = Herramienta {
     nombre: "escribir_archivo",
-    descripcion: "Writes a file inside the workspace (with history).",
+    descripcion: crate::idioma::Texto {
+        es: "Escribe un archivo dentro del workspace (con historial).",
+        en: "Writes a file inside the workspace (with history).",
+    },
     anotaciones: Anotaciones {
-        titulo: "Write file",
+        titulo: crate::idioma::Texto {
+            es: "Escribir archivo",
+            en: "Write file",
+        },
         es_solo_lectura: false,
         es_destructiva: true,
         es_idempotente: true,
@@ -95,9 +104,9 @@ const SINONIMOS_ESCRIBIR_ARCHIVO: Sinonimos = Sinonimos {
 
 pub(crate) const TOOL_LEER: Herramienta = Herramienta {
     nombre: "leer",
-    descripcion: "Reads any PVsyst file: project, module, site, weather, component, object or raw bytes (detected from the file).",
+    descripcion: crate::idioma::Texto { es: "Lee cualquier archivo PVsyst: proyecto, modulo, sitio, meteo, componente, objeto o bytes crudos (detectado por archivo).", en: "Reads any PVsyst file: project, module, site, weather, component, object or raw bytes (detected from the file)." },
     anotaciones: Anotaciones {
-        titulo: "Read",
+        titulo: crate::idioma::Texto { es: "Leer", en: "Read" },
         es_solo_lectura: true,
         es_destructiva: false,
         es_idempotente: true,
@@ -137,9 +146,9 @@ const SINONIMOS_LEER: Sinonimos = Sinonimos {
 
 pub(crate) const TOOL_EDITAR: Herramienta = Herramienta {
     nombre: "editar",
-    descripcion: "Edits fields, inserts or removes PVObject objects (byte-preserving, with history). accion:campos takes archivo+objeto+campos (PVObject) or proyecto+variante+ediciones (project variant).",
+    descripcion: crate::idioma::Texto { es: "Edita campos, inserta o elimina objetos PVObject (byte-preserving, con historial). accion:campos acepta archivo+objeto+campos (objeto PVObject) o proyecto+variante+ediciones (variante de proyecto).", en: "Edits fields, inserts or removes PVObject objects (byte-preserving, with history). accion:campos takes archivo+objeto+campos (PVObject) or proyecto+variante+ediciones (project variant)." },
     anotaciones: Anotaciones {
-        titulo: "Edit",
+        titulo: crate::idioma::Texto { es: "Editar", en: "Edit" },
         es_solo_lectura: false,
         es_destructiva: true,
         es_idempotente: false,
@@ -203,9 +212,15 @@ const SINONIMOS_EDITAR: Sinonimos = Sinonimos {
 
 pub(crate) const TOOL_LISTAR: Herramienta = Herramienta {
     nombre: "listar",
-    descripcion: "Lists projects, components, modules, files or objects.",
+    descripcion: crate::idioma::Texto {
+        es: "Lista proyectos, componentes, modulos, archivos u objetos.",
+        en: "Lists projects, components, modules, files or objects.",
+    },
     anotaciones: Anotaciones {
-        titulo: "List",
+        titulo: crate::idioma::Texto {
+            es: "Listar",
+            en: "List",
+        },
         es_solo_lectura: true,
         es_destructiva: false,
         es_idempotente: true,

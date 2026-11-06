@@ -8,9 +8,15 @@ use serde_json::Value;
 
 pub(crate) const TOOL_PVSYST_CLI: Herramienta = Herramienta {
     nombre: "pvsyst_cli",
-    descripcion: "Passthrough to any PVsystCLI command.",
+    descripcion: crate::idioma::Texto {
+        es: "Passthrough a cualquier comando de PVsystCLI.",
+        en: "Passthrough to any PVsystCLI command.",
+    },
     anotaciones: Anotaciones {
-        titulo: "PVsystCLI",
+        titulo: crate::idioma::Texto {
+            es: "PVsystCLI",
+            en: "PVsystCLI",
+        },
         es_solo_lectura: false,
         es_destructiva: true,
         es_idempotente: false,
@@ -40,9 +46,9 @@ const SINONIMOS_PVSYST_CLI: Sinonimos = Sinonimos {
 
 pub(crate) const TOOL_GUI_OBSERVAR: Herramienta = Herramienta {
     nombre: "gui_observar",
-    descripcion: "Observes the PVsyst GUI: windows, controls, text, PNG capture, OCR forms, agent view (fields by stable key, no OCR), menus and UIA tree.",
+    descripcion: crate::idioma::Texto { es: "Observa la GUI de PVsyst: ventanas, controles, texto, captura PNG, formularios por OCR, vista de agente (campos con clave estable, sin OCR), menus y arbol UIA.", en: "Observes the PVsyst GUI: windows, controls, text, PNG capture, OCR forms, agent view (fields by stable key, no OCR), menus and UIA tree." },
     anotaciones: Anotaciones {
-        titulo: "Observe GUI",
+        titulo: crate::idioma::Texto { es: "Observar GUI", en: "Observe GUI" },
         es_solo_lectura: true,
         es_destructiva: false,
         es_idempotente: true,
@@ -119,9 +125,9 @@ const SINONIMOS_GUI_OBSERVAR: Sinonimos = Sinonimos {
 
 pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
     nombre: "gui_actuar",
-    descripcion: "Acts on the PVsyst GUI: click (also by on-screen text), type, select, tab page, keys, list or tree row, menus by position, close, launch, restart, waits, fill a form by keys and validate, import (meshes) or build a 3D scene in the editor.",
+    descripcion: crate::idioma::Texto { es: "Actua sobre la GUI de PVsyst: clic (tambien por texto visible), escribir, seleccionar, pestana, teclas, fila de una lista o arbol, menus por posicion, cerrar, lanzar, reiniciar, esperas, rellenar un formulario por claves y validar, importar (mallas) o crear una escena 3D en el editor.", en: "Acts on the PVsyst GUI: click (also by on-screen text), type, select, tab page, keys, list or tree row, menus by position, close, launch, restart, waits, fill a form by keys and validate, import (meshes) or build a 3D scene in the editor." },
     anotaciones: Anotaciones {
-        titulo: "Act on GUI",
+        titulo: crate::idioma::Texto { es: "Actuar en GUI", en: "Act on GUI" },
         es_solo_lectura: false,
         es_destructiva: true,
         es_idempotente: false,

@@ -1,4 +1,5 @@
 use super::*;
+use crate::idioma::Idioma;
 
 #[test]
 fn should_expose_all_fifteen_pvsyst_tools_by_default() {
@@ -189,7 +190,7 @@ fn should_match_manifest_tools_and_declarations() {
             .unwrap_or_else(|| panic!("Tool '{}' declared but missing in manifest", h.nombre));
         assert_eq!(
             m_tool["description"].as_str().unwrap(),
-            h.descripcion,
+            h.descripcion.en_idioma(crate::idioma::Idioma::En),
             "Description mismatch in manifest for tool '{}'",
             h.nombre
         );
@@ -247,4 +248,19 @@ fn check_array_elements(arr: &[Value], path: &str) {
     for (i, v) in arr.iter().enumerate() {
         assert_arrays_have_items(v, &format!("{path}[{i}]"));
     }
+}
+
+#[test]
+fn should_describe_tools_in_spanish_when_the_language_is_es() {
+    let h = REGISTRO.iter().find(|h| h.nombre == "sitio").unwrap();
+    let esquema = h.esquema(Idioma::Es);
+
+    assert_eq!(
+        esquema["description"].as_str().unwrap(),
+        h.descripcion.en_idioma(Idioma::Es)
+    );
+    assert!(
+        esquema["description"].as_str().unwrap().contains("Sitios"),
+        "{esquema}"
+    );
 }

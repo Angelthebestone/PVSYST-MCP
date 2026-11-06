@@ -90,7 +90,10 @@ pub(crate) fn destino(ws: &Path, carpeta: &str, archivo: &str) -> Result<PathBuf
 /// Same datasheet, approximated by cloning a template instead of PVsyst's fit.
 const APROXIMACION_FICHA: Aproximacion = Aproximacion {
     funcion: "componente crear_desde_ficha via aproximacion (parámetros del modelo heredados de una plantilla)",
-    alternativa: "componente crear_desde_ficha sin 'via': PVsyst ajusta el modelo en su ventana de componente",
+    alternativa: crate::idioma::Texto {
+        es: "componente crear_desde_ficha sin 'via': PVsyst ajusta el modelo en su ventana de componente",
+        en: "componente crear_desde_ficha without 'via': PVsyst fits the model in its component window",
+    },
 };
 
 /// Create a component of kind `tipo` (`OND` or `PAN`) named `nombre_nuevo`

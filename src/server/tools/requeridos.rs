@@ -5,6 +5,7 @@
 use super::declaracion::{extraer_aliases, Herramienta};
 use super::redaccion::PREFIJO_REQUERIDOS_POR_ACCION;
 use crate::error::{Error, Result};
+use crate::idioma::Idioma;
 use serde_json::{json, Map, Value};
 
 impl Herramienta {
@@ -26,7 +27,7 @@ impl Herramienta {
     }
 
     /// Adds the per-action required keys of the admitted discriminator values to its description.
-    pub(crate) fn anotar_requeridos_por_accion(&self, prop: &mut Value) {
+    pub(crate) fn anotar_requeridos_por_accion(&self, prop: &mut Value, idioma: Idioma) {
         let admitidas: Vec<&str> = prop["enum"]
             .as_array()
             .into_iter()
@@ -44,7 +45,8 @@ impl Herramienta {
             return;
         }
         let previo = prop["description"].as_str().unwrap_or_default().to_owned();
-        prop["description"] = json!(format!("{previo}{PREFIJO_REQUERIDOS_POR_ACCION}{detalle}."));
+        let prefijo = PREFIJO_REQUERIDOS_POR_ACCION.en_idioma(idioma);
+        prop["description"] = json!(format!("{previo}{prefijo}{detalle}."));
     }
 
     /// Top-level `required` keeps the keys without aliases. Each aliased required key

@@ -1,4 +1,5 @@
 use super::*;
+use crate::idioma::Idioma;
 
 #[test]
 fn should_reject_in_house_actions_without_aproximaciones_flag_mentioning_env_var() {
@@ -80,13 +81,13 @@ fn should_hide_in_house_actions_without_the_flag() {
 
 #[test]
 fn should_filter_approximated_synonyms_from_coverage_resource_when_flag_is_off() {
-    let cob_con = crate::server::resources::read("pvsyst://cobertura", true).unwrap();
+    let cob_con = crate::server::resources::read("pvsyst://cobertura", true, Idioma::En).unwrap();
     let text_con = cob_con["contents"][0]["text"].as_str().unwrap();
     let data_con: serde_json::Value = serde_json::from_str(text_con).unwrap();
     let sim_vals_con = &data_con["sinonimos"]["simular"]["valores"];
     assert!(sim_vals_con.get("preestimate").is_some());
 
-    let cob_sin = crate::server::resources::read("pvsyst://cobertura", false).unwrap();
+    let cob_sin = crate::server::resources::read("pvsyst://cobertura", false, Idioma::En).unwrap();
     let text_sin = cob_sin["contents"][0]["text"].as_str().unwrap();
     let data_sin: serde_json::Value = serde_json::from_str(text_sin).unwrap();
     let sim_vals_sin = &data_sin["sinonimos"]["simular"]["valores"];

@@ -8,9 +8,9 @@ use serde_json::Value;
 
 pub(crate) const TOOL_SITIO: Herramienta = Herramienta {
     nombre: "sitio",
-    descripcion: "Sites and weather: create (coordinates or CSV), convert, solar geometry, PVGIS horizon and TMY.",
+    descripcion: crate::idioma::Texto { es: "Sitios y meteo: crear (coordenadas o CSV), convertir, geometria solar, horizonte y TMY de PVGIS.", en: "Sites and weather: create (coordinates or CSV), convert, solar geometry, PVGIS horizon and TMY." },
     anotaciones: Anotaciones {
-        titulo: "Site",
+        titulo: crate::idioma::Texto { es: "Sitio", en: "Site" },
         es_solo_lectura: false,
         es_destructiva: true,
         es_idempotente: false,

@@ -3,14 +3,15 @@
 use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, Sinonimos, TipoDato};
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use crate::projects::{self, lifecycle};
 use serde_json::Value;
 
 pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
     nombre: "proyecto",
-    descripcion: "Project and variant lifecycle: create, delete, rename, size (PVsyst pre-sizing), diagnose, add objects, convert to tracker, injection limit, storage, losses, pumping, economics, P50-P90, configure (several variant changes in one call via 'pasos').",
+    descripcion: crate::idioma::Texto { es: "Ciclo de vida de proyectos y variantes: crear, eliminar, renombrar, dimensionar (pre-dimensionado de PVsyst), diagnosticar, anadir objetos, convertir a seguidor, limite de inyeccion, almacenamiento, perdidas, bombeo, economia, P50-P90, configurar (varios cambios de variante en una llamada con 'pasos').", en: "Project and variant lifecycle: create, delete, rename, size (PVsyst pre-sizing), diagnose, add objects, convert to tracker, injection limit, storage, losses, pumping, economics, P50-P90, configure (several variant changes in one call via 'pasos')." },
     anotaciones: Anotaciones {
-        titulo: "Project",
+        titulo: crate::idioma::Texto { es: "Proyecto", en: "Project" },
         es_solo_lectura: false,
         es_destructiva: true,
         es_idempotente: false,
@@ -181,6 +182,27 @@ fn ejecutar_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
 }
 
 /// Actions `configurar` may chain: they only modify an existing variant.
+const PASO_OBJETO: Texto = Texto {
+    es: "Cada elemento de 'pasos' debe ser un objeto {accion:…}",
+    en: "Each element of 'pasos' must be an object {accion:…}",
+};
+const PASO_ACCION: Texto = Texto {
+    es: "Acción '{accion}' no admitida en 'pasos'; válidas: {validas}",
+    en: "Action '{accion}' not supported in 'pasos'; valid ones: {validas}",
+};
+const PASOS_LISTA: Texto = Texto {
+    es: "'pasos' debe ser una lista no vacía de {accion:…}",
+    en: "'pasos' must be a non-empty list of {accion:…}",
+};
+const PASO_INVALIDO: Texto = Texto {
+    es: "Paso {n} inválido; no se aplicó ninguno",
+    en: "Step {n} invalid; none were applied",
+};
+const PASO_FALLIDO: Texto = Texto {
+    es: "Paso {n} fallido tras aplicar {aplicados} paso(s)",
+    en: "Step {n} failed after {aplicados} step(s) applied",
+};
+
 const ACCIONES_CONFIGURABLES: &[&str] = &[
     "dimensionar",
     "anadir",
@@ -194,15 +216,19 @@ const ACCIONES_CONFIGURABLES: &[&str] = &[
 
 /// Step `paso` as a complete `proyecto` call: the parent's `proyecto`, `variante` and
 /// `workspace` fill whatever the step leaves out.
-fn paso_completo(padre: &Value, paso: &Value) -> Result<Value> {
-    let mut completo = paso.as_object().cloned().ok_or_else(|| {
-        Error::Invalid("Cada elemento de 'pasos' debe ser un objeto {accion:…}".into())
-    })?;
+fn paso_completo(padre: &Value, paso: &Value, idioma: Idioma) -> Result<Value> {
+    let mut completo = paso
+        .as_object()
+        .cloned()
+        .ok_or_else(|| Error::Invalid(PASO_OBJETO.texto_con(idioma, &[])))?;
     let accion = completo.get("accion").and_then(Value::as_str).unwrap_or("");
     if !ACCIONES_CONFIGURABLES.contains(&accion) {
-        return Err(Error::Invalid(format!(
-            "Acción '{accion}' no admitida en 'pasos'; válidas: {}",
-            ACCIONES_CONFIGURABLES.join(", ")
+        return Err(Error::Invalid(PASO_ACCION.texto_con(
+            idioma,
+            &[
+                ("accion", accion),
+                ("validas", &ACCIONES_CONFIGURABLES.join(", ")),
+            ],
         )));
     }
     for clave in ["proyecto", "variante", "workspace"] {
@@ -220,20 +246,20 @@ fn configurar_variante(paths: &Paths, args: &Value) -> Result<Value> {
         .get("pasos")
         .and_then(Value::as_array)
         .filter(|p| !p.is_empty())
-        .ok_or_else(|| {
-            Error::Invalid("'pasos' debe ser una lista no vacía de {accion:…}".into())
-        })?;
+        .ok_or_else(|| Error::Invalid(PASOS_LISTA.texto_con(paths.idioma, &[])))?;
     // Every step goes through the same aliases and schema checks as a direct call.
     let llamadas = pasos
         .iter()
         .enumerate()
         .map(|(i, p)| {
-            let llamada = TOOL_PROYECTO.preparar_args(&paso_completo(args, p)?)?;
-            TOOL_PROYECTO
-                .validar(&llamada, paths.aproximaciones)
-                .map_err(|e| {
-                    con_prefijo(e, &format!("Paso {} inválido; no se aplicó ninguno", i + 1))
-                })?;
+            let llamada = TOOL_PROYECTO
+                .preparar_args(&paso_completo(args, p, paths.idioma)?, paths.idioma)?;
+            TOOL_PROYECTO.validar(&llamada, paths).map_err(|e| {
+                con_prefijo(
+                    e,
+                    &PASO_INVALIDO.texto_con(paths.idioma, &[("n", &(i + 1).to_string())]),
+                )
+            })?;
             Ok(llamada)
         })
         .collect::<Result<Vec<_>>>()?;
@@ -242,7 +268,13 @@ fn configurar_variante(paths: &Paths, args: &Value) -> Result<Value> {
         let resultado = ejecutar_proyecto(paths, llamada).map_err(|e| {
             con_prefijo(
                 e,
-                &format!("Paso {} fallido tras aplicar {indice} paso(s)", indice + 1),
+                &PASO_FALLIDO.texto_con(
+                    paths.idioma,
+                    &[
+                        ("n", &(indice + 1).to_string()),
+                        ("aplicados", &indice.to_string()),
+                    ],
+                ),
             )
         })?;
         resultados.push(resultado);
@@ -273,7 +305,10 @@ fn configurar_p50(paths: &Paths, args: &Value) -> Result<Value> {
     crate::aproximaciones::exigir_ruta_pvsyst_sin_workspace(
         paths,
         args,
-        "The P50/P90 configuration",
+        crate::idioma::Texto {
+            es: "La configuración P50/P90",
+            en: "The P50/P90 configuration",
+        },
     )?;
     let proyecto = crate::args::req_str(args, &["proyecto"], "")?;
     let proyecto = proyecto.strip_suffix(".PRJ").unwrap_or(proyecto);

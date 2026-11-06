@@ -48,13 +48,24 @@ pub(crate) struct PeticionSitioMeteo<'a> {
 const APROXIMACION_HORIZONTE: crate::aproximaciones::Aproximacion =
     crate::aproximaciones::Aproximacion {
         funcion: "sitio horizonte_pvgis via aproximacion (FHHDiffus calculado por el MCP)",
-        alternativa: "sitio horizonte_pvgis sin 'via': PVsyst importa PVGIS y calcula los factores",
+        alternativa: crate::idioma::Texto {
+            es: "sitio horizonte_pvgis sin 'via': PVsyst importa PVGIS y calcula los factores",
+            en:
+                "sitio horizonte_pvgis without 'via': PVsyst imports PVGIS and computes the factors",
+        },
     };
 
 /// PVGIS horizon of the project site: imported by PVsyst's horizon window by
 /// default, or by the MCP with `via: "aproximacion"`.
 pub(crate) fn horizonte(paths: &Paths, args: &Value) -> Result<Value> {
-    crate::aproximaciones::exigir_ruta_pvsyst_sin_workspace(paths, args, "The PVGIS horizon")?;
+    crate::aproximaciones::exigir_ruta_pvsyst_sin_workspace(
+        paths,
+        args,
+        crate::idioma::Texto {
+            es: "El horizonte PVGIS",
+            en: "The PVGIS horizon",
+        },
+    )?;
     let proyecto = req_str(args, &["proyecto"], "")?;
     let proyecto = proyecto.strip_suffix(".PRJ").unwrap_or(proyecto);
     let variante = opt_str(args, &["variante"]).unwrap_or("VC0");

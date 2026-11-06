@@ -1,4 +1,10 @@
 use super::*;
+use crate::config::Paths;
+use crate::idioma::Idioma;
+
+fn paths_de_test() -> Paths {
+    Paths::para_test(std::env::temp_dir())
+}
 
 #[test]
 fn should_reject_missing_required_arg() {
@@ -22,7 +28,7 @@ fn should_name_every_missing_required_arg_of_the_action() {
         "{msg}"
     );
     assert!(
-        msg.contains("Ejemplo:") && msg.contains("<nombre_sitio>"),
+        msg.contains("Example:") && msg.contains("<nombre_sitio>"),
         "{msg}"
     );
 }
@@ -46,9 +52,9 @@ fn should_reject_wrong_type_arg_mentioning_tipo() {
     .expect_err("should reject string for boolean property");
     let msg = err.to_string();
     assert!(
-        msg.contains("Tipo incorrecto para 'base64'")
-            && msg.contains("esperado boolean")
-            && msg.contains("recibido string"),
+        msg.contains("Wrong type for 'base64'")
+            && msg.contains("expected boolean")
+            && msg.contains("got string"),
         "error must name the property, expected type and received type: {msg}"
     );
 }
@@ -64,9 +70,9 @@ fn should_reject_wrong_type_for_numeric_property() {
     .expect_err("should reject boolean for integer property");
     let msg = err.to_string();
     assert!(
-        msg.contains("Tipo incorrecto para 'n_inversores'")
-            && msg.contains("esperado integer")
-            && msg.contains("recibido boolean"),
+        msg.contains("Wrong type for 'n_inversores'")
+            && msg.contains("expected integer")
+            && msg.contains("got boolean"),
         "error must name property, expected and received types: {msg}"
     );
 }
@@ -96,7 +102,7 @@ fn should_reject_wrong_type_for_discriminator() {
         .expect_err("should reject number for accion");
     let msg = err.to_string();
     assert!(
-        msg.to_lowercase().contains("tipo"),
+        msg.to_lowercase().contains("type"),
         "error must explain the wrong type: {msg}"
     );
 }
@@ -108,13 +114,13 @@ fn should_accept_compatible_union_types() {
         json!({ "accion": "crear", "plantilla": "P", "nombre_nuevo": "N", "n_mod_serie": 20 });
     let val_str =
         json!({ "accion": "crear", "plantilla": "P", "nombre_nuevo": "N", "n_mod_serie": "20" });
-    assert!(h.validar(&val_int, false).is_ok());
-    assert!(h.validar(&val_str, false).is_ok());
+    assert!(h.validar(&val_int, &paths_de_test()).is_ok());
+    assert!(h.validar(&val_str, &paths_de_test()).is_ok());
 
     let val_bad =
         json!({ "accion": "crear", "plantilla": "P", "nombre_nuevo": "N", "n_mod_serie": false });
     assert!(matches!(
-        h.validar(&val_bad, false),
+        h.validar(&val_bad, &paths_de_test()),
         Err(crate::error::Error::Invalid(_))
     ));
 }
@@ -159,7 +165,10 @@ fn should_not_demand_an_id_when_a_menu_command_is_named_by_position() {
         .expect("gui_actuar registrada");
     let args = json!({ "accion": "menu", "ventana": "0x1", "menu": 0, "item": 0 });
 
-    let accion = h.validar(&h.preparar_args(&args).expect("args"), false);
+    let accion = h.validar(
+        &h.preparar_args(&args, Idioma::En).expect("args"),
+        &Paths::para_test(std::env::temp_dir()),
+    );
 
     assert_eq!(accion.expect("argumentos válidos sin 'id'"), "menu");
 }
@@ -207,5 +216,25 @@ fn should_keep_the_error_kind_of_a_failed_step() {
     assert!(
         matches!(&err, crate::error::Error::NotFound(m) if m.starts_with("Paso 1 fallido")),
         "{err:?}"
+    );
+}
+
+#[test]
+fn should_reject_wrong_type_in_spanish_when_language_is_es() {
+    let h = REGISTRO.iter().find(|h| h.nombre == "leer").unwrap();
+    let args = json!({ "archivo": "test.PAN", "base64": "yes" });
+
+    let mut paths = Paths::para_test(std::env::temp_dir());
+    paths.idioma = Idioma::Es;
+    let err = h
+        .validar(&args, &paths)
+        .expect_err("string for boolean must fail");
+
+    let msg = err.to_string();
+    assert!(
+        msg.contains("Tipo incorrecto para 'base64'")
+            && msg.contains("esperado boolean")
+            && msg.contains("recibido string"),
+        "{msg}"
     );
 }

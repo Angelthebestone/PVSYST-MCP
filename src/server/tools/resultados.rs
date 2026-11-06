@@ -5,15 +5,16 @@ use crate::args::workspace_of;
 use crate::config::Paths;
 use crate::easy_mode;
 use crate::error::{Error, Result};
+use crate::idioma::Texto;
 use crate::projects;
 use crate::simulation::{engineering, results};
 use serde_json::{json, Value};
 
 pub(crate) const TOOL_RESULTADOS: Herramienta = Herramienta {
     nombre: "resultados",
-    descripcion: "Results: KPIs, summary, CSV, losses, monthly, comparison, measured vs simulated, P50/P90, carbon, economics and deliverable.",
+    descripcion: crate::idioma::Texto { es: "Resultados: KPIs, resumen, CSV, perdidas, mensual, comparacion, medido_vs_simulado, P50/P90, carbono, economia y entregable.", en: "Results: KPIs, summary, CSV, losses, monthly, comparison, measured vs simulated, P50/P90, carbon, economics and deliverable." },
     anotaciones: Anotaciones {
-        titulo: "Results",
+        titulo: crate::idioma::Texto { es: "Resultados", en: "Results" },
         es_solo_lectura: false,
         es_destructiva: false,
         es_idempotente: true,
@@ -129,9 +130,14 @@ fn exigir_proyecto_de_kpis(paths: &Paths, args: &Value) -> Result<()> {
         return Ok(());
     }
     Err(Error::Invalid(
-        "'proyecto' is required for que:kpis (or 'archivo'/'report_pdf' with the PDF)".into(),
+        PROYECTO_REQUERIDO_KPIS.texto_con(paths.idioma, &[]),
     ))
 }
+
+const PROYECTO_REQUERIDO_KPIS: Texto = Texto {
+    es: "'proyecto' es obligatorio para que:kpis (o 'archivo'/'report_pdf' con el PDF)",
+    en: "'proyecto' is required for que:kpis (or 'archivo'/'report_pdf' with the PDF)",
+};
 
 const PERDIDAS_PRINCIPALES: usize = 3;
 

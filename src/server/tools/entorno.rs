@@ -8,14 +8,21 @@ use crate::admin;
 use crate::config::Paths;
 use crate::easy_mode;
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use crate::prefs;
 use serde_json::{json, Value};
 
 pub(crate) const TOOL_ENTORNO: Herramienta = Herramienta {
     nombre: "entorno",
-    descripcion: "PVsyst environment: diagnostics, licence, logs and preferences.",
+    descripcion: crate::idioma::Texto {
+        es: "Entorno PVsyst: diagnostico, licencia, logs y preferencias.",
+        en: "PVsyst environment: diagnostics, licence, logs and preferences.",
+    },
     anotaciones: Anotaciones {
-        titulo: "Environment",
+        titulo: crate::idioma::Texto {
+            es: "Entorno",
+            en: "Environment",
+        },
         es_solo_lectura: false,
         es_destructiva: false,
         es_idempotente: false,
@@ -76,9 +83,9 @@ const SINONIMOS_ENTORNO: Sinonimos = Sinonimos {
 
 pub(crate) const TOOL_DISENAR_SISTEMA: Herramienta = Herramienta {
     nombre: "disenar_sistema",
-    descripcion: "End-to-end in one call: coordinates + kWp (grid or stand-alone) -> site -> project -> sizing -> simulation -> KPIs.",
+    descripcion: crate::idioma::Texto { es: "E2E en una llamada: coordenadas + kWp (red o aislado) -> sitio -> proyecto -> dimensionado -> simulacion -> KPIs.", en: "End-to-end in one call: coordinates + kWp (grid or stand-alone) -> site -> project -> sizing -> simulation -> KPIs." },
     anotaciones: Anotaciones {
-        titulo: "Design system",
+        titulo: crate::idioma::Texto { es: "Diseñar sistema", en: "Design system" },
         es_solo_lectura: false,
         es_destructiva: true,
         es_idempotente: false,
@@ -151,23 +158,35 @@ fn ejecutar_entorno(paths: &Paths, args: &Value) -> Result<Value> {
         }
         "licencia" => admin::licencia(paths, &con(args, "accion", json!("info"))),
         "licencia_sync" => admin::licencia(paths, &con(args, "accion", json!("sync"))),
-        "licencia_activar" => Ok(comando_licencia("lic-activate -k:<TU_CLAVE>")),
-        "licencia_desactivar" => Ok(comando_licencia("lic-deactivate -c:<TU_CUSTOMER_ID>")),
+        "licencia_activar" => Ok(comando_licencia("lic-activate -k:<TU_CLAVE>", paths.idioma)),
+        "licencia_desactivar" => Ok(comando_licencia(
+            "lic-deactivate -c:<TU_CUSTOMER_ID>",
+            paths.idioma,
+        )),
         "exportar_logs" => admin::exportar_logs(paths, args),
         "logs_cli" => prefs::logs_cli(args),
         "preferencias" => prefs::preferencias(args),
         "preferencias_editar" => prefs::preferencias_editar(args),
-        _ => Err(Error::Invalid(format!(
-            "Value '{valor}' not supported for entorno"
-        ))),
+        _ => Err(Error::Invalid(
+            ACCION_NO_SOPORTADA.texto_con(paths.idioma, &[("valor", valor)]),
+        )),
     }
 }
 
-fn comando_licencia(argumentos: &str) -> Value {
+const ACCION_NO_SOPORTADA: Texto = Texto {
+    es: "Valor '{valor}' no soportado para entorno",
+    en: "Value '{valor}' not supported for entorno",
+};
+const INSTRUCCIONES_LICENCIA: Texto = Texto {
+    es: "Ejecuta tú este comando en un terminal, sustituyendo el placeholder por tu valor real. Esta tool no activa ni desactiva licencias.",
+    en: "Run this command yourself in a terminal, replacing the placeholder with your real value. This tool does not activate or deactivate licences.",
+};
+
+fn comando_licencia(argumentos: &str, idioma: Idioma) -> Value {
     json!({
         "ejecutado": false,
         "comando": format!("PVsystCLI.exe {argumentos}"),
-        "instrucciones": "Run this command yourself in a terminal, replacing the placeholder with your real value. This tool does not activate or deactivate licences."
+        "instrucciones": INSTRUCCIONES_LICENCIA.en_idioma(idioma)
     })
 }
 

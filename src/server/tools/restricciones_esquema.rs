@@ -1,5 +1,7 @@
 //! Additional schema constraints and property annotations for tool parameters.
 
+use super::declaracion::Anotador;
+use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Value};
 
 /// Inclusive integer bounds `(propiedad, mínimo, máximo)`. One table feeds both the
@@ -19,10 +21,23 @@ pub(crate) fn limites_enteros(clave: &str) -> Option<(i64, Option<i64>)> {
         .map(|&(_, minimo, maximo)| (minimo, maximo))
 }
 
+const DESC_POTENCIA_KW: Texto = Texto {
+    es: "Potencia límite de inyección en kW. Para quitar el límite, usa editar con PLimGrid: null.",
+    en: "Injection power limit in kW. To remove the limit, use editar with PLimGrid: null.",
+};
+const DESC_VIA: Texto = Texto {
+    es: "pvsyst (defecto): la ruta de PVsyst. aproximacion: cálculo propio del MCP, oculto salvo con PVSYST_MCP_APROXIMACIONES=1.",
+    en: "pvsyst (default): the PVsyst route. aproximacion: the MCP's own calculation, hidden unless PVSYST_MCP_APROXIMACIONES=1.",
+};
+const DESC_BATERIAS: Texto = Texto {
+    es: "Solo aplica a tipo_sistema:aislado.",
+    en: "Only applies to tipo_sistema:aislado.",
+};
+
 /// Annotates known domain constraints on specific tool properties in the MCP schema.
 /// The GUI-specific annotations only apply to the GUI tools: other tools may reuse
 /// the same property names (`texto`) with a different meaning.
-pub(crate) fn anotar_restricciones(prop_val: &mut Value, herramienta: &str, clave: &str) {
+pub(crate) fn anotar_restricciones(an: &Anotador, prop_val: &mut Value, clave: &str) {
     let Some(obj) = prop_val.as_object_mut() else {
         return;
     };
@@ -35,11 +50,12 @@ pub(crate) fn anotar_restricciones(prop_val: &mut Value, herramienta: &str, clav
     if anotar_estructuras(obj, clave) {
         return;
     }
+    let idioma = an.idioma;
     match clave {
         "potencia_kw" => {
             obj.insert(
                 "description".to_string(),
-                json!("Injection power limit in kW. To remove the limit, use editar with PLimGrid: null."),
+                json!(DESC_POTENCIA_KW.en_idioma(idioma)),
             );
         }
         "estrategia" => {
@@ -50,18 +66,15 @@ pub(crate) fn anotar_restricciones(prop_val: &mut Value, herramienta: &str, clav
         }
         "via" => {
             obj.insert("enum".to_string(), json!(["pvsyst", "aproximacion"]));
-            obj.insert(
-                "description".to_string(),
-                json!("pvsyst (default): the PVsyst route. aproximacion: the MCP's own calculation, hidden unless PVSYST_MCP_APROXIMACIONES=1."),
-            );
+            obj.insert("description".to_string(), json!(DESC_VIA.en_idioma(idioma)));
         }
         "n_baterias_serie" | "n_baterias_paralelo" => {
             obj.insert(
                 "description".to_string(),
-                json!("Only applies to tipo_sistema:aislado."),
+                json!(DESC_BATERIAS.en_idioma(idioma)),
             );
         }
-        _ if herramienta.starts_with("gui_") => anotar_gui(obj, clave),
+        _ if an.herramienta.nombre.starts_with("gui_") => anotar_gui(obj, clave, idioma),
         _ => {}
     }
 }
@@ -106,12 +119,16 @@ fn anotar_estructuras(obj: &mut serde_json::Map<String, Value>, clave: &str) -> 
 }
 
 /// Schema details of the GUI-automation arguments.
-fn anotar_gui(obj: &mut serde_json::Map<String, Value>, clave: &str) {
+fn anotar_gui(obj: &mut serde_json::Map<String, Value>, clave: &str, idioma: Idioma) {
     match clave {
         "campo" => {
             obj.insert(
                 "description".to_string(),
-                json!("Unlabeled field: VCL class and center in px at 96 DPI inside the form."),
+                json!(Texto {
+                    es: "Campo sin rótulo: clase VCL y centro en px a 96 DPI dentro del formulario.",
+                    en: "Unlabeled field: VCL class and center in px at 96 DPI inside the form.",
+                }
+                .en_idioma(idioma)),
             );
             obj.insert(
                 "properties".to_string(),
@@ -130,14 +147,22 @@ fn anotar_gui(obj: &mut serde_json::Map<String, Value>, clave: &str) {
         "texto" => {
             obj.insert(
                 "description".to_string(),
-                json!("Text to type, or prefix of the combo item to select."),
+                json!(Texto {
+                    es: "Texto a escribir, o prefijo del ítem del combo a seleccionar.",
+                    en: "Text to type, or prefix of the combo item to select.",
+                }
+                .en_idioma(idioma)),
             );
         }
         "pids" => {
             obj.insert("items".to_string(), json!({ "type": "integer" }));
             obj.insert(
                 "description".to_string(),
-                json!("Target processes; if omitted, PVsyst.exe is used."),
+                json!(Texto {
+                    es: "Procesos objetivo; si se omite, se usa PVsyst.exe.",
+                    en: "Target processes; if omitted, PVsyst.exe is used.",
+                }
+                .en_idioma(idioma)),
             );
         }
         _ => {}

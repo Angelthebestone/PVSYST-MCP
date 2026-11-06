@@ -23,6 +23,9 @@ pub struct Paths {
     /// Enables the MCP's own approximations of PVsyst calculations
     /// (env PVSYST_MCP_APROXIMACIONES=1). Off: every result comes from PVsyst.
     pub aproximaciones: bool,
+    /// Language of the client-facing surface: schemas, prompts, resources and
+    /// messages (env PVSYST_MCP_IDIOMA=es; English by default).
+    pub idioma: crate::idioma::Idioma,
     /// Background jobs and caches owned by this configuration (and its clones).
     pub(crate) estado: Arc<Estado>,
 }
@@ -31,8 +34,9 @@ impl Paths {
     /// Resolves every path from the environment, falling back to the default
     /// newest PVsyst 8.x install found under Program Files.
     ///
-    /// Overrides: `PVSYST_WORKSPACE`, `PVSYST_CLI`, `PVSYST_GUI`, `PVSYST_DATARO`
-    /// and `PVSYST_MCP_APROXIMACIONES` (`1` or `true`).
+    /// Overrides: `PVSYST_WORKSPACE`, `PVSYST_CLI`, `PVSYST_GUI`, `PVSYST_DATARO`,
+    /// `PVSYST_MCP_APROXIMACIONES` (`1` or `true`) and `PVSYST_MCP_IDIOMA` (`es`;
+    /// anything else is English).
     ///
     /// ```
     /// let paths = pvsyst_mcp::Paths::resolve();
@@ -45,6 +49,7 @@ impl Paths {
             cli_exe: resolve_cli(),
             gui_exe: resolve_gui(),
             aproximaciones: bandera_de_entorno(VARIABLE_APROXIMACIONES),
+            idioma: crate::idioma::Idioma::de_entorno(),
             estado: Arc::default(),
         }
     }
@@ -58,6 +63,7 @@ impl Paths {
             cli_exe: PathBuf::new(),
             gui_exe: PathBuf::new(),
             aproximaciones: false,
+            idioma: crate::idioma::Idioma::default(),
             estado: Arc::default(),
         }
     }

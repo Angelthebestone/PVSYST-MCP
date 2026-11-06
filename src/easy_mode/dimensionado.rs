@@ -15,8 +15,10 @@ use serde_json::{json, Map, Value};
 
 pub(crate) const APROXIMACION_DISENO_AUTOMATICO: Aproximacion = Aproximacion {
     funcion: "disenar_sistema dimensionado automatico via aproximacion",
-    alternativa:
-        "disenar_sistema sin 'via' exige pasar n_mod_serie y n_strings; el pre-dimensionado de PVsyst (ventana Sistema) solo lo usa 'proyecto dimensionar'",
+    alternativa: crate::idioma::Texto {
+        es: "disenar_sistema sin 'via' exige pasar n_mod_serie y n_strings; el pre-dimensionado de PVsyst (ventana Sistema) solo lo usa 'proyecto dimensionar'",
+        en: "disenar_sistema without 'via' requires n_mod_serie and n_strings; PVsyst's pre-sizing (System window) is only used by 'proyecto dimensionar'",
+    },
 };
 
 const FACTOR_SEGURIDAD_VOC: f64 = 1.15;

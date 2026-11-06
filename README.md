@@ -323,6 +323,7 @@ An empty value counts as unset, so the default or auto-detection applies.
 | `PVSYST_CLI` | Path to `PVsystCLI.exe` | `C:\Program Files\PVsyst8.1.7\PVsystCLI.exe` |
 | `PVSYST_GUI` | Path to `PVsyst.exe` | `C:\Program Files\PVsyst8.1.7\PVsyst.exe` |
 | `PVSYST_MCP_APROXIMACIONES` | `1` enables the MCP's own calculations (labelled `origen: "aproximacion_mcp"`) | unset (PVsyst results only) |
+| `PVSYST_MCP_IDIOMA` | Language of the MCP surface the client sees: tool descriptions, titles, schemas, recipes, prompts, resources and messages. `es` selects Spanish; any other value (or unset) is English | `en` |
 | `PVSYST_MCP_ESCRITORIO` | `aislado` runs PVsyst and the GUI tools on a private hidden Win32 desktop (the agent never takes your focus, cursor or keyboard); `compartido` uses your desktop. Any other value is an error | `compartido` |
 | `PVSYST_MCP_AUTO_ACTUALIZAR` | npm launcher only: `0` disables the auto-update | enabled |
 | `PVSYST_MCP_ALMACEN` | npm launcher only: where updates are downloaded | `%LOCALAPPDATA%\pvsyst-mcp` |

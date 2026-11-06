@@ -3,7 +3,10 @@ use std::path::PathBuf;
 
 const PREESTIMAR: Aproximacion = Aproximacion {
     funcion: "simular preestimar",
-    alternativa: "simular ejecutar",
+    alternativa: Texto {
+        es: "simular ejecutar",
+        en: "simular ejecutar",
+    },
 };
 
 fn paths(aproximaciones: bool) -> Paths {
@@ -29,7 +32,7 @@ fn should_allow_approximation_when_flag_is_on() {
 fn should_label_result_as_mcp_approximation() {
     let mut v = json!({ "anual_kwh": 1.0 });
 
-    marcar(&mut v, &PREESTIMAR);
+    marcar(&mut v, &PREESTIMAR, Idioma::En);
 
     assert_eq!(v["origen"], ORIGEN_APROXIMACION);
     assert!(v["aviso_origen"]

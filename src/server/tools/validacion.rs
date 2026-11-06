@@ -5,28 +5,59 @@
 use super::declaracion::{nombre_tipo_recibido, Herramienta};
 use super::restricciones_esquema::limites_enteros;
 use crate::args::missing;
+use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Value};
+
+const VALOR_NO_VALIDO: Texto = Texto {
+    es: "Valor '{valor}' no válido para {tool} ({campo}); valores: {valores}",
+    en: "Value '{valor}' not valid for {tool} ({campo}); values: {valores}",
+};
+const TIPO_INCORRECTO: Texto = Texto {
+    es: "Tipo incorrecto para '{campo}' (esperado {esperado}, recibido {recibido})",
+    en: "Wrong type for '{campo}' (expected {esperado}, got {recibido})",
+};
+const PISTA_DISCRIMINADOR: Texto = Texto {
+    es: "para {tool}; valores: {valores}",
+    en: "for {tool}; values: {valores}",
+};
+const CONFLICTO_ALIAS: Texto = Texto {
+    es: "Conflicto de argumentos: se pasaron '{canonico}' y su alias '{alias}' con valores distintos",
+    en: "Argument conflict: both '{canonico}' and its alias '{alias}' were passed with different values",
+};
+const RANGO_MINIMO: Texto = Texto {
+    es: "mínimo {minimo}",
+    en: "minimum {minimo}",
+};
+const RANGO_ENTRE: Texto = Texto {
+    es: "entre {minimo} y {max}",
+    en: "between {minimo} and {max}",
+};
+const FUERA_DE_RANGO: Texto = Texto {
+    es: "Valor {n} fuera de rango para '{prop}' ({rango})",
+    en: "Value {n} out of range for '{prop}' ({rango})",
+};
 
 impl Herramienta {
     /// Validates arguments at the boundary and returns the resolved discriminator action.
-    pub(crate) fn validar(&self, args: &Value, aproximaciones: bool) -> Result<String> {
-        let accion = self.validar_discriminador(args, aproximaciones)?;
-        self.validar_detalle(args)?;
+    pub(crate) fn validar(&self, args: &Value, paths: &Paths) -> Result<String> {
+        let accion = self.validar_discriminador(args, paths)?;
+        self.validar_detalle(args, paths.idioma)?;
         self.validar_requeridos(args, &accion)?;
-        self.validar_tipos(args)?;
-        self.validar_via(args)?;
+        self.validar_tipos(args, paths.idioma)?;
+        self.validar_via(args, paths.idioma)?;
         Ok(accion)
     }
 
     /// Normalizes aliases to canonical names and injects default discriminator if omitted.
-    pub(crate) fn preparar_args(&self, args: &Value) -> Result<Value> {
+    pub(crate) fn preparar_args(&self, args: &Value, idioma: Idioma) -> Result<Value> {
         let mut mapa = match args {
             Value::Object(m) => m.clone(),
             _ => serde_json::Map::new(),
         };
 
-        normalizar_alias_argumentos(self.sinonimos.argumentos, &mut mapa)?;
+        normalizar_alias_argumentos(self.sinonimos.argumentos, &mut mapa, idioma)?;
         normalizar_discriminador(
             self.discriminador.as_ref(),
             self.sinonimos.valores,
@@ -36,11 +67,38 @@ impl Herramienta {
         Ok(Value::Object(mapa))
     }
 
-    fn validar_discriminador(&self, args: &Value, aproximaciones: bool) -> Result<String> {
+    /// Resolves the discriminator: its value, its default, or the error naming
+    /// the valid values of the tool.
+    fn validar_discriminador(&self, args: &Value, paths: &Paths) -> Result<String> {
         let Some(disc) = &self.discriminador else {
             return Ok(String::new());
         };
-        let valor = self.extraer_valor_discriminador(disc, args)?;
+        let idioma = paths.idioma;
+        let valor = match args.get(disc.campo) {
+            Some(v) => match v.as_str() {
+                Some(s) => s.to_string(),
+                None => {
+                    return Err(Error::Invalid(TIPO_INCORRECTO.texto_con(
+                        idioma,
+                        &[
+                            ("campo", disc.campo),
+                            ("esperado", "string"),
+                            ("recibido", nombre_tipo_recibido(v)),
+                        ],
+                    )));
+                }
+            },
+            None => match disc.defecto {
+                Some(def) => def.to_string(),
+                None => {
+                    let pista = PISTA_DISCRIMINADOR.texto_con(
+                        idioma,
+                        &[("tool", self.nombre), ("valores", &disc.valores.join(", "))],
+                    );
+                    return Err(missing(disc.campo, &pista));
+                }
+            },
+        };
 
         if disc.valores.contains(&valor.as_str()) {
             return Ok(valor);
@@ -50,62 +108,49 @@ impl Herramienta {
             .iter()
             .copied()
             .filter(|accion| {
-                aproximaciones || super::aproximadas::de(self.nombre, accion).is_none()
+                paths.aproximaciones || super::aproximadas::de(self.nombre, accion).is_none()
             })
             .collect();
-        Err(Error::Invalid(format!(
-            "Value '{valor}' not valid for {} ({}); values: {}",
-            self.nombre,
-            disc.campo,
-            visibles.join(", ")
+        Err(Error::Invalid(VALOR_NO_VALIDO.texto_con(
+            idioma,
+            &[
+                ("valor", &valor),
+                ("tool", self.nombre),
+                ("campo", disc.campo),
+                ("valores", &visibles.join(", ")),
+            ],
         )))
     }
 
-    fn extraer_valor_discriminador(
-        &self,
-        disc: &super::declaracion::Discriminador,
-        args: &Value,
-    ) -> Result<String> {
-        match args.get(disc.campo) {
-            Some(v) => match v.as_str() {
-                Some(s) => Ok(s.to_string()),
-                None => Err(Error::Invalid(format!(
-                    "Tipo incorrecto para '{}' (esperado string, recibido {})",
-                    disc.campo,
-                    nombre_tipo_recibido(v)
-                ))),
-            },
-            None => match disc.defecto {
-                Some(def) => Ok(def.to_string()),
-                None => {
-                    let pista =
-                        format!("para {}; valores: {}", self.nombre, disc.valores.join(", "));
-                    Err(missing(disc.campo, &pista))
-                }
-            },
-        }
-    }
-
-    fn validar_detalle(&self, args: &Value) -> Result<()> {
+    fn validar_detalle(&self, args: &Value, idioma: Idioma) -> Result<()> {
         let Some(v) = valor_no_nulo(args, "detalle") else {
             return Ok(());
         };
         let Some(d) = v.as_str() else {
-            return Err(Error::Invalid(format!(
-                "Tipo incorrecto para 'detalle' (esperado string, recibido {})",
-                nombre_tipo_recibido(v)
+            return Err(Error::Invalid(TIPO_INCORRECTO.texto_con(
+                idioma,
+                &[
+                    ("campo", "detalle"),
+                    ("esperado", "string"),
+                    ("recibido", nombre_tipo_recibido(v)),
+                ],
             )));
         };
         if !super::recorte::DETALLES.contains(&d) {
-            return Err(Error::Invalid(format!(
-                "Value '{d}' not valid for detalle; values: {}",
-                super::recorte::DETALLES.join(", ")
+            return Err(Error::Invalid(VALOR_NO_VALIDO.texto_con(
+                idioma,
+                &[
+                    ("valor", d),
+                    ("tool", "detalle"),
+                    ("campo", "detalle"),
+                    ("valores", &super::recorte::DETALLES.join(", ")),
+                ],
             )));
         }
         Ok(())
     }
 
-    fn validar_via(&self, args: &Value) -> Result<()> {
+    fn validar_via(&self, args: &Value, idioma: Idioma) -> Result<()> {
         let Some(v) = valor_no_nulo(args, "via") else {
             return Ok(());
         };
@@ -115,15 +160,23 @@ impl Herramienta {
         if via == "pvsyst" || via == crate::aproximaciones::VIA_APROXIMACION {
             return Ok(());
         }
-        Err(Error::Invalid(format!(
-            "Value '{via}' not valid for via; values: pvsyst, {}",
-            crate::aproximaciones::VIA_APROXIMACION
+        Err(Error::Invalid(VALOR_NO_VALIDO.texto_con(
+            idioma,
+            &[
+                ("valor", via),
+                ("tool", "via"),
+                ("campo", "via"),
+                (
+                    "valores",
+                    &format!("pvsyst, {}", crate::aproximaciones::VIA_APROXIMACION),
+                ),
+            ],
         )))
     }
 
-    fn validar_tipos(&self, args: &Value) -> Result<()> {
-        for (prop_nombre, prop_tipo) in self.propiedades {
-            validar_tipo_propiedad(prop_nombre, *prop_tipo, args)?;
+    fn validar_tipos(&self, args: &Value, idioma: Idioma) -> Result<()> {
+        for prop in self.propiedades {
+            validar_tipo_propiedad(prop, args, idioma)?;
         }
         Ok(())
     }
@@ -132,6 +185,7 @@ impl Herramienta {
 fn normalizar_alias_argumentos(
     argumentos: &[(&str, &str)],
     mapa: &mut serde_json::Map<String, Value>,
+    idioma: Idioma,
 ) -> Result<()> {
     for &(alias, canonico) in argumentos {
         let Some(valor_alias) = mapa.remove(alias) else {
@@ -139,9 +193,9 @@ fn normalizar_alias_argumentos(
         };
         match mapa.get(canonico) {
             Some(valor_canonico) if valor_canonico != &valor_alias => {
-                return Err(Error::Invalid(format!(
-                    "Conflicto de argumentos: se pasaron '{canonico}' y su alias '{alias}' con valores distintos"
-                )));
+                return Err(Error::Invalid(
+                    CONFLICTO_ALIAS.texto_con(idioma, &[("canonico", canonico), ("alias", alias)]),
+                ));
             }
             Some(_) => {}
             None => {
@@ -186,10 +240,11 @@ fn normalizar_valor_discriminador(val: &mut Value, valores: &[(&str, &str)]) {
 }
 
 fn validar_tipo_propiedad(
-    prop_nombre: &str,
-    prop_tipo: super::declaracion::TipoDato,
+    prop: &(&'static str, super::declaracion::TipoDato),
     args: &Value,
+    idioma: Idioma,
 ) -> Result<()> {
+    let (prop_nombre, prop_tipo) = *prop;
     let Some(val) = args.get(prop_nombre) else {
         return Ok(());
     };
@@ -197,29 +252,38 @@ fn validar_tipo_propiedad(
         return Ok(());
     }
     if !prop_tipo.es_compatible(val) {
-        return Err(Error::Invalid(format!(
-            "Tipo incorrecto para '{prop_nombre}' (esperado {}, recibido {})",
-            prop_tipo.nombre_esperado(),
-            nombre_tipo_recibido(val)
+        return Err(Error::Invalid(TIPO_INCORRECTO.texto_con(
+            idioma,
+            &[
+                ("campo", prop_nombre),
+                ("esperado", prop_tipo.nombre_esperado()),
+                ("recibido", nombre_tipo_recibido(val)),
+            ],
         )));
     }
-    validar_limites_enteros(prop_nombre, val)
+    validar_limites_enteros(prop_nombre, val, idioma)
 }
 
 /// Rejects an integer outside the bounds the schema declares for `prop_nombre`.
-fn validar_limites_enteros(prop_nombre: &str, val: &Value) -> Result<()> {
+fn validar_limites_enteros(prop_nombre: &str, val: &Value, idioma: Idioma) -> Result<()> {
     let (Some((minimo, maximo)), Some(n)) = (limites_enteros(prop_nombre), val.as_i64()) else {
         return Ok(());
     };
     if n >= minimo && maximo.is_none_or(|max| n <= max) {
         return Ok(());
     }
+    let minimo = minimo.to_string();
     let rango = maximo.map_or_else(
-        || format!("mínimo {minimo}"),
-        |max| format!("entre {minimo} y {max}"),
+        || RANGO_MINIMO.texto_con(idioma, &[("minimo", &minimo)]),
+        |max| RANGO_ENTRE.texto_con(idioma, &[("minimo", &minimo), ("max", &max.to_string())]),
     );
-    Err(Error::Invalid(format!(
-        "Valor {n} fuera de rango para '{prop_nombre}' ({rango})"
+    Err(Error::Invalid(FUERA_DE_RANGO.texto_con(
+        idioma,
+        &[
+            ("n", &n.to_string()),
+            ("prop", prop_nombre),
+            ("rango", &rango),
+        ],
     )))
 }
 

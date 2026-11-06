@@ -10,10 +10,9 @@ use serde_json::{Map, Value};
 
 pub(crate) const TOOL_SIMULAR: Herramienta = Herramienta {
     nombre: "simular",
-    descripcion:
-        "Simulation: run (optional rows/parameters), prepare input, status, pre-estimate and sweep.",
+    descripcion: crate::idioma::Texto { es: "Simulacion: ejecutar (con filas/parametros opcionales), preparar entrada, estado, preestimar y barrido.", en: "Simulation: run (optional rows/parameters), prepare input, status, pre-estimate and sweep." },
     anotaciones: Anotaciones {
-        titulo: "Simulate",
+        titulo: crate::idioma::Texto { es: "Simular", en: "Simulate" },
         es_solo_lectura: false,
         es_destructiva: false,
         es_idempotente: false,

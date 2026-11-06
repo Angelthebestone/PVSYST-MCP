@@ -88,6 +88,7 @@ mod history;
     reason = "deuda medida; pendiente del paso 2 de la limpieza"
 )]
 mod horizonte_archivo;
+mod idioma;
 #[expect(
     clippy::excessive_nesting,
     reason = "deuda medida; pendiente del paso 2 de la limpieza"

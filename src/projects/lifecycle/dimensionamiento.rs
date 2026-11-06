@@ -12,8 +12,10 @@ use serde_json::{json, Value};
 
 pub(crate) const APROXIMACION_DIMENSIONAR_KWP: Aproximacion = Aproximacion {
     funcion: "proyecto dimensionar por kwp via aproximacion",
-    alternativa:
-        "proyecto dimensionar con kwp sin 'via': lo dimensiona el pre-dimensionado de PVsyst (ventana Sistema)",
+    alternativa: crate::idioma::Texto {
+        es: "proyecto dimensionar con kwp sin 'via': lo dimensiona el pre-dimensionado de PVsyst (ventana Sistema)",
+        en: "proyecto dimensionar with kwp without 'via': PVsyst's pre-sizing (System window) does the sizing",
+    },
 };
 
 /// Largest DC target accepted (kWp): above any real single PVsyst variant.
@@ -199,7 +201,14 @@ pub(crate) fn dimensionar_variante(paths: &Paths, args: &Value) -> Result<Value>
     }
     let kwp = leer_kwp(args)?;
     exigir_sin_pre_dimensionado(args)?;
-    aproximaciones::exigir_ruta_pvsyst_sin_workspace(paths, args, "The pre-sizing")?;
+    aproximaciones::exigir_ruta_pvsyst_sin_workspace(
+        paths,
+        args,
+        crate::idioma::Texto {
+            es: "El pre-dimensionado",
+            en: "The pre-sizing",
+        },
+    )?;
     let v = abrir_variante(paths, args)?;
     crate::projects::gui::dimensionado::dimensionar(paths, &v.stem, &v.variante, kwp)
 }
@@ -253,7 +262,7 @@ fn dimensionar_en_archivo(paths: &Paths, args: &Value) -> Result<Value> {
     };
     let mut resp = respuesta_dimensionado(&ctx, &res, &outcomes);
     if !disp.es_nativo {
-        aproximaciones::marcar(&mut resp, &APROXIMACION_DIMENSIONAR_KWP);
+        aproximaciones::marcar(&mut resp, &APROXIMACION_DIMENSIONAR_KWP, paths.idioma);
     }
     Ok(resp)
 }

@@ -1,4 +1,5 @@
 use super::*;
+use crate::idioma::Idioma;
 
 #[test]
 #[ignore = "necesita Currency.dat de la instalación de PVsyst (DataRO): ejecutar con --ignored"]
@@ -18,24 +19,24 @@ fn should_produce_same_preparar_args_for_alias_and_canonical() {
     let args_can = json!({ "archivo": "Demo.PRJ" });
     let args_ali = json!({ "file": "Demo.PRJ" });
     assert_eq!(
-        tool_leer.preparar_args(&args_can).unwrap(),
-        tool_leer.preparar_args(&args_ali).unwrap()
+        tool_leer.preparar_args(&args_can, Idioma::En).unwrap(),
+        tool_leer.preparar_args(&args_ali, Idioma::En).unwrap()
     );
 
     let tool_listar = REGISTRO.iter().find(|h| h.nombre == "listar").unwrap();
     let args_can = json!({ "que": "modulos" });
     let args_ali = json!({ "que": "modules" });
     assert_eq!(
-        tool_listar.preparar_args(&args_can).unwrap(),
-        tool_listar.preparar_args(&args_ali).unwrap()
+        tool_listar.preparar_args(&args_can, Idioma::En).unwrap(),
+        tool_listar.preparar_args(&args_ali, Idioma::En).unwrap()
     );
 
     let tool_comp = REGISTRO.iter().find(|h| h.nombre == "componente").unwrap();
     let args_can = json!({ "accion": "crear", "plantilla": "A", "nombre_nuevo": "B" });
     let args_ali = json!({ "action": "create", "template": "A", "new_name": "B" });
     assert_eq!(
-        tool_comp.preparar_args(&args_can).unwrap(),
-        tool_comp.preparar_args(&args_ali).unwrap()
+        tool_comp.preparar_args(&args_can, Idioma::En).unwrap(),
+        tool_comp.preparar_args(&args_ali, Idioma::En).unwrap()
     );
 }
 
@@ -44,17 +45,17 @@ fn should_reject_conflicting_alias_and_canonical_with_different_values() {
     let tool_leer = REGISTRO.iter().find(|h| h.nombre == "leer").unwrap();
     let conflict = json!({ "archivo": "a.txt", "file": "b.txt" });
     let err = tool_leer
-        .preparar_args(&conflict)
+        .preparar_args(&conflict, Idioma::En)
         .expect_err("conflicting alias and canonical must fail");
     let msg = err.to_string();
     assert!(
-        msg.contains("Conflicto de argumentos") && msg.contains("archivo") && msg.contains("file"),
+        msg.contains("Argument conflict") && msg.contains("archivo") && msg.contains("file"),
         "error must explain the conflict: {msg}"
     );
 
     let same_value = json!({ "archivo": "same.txt", "file": "same.txt" });
     assert!(
-        tool_leer.preparar_args(&same_value).is_ok(),
+        tool_leer.preparar_args(&same_value, Idioma::En).is_ok(),
         "identical values for alias and canonical should succeed"
     );
 }
@@ -167,7 +168,9 @@ fn verificar_colisiones_valores(h: &Herramienta) {
 fn should_not_corrupt_declared_property_source_in_sitio() {
     let tool_sitio = REGISTRO.iter().find(|h| h.nombre == "sitio").unwrap();
     let args = json!({ "accion": "crear", "source": "NASA SSE" });
-    let preparados = tool_sitio.preparar_args(&args).expect("preparar_args");
+    let preparados = tool_sitio
+        .preparar_args(&args, Idioma::En)
+        .expect("preparar_args");
     assert_eq!(preparados.get("source"), Some(&json!("NASA SSE")));
     assert_eq!(preparados.get("origen"), None);
 }
@@ -176,7 +179,9 @@ fn should_not_corrupt_declared_property_source_in_sitio() {
 fn should_normalize_simulation_short_flags_and_reject_conflicting_values() {
     let tool_sim = REGISTRO.iter().find(|h| h.nombre == "simular").unwrap();
     let args_alias = json!({ "csv": "out.csv", "pdf": "out.pdf", "sitio": "Demo" });
-    let norm = tool_sim.preparar_args(&args_alias).expect("preparar_args");
+    let norm = tool_sim
+        .preparar_args(&args_alias, Idioma::En)
+        .expect("preparar_args");
     assert_eq!(norm.get("output_csv"), Some(&json!("out.csv")));
     assert_eq!(norm.get("report_pdf"), Some(&json!("out.pdf")));
     assert_eq!(norm.get("site"), Some(&json!("Demo")));
@@ -188,7 +193,7 @@ fn should_normalize_simulation_short_flags_and_reject_conflicting_values() {
 
     let conflict = json!({ "output_csv": "a.csv", "csv": "b.csv" });
     assert!(matches!(
-        tool_sim.preparar_args(&conflict),
+        tool_sim.preparar_args(&conflict, Idioma::En),
         Err(crate::error::Error::Invalid(_))
     ));
 }
@@ -204,7 +209,7 @@ fn should_accept_loose_aliases_in_sitio_and_disenar_sistema() {
         "cof": "opts.txt"
     });
     let norm_sitio = tool_sitio
-        .preparar_args(&args_sitio)
+        .preparar_args(&args_sitio, Idioma::En)
         .expect("preparar_args sitio");
     assert_eq!(norm_sitio.get("source"), Some(&json!("NASA SSE")));
     assert_eq!(norm_sitio.get("timezone"), Some(&json!(1.0)));
@@ -223,7 +228,7 @@ fn should_accept_loose_aliases_in_sitio_and_disenar_sistema() {
         "azimuth": 0.0
     });
     let norm_dis = tool_dis
-        .preparar_args(&args_dis)
+        .preparar_args(&args_dis, Idioma::En)
         .expect("preparar_args disenar");
     assert_eq!(norm_dis.get("latitud"), Some(&json!(10.0)));
     assert_eq!(norm_dis.get("longitud"), Some(&json!(20.0)));

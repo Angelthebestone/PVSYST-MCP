@@ -11,8 +11,10 @@ use std::fs;
 
 const AP_P50: Aproximacion = Aproximacion {
     funcion: "resultados p50_p90",
-    alternativa:
-        "configurar la evaluación P50-P90 en la variante y simular con la página de informe p50p90",
+    alternativa: crate::idioma::Texto {
+        es: "configurar la evaluación P50-P90 en la variante y simular con la página de informe p50p90",
+        en: "configure the P50-P90 evaluation in the variant and simulate with the p50p90 report page",
+    },
 };
 
 pub(super) fn tabla_mensual(mens: &Value) -> Vec<String> {
@@ -166,7 +168,7 @@ fn calcular_p50(paths: &Paths, c: &Caso, args: &Value) -> Result<(Option<Value>,
     }
     let (sm, fuente, aviso) = sigma_meteo(c, args)?;
     let mut p50 = incertidumbre(c.energia_kwh, sm, sigma_modelo(args)?, &fuente);
-    marcar(&mut p50, &AP_P50);
+    marcar(&mut p50, &AP_P50, paths.idioma);
     Ok((Some(p50), aviso))
 }
 

@@ -3,6 +3,7 @@
 //! The `Display` text of every variant is what the MCP client sees, so messages
 //! stay human-readable; the variant is what logs and callers can match on.
 
+use crate::idioma::{Idioma, Texto};
 use std::io;
 
 /// `Result` defaulting to this crate's [`Error`].
@@ -18,7 +19,7 @@ pub(crate) enum Error {
     #[error("{}", missing_text(.key, .hint))]
     MissingArg { key: String, hint: String },
     /// Several required arguments are absent; `ejemplo` is a call that supplies them all.
-    #[error("Missing: {}. Example: {}", .claves.join(", "), .ejemplo)]
+    #[error("{}", faltan_texto(.claves, .ejemplo))]
     MissingArgs {
         claves: Vec<String>,
         ejemplo: String,
@@ -50,12 +51,33 @@ pub(crate) enum Error {
     Invalid(String),
 }
 
+const FALTA_ARGUMENTO: Texto = Texto {
+    es: "Falta el argumento obligatorio '{key}'",
+    en: "Missing required argument '{key}'",
+};
+const FALTA_ARGUMENTO_CON_HINT: Texto = Texto {
+    es: "Falta el argumento obligatorio '{key}' ({hint})",
+    en: "Missing required argument '{key}' ({hint})",
+};
+const FALTAN_ARGUMENTOS: Texto = Texto {
+    es: "Faltan: {claves}. Ejemplo: {ejemplo}",
+    en: "Missing: {claves}. Example: {ejemplo}",
+};
+
 fn missing_text(key: &str, hint: &str) -> String {
-    if hint.is_empty() {
-        format!("Missing required argument '{key}'")
+    let plantilla = if hint.is_empty() {
+        FALTA_ARGUMENTO
     } else {
-        format!("Missing required argument '{key}' ({hint})")
-    }
+        FALTA_ARGUMENTO_CON_HINT
+    };
+    plantilla.texto_con(Idioma::de_entorno(), &[("key", key), ("hint", hint)])
+}
+
+fn faltan_texto(claves: &[String], ejemplo: &str) -> String {
+    FALTAN_ARGUMENTOS.texto_con(
+        Idioma::de_entorno(),
+        &[("claves", &claves.join(", ")), ("ejemplo", ejemplo)],
+    )
 }
 
 impl Error {

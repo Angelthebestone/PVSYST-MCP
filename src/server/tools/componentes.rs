@@ -9,9 +9,9 @@ use serde_json::Value;
 
 pub(crate) const TOOL_COMPONENTE: Herramienta = Herramienta {
     nombre: "componente",
-    descripcion: "Component database: create, delete, import, export or create from a datasheet (PVsyst fits the model in its own window). import: origen (file), optional nombre_nuevo; 'destino' does not apply.",
+    descripcion: crate::idioma::Texto { es: "Base de datos de componentes: crear, borrar, importar, exportar o crear desde ficha tecnica (PVsyst ajusta el modelo en su ventana). importar: origen (archivo), nombre_nuevo opcional; 'destino' no aplica.", en: "Component database: create, delete, import, export or create from a datasheet (PVsyst fits the model in its own window). import: origen (file), optional nombre_nuevo; 'destino' does not apply." },
     anotaciones: Anotaciones {
-        titulo: "Component",
+        titulo: crate::idioma::Texto { es: "Componente", en: "Component" },
         es_solo_lectura: false,
         es_destructiva: true,
         es_idempotente: false,

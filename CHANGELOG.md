@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Configurable client-facing language** via `PVSYST_MCP_IDIOMA` (`es` or `en`, default `en`; also a
+  user-configurable option of the mcpb bundle). It selects the language of every client-visible
+  string: tool descriptions and titles, schema annotations, recipes (resource and prompts),
+  `pvsyst://` resource names, the server `instructions` of `initialize` and the runtime messages
+  (missing arguments, wrong types, out-of-range values, alias conflicts, unknown tool or resource,
+  licence instructions, workspace rejections and approximation warnings). Protocol identifiers
+  (`accion`/`que` values, argument names, `detalle` values) stay as they are.
 - **`vista` block on every tool answer** (all 15 tools, every `accion`/`que`, errors included):
   `estado` (`ok|parcial|error`), `resumen`, `campos` with stable keys, unit and origin (`pvsyst`, `mcp`,
   `aproximacion_mcp`), `avisos`, `siguiente` as `{tool, argumentos}` that the target tool accepts as

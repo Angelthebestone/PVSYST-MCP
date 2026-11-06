@@ -85,7 +85,7 @@ pub(crate) fn disenar_sistema(paths: &Paths, args: &Value) -> Result<Value> {
     let c = correr_transaccional(paths, &params, origen)?;
     let mut res = serializar_resultado(&params, &c);
     if es_aproximacion {
-        aproximaciones::marcar(&mut res, &APROXIMACION_DISENO_AUTOMATICO);
+        aproximaciones::marcar(&mut res, &APROXIMACION_DISENO_AUTOMATICO, paths.idioma);
     }
     Ok(res)
 }
