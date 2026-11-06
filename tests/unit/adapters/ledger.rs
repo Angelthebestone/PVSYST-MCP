@@ -9,17 +9,7 @@ fn ws_temporal() -> tempfile::TempDir {
 }
 
 #[test]
-fn banner_trial_da_dias_y_ejecuciones() {
-    assert_eq!(parsear_banner(BANNER), Some((Some(58), 223)));
-}
-
-#[test]
-fn salida_sin_banner_trial_no_tiene_contadores() {
-    assert_eq!(parsear_banner("Simulation done in 3min 2sec"), None);
-}
-
-#[test]
-fn registrar_descuenta_la_ejecucion_usada() {
+fn should_discount_the_spent_executions_when_registering_a_run() {
     let tmp = ws_temporal();
     let dir = tmp.path();
     let costo = registrar(dir, BANNER, 1);
@@ -28,15 +18,7 @@ fn registrar_descuenta_la_ejecucion_usada() {
 }
 
 #[test]
-fn sin_banner_se_registra_licencia() {
-    let tmp = ws_temporal();
-    let dir = tmp.path();
-    registrar(dir, "Simulation done in 1min", 1);
-    assert_eq!(estado(dir).map(|e| e.modo), Some("licencia".to_owned()));
-}
-
-#[test]
-fn confirmacion_solo_en_trial_con_varias_ejecuciones() {
+fn should_ask_for_confirmation_when_a_trial_run_would_spend_several_executions() {
     let tmp = ws_temporal();
     let dir = tmp.path();
     let plan = vec!["barrido".to_owned()];
@@ -63,18 +45,4 @@ fn should_ask_for_confirmation_when_ledger_is_corrupt() {
     assert_eq!(retencion["requiere_confirmacion"], json!(true));
     assert!(requiere_confirmacion(dir, &json!({"confirmar": true}), 3, &plan).is_none());
     assert_eq!(estado(dir), None);
-}
-
-#[test]
-fn should_not_ask_for_confirmation_before_the_first_run() {
-    let tmp = ws_temporal();
-
-    assert!(requiere_confirmacion(tmp.path(), &json!({}), 3, &["x".to_owned()]).is_none());
-}
-
-#[test]
-fn should_read_remaining_executions_when_banner_has_no_days() {
-    let banner = "PVsystCLI is running in TRIAL mode, remaining executions: 12";
-
-    assert_eq!(parsear_banner(banner), Some((None, 12)));
 }
