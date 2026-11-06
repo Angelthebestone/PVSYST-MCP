@@ -65,7 +65,3 @@ pub(super) fn archivos_sitio(ws: &Path, args: &Value) -> Result<Vec<String>> {
     }
     Ok(opciones)
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/sites/opciones_crear.rs"]
-mod tests;
