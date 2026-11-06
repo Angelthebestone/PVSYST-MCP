@@ -66,7 +66,7 @@ fn should_reject_unknown_discriminator_value_and_list_admitted() {
         .expect_err("unknown discriminator value should be rejected");
     let msg = err.to_string();
     assert!(
-        msg.contains("Valor 'inexistente' no válido para entorno (accion)"),
+        msg.contains("Value 'inexistente' not valid for entorno (accion)"),
         "error must identify invalid value: {msg}"
     );
     assert!(

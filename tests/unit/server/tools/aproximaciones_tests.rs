@@ -161,7 +161,7 @@ fn should_reject_unknown_via_route() {
         &json!({ "accion": "horizonte_pvgis", "proyecto": "Demo", "via": "desconocida" }),
     )
     .expect_err("unknown via must be rejected");
-    assert!(err.to_string().contains("no válido para via"), "{err}");
+    assert!(err.to_string().contains("not valid for via"), "{err}");
 }
 
 #[test]

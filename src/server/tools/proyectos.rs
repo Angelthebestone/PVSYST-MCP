@@ -175,7 +175,7 @@ fn ejecutar_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
         "p50_p90" => configurar_p50(paths, args),
         "limpiar_temporales" => projects::temporales::limpiar_temporales(paths, args),
         _ => Err(Error::Invalid(format!(
-            "Valor '{valor}' no soportado para proyecto"
+            "Value '{valor}' not supported for proyecto"
         ))),
     }
 }
@@ -273,7 +273,7 @@ fn configurar_p50(paths: &Paths, args: &Value) -> Result<Value> {
     crate::aproximaciones::exigir_ruta_pvsyst_sin_workspace(
         paths,
         args,
-        "La configuración P50/P90",
+        "The P50/P90 configuration",
     )?;
     let proyecto = crate::args::req_str(args, &["proyecto"], "")?;
     let proyecto = proyecto.strip_suffix(".PRJ").unwrap_or(proyecto);

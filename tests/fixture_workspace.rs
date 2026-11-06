@@ -235,7 +235,7 @@ fn a_missing_required_argument_is_reported_as_a_tool_error() {
     let resp = c.call(2, "leer", json!({}));
     assert_eq!(resp["result"]["isError"], true, "resp={resp}");
     let text = resp["result"]["content"][0]["text"].as_str().unwrap();
-    assert!(text.contains("Faltan: archivo"), "text={text}");
+    assert!(text.contains("Missing: archivo"), "text={text}");
 }
 
 #[test]

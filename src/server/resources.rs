@@ -34,7 +34,7 @@ pub(crate) fn read(uri: &str, aproximaciones: bool) -> Result<Value> {
             "application/json",
             crate::gui_catalogo::como_recurso().to_string(),
         ),
-        _ => return Err(Error::NotFound(format!("Recurso desconocido: {uri}"))),
+        _ => return Err(Error::NotFound(format!("Unknown resource: {uri}"))),
     };
     Ok(json!({ "contents": [{ "uri": uri, "mimeType": mime, "text": text }] }))
 }

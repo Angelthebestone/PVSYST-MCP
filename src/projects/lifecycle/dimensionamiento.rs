@@ -199,7 +199,7 @@ pub(crate) fn dimensionar_variante(paths: &Paths, args: &Value) -> Result<Value>
     }
     let kwp = leer_kwp(args)?;
     exigir_sin_pre_dimensionado(args)?;
-    aproximaciones::exigir_ruta_pvsyst_sin_workspace(paths, args, "El pre-dimensionado")?;
+    aproximaciones::exigir_ruta_pvsyst_sin_workspace(paths, args, "The pre-sizing")?;
     let v = abrir_variante(paths, args)?;
     crate::projects::gui::dimensionado::dimensionar(paths, &v.stem, &v.variante, kwp)
 }

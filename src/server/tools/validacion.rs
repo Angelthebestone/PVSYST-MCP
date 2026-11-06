@@ -54,7 +54,7 @@ impl Herramienta {
             })
             .collect();
         Err(Error::Invalid(format!(
-            "Valor '{valor}' no válido para {} ({}); valores: {}",
+            "Value '{valor}' not valid for {} ({}); values: {}",
             self.nombre,
             disc.campo,
             visibles.join(", ")
@@ -98,7 +98,7 @@ impl Herramienta {
         };
         if !super::recorte::DETALLES.contains(&d) {
             return Err(Error::Invalid(format!(
-                "Valor '{d}' no válido para detalle; valores: {}",
+                "Value '{d}' not valid for detalle; values: {}",
                 super::recorte::DETALLES.join(", ")
             )));
         }
@@ -116,7 +116,7 @@ impl Herramienta {
             return Ok(());
         }
         Err(Error::Invalid(format!(
-            "Valor '{via}' no válido para via; valores: pvsyst, {}",
+            "Value '{via}' not valid for via; values: pvsyst, {}",
             crate::aproximaciones::VIA_APROXIMACION
         )))
     }

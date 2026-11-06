@@ -89,7 +89,7 @@ fn ejecutar_componente(paths: &Paths, args: &Value) -> Result<Value> {
         "exportar" => admin::exportar_componente(paths, args),
         "crear_desde_ficha" => components::ficha::crear_desde_ficha(paths, args),
         _ => Err(Error::Invalid(format!(
-            "Valor '{valor}' no soportado para componente"
+            "Value '{valor}' not supported for componente"
         ))),
     }
 }

@@ -75,10 +75,10 @@ pub(crate) fn obtener_prompt(params: &Value, aproximaciones: bool) -> Result<Val
         .get("name")
         .and_then(Value::as_str)
         .filter(|n| !n.is_empty())
-        .ok_or_else(|| args::missing("name", "id de la receta"))?;
+        .ok_or_else(|| args::missing("name", "recipe id"))?;
     let receta = visibles(aproximaciones)
         .find(|r| r.id == nombre)
-        .ok_or_else(|| Error::NotFound(format!("Prompt desconocido: {nombre}")))?;
+        .ok_or_else(|| Error::NotFound(format!("Unknown prompt: {nombre}")))?;
     let argumentos = params.get("arguments").unwrap_or(&Value::Null);
     let texto = rellenar(receta, argumentos)?;
     Ok(json!({

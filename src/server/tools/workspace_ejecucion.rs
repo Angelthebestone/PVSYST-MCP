@@ -34,7 +34,7 @@ pub(super) fn ejecutar_workspace(paths: &Paths, args: &Value) -> Result<Value> {
             Alcance::de_args(args),
         ),
         _ => Err(Error::Invalid(format!(
-            "Valor '{valor}' no soportado para workspace"
+            "Value '{valor}' not supported for workspace"
         ))),
     }
 }
@@ -149,7 +149,7 @@ pub(super) fn ejecutar_editar(paths: &Paths, args: &Value) -> Result<Value> {
         "eliminar_objeto" => projects::anadir::eliminar_objeto_archivo(paths, args),
         "rvt" | "plantilla_rvt" => crate::plantilla_variables::gestionar_rvt(paths, args),
         _ => Err(Error::Invalid(format!(
-            "Valor '{valor}' no soportado para editar"
+            "Value '{valor}' not supported for editar"
         ))),
     }
 }
@@ -163,7 +163,7 @@ pub(super) fn ejecutar_listar(paths: &Paths, args: &Value) -> Result<Value> {
         "archivos" => crate::workspace::listar_archivos(paths, args),
         "objetos" => objects::listar_objetos(paths, args),
         _ => Err(Error::Invalid(format!(
-            "Valor '{valor}' no soportado para listar"
+            "Value '{valor}' not supported for listar"
         ))),
     }
 }

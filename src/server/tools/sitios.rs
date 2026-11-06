@@ -126,7 +126,7 @@ fn ejecutar_sitio(paths: &Paths, args: &Value) -> Result<Value> {
                 "coordenadas" => sites::crear_sitio_coordenadas(paths, args),
                 "csv" => sites::crear_sitio(paths, args),
                 otro => Err(Error::Invalid(format!(
-                    "Origen '{otro}' no válido: usa coordenadas o csv"
+                    "Origin '{otro}' not valid: use coordinates or csv"
                 ))),
             }
         }
@@ -137,7 +137,7 @@ fn ejecutar_sitio(paths: &Paths, args: &Value) -> Result<Value> {
         "escribir_horizonte" => crate::horizonte_archivo::escribir_horizonte(paths, args),
         "escribir_serie" => crate::serie_horaria::escribir_serie(paths, args),
         _ => Err(Error::Invalid(format!(
-            "Valor '{valor}' no soportado para sitio"
+            "Value '{valor}' not supported for sitio"
         ))),
     }
 }

@@ -158,7 +158,7 @@ fn ejecutar_entorno(paths: &Paths, args: &Value) -> Result<Value> {
         "preferencias" => prefs::preferencias(args),
         "preferencias_editar" => prefs::preferencias_editar(args),
         _ => Err(Error::Invalid(format!(
-            "Valor '{valor}' no soportado para entorno"
+            "Value '{valor}' not supported for entorno"
         ))),
     }
 }
@@ -167,7 +167,7 @@ fn comando_licencia(argumentos: &str) -> Value {
     json!({
         "ejecutado": false,
         "comando": format!("PVsystCLI.exe {argumentos}"),
-        "instrucciones": "Ejecuta este comando tú mismo en una terminal, sustituyendo el marcador por tu dato real. Esta tool no activa ni desactiva licencias."
+        "instrucciones": "Run this command yourself in a terminal, replacing the placeholder with your real value. This tool does not activate or deactivate licences."
     })
 }
 

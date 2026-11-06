@@ -18,7 +18,7 @@ pub(crate) enum Error {
     #[error("{}", missing_text(.key, .hint))]
     MissingArg { key: String, hint: String },
     /// Several required arguments are absent; `ejemplo` is a call that supplies them all.
-    #[error("Faltan: {}. Ejemplo: {}", .claves.join(", "), .ejemplo)]
+    #[error("Missing: {}. Example: {}", .claves.join(", "), .ejemplo)]
     MissingArgs {
         claves: Vec<String>,
         ejemplo: String,

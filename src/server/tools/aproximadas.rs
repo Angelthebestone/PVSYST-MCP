@@ -17,7 +17,7 @@ static ACCIONES: &[(&str, &str, Aproximacion)] = &[
         "preestimar",
         Aproximacion {
             funcion: "simular preestimar",
-            alternativa: "simular accion:ejecutar sobre el proyecto (PVsystCLI run-simulation)",
+            alternativa: "simular accion:ejecutar on the project (PVsystCLI run-simulation)",
         },
     ),
     (
@@ -25,7 +25,7 @@ static ACCIONES: &[(&str, &str, Aproximacion)] = &[
         "barrido",
         Aproximacion {
             funcion: "simular barrido",
-            alternativa: "simular accion:ejecutar con 'filas' (modo lote -bpf: Plane tilt / Plane azim por fila)",
+            alternativa: "simular accion:ejecutar with 'filas' (batch mode -bpf: Plane tilt / Plane azim per row)",
         },
     ),
     (
@@ -33,7 +33,7 @@ static ACCIONES: &[(&str, &str, Aproximacion)] = &[
         "geometria_solar",
         Aproximacion {
             funcion: "sitio geometria_solar",
-            alternativa: "simular accion:ejecutar con un SFI que pida HSol, AzSol, AngInc, GlobInc y FTransp (input_sfi_file)",
+            alternativa: "simular accion:ejecutar with an SFI that requests HSol, AzSol, AngInc, GlobInc and FTransp (input_sfi_file)",
         },
     ),
     (
@@ -41,7 +41,7 @@ static ACCIONES: &[(&str, &str, Aproximacion)] = &[
         "medido_vs_simulado",
         Aproximacion {
             funcion: "resultados medido_vs_simulado",
-            alternativa: "la herramienta de datos medidos de la GUI de PVsyst (Herramientas → Datos medidos)",
+            alternativa: "the measured-data tool of the PVsyst GUI (Tools → Measured data)",
         },
     ),
 ];

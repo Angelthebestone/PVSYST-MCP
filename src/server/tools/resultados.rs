@@ -102,7 +102,7 @@ fn ejecutar_resultados(paths: &Paths, args: &Value) -> Result<Value> {
         "entregable" => engineering::entregable(paths, args),
         "resumen" => resumen(paths, args),
         _ => Err(Error::Invalid(format!(
-            "Valor '{valor}' no soportado para resultados"
+            "Value '{valor}' not supported for resultados"
         ))),
     }
 }
@@ -129,7 +129,7 @@ fn exigir_proyecto_de_kpis(paths: &Paths, args: &Value) -> Result<()> {
         return Ok(());
     }
     Err(Error::Invalid(
-        "'proyecto' es obligatorio para que:kpis (o 'archivo'/'report_pdf' con el PDF)".into(),
+        "'proyecto' is required for que:kpis (or 'archivo'/'report_pdf' with the PDF)".into(),
     ))
 }
 

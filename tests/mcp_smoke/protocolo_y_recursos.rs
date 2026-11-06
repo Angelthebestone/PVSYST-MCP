@@ -85,7 +85,7 @@ fn resources_list_and_read() {
     assert!(bad["error"]["message"]
         .as_str()
         .unwrap()
-        .contains("Recurso desconocido"));
+        .contains("Unknown resource"));
 }
 
 #[test]

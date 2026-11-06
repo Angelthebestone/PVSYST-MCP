@@ -6,7 +6,7 @@ fn should_reject_missing_required_arg() {
     let err = call(&paths, "leer", &json!({})).expect_err("should reject missing required arg");
     let msg = err.to_string();
     assert!(
-        msg.contains("Faltan: archivo") && msg.contains("Ejemplo:"),
+        msg.contains("Missing: archivo") && msg.contains("Example:"),
         "error message must name the missing field and give an example: {msg}"
     );
 }
@@ -171,7 +171,7 @@ fn should_demand_the_window_when_a_menu_command_names_none() {
         .unwrap_err()
         .to_string();
     assert!(
-        error.contains("Faltan: ventana"),
+        error.contains("Missing: ventana"),
         "missing expected 'ventana' error, got: {error}"
     );
 }

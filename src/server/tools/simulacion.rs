@@ -143,7 +143,7 @@ fn ejecutar_simular(
         "preestimar" => preestimate::preestimar(args),
         "barrido" => preestimate::barrido(paths, args, seguimiento),
         _ => Err(Error::Invalid(format!(
-            "Valor '{valor}' no soportado para simular"
+            "Value '{valor}' not supported for simular"
         ))),
     }
 }

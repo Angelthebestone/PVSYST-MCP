@@ -39,7 +39,7 @@ pub(crate) fn exigir_ruta_pvsyst_sin_workspace(
     }
     match args.get("workspace").and_then(Value::as_str) {
         Some(w) if Path::new(w) != paths.workspace.as_path() => Err(Error::Invalid(format!(
-            "{quien} lo hace PVsyst en su propio espacio de trabajo: no admite 'workspace'"
+            "{quien} runs on PVsyst in its own workspace: 'workspace' is not supported"
         ))),
         _ => Ok(()),
     }
@@ -87,8 +87,8 @@ pub(crate) fn exigir(paths: &Paths, aproximacion: &Aproximacion) -> Result<()> {
         return Ok(());
     }
     Err(Error::Invalid(format!(
-        "'{}' es un cálculo propio del MCP, no de PVsyst. Para obtenerlo de PVsyst: {}. \
-         Si aceptas la aproximación, define {VARIABLE_ENTORNO}=1 en el servidor MCP.",
+        "'{}' is an MCP in-house calculation, not a PVsyst one. To get it from PVsyst: {}. \
+         If you accept the approximation, set {VARIABLE_ENTORNO}=1 in the MCP server.",
         aproximacion.funcion, aproximacion.alternativa
     )))
 }
@@ -102,7 +102,7 @@ pub(crate) fn marcar(resultado: &mut Value, aproximacion: &Aproximacion) {
     obj.insert(
         "aviso_origen".into(),
         json!(format!(
-            "Calculado por el MCP, no por PVsyst; puede diferir del simulador. Equivalente en PVsyst: {}",
+            "Computed by the MCP, not by PVsyst; it may differ from the simulator. PVsyst equivalent: {}",
             aproximacion.alternativa
         )),
     );
