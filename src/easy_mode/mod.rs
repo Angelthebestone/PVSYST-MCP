@@ -8,7 +8,9 @@
 mod baterias;
 mod diagnostico;
 mod dimensionado;
+mod fallo_simulacion;
 mod lectura_argumentos;
+mod meteonorm;
 mod parametros;
 mod pasos;
 pub(crate) mod proyecto;
@@ -46,6 +48,10 @@ const MAX_DEVIATION_PCT: f64 = 5.0;
 pub(crate) fn disenar_sistema(paths: &Paths, args: &Value) -> Result<Value> {
     let params = DisenoParametros::parse(args)?;
     exigir_dimensionado_sin_gui(&params)?;
+    meteonorm::exigir_si_sintetica(
+        meteonorm::bases_de_instalacion(paths).as_deref(),
+        params.simulacion.simular && params.simulacion.synthetic_weather,
+    )?;
     let paths = &Paths {
         workspace: params
             .workspace

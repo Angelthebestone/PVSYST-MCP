@@ -177,3 +177,20 @@ fn should_plan_outputs_from_the_command_line_when_args_use_defaults() {
     assert_eq!(plan.ocf.as_deref(), Some(csv.to_string_lossy().as_ref()));
     assert_eq!(plan.rpf.as_deref(), Some(pdf.to_string_lossy().as_ref()));
 }
+
+#[test]
+fn should_pass_synthetic_weather_to_the_simulation_step_as_swg() {
+    // Given: the arguments the easy-mode pipeline builds for its simulation step
+    let args = json!({ "proyecto": "Planta", "variante": "VC0", "site": "Sitio.SIT",
+                       "synthetic_weather": true });
+
+    // When
+    let mut v = Vec::new();
+    push_options(&args, &mut v);
+
+    // Then: PVsystCLI receives the flag that generates the synthetic weather
+    assert!(v.contains(&"-swg".to_string()), "args={v:?}");
+    let mut sin = Vec::new();
+    push_options(&json!({ "synthetic_weather": false }), &mut sin);
+    assert!(!sin.contains(&"-swg".to_string()), "args={sin:?}");
+}

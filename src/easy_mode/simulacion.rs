@@ -249,6 +249,7 @@ pub(crate) fn ejecutar_paso_simulacion(
     };
     let (ok_sitio, detalle_sitio, kpis, kpis_error) = actualizar_sitio_y_kpis(paths, &ctx_act);
     let avisos_pvsyst = avisos_de_simulacion(&sim);
+    let detalle_error = (!ok).then(|| super::fallo_simulacion::explicar(&sim)).flatten();
     Ok(PasoSimulacionSalida {
         sim_info: sim.get("stdout_tail").cloned().unwrap_or(Value::Null),
         avisos_pvsyst,
@@ -259,6 +260,7 @@ pub(crate) fn ejecutar_paso_simulacion(
         sim_ok: ok,
         sitio_proyecto_ok: ok_sitio,
         sitio_proyecto_detalle: detalle_sitio,
+        detalle_error,
     })
 }
 
