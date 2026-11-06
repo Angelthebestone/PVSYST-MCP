@@ -8,9 +8,9 @@ use serde_json::Value;
 
 pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
     nombre: "proyecto",
-    descripcion: "Ciclo de vida de proyectos y variantes: crear, eliminar, renombrar, dimensionar (pre-dimensionado de PVsyst), diagnosticar, anadir objetos, convertir a seguidor, limite de inyeccion, almacenamiento, perdidas, bombeo, economia, P50-P90, configurar (varios cambios de variante en una llamada con 'pasos'). / EN: Project and variant lifecycle: create, delete, rename, size (PVsyst pre-sizing), diagnose, add objects, convert to tracker, injection limit, storage, losses, pumping, economics, P50-P90, configure (several variant changes in one call via 'pasos').",
+    descripcion: "Project and variant lifecycle: create, delete, rename, size (PVsyst pre-sizing), diagnose, add objects, convert to tracker, injection limit, storage, losses, pumping, economics, P50-P90, configure (several variant changes in one call via 'pasos').",
     anotaciones: Anotaciones {
-        titulo: "Proyecto / Project",
+        titulo: "Project",
         es_solo_lectura: false,
         es_destructiva: true,
         es_idempotente: false,

@@ -13,9 +13,9 @@ use serde_json::{json, Value};
 
 pub(crate) const TOOL_ENTORNO: Herramienta = Herramienta {
     nombre: "entorno",
-    descripcion: "Entorno PVsyst: diagnostico, licencia, logs y preferencias. / EN: PVsyst environment: diagnostics, licence, logs and preferences.",
+    descripcion: "PVsyst environment: diagnostics, licence, logs and preferences.",
     anotaciones: Anotaciones {
-        titulo: "Entorno / Environment",
+        titulo: "Environment",
         es_solo_lectura: false,
         es_destructiva: false,
         es_idempotente: false,
@@ -76,9 +76,9 @@ const SINONIMOS_ENTORNO: Sinonimos = Sinonimos {
 
 pub(crate) const TOOL_DISENAR_SISTEMA: Herramienta = Herramienta {
     nombre: "disenar_sistema",
-    descripcion: "E2E en una llamada: coordenadas + kWp (red o aislado) -> sitio -> proyecto -> dimensionado -> simulacion -> KPIs. / EN: End-to-end in one call: coordinates + kWp (grid or stand-alone) -> site -> project -> sizing -> simulation -> KPIs.",
+    descripcion: "End-to-end in one call: coordinates + kWp (grid or stand-alone) -> site -> project -> sizing -> simulation -> KPIs.",
     anotaciones: Anotaciones {
-        titulo: "Diseñar sistema / Design system",
+        titulo: "Design system",
         es_solo_lectura: false,
         es_destructiva: true,
         es_idempotente: false,

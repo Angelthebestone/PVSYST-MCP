@@ -97,21 +97,21 @@ pub(crate) fn ocultar_via(esquema: &mut Value) {
     }
 }
 
-const DESCRIPCION_VIA_SOLO_PVSYST: &str = "pvsyst (defecto): la ruta de PVsyst.";
+const DESCRIPCION_VIA_SOLO_PVSYST: &str = "pvsyst (default): the PVsyst route.";
 
 /// Tool descriptions without the in-house actions, for `tools/list` when they are off.
 static DESCRIPCIONES_SIN_APROXIMACIONES: &[(&str, &str)] = &[
     (
         "simular",
-        "Simulacion: ejecutar (con filas/parametros opcionales), preparar entrada y estado. / EN: Simulation: run (optional rows/parameters), prepare input and status.",
+        "Simulation: run (optional rows/parameters), prepare input and status.",
     ),
     (
         "sitio",
-        "Sitios y meteo: crear (coordenadas o CSV), convertir, horizonte y TMY de PVGIS. / EN: Sites and weather: create (coordinates or CSV), convert, PVGIS horizon and TMY.",
+        "Sites and weather: create (coordinates or CSV), convert, PVGIS horizon and TMY.",
     ),
     (
         "resultados",
-        "Resultados: KPIs, CSV, perdidas, mensual, comparacion, P50/P90, carbono, economia y entregable. / EN: Results: KPIs, CSV, losses, monthly, comparison, P50/P90, carbon, economics and deliverable.",
+        "Results: KPIs, CSV, losses, monthly, comparison, P50/P90, carbon, economics and deliverable.",
     ),
 ];
 
