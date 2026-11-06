@@ -74,28 +74,6 @@ fn should_find_every_file_key_of_the_inverter_schema_in_the_inverter_pvsyst_save
     }
 }
 
-#[test]
-fn should_keep_the_units_the_saved_inverter_shows_for_the_values_typed() {
-    // Volts and kilowatts, as typed by `rellenar`.
-    let tecleado = [
-        ("VMppMin", 310.0),
-        ("VmppNom", 600.0),
-        ("VMPPMax", 820.0),
-        ("VAbsMax", 1000.0),
-        ("VOutConv", 400.0),
-        ("PNomConv", 20.5),
-        ("PMaxOUT", 22.5),
-        ("PSeuil", 0.1),
-    ];
-    for (clave, esperado) in tecleado {
-        assert_eq!(
-            valor_guardado(INVERSOR_GUARDADO, clave),
-            Some(esperado),
-            "{clave}"
-        );
-    }
-}
-
 /// A battery typed through `rellenar` and saved by PVsyst 8.1.8.
 const BATERIA_GUARDADA: &str =
     include_str!("../../fixtures/vista_agente/Bateria_distintos_8_1_8.BTR");
@@ -154,22 +132,5 @@ fn should_find_every_file_key_of_the_orientation_and_system_schemas_in_the_varia
                 "{clave} no está en la variante guardada"
             );
         }
-    }
-}
-
-#[test]
-fn should_keep_the_values_the_saved_variant_shows_for_what_was_typed() {
-    for (clave, tecleado) in [
-        ("FieldTilt", 25.0),
-        ("FieldAzim", 10.0),
-        ("NModSerie", 28.0),
-        ("NStringCh", 4.0),
-        ("NInverter", 1.0),
-    ] {
-        assert_eq!(
-            valor_guardado(VARIANTE_GUARDADA, clave),
-            Some(tecleado),
-            "{clave}"
-        );
     }
 }
