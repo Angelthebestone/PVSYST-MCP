@@ -99,7 +99,7 @@ fn should_describe_entry_point_in_json_when_function_is_a_nested_button() {
     assert_eq!(boton["via"], "boton");
     assert_eq!(boton["ventana"], "TToolsForm");
     assert_eq!(boton["requiere"], "inicio.herramientas");
-    assert_eq!(boton["abre"], "TArrayCharactForm");
+    assert_eq!(boton["abre"], "TTranspositionForm");
 }
 
 #[test]
@@ -276,4 +276,25 @@ fn should_carry_no_user_paths_or_project_names_when_the_window_map_is_published(
         !mapa.contains("C:\\\\"),
         "el mapa contiene una ruta de disco"
     );
+}
+
+#[test]
+fn should_map_factor_transposicion_to_the_window_it_opens() {
+    let halladas = buscar(funciones(), "herramientas.factor_transposicion");
+    let [funcion] = halladas.as_slice() else {
+        panic!("factor_transposicion is not in the catalogue");
+    };
+
+    assert_eq!(funcion.ventana, "TToolsForm");
+    assert_eq!(funcion.abre, Some("TTranspositionForm"));
+}
+
+#[test]
+fn should_map_comportamiento_electrico_to_its_own_window() {
+    let halladas = buscar(funciones(), "herramientas.comportamiento_electrico");
+    let [funcion] = halladas.as_slice() else {
+        panic!("comportamiento_electrico is not in the catalogue");
+    };
+
+    assert_eq!(funcion.abre, Some("TArrayCharactForm"));
 }
