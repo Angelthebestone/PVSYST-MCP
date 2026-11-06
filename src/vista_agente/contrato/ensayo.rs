@@ -7,14 +7,17 @@ use crate::args::flag;
 use crate::error::{Error, Result};
 use serde_json::Value;
 
-/// Whether `accion` of `tool` reads its dry-run switch.
+/// Whether `accion` of `tool` reads its dry-run switch, either to plan the run
+/// or to refuse it by name with what it would cost.
 fn implementa_ensayo(tool: &str, accion: &str) -> bool {
     matches!(
         (tool, accion),
         ("pvsyst_cli", _)
             | ("entorno", "licencia" | "licencia_sync" | "exportar_logs")
             | ("simular", "ejecutar")
-            | ("sitio", "convertir_meteo" | "crear")
+            | ("sitio", "convertir_meteo" | "crear" | "horizonte_pvgis")
+            | ("proyecto", "p50_p90")
+            | ("disenar_sistema", _)
             | ("gui_actuar", "escena" | "escena_importar" | "rellenar")
     )
 }

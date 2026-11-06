@@ -396,7 +396,7 @@ fn workspace_con_plantilla() -> (tempfile::TempDir, Paths) {
     (ws, paths)
 }
 
-fn diseno(extra: serde_json::Value) -> DisenoParametros {
+fn diseno(extra: &serde_json::Value) -> DisenoParametros {
     let mut args = json!({
         "latitud": 10.0,
         "longitud": -70.0,
@@ -419,7 +419,7 @@ fn diseno(extra: serde_json::Value) -> DisenoParametros {
 fn should_resume_the_design_when_the_project_exists_with_the_same_parameters() {
     // Given: a design run that already created the project
     let (_ws, paths) = workspace_con_plantilla();
-    let params = diseno(json!({}));
+    let params = diseno(&json!({}));
     proyecto::ejecutar_paso_proyecto(&paths, &params).expect("primer proyecto");
 
     // When: the same design is retried after a failed step
@@ -434,10 +434,10 @@ fn should_resume_the_design_when_the_project_exists_with_the_same_parameters() {
 fn should_reject_the_design_when_the_existing_project_holds_other_parameters() {
     // Given: a project created with 10 modules in series and 2 strings
     let (_ws, paths) = workspace_con_plantilla();
-    proyecto::ejecutar_paso_proyecto(&paths, &diseno(json!({}))).expect("primer proyecto");
+    proyecto::ejecutar_paso_proyecto(&paths, &diseno(&json!({}))).expect("primer proyecto");
 
     // When: the retry asks for a different layout
-    let err = proyecto::ejecutar_paso_proyecto(&paths, &diseno(json!({ "n_strings": 4 })))
+    let err = proyecto::ejecutar_paso_proyecto(&paths, &diseno(&json!({ "n_strings": 4 })))
         .expect_err("parámetros distintos");
 
     // Then: the difference and the two ways out are named
@@ -449,10 +449,10 @@ fn should_reject_the_design_when_the_existing_project_holds_other_parameters() {
 #[test]
 fn should_rebuild_the_project_when_sobrescribir_is_asked_for() {
     let (_ws, paths) = workspace_con_plantilla();
-    proyecto::ejecutar_paso_proyecto(&paths, &diseno(json!({}))).expect("primer proyecto");
+    proyecto::ejecutar_paso_proyecto(&paths, &diseno(&json!({}))).expect("primer proyecto");
     let otro = proyecto::ejecutar_paso_proyecto(
         &paths,
-        &diseno(json!({ "n_strings": 4, "sobrescribir": true })),
+        &diseno(&json!({ "n_strings": 4, "sobrescribir": true })),
     )
     .expect("sobrescritura");
     assert!(otro.raw_response.get("reutilizado").is_none(), "{otro:?}");

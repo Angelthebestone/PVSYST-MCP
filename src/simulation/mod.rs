@@ -45,15 +45,9 @@ fn respuesta_dry_run(
         "variant_file": variant_file.to_string_lossy(),
         "variant_file_exists": variant_exists,
         "workspace": workspace.to_string_lossy(),
-        "costo_estimado": costo_estimado(workspace, ejecuciones),
+        "costo_estimado": crate::adapters::ledger::costo_estimado(workspace, ejecuciones),
         "max_ejecuciones": ejecuciones,
     })
-}
-
-/// Trial cost a real run would charge: estimated executions and what the licence has left.
-fn costo_estimado(workspace: &Path, ejecuciones: u32) -> Value {
-    let restantes = crate::adapters::ledger::estado(workspace).and_then(|e| e.restantes);
-    json!({ "ejecuciones": ejecuciones, "restantes": restantes })
 }
 
 fn agregar_aviso_gui(resultado: &mut Value, e: &Error) {

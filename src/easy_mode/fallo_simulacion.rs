@@ -2,6 +2,7 @@
 //! reports the failure in its own terms (`Failed to initialize Meteonorm…`)
 //! and leaves the caller to work out what to change.
 
+use crate::idioma::{Idioma, Texto};
 use serde_json::Value;
 
 /// A failure PVsyst prints, with the change that gets past it.
@@ -9,15 +10,21 @@ struct Fallo {
     /// Text PVsyst prints for this failure.
     marca: &'static str,
     /// What actually happened.
-    causa: &'static str,
+    causa: Texto,
     /// What the caller can do instead.
-    alternativa: &'static str,
+    alternativa: Texto,
 }
 
 const FALLOS: &[Fallo] = &[Fallo {
     marca: "Failed to initialize Meteonorm",
-    causa: "PVsyst generates the synthetic hourly weather with Meteonorm 9 and could not initialise it",
-    alternativa: "use a site that already has an hourly .MET (sitio meteo_pvgis or convertir_meteo): synthetic_weather does not replace Meteonorm",
+    causa: Texto {
+        es: "PVsyst genera la meteorología horaria sintética con Meteonorm 9 y no pudo inicializarlo",
+        en: "PVsyst generates the synthetic hourly weather with Meteonorm 9 and could not initialise it",
+    },
+    alternativa: Texto {
+        es: "usa un sitio que ya tenga un .MET horario (sitio meteo_pvgis o convertir_meteo): synthetic_weather no sustituye a Meteonorm",
+        en: "use a site that already has an hourly .MET (sitio meteo_pvgis or convertir_meteo): synthetic_weather does not replace Meteonorm",
+    },
 }];
 
 /// Fields of a `simular` result that carry PVsyst's own words.
@@ -47,12 +54,15 @@ fn texto_de(salida: &Value) -> String {
 }
 
 /// The known failure in a `simular` result, as `causa — alternativa`.
-pub(crate) fn explicar(salida: &Value) -> Option<String> {
+pub(crate) fn explicar(salida: &Value, idioma: Idioma) -> Option<String> {
     let texto = texto_de(salida);
-    FALLOS
-        .iter()
-        .find(|f| texto.contains(f.marca))
-        .map(|f| format!("{} — {}", f.causa, f.alternativa))
+    FALLOS.iter().find(|f| texto.contains(f.marca)).map(|f| {
+        format!(
+            "{} — {}",
+            f.causa.en_idioma(idioma),
+            f.alternativa.en_idioma(idioma)
+        )
+    })
 }
 
 #[cfg(test)]

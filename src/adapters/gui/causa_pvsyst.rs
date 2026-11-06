@@ -3,6 +3,8 @@
 //! for. A failed GUI step otherwise reports the symptom (a disabled control, a
 //! missing window) with PVsyst's raw log appended.
 
+use crate::idioma::{Idioma, Texto};
+
 /// Notices PVsyst writes while reading a file. They appear in every normal run
 /// (simulations included) and never change the outcome.
 const AVISOS_BENIGNOS: [&str; 2] = ["TEnergyMixSet", "EndTags"];
@@ -12,22 +14,34 @@ struct Causa {
     /// Text PVsyst writes to its log for this failure.
     marca: &'static str,
     /// What actually happened, without PVsyst's internal names.
-    causa: &'static str,
+    causa: Texto,
     /// The step that gets past it.
-    siguiente: &'static str,
+    siguiente: Texto,
 }
 
 /// Failures already seen in a live run (see the 2026-11-06 findings report).
 const CAUSAS: &[Causa] = &[
     Causa {
         marca: "Empty project name detected in fPrjList",
-        causa: "PVsyst opened its project window with no project loaded, so the variant selector stayed disabled and nothing could be read",
-        siguiente: "load the project first (proyecto crear, or gui_actuar accion:funcion for proyecto.cargar) and repeat this call",
+        causa: Texto {
+            es: "PVsyst abrió su ventana de proyecto sin ningún proyecto cargado, así que el selector de variante quedó deshabilitado y no se pudo leer nada",
+            en: "PVsyst opened its project window with no project loaded, so the variant selector stayed disabled and nothing could be read",
+        },
+        siguiente: Texto {
+            es: "carga el proyecto primero (proyecto crear, o gui_actuar accion:funcion para proyecto.cargar) y repite esta llamada",
+            en: "load the project first (proyecto crear, or gui_actuar accion:funcion for proyecto.cargar) and repeat this call",
+        },
     },
     Causa {
         marca: "Failed to initialize Meteonorm",
-        causa: "PVsyst generates synthetic hourly weather with Meteonorm 9 and this installation has no Meteonorm data (DataMN9/station.db.enc)",
-        siguiente: "use a site that already has an hourly .MET, or install Meteonorm; synthetic_weather does not replace it",
+        causa: Texto {
+            es: "PVsyst genera la meteorología horaria sintética con Meteonorm 9 y esta instalación no tiene sus datos (DataMN9/station.db.enc)",
+            en: "PVsyst generates the synthetic hourly weather with Meteonorm 9 and this installation has no Meteonorm data (DataMN9/station.db.enc)",
+        },
+        siguiente: Texto {
+            es: "usa un sitio que ya tenga un .MET horario, o instala Meteonorm; synthetic_weather no lo sustituye",
+            en: "use a site that already has an hourly .MET, or install Meteonorm; synthetic_weather does not replace it",
+        },
     },
 ];
 
@@ -45,19 +59,19 @@ pub(crate) fn filtrar(mensajes: Vec<String>) -> Vec<String> {
 }
 
 /// The known failure behind `mensajes`, as `(causa, siguiente)`.
-fn causa_conocida(mensajes: &[String]) -> Option<(&'static str, &'static str)> {
+fn causa_conocida(mensajes: &[String], idioma: Idioma) -> Option<(&'static str, &'static str)> {
     CAUSAS
         .iter()
         .find(|c| mensajes.iter().any(|m| m.contains(c.marca)))
-        .map(|c| (c.causa, c.siguiente))
+        .map(|c| (c.causa.en_idioma(idioma), c.siguiente.en_idioma(idioma)))
 }
 
 /// The text to report for a failed step: `error`, then the real cause when
 /// PVsyst logged one, then whatever else PVsyst said that is not benign noise.
-pub(crate) fn explicar(error: &str, mensajes: &[String]) -> String {
+pub(crate) fn explicar(error: &str, mensajes: &[String], idioma: Idioma) -> String {
     let utiles = filtrar(mensajes.to_vec());
     let mut texto = error.to_string();
-    if let Some((causa, siguiente)) = causa_conocida(&utiles) {
+    if let Some((causa, siguiente)) = causa_conocida(&utiles, idioma) {
         texto.push_str(&format!(". Cause: {causa}. Next: {siguiente}"));
     }
     let resto: Vec<&str> = utiles

@@ -66,6 +66,7 @@ pub(crate) fn horizonte(paths: &Paths, args: &Value) -> Result<Value> {
             en: "The PVGIS horizon",
         },
     )?;
+    rechazar_dry_run(paths, args)?;
     let proyecto = req_str(args, &["proyecto"], "")?;
     let proyecto = proyecto.strip_suffix(".PRJ").unwrap_or(proyecto);
     let variante = opt_str(args, &["variante"]).unwrap_or("VC0");
@@ -78,6 +79,26 @@ pub(crate) fn horizonte(paths: &Paths, args: &Value) -> Result<Value> {
             || horizonte_pvgis(paths, args),
         ),
     )
+}
+
+/// This route has no rehearsal: it opens PVsyst's horizon window and downloads
+/// the profile. The refusal states what the real call would cost.
+fn rechazar_dry_run(paths: &Paths, args: &Value) -> Result<()> {
+    if !crate::args::flag(args, &["dry_run"]) {
+        return Ok(());
+    }
+    let costo = crate::adapters::ledger::costo_estimado(&paths.workspace, 0);
+    let restantes = costo["restantes"].to_string();
+    let espera = crate::projects::gui::horizonte::ESPERA_DESCARGA
+        .as_secs()
+        .to_string();
+    Err(Error::Invalid(
+        crate::idioma::Texto {
+            es: "'horizonte_pvgis' no tiene ensayo: se ejecutaría de verdad. Coste: ninguna ejecución de prueba (quedan {restantes}), pero abre la ventana de horizonte de PVsyst y espera hasta {espera} s la descarga de PVGIS. Para ver el plan sin ejecutarlo, llama con 'via':'aproximacion' y dry_run:true.",
+            en: "'horizonte_pvgis' has no dry run: it would run for real. Cost: no trial executions ({restantes} left), but it opens PVsyst's horizon window and waits up to {espera} s for the PVGIS download. To see the plan without running it, call it with 'via':'aproximacion' and dry_run:true.",
+        }
+        .texto_con(paths.idioma, &[("restantes", &restantes), ("espera", &espera)]),
+    ))
 }
 
 /// Fill the variant's `pvHorizon` with the PVGIS horizon profile of the project site.

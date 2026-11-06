@@ -10,6 +10,7 @@ use super::ventanas::class_of;
 use super::{acciones, ffi};
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma as IdiomaCliente, Texto};
 use std::time::Duration;
 
 const EJECUTABLE: &str = "PVsyst.exe";
@@ -33,6 +34,7 @@ pub(crate) struct Sesion {
     /// The process this session started, if it did: only that one may be closed
     /// when the step fails, never a PVsyst the user already had open.
     lanzada: Option<u32>,
+    idioma: IdiomaCliente,
 }
 
 fn pid_activo() -> Option<u32> {
@@ -45,7 +47,11 @@ fn arrancar(paths: &Paths) -> Result<(u32, Option<u32>)> {
         return Ok((pid, None));
     }
     super::proceso::lanzar(paths, &serde_json::json!({}))?;
-    let pid = pid_activo().ok_or_else(|| Error::Gui("PVsyst did not start".into()))?;
+    let no_arranca = Texto {
+        es: "PVsyst no arrancó",
+        en: "PVsyst did not start",
+    };
+    let pid = pid_activo().ok_or_else(|| Error::Gui(no_arranca.en_idioma(paths.idioma).into()))?;
     Ok((pid, Some(pid)))
 }
 
@@ -58,12 +64,16 @@ fn debe_recogerse(lanzada: Option<u32>, vivos: &[u32]) -> Option<u32> {
 
 /// Ends the PVsyst this call started, so a failed step leaves no orphan GUI.
 /// Returns the note to add to the error when it did.
-fn recoger(lanzada: Option<u32>) -> Option<String> {
+fn recoger(lanzada: Option<u32>, idioma: IdiomaCliente) -> Option<String> {
     let pid = debe_recogerse(lanzada, &ffi::pids_de_ejecutable(EJECUTABLE))?;
     ffi::terminar_proceso(pid);
-    Some(format!(
-        "PVsyst (pid {pid}) was closed because this call started it"
-    ))
+    Some(
+        Texto {
+            es: "PVsyst (pid {pid}) se cerró porque lo arrancó esta llamada",
+            en: "PVsyst (pid {pid}) was closed because this call started it",
+        }
+        .texto_con(idioma, &[("pid", &pid.to_string())]),
+    )
 }
 
 /// Forms open in PVsyst other than the home screen and helpers.
@@ -79,30 +89,35 @@ impl Sesion {
     /// Starts (or finds) PVsyst and checks it is idle on its home screen.
     pub(crate) fn abrir(paths: &Paths) -> Result<Self> {
         acciones::exigir_escritorio()?;
+        let idioma = paths.idioma;
         let (pid, lanzada) = arrancar(paths)?;
-        Self::en_inicio(pid, lanzada).map_err(|e| match recoger(lanzada) {
+        Self::en_inicio(pid, lanzada, idioma).map_err(|e| match recoger(lanzada, idioma) {
             None => e,
             Some(nota) => Error::Gui(format!("{e}. {nota}")),
         })
     }
 
-    fn en_inicio(pid: u32, lanzada: Option<u32>) -> Result<Self> {
+    fn en_inicio(pid: u32, lanzada: Option<u32>, idioma: IdiomaCliente) -> Result<Self> {
         let inicio = esperar(pid, INICIO, ARRANQUE)?;
         if let Ok(aviso) = esperar(pid, AVISO_PRUEBA, Duration::ZERO) {
             aviso.pulsar(ROTULOS.cerrar)?;
         }
         let abiertos = formularios_de_usuario(pid);
         if !abiertos.is_empty() {
-            return Err(Error::Invalid(format!(
-                "PVsyst has windows open ({}): close them and return to the home screen",
-                abiertos.join(", ")
-            )));
+            return Err(Error::Invalid(
+                Texto {
+                    es: "PVsyst tiene ventanas abiertas ({ventanas}): ciérralas y vuelve a la pantalla de inicio",
+                    en: "PVsyst has windows open ({ventanas}): close them and return to the home screen",
+                }
+                .texto_con(idioma, &[("ventanas", &abiertos.join(", "))]),
+            ));
         }
         Ok(Self {
             pid,
             inicio,
             marca: registro_pvsyst::marcar(),
             lanzada,
+            idioma,
         })
     }
 
@@ -163,8 +178,8 @@ impl Sesion {
     /// `e` with PVsyst's own log turned into the cause the caller can act on,
     /// and the process this session started closed when the step failed.
     fn error_con_causa(&self, e: Error) -> Error {
-        let texto = causa_pvsyst::explicar(&e.to_string(), &self.mensajes());
-        let texto = match recoger(self.lanzada) {
+        let texto = causa_pvsyst::explicar(&e.to_string(), &self.mensajes(), self.idioma);
+        let texto = match recoger(self.lanzada, self.idioma) {
             None => texto,
             Some(nota) => format!("{texto}. {nota}"),
         };

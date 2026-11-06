@@ -78,6 +78,13 @@ pub(crate) fn registrar(workspace: &Path, stdout: &str, ejecuciones_usadas: u32)
     costo
 }
 
+/// Trial cost a real run would charge: estimated executions and what the licence
+/// has left. Every dry run reports it so the caller decides without a rehearsal.
+pub(crate) fn costo_estimado(workspace: &Path, ejecuciones: u32) -> Value {
+    let restantes = estado(workspace).and_then(|e| e.restantes);
+    json!({ "ejecuciones": ejecuciones, "restantes": restantes })
+}
+
 /// Last recorded licence state, or `None` before the first registration or when
 /// the ledger cannot be read (logged; see [`estado_leido`]).
 pub(crate) fn estado(workspace: &Path) -> Option<Estado> {

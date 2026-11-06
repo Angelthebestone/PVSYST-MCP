@@ -7,6 +7,7 @@ use crate::config::{self, Paths};
 use crate::error::{Error, Result};
 use crate::format::edit;
 use crate::history;
+use crate::idioma::Texto;
 use crate::projects::lifecycle;
 use serde_json::{json, Map, Value};
 use std::path::{Path, PathBuf};
@@ -73,10 +74,7 @@ fn campos_pedidos(params: &DisenoParametros) -> Vec<(&'static str, String)> {
 
 /// The request's values the existing variant does not hold. `None` when the
 /// project does not exist yet, so there is nothing to compare.
-fn diferencias_con_lo_existente(
-    paths: &Paths,
-    params: &DisenoParametros,
-) -> Option<Vec<String>> {
+fn diferencias_con_lo_existente(paths: &Paths, params: &DisenoParametros) -> Option<Vec<String>> {
     let carpeta = paths.workspace.join("Projects");
     let prj = carpeta.join(format!("{}.PRJ", params.proyecto.nombre));
     if !prj.is_file() {
@@ -84,18 +82,42 @@ fn diferencias_con_lo_existente(
     }
     let variante = carpeta.join(format!("{}.{}", params.proyecto.nombre, params.variante));
     let Ok(bytes) = std::fs::read(&variante) else {
-        return Some(vec![format!("its variant {} is missing", variante.display())]);
+        return Some(vec![Texto {
+            es: "falta su variante {archivo}",
+            en: "its variant {archivo} is missing",
+        }
+        .texto_con(
+            paths.idioma,
+            &[("archivo", &variante.display().to_string())],
+        )]);
     };
     let Some(raiz) = crate::format::object::parse_first(&String::from_utf8_lossy(&bytes)) else {
-        return Some(vec!["its variant is not a PVObject file".to_string()]);
+        return Some(vec![Texto {
+            es: "su variante no es un archivo PVObject",
+            en: "its variant is not a PVObject file",
+        }
+        .en_idioma(paths.idioma)
+        .to_string()]);
     };
     Some(
         campos_pedidos(params)
             .into_iter()
             .filter_map(|(campo, pedido)| {
                 let actual = raiz.find_deep(campo)?;
-                (actual.trim() != pedido.trim())
-                    .then(|| format!("{campo} is '{actual}', not '{pedido}'"))
+                (actual.trim() != pedido.trim()).then(|| {
+                    Texto {
+                        es: "{campo} vale '{actual}', no '{pedido}'",
+                        en: "{campo} is '{actual}', not '{pedido}'",
+                    }
+                    .texto_con(
+                        paths.idioma,
+                        &[
+                            ("campo", campo),
+                            ("actual", actual.trim()),
+                            ("pedido", &pedido),
+                        ],
+                    )
+                })
             })
             .collect(),
     )
@@ -130,11 +152,19 @@ pub(crate) fn ejecutar_paso_proyecto(
             None => {}
             Some(diferencias) if diferencias.is_empty() => return Ok(reutilizar(paths, params)),
             Some(diferencias) => {
-                return Err(Error::Invalid(format!(
-                    "Project '{}' already exists with different parameters ({}): pass sobrescribir:true to rebuild it, or another 'nombre'",
-                    params.proyecto.nombre,
-                    diferencias.join("; ")
-                )))
+                return Err(Error::Invalid(
+                    Texto {
+                        es: "El proyecto '{nombre}' ya existe con otros parámetros ({diferencias}): pasa sobrescribir:true para rehacerlo, u otro 'nombre'",
+                        en: "Project '{nombre}' already exists with different parameters ({diferencias}): pass sobrescribir:true to rebuild it, or another 'nombre'",
+                    }
+                    .texto_con(
+                        paths.idioma,
+                        &[
+                            ("nombre", &params.proyecto.nombre),
+                            ("diferencias", &diferencias.join("; ")),
+                        ],
+                    ),
+                ))
             }
         }
     }

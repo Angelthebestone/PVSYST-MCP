@@ -212,9 +212,8 @@ fn should_name_the_environment_variable_when_a_gated_action_is_rejected() {
 fn should_not_mention_the_environment_variable_for_an_unknown_action() {
     let mut paths = Paths::resolve();
     paths.aproximaciones = false;
-    let err = call(&paths, "sitio", &json!({ "accion": "inventada" }))
-        .expect_err("unknown action");
+    let err = call(&paths, "sitio", &json!({ "accion": "inventada" })).expect_err("unknown action");
     let msg = err.to_string();
-    assert!(msg.contains("no válido para sitio"), "{msg}");
+    assert!(msg.contains("sitio") && msg.contains("accion"), "{msg}");
     assert!(!msg.contains("PVSYST_MCP_APROXIMACIONES"), "{msg}");
 }

@@ -1,4 +1,5 @@
 use super::*;
+use crate::idioma::Idioma;
 
 /// A fake PVsyst installation folder, with or without Meteonorm data.
 fn instalacion(dir: &Path, con_meteonorm: bool) -> Vec<PathBuf> {
@@ -17,7 +18,7 @@ fn should_reject_synthetic_weather_when_meteonorm_is_missing() {
     let bases = instalacion(dir.path(), false);
 
     // When
-    let err = exigir_si_sintetica(Some(&bases), true).expect_err("sin Meteonorm");
+    let err = exigir_si_sintetica(Some(&bases), true, Idioma::En).expect_err("sin Meteonorm");
 
     // Then: the cause and the way out, before any trial execution is spent
     let msg = err.to_string();
@@ -30,7 +31,7 @@ fn should_reject_synthetic_weather_when_meteonorm_is_missing() {
 fn should_accept_synthetic_weather_when_meteonorm_is_installed() {
     let dir = tempfile::tempdir().expect("dir");
     let bases = instalacion(dir.path(), true);
-    assert!(exigir_si_sintetica(Some(&bases), true).is_ok());
+    assert!(exigir_si_sintetica(Some(&bases), true, Idioma::En).is_ok());
 }
 
 #[test]
@@ -44,13 +45,13 @@ fn should_not_judge_meteonorm_when_no_pvsyst_installation_is_visible() {
 
     // Then: the run itself reports what it finds
     assert!(bases_de_instalacion(&paths).is_none());
-    assert!(exigir_si_sintetica(None, true).is_ok());
-    assert!(exigir_si_sintetica(None, false).is_ok());
+    assert!(exigir_si_sintetica(None, true, Idioma::En).is_ok());
+    assert!(exigir_si_sintetica(None, false, Idioma::En).is_ok());
 }
 
 #[test]
 fn should_ignore_meteonorm_when_the_run_does_not_ask_for_synthetic_weather() {
     let dir = tempfile::tempdir().expect("dir");
     let bases = instalacion(dir.path(), false);
-    assert!(exigir_si_sintetica(Some(&bases), false).is_ok());
+    assert!(exigir_si_sintetica(Some(&bases), false, Idioma::En).is_ok());
 }

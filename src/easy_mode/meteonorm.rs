@@ -5,6 +5,7 @@
 
 use crate::config::{data_ro, Paths};
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use std::path::{Path, PathBuf};
 
 /// Folder and file PVsyst looks for when it initialises Meteonorm.
@@ -40,7 +41,11 @@ pub(crate) fn esta_disponible(bases: &[PathBuf]) -> bool {
 
 /// Rejects a synthetic-weather run when the installation carries no Meteonorm
 /// data: PVsyst would spend a trial execution to say exactly that.
-pub(crate) fn exigir_si_sintetica(bases: Option<&[PathBuf]>, sintetica: bool) -> Result<()> {
+pub(crate) fn exigir_si_sintetica(
+    bases: Option<&[PathBuf]>,
+    sintetica: bool,
+    idioma: Idioma,
+) -> Result<()> {
     if !sintetica {
         return Ok(());
     }
@@ -54,10 +59,13 @@ pub(crate) fn exigir_si_sintetica(bases: Option<&[PathBuf]>, sintetica: bool) ->
         .iter()
         .map(|b| estaciones_en(b).display().to_string())
         .collect();
-    Err(Error::Invalid(format!(
-        "'synthetic_weather' needs Meteonorm: PVsyst generates the synthetic hourly weather with Meteonorm 9 and no station database was found at {}. Pass synthetic_weather:false with a site that already has an hourly .MET, or install Meteonorm; the run would otherwise fail after spending a trial execution.",
-        buscado.join(" nor ")
-    )))
+    Err(Error::Invalid(
+        Texto {
+            es: "'synthetic_weather' necesita Meteonorm: PVsyst genera la meteorología horaria sintética con Meteonorm 9 y no hay base de estaciones en {buscado}. Pasa synthetic_weather:false con un sitio que ya tenga un .MET horario, o instala Meteonorm; si no, la simulación fallaría tras gastar una ejecución de prueba.",
+            en: "'synthetic_weather' needs Meteonorm: PVsyst generates the synthetic hourly weather with Meteonorm 9 and no station database was found at {buscado}. Pass synthetic_weather:false with a site that already has an hourly .MET, or install Meteonorm; the run would otherwise fail after spending a trial execution.",
+        }
+        .texto_con(idioma, &[("buscado", &buscado.join(" / "))]),
+    ))
 }
 
 #[cfg(test)]

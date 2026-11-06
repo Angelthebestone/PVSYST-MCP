@@ -13,7 +13,7 @@ use crate::adapters::gui::rotulos::Idioma;
 
 const ROTULOS: RotulosHorizonte = rotulos_horizonte(Idioma::Es);
 /// PVGIS answers in a few seconds; allow for slow networks.
-const ESPERA_DESCARGA: Duration = Duration::from_secs(90);
+pub(crate) const ESPERA_DESCARGA: Duration = Duration::from_secs(90);
 
 /// Imports the PVGIS horizon of the project site into `variante`.
 pub(crate) fn importar_pvgis(paths: &Paths, proyecto: &str, variante: &str) -> Result<Value> {
