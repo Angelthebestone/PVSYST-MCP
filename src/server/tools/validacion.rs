@@ -103,6 +103,15 @@ impl Herramienta {
         if disc.valores.contains(&valor.as_str()) {
             return Ok(valor);
         }
+        if super::aproximadas::de(self.nombre, &valor).is_some() {
+            return Err(Error::Invalid(format!(
+                "Valor '{valor}' no válido para {} ({}): es una acción del MCP que solo existe con {}=1. Valores: {}",
+                self.nombre,
+                disc.campo,
+                crate::aproximaciones::VARIABLE_ENTORNO,
+                disc.valores.join(", ")
+            )));
+        }
         let visibles: Vec<&str> = disc
             .valores
             .iter()
