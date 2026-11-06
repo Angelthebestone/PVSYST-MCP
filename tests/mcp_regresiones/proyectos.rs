@@ -104,7 +104,7 @@ fn should_reject_a_workspace_on_the_pvsyst_only_dimensioning_route() {
         }),
     );
     let msg = error_text(&resp);
-    assert!(msg.contains("no admite 'workspace'"), "msg={msg}");
+    assert!(msg.contains("'workspace' is not supported"), "msg={msg}");
 }
 
 #[test]
@@ -206,7 +206,7 @@ fn should_reject_a_gui_horizon_request_that_names_a_workspace() {
                 "workspace": otro.path().to_string_lossy() }),
     );
     assert!(
-        error_text(&resp).contains("no admite 'workspace'"),
+        error_text(&resp).contains("'workspace' is not supported"),
         "resp={resp}"
     );
 }

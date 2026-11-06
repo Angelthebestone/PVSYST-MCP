@@ -21,7 +21,7 @@ fn should_reject_workspace_override_on_p50_p90_pvsyst_route() {
         }),
     );
     let msg = error_text(&resp);
-    assert!(msg.contains("no admite 'workspace'"), "msg={msg}");
+    assert!(msg.contains("'workspace' is not supported"), "msg={msg}");
 }
 
 #[test]
@@ -43,7 +43,7 @@ fn should_reject_workspace_override_on_pvgis_horizon_pvsyst_route() {
         }),
     );
     let msg = error_text(&resp);
-    assert!(msg.contains("no admite 'workspace'"), "msg={msg}");
+    assert!(msg.contains("'workspace' is not supported"), "msg={msg}");
 }
 
 #[test]
@@ -61,5 +61,5 @@ fn should_reject_workspace_override_on_p50_configuration_pvsyst_route() {
         json!({ "accion": "p50_p90", "proyecto": "SYNTH_Plant", "workspace": otro_str }),
     );
     let msg = error_text(&resp);
-    assert!(msg.contains("no admite 'workspace'"), "msg={msg}");
+    assert!(msg.contains("'workspace' is not supported"), "msg={msg}");
 }

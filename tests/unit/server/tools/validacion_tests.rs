@@ -214,7 +214,7 @@ fn should_keep_the_error_kind_of_a_failed_step() {
     let err = call(&paths, "proyecto", &args).expect_err("proyecto inexistente");
 
     assert!(
-        matches!(&err, crate::error::Error::NotFound(m) if m.starts_with("Paso 1 fallido")),
+        matches!(&err, crate::error::Error::NotFound(m) if m.starts_with("Step 1 failed")),
         "{err:?}"
     );
 }
