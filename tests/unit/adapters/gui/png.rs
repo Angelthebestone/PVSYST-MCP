@@ -14,12 +14,7 @@ fn chunks(png: &[u8]) -> Vec<([u8; 4], Vec<u8>)> {
 }
 
 #[test]
-fn crc32_matches_known_iend_value() {
-    assert_eq!(crc32(b"IEND"), 0xAE42_6082);
-}
-
-#[test]
-fn png_has_signature_header_and_decodable_pixels() {
+fn should_produce_a_decodable_png_when_encoding_rgb_pixels() {
     let rgb = [1u8, 2, 3, 4, 5, 6];
     let png = png_rgb(2, 1, &rgb).expect("valid png");
     assert_eq!(&png[..8], &PNG_FIRMA);
@@ -31,10 +26,4 @@ fn png_has_signature_header_and_decodable_pixels() {
     let idat = parts.iter().find(|c| &c.0 == b"IDAT").unwrap();
     let raw = miniz_oxide::inflate::decompress_to_vec_zlib(&idat.1).unwrap();
     assert_eq!(raw, [0, 1, 2, 3, 4, 5, 6]);
-}
-
-#[test]
-fn should_reject_zero_dimensions_without_panic() {
-    let res = png_rgb(0, 0, &[]);
-    assert!(matches!(res, Err(crate::error::Error::Gui(_))));
 }

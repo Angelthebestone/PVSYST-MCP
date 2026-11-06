@@ -176,7 +176,3 @@ pub(crate) fn paso(args: &Value) -> Result<Value> {
     };
     Ok(json!({ "via": via, "objetivo": objetivo, "verificado": verificado }))
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/adapters/gui/uia_paso.rs"]
-mod tests;

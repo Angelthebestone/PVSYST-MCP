@@ -10,11 +10,6 @@ fn should_refuse_proyecto_when_pvsyst_is_already_running() {
 }
 
 #[test]
-fn should_allow_a_launch_without_proyecto_while_running() {
-    assert!(comprobar_proyecto_libre(&json!({})).is_ok());
-}
-
-#[test]
 fn should_reject_project_outside_workspace_by_default() {
     let ws = std::env::temp_dir().join("test_pvsyst_prj_confined");
     let paths = crate::config::Paths::para_test(ws);

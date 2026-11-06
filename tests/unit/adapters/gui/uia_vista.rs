@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn fusionar_merges_by_hwnd_and_flags_visual_only_regions() {
+fn should_merge_windows_by_hwnd_and_flag_visual_only_regions_when_fusing() {
     let arbol = json!({
         "nombre": "root",
         "hijos": [

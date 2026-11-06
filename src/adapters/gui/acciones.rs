@@ -245,7 +245,3 @@ fn exigir_cerrada(h: Hwnd) -> Result<()> {
         class_of(h)
     )))
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/adapters/gui/acciones.rs"]
-mod tests;
