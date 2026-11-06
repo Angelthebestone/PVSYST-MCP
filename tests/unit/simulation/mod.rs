@@ -1,4 +1,4 @@
-use super::preparacion::con_salidas_por_defecto;
+use super::preparacion::{con_salidas_por_defecto, push_options};
 use super::*;
 
 #[test]

@@ -128,3 +128,38 @@ fn should_rebuild_the_project_when_sobrescribir_is_asked_for() {
     .expect("sobrescritura");
     assert!(otro.raw_response.get("reutilizado").is_none(), "{otro:?}");
 }
+
+/// A workspace with the synthetic project as a template to copy from.
+fn workspace_con_plantilla() -> (tempfile::TempDir, Paths) {
+    let ws = tempfile::tempdir().unwrap();
+    let projects = ws.path().join("Projects");
+    std::fs::create_dir_all(&projects).unwrap();
+    let prj = include_bytes!("../../fixtures/workspace/Projects/SYNTH_Plant.PRJ");
+    let vc0 = include_bytes!("../../fixtures/workspace/Projects/SYNTH_Plant.VC0");
+    std::fs::write(projects.join("SYNTH_Plant.PRJ"), prj).unwrap();
+    std::fs::write(projects.join("SYNTH_Plant.VC0"), vc0).unwrap();
+    let paths = Paths {
+        workspace: ws.path().to_path_buf(),
+        ..Paths::resolve()
+    };
+    (ws, paths)
+}
+
+fn diseno(extra: &serde_json::Value) -> DisenoParametros {
+    let mut args = json!({
+        "latitud": 10.0,
+        "longitud": -70.0,
+        "kwp": 8.0,
+        "plantilla": "SYNTH_Plant",
+        "nombre": "Diseno",
+        "modulo": "Synth_400W.PAN",
+        "inversor": "Synth_10kW.OND",
+        "n_mod_serie": 10,
+        "n_strings": 2,
+        "simular": false,
+    });
+    for (k, v) in extra.as_object().expect("objeto") {
+        args[k.as_str()] = v.clone();
+    }
+    DisenoParametros::parse(&args).expect("parámetros")
+}
