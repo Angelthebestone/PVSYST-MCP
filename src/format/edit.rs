@@ -57,11 +57,33 @@ impl ChangeOutcome {
 }
 
 /// JSON `{campo: valor}` as edit changes: `null` deletes the field.
-pub(crate) fn changes_from_json(campos: &Map<String, Value>) -> Vec<(String, Option<String>)> {
+///
+/// Only scalars are accepted: an object or array would be written as its JSON
+/// text into a field PVsyst reads as a single value.
+pub(crate) fn changes_from_json(
+    campos: &Map<String, Value>,
+) -> Result<Vec<(String, Option<String>)>> {
     campos
         .iter()
-        .map(|(k, v)| (k.clone(), (!v.is_null()).then(|| value_text(v))))
+        .map(|(k, v)| match v {
+            Value::Null => Ok((k.clone(), None)),
+            Value::String(_) | Value::Number(_) | Value::Bool(_) => {
+                Ok((k.clone(), Some(value_text(v))))
+            }
+            Value::Array(_) | Value::Object(_) => Err(Error::Invalid(format!(
+                "Valor no válido para '{k}': se esperaba texto, número o booleano, se recibió {}",
+                tipo_json(v)
+            ))),
+        })
         .collect()
+}
+
+fn tipo_json(v: &Value) -> &'static str {
+    match v {
+        Value::Array(_) => "array",
+        Value::Object(_) => "object",
+        _ => "null",
+    }
 }
 
 pub(super) fn outcome(

@@ -15,7 +15,7 @@ fn cambios_pedidos(args: &Value) -> Result<Vec<(String, Option<String>)>> {
     else {
         return Ok(Vec::new());
     };
-    let changes = edit::changes_from_json(mapa);
+    let changes = edit::changes_from_json(mapa)?;
     edit::reject_invalid_keys(&changes)?;
     Ok(changes)
 }

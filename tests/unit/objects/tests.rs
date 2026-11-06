@@ -1,5 +1,6 @@
 use super::*;
 use crate::error::Error;
+use crate::Paths;
 use serde_json::json;
 use std::fs;
 use tempfile::tempdir;
@@ -45,6 +46,24 @@ fn archivo_inexistente_en_carpeta_pvsyst_es_error() {
         .expect_err("un archivo ausente debe fallar");
     assert!(matches!(err, Error::NotFound(_)), "mensaje: {err}");
     assert!(err.to_string().contains("no encontrado"), "mensaje: {err}");
+}
+
+#[test]
+fn should_reject_object_values_when_editing_fields() {
+    let ws = preparar();
+    let vc0 = ws.path().join("Projects").join("MCP_T.VC0");
+    let original = "PVObject_=pvProject\n  PVObject_=pvSubArray\n    NStringCh=3\n  End of PVObject pvSubArray\nEnd of PVObject pvProject\n";
+    fs::write(&vc0, original).expect("escribir VC0");
+
+    let args = json!({
+        "workspace": ws.path(),
+        "archivo": "MCP_T.VC0",
+        "objeto": "pvSubArray",
+        "campos": { "NStringCh": { "anidado": true } }
+    });
+    let err = editar_objeto(&Paths::resolve(), &args).expect_err("objeto como valor rechazado");
+    assert!(err.to_string().contains("NStringCh"), "{err}");
+    assert_eq!(fs::read_to_string(&vc0).expect("leer VC0"), original);
 }
 
 #[test]
