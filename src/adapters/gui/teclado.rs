@@ -46,7 +46,7 @@ fn resolver_foco(logrado: bool, destino: Destino, h: ffi::Hwnd) -> Result<bool> 
         return Ok(false);
     }
     Err(Error::Gui(format!(
-        "No se pudo dar el foco al control 0x{h:X}: las teclas no se envían sin esa garantía. Usa la ventana contenedora o accion:clic_fisico sobre el control"
+        "Could not give the focus to control 0x{h:X}: keys are not sent without that guarantee. Target the host window or use accion:clic_fisico on the control"
     )))
 }
 
@@ -57,7 +57,7 @@ fn ventana_mas_al_frente(alcance: &[ffi::Hwnd]) -> Result<ffi::Hwnd> {
         .iter()
         .copied()
         .find(|h| visible(*h) && rect_of(*h).right > rect_of(*h).left)
-        .ok_or_else(|| Error::Gui("El proceso no tiene ninguna ventana visible".into()))
+        .ok_or_else(|| Error::Gui("The process has no visible window".into()))
 }
 
 /// `keybd_event` goes to the foreground window, so the target must really be it.
@@ -67,7 +67,7 @@ fn exigir_primer_plano(raiz: ffi::Hwnd) -> Result<()> {
         return Ok(());
     }
     Err(Error::Gui(format!(
-        "PVsyst no tomó el primer plano ({}): no se envían teclas a otra aplicación",
+        "PVsyst did not take the foreground ({}): keys are not sent to another application",
         class_of(raiz)
     )))
 }
@@ -85,21 +85,74 @@ pub(crate) fn teclas(args: &Value) -> Result<Value> {
     };
     if escritorio::es_aislado() && mods.iter().any(|m| *m != VK_MENU) {
         return Err(Error::Gui(
-            "En el escritorio aislado solo se admite Alt como modificador: Ctrl y Mayús no se pueden enviar como mensajes".into(),
+            "On the isolated desktop only Alt is accepted as a modifier: Ctrl and Shift cannot be sent as messages".into(),
         ));
     }
     let raiz = ffi::get_ancestor(h, ffi::GA_ROOT);
+    exigir_objetivo_habilitado(ffi::estado_ventana(raiz).habilitada, &class_of(raiz))?;
     ffi::traer_al_frente(raiz);
     std::thread::sleep(FOCO);
     exigir_primer_plano(raiz)?;
+    let foco_actual = ffi::foco_del_hilo(ffi::hilo_de(raiz));
+    let raiz_del_foco = (foco_actual != 0).then(|| ffi::get_ancestor(foco_actual, ffi::GA_ROOT));
+    exigir_foco_en_la_ventana(foco_actual, raiz, raiz_del_foco)?;
     let foco = raiz != h && dar_foco_al_control(h)?;
     ffi::pulsar_combinacion(vk, &mods);
     Ok(json!({
         "sent": combo,
         "hwnd": format!("0x{:X}", h),
         "foco": foco,
+        "aviso": aviso_de_foco(foco, if raiz == h { Objetivo::Ventana } else { Objetivo::Control }),
         "via": if escritorio::es_aislado() { "mensajes" } else { "keybd_event" },
     }))
+}
+
+/// A target disabled by a modal dialog would receive nothing: the keys would go
+/// to the dialog instead, which is how a blind RETURN ended PVsyst.
+fn exigir_objetivo_habilitado(habilitada: bool, clase: &str) -> Result<()> {
+    if habilitada {
+        return Ok(());
+    }
+    Err(Error::Gui(format!(
+        "'{clase}' is disabled by a modal dialog: the keys would go to the dialog, not to the window. Close it (gui_actuar accion:cerrar) or send 'teclas' to the dialog class and retry"
+    )))
+}
+
+/// Keys go to whichever control has the focus: it must live in the window the
+/// caller named, or another window would receive them.
+fn exigir_foco_en_la_ventana(
+    foco: ffi::Hwnd,
+    raiz: ffi::Hwnd,
+    raiz_del_foco: Option<ffi::Hwnd>,
+) -> Result<()> {
+    if foco == 0 || raiz_del_foco == Some(raiz) {
+        return Ok(());
+    }
+    Err(Error::Gui(format!(
+        "The keyboard focus is in another window (0x{foco:X}), not in 0x{raiz:X}: the keys are not sent. Bring the target to the front with accion:activar and retry"
+    )))
+}
+
+/// What the caller named: a whole window or a control inside it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Objetivo {
+    Ventana,
+    Control,
+}
+
+/// What `foco:false` means, so a successful call is not read as a guaranteed focus.
+fn aviso_de_foco(foco: bool, objetivo: Objetivo) -> Option<&'static str> {
+    if foco {
+        return None;
+    }
+    Some(match objetivo {
+        Objetivo::Ventana => {
+            "The target is the window: the keys reach the control that already has the focus inside it"
+        }
+        Objetivo::Control => {
+            "The control did not take the focus on the isolated desktop: the keys were sent anyway"
+        }
+    })
 }
 
 #[cfg(test)]
