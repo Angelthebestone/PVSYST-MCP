@@ -12,6 +12,7 @@ use super::object;
 use super::span::tstart;
 use super::value_text;
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Map, Value};
 
 /// Line terminator to append to a generated field line.
@@ -70,13 +71,19 @@ pub(crate) fn changes_from_json(
             Value::String(_) | Value::Number(_) | Value::Bool(_) => {
                 Ok((k.clone(), Some(value_text(v))))
             }
-            Value::Array(_) | Value::Object(_) => Err(Error::Invalid(format!(
-                "Valor no válido para '{k}': se esperaba texto, número o booleano, se recibió {}",
-                tipo_json(v)
+            Value::Array(_) | Value::Object(_) => Err(Error::Invalid(VALOR_NO_ESCALAR.texto_con(
+                Idioma::de_entorno(),
+                &[("campo", k), ("tipo", tipo_json(v))],
             ))),
         })
         .collect()
 }
+
+/// Refusal of a nested value in `campos`: PVsyst reads the field as one value.
+const VALOR_NO_ESCALAR: Texto = Texto {
+    es: "Valor no válido para '{campo}': se esperaba texto, número o booleano, se recibió {tipo}",
+    en: "Invalid value for '{campo}': expected text, number or boolean, got {tipo}",
+};
 
 fn tipo_json(v: &Value) -> &'static str {
     match v {

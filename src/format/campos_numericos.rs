@@ -6,6 +6,13 @@
 //! checked, because a free-text field may legitimately hold digits.
 
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
+
+/// Refusal of text in a field PVsyst reads as a number.
+const VALOR_NO_NUMERICO: Texto = Texto {
+    es: "Valor no numérico '{valor}' para el campo numérico '{campo}'",
+    en: "Non-numeric value '{valor}' for the numeric field '{campo}'",
+};
 
 /// Numeric field names, compared case-insensitively.
 const CAMPOS_NUMERICOS: &[&str] = &[
@@ -81,8 +88,9 @@ pub(super) fn validar_valores(cambios: &[(String, Option<String>)]) -> Result<()
             continue;
         };
         if es_campo_numerico(campo) && !es_numero(valor) {
-            return Err(Error::Invalid(format!(
-                "Valor no numérico '{valor}' para el campo numérico '{campo}'"
+            return Err(Error::Invalid(VALOR_NO_NUMERICO.texto_con(
+                Idioma::de_entorno(),
+                &[("valor", valor), ("campo", campo)],
             )));
         }
     }

@@ -221,7 +221,7 @@ fn should_reject_object_and_array_values_in_campos() {
         let msg = err.to_string();
         assert!(msg.contains("Pnom"), "nombra el campo: {msg}");
         assert!(
-            msg.contains("texto, número o booleano"),
+            msg.contains("expected text, number or boolean"),
             "nombra el tipo esperado: {msg}"
         );
     }

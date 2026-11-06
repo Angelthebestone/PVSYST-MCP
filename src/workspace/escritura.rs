@@ -4,11 +4,18 @@ use crate::args::{flag, req_str, req_texto, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::history;
+use crate::idioma::{Idioma, Texto};
 use crate::workspace::base64::decode_base64;
 use crate::workspace::rutas::{resolver_ruta, Alcance};
 use serde_json::{json, Value};
 use std::fs;
 use std::path::Path;
+
+/// An empty write has nothing to verify, so it is refused unless `base64` is explicit.
+const CONTENIDO_VACIO: Texto = Texto {
+    es: "'contenido' no puede estar vacío: un archivo de 0 bytes no tiene nada que verificar. Pasa 'base64': true si el contenido vacío es deliberado.",
+    en: "'contenido' must not be empty: a 0-byte file has nothing to verify. Pass 'base64': true if the empty content is deliberate.",
+};
 
 pub(crate) fn escribir_archivo(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
@@ -35,7 +42,7 @@ fn extraer_bytes_acotados(args: &Value) -> Result<Vec<u8>> {
     let es_base64 = flag(args, &["base64"]);
     if content.is_empty() && !es_base64 {
         return Err(Error::Invalid(
-            "'contenido' no puede estar vacío: un archivo de 0 bytes no tiene nada que verificar. Pasa 'base64': true si el contenido vacío es deliberado.".into(),
+            CONTENIDO_VACIO.texto_con(Idioma::de_entorno(), &[]),
         ));
     }
     let limite_texto = if es_base64 {

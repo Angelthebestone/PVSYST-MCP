@@ -137,7 +137,7 @@ fn should_reject_empty_content_unless_base64_is_explicit() {
     )
     .expect_err("contenido vacío rechazado");
     assert!(
-        err.to_string().contains("'contenido' no puede estar vacío"),
+        err.to_string().contains("'contenido' must not be empty"),
         "{err}"
     );
     assert!(!ws.path().join("UserData").join("Vacio.txt").exists());
