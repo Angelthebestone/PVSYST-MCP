@@ -65,14 +65,19 @@ fn should_replace_existing_file_atomically() {
 }
 
 #[test]
-fn should_snapshot_only_when_file_exists_in_reemplazar() {
+fn should_record_a_snapshot_for_a_creation_and_restore_it_as_absent() {
     let ws = crear_workspace_temporal("reemplazar");
     let f = ws.join("p.txt");
-    assert_eq!(reemplazar(&ws, &f, b"uno", "t").expect("new"), None);
+    let creacion = reemplazar(&ws, &f, b"uno", "t").expect("new");
+    assert_eq!(fs::read(&f).expect("read"), b"uno");
+
     let id = reemplazar(&ws, &f, b"dos", "t").expect("replace");
     assert_eq!(fs::read(&f).expect("read"), b"dos");
-    restaurar(&ws, &id.expect("snapshot id")).expect("restore");
+    restaurar(&ws, &id).expect("restore");
     assert_eq!(fs::read(&f).expect("read"), b"uno");
+
+    restaurar(&ws, &creacion).expect("restore creation");
+    assert!(!f.exists(), "restaurar la creación vuelve a 'no existía'");
     let _ = fs::remove_dir_all(&ws);
 }
 

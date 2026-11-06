@@ -258,7 +258,7 @@ fn dimensionar_en_archivo(paths: &Paths, args: &Value) -> Result<Value> {
         module: &pan_name,
         pnom,
         kwp: disp.target_kwp,
-        historial_id: historial_id.as_deref(),
+        historial_id: Some(&historial_id),
     };
     let mut resp = respuesta_dimensionado(&ctx, &res, &outcomes);
     if !disp.es_nativo {

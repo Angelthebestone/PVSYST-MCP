@@ -22,16 +22,7 @@ pub(crate) fn escribir_archivo(paths: &Paths, args: &Value) -> Result<Value> {
         fs::create_dir_all(parent)
             .map_err(|e| Error::io(format!("Cannot create {}", parent.display()), e))?;
     }
-    let historial_id = if path.is_file() {
-        Some(history::snapshot(
-            &workspace,
-            std::slice::from_ref(&path),
-            "escribir_archivo",
-        )?)
-    } else {
-        None
-    };
-    history::escribir_atomico(&path, &bytes)?;
+    let historial_id = history::reemplazar(&workspace, &path, &bytes, "escribir_archivo")?;
     Ok(json!({
         "path": path.to_string_lossy(),
         "bytes_written": bytes.len(),

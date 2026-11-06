@@ -127,6 +127,22 @@ fn should_refuse_writing_modern_mef_when_byte_discrepancy_detected() {
 }
 
 #[test]
+fn should_record_history_when_creating_a_new_file() {
+    let ws = tempdir().expect("ws");
+    let paths = dummy_paths(ws.path());
+    let args = json!({ "archivo": "UserData/Nota.txt", "contenido": "primera version" });
+
+    let out = escribir_archivo(&paths, &args).expect("creación");
+
+    let id = out["historial_id"]
+        .as_str()
+        .expect("la creación también deja historial_id");
+    let historial = crate::history::listar(ws.path(), 20);
+    assert_eq!(historial["total"], json!(1), "historial={historial}");
+    assert_eq!(historial["snapshots"][0]["id"], json!(id));
+}
+
+#[test]
 fn should_write_a_meteo_format_when_bytes_reproduce_exactly() {
     let ws = tempdir().expect("ws");
     let paths = dummy_paths(ws.path());
