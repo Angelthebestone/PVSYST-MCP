@@ -52,13 +52,13 @@ fn should_reject_missing_required_argument_with_its_description() {
     .expect_err("kwp is required");
 
     assert!(error.to_string().contains("kwp"));
-    assert!(error.to_string().contains("Potencia nominal"));
+    assert!(error.to_string().contains("Nominal power"));
 }
 
 #[test]
 fn should_reject_unknown_prompt() {
     let error = obtener_prompt(&json!({ "name": "no_existe" }), false).expect_err("unknown prompt");
-    assert!(error.to_string().contains("Prompt desconocido"));
+    assert!(error.to_string().contains("Unknown prompt"));
 }
 
 #[test]
