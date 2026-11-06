@@ -33,6 +33,11 @@ pub(crate) fn escribir_archivo(paths: &Paths, args: &Value) -> Result<Value> {
 fn extraer_bytes_acotados(args: &Value) -> Result<Vec<u8>> {
     let content = req_texto(args, &["contenido"], "")?;
     let es_base64 = flag(args, &["base64"]);
+    if content.is_empty() && !es_base64 {
+        return Err(Error::Invalid(
+            "'contenido' no puede estar vacío: un archivo de 0 bytes no tiene nada que verificar. Pasa 'base64': true si el contenido vacío es deliberado.".into(),
+        ));
+    }
     let limite_texto = if es_base64 {
         crate::workspace::MAX_BYTES_MAXIMO.saturating_mul(4) / 3 + 16
     } else {

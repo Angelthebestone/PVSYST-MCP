@@ -127,6 +127,30 @@ fn should_refuse_writing_modern_mef_when_byte_discrepancy_detected() {
 }
 
 #[test]
+fn should_reject_empty_content_unless_base64_is_explicit() {
+    let ws = tempdir().expect("ws");
+    let paths = dummy_paths(ws.path());
+
+    let err = escribir_archivo(
+        &paths,
+        &json!({ "archivo": "UserData/Vacio.txt", "contenido": "" }),
+    )
+    .expect_err("contenido vacío rechazado");
+    assert!(
+        err.to_string().contains("'contenido' no puede estar vacío"),
+        "{err}"
+    );
+    assert!(!ws.path().join("UserData").join("Vacio.txt").exists());
+
+    let out = escribir_archivo(
+        &paths,
+        &json!({ "archivo": "UserData/Vacio.txt", "contenido": "", "base64": true }),
+    )
+    .expect("base64 explícito sí puede escribir 0 bytes");
+    assert_eq!(out["bytes_written"], json!(0));
+}
+
+#[test]
 fn should_record_history_when_creating_a_new_file() {
     let ws = tempdir().expect("ws");
     let paths = dummy_paths(ws.path());
