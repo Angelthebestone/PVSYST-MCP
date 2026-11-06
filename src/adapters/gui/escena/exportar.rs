@@ -1,5 +1,10 @@
 //! Saves the scene with PVsyst's own «Exportar escena (.SHD)»: PVsyst writes
 //! the file, the MCP only names it and reads it back afterwards.
+//!
+//! PVsyst always writes a fresh temporary name. A read deletes that file when it
+//! is done; a write moves it over the requested name. So a scene the MCP already
+//! exported never makes the save dialog ask to overwrite, and a read never leaves
+//! a file that blocks the next call with the same name.
 
 use super::pasos::{abrir, con_descarte, descartar, hijo_n, ventana};
 use crate::adapters::gui::conduccion::{esperar_cierre, Formulario};
@@ -14,6 +19,8 @@ const DIALOGO: &str = "TSaveObjPVForm";
 const ESPERA_GUARDADO: Duration = Duration::from_secs(15);
 const ESPERA_ARCHIVO: Duration = Duration::from_secs(20);
 const SONDEO_ARCHIVO: Duration = Duration::from_millis(300);
+/// Marks the files the MCP asks PVsyst to write for its own use.
+const PREFIJO_TEMPORAL: &str = "_mcp_";
 
 /// Where PVsyst saves a scene named `nombre`.
 pub(super) fn ruta_de(paths: &Paths, nombre: &str) -> PathBuf {
@@ -23,28 +30,30 @@ pub(super) fn ruta_de(paths: &Paths, nombre: &str) -> PathBuf {
         .join(format!("{nombre}.SHD"))
 }
 
-/// The path for `nombre`, refusing one that exists: PVsyst would ask to overwrite it.
-pub(super) fn exigir_libre(paths: &Paths, nombre: &str) -> Result<PathBuf> {
-    let ruta = ruta_de(paths, nombre);
-    if ruta.exists() {
-        return Err(Error::Invalid(format!(
-            "Ya existe {}: elige otro nombre de escena",
-            ruta.display()
-        )));
-    }
-    Ok(ruta)
+/// A name PVsyst has not written yet: the save dialog would otherwise ask to
+/// overwrite an export of the MCP itself. It is deterministic so a retry after an
+/// interrupted call removes the leftover instead of accumulating files.
+fn ruta_temporal(paths: &Paths, nombre: &str) -> PathBuf {
+    ruta_de(paths, &format!("{PREFIJO_TEMPORAL}{nombre}"))
 }
 
-/// Exports the scene as `nombre` and returns the file PVsyst wrote.
-pub(super) fn guardar(paths: &Paths, nombre: &str) -> Result<PathBuf> {
-    let ruta = exigir_libre(paths, nombre)?;
+/// A free temporary name, with any leftover of an interrupted call removed.
+fn preparar_temporal(paths: &Paths, nombre: &str) -> PathBuf {
+    let ruta = ruta_temporal(paths, nombre);
+    borrar(&ruta);
+    ruta
+}
+
+/// Exports the scene under a temporary name and returns the file PVsyst wrote.
+pub(super) fn guardar_temporal(paths: &Paths, nombre: &str) -> Result<PathBuf> {
+    let ruta = preparar_temporal(paths, nombre);
     abrir("escena_3d.archivo.exportar_escena")?;
     let dialogo = Formulario::de(ventana(DIALOGO)?);
     con_descarte(&dialogo, || {
         // Description above, file name below.
         let campo_nombre = hijo_n(dialogo.h, "TEdit", 1)?;
         ffi::traer_al_frente(dialogo.h);
-        ffi::teclear_en(campo_nombre, nombre)?;
+        ffi::teclear_en(campo_nombre, &nombre_de(&ruta))?;
         dialogo.pulsar("Guardar")
     })?;
     let cerrado = esperar_cierre(dialogo.h, ESPERA_GUARDADO);
@@ -53,11 +62,38 @@ pub(super) fn guardar(paths: &Paths, nombre: &str) -> Result<PathBuf> {
     }
     if !cerrado || !esperar_escrito(&ruta) {
         return Err(Error::Gui(format!(
-            "PVsyst no guardó {}: no se intenta de otra forma",
+            "PVsyst did not save {}: no other way is attempted",
             ruta.display()
         )));
     }
     Ok(ruta)
+}
+
+/// Moves the temporary export over the requested name, replacing a previous
+/// one. The scene is only kept once PVsyst has written it completely.
+pub(super) fn conservar(temporal: &Path, definitiva: &Path) -> Result<PathBuf> {
+    std::fs::rename(temporal, definitiva).map_err(|e| {
+        Error::io(
+            format!("could not keep the scene as {}", definitiva.display()),
+            e,
+        )
+    })?;
+    Ok(definitiva.to_path_buf())
+}
+
+/// Deletes an export the caller does not want to keep.
+pub(super) fn borrar(ruta: &Path) {
+    if let Err(error) = std::fs::remove_file(ruta) {
+        if error.kind() != std::io::ErrorKind::NotFound {
+            tracing::warn!(archivo = %ruta.display(), %error, "could not delete the temporary export");
+        }
+    }
+}
+
+fn nombre_de(ruta: &Path) -> String {
+    ruta.file_stem()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_default()
 }
 
 /// PVsyst closes its dialog before it has written a large scene: the file counts as
@@ -72,3 +108,7 @@ fn esperar_escrito(ruta: &Path) -> bool {
     })
     .is_some()
 }
+
+#[cfg(test)]
+#[path = "../../../../tests/unit/adapters/gui/escena/exportar.rs"]
+mod tests;

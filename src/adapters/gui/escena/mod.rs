@@ -1,7 +1,8 @@
 //! `gui_actuar accion:escena` without `simular`: builds the scene in PVsyst's 3D
 //! editor (`TPerspectiveForm`, already open on an empty scene), lets PVsyst save
 //! it with «Exportar escena (.SHD)» and compares the file with the request.
-//! Nothing is written by the MCP: PVsyst writes the scene.
+//! Nothing is written by the MCP: PVsyst writes the scene, and a previous export
+//! under the same name is replaced instead of blocking the call.
 
 mod exportar;
 mod importar;
@@ -29,18 +30,38 @@ pub(crate) fn crear(paths: &Paths, args: &Value) -> Result<Value> {
     )?)?;
     let pedidos = leer_objetos(args.get("objetos").unwrap_or(&Value::Null))?;
     exigir_editor_vacio(paths, nombre, &pedidos)?;
-    exportar::exigir_libre(paths, nombre)?;
     for objeto in &pedidos {
         objeto::crear(objeto)?;
     }
     lista::fijar(&pedidos, 0)?;
-    let guardado = exportar::guardar(paths, nombre)?;
-    informe(nombre, &guardado, &pedidos)
+    let definitiva = exportar::ruta_de(paths, nombre);
+    let existia = definitiva.exists();
+    let temporal = exportar::guardar_temporal(paths, nombre)?;
+    let mut informe = match informe(nombre, &temporal, &pedidos) {
+        Ok(informe) => informe,
+        Err(error) => {
+            exportar::borrar(&temporal);
+            return Err(error);
+        }
+    };
+    let guardado = match exportar::conservar(&temporal, &definitiva) {
+        Ok(ruta) => ruta,
+        Err(error) => {
+            exportar::borrar(&temporal);
+            return Err(error);
+        }
+    };
+    if let Some(mapa) = informe.as_object_mut() {
+        mapa.insert("archivo".into(), json!(guardado.display().to_string()));
+        mapa.insert("sobrescrito".into(), json!(existia));
+    }
+    Ok(informe)
 }
 
 /// `gui_actuar accion:escena_leer`: the objects of the scene open in the editor. The table
 /// of objects has no controls per row, so PVsyst exports the scene (`Archivo > Exportar
-/// escena (.SHD)`) under `escena` and the file is read back; it stays in `Shadings`.
+/// escena (.SHD)`) under a temporary name, reads it back and deletes it: a read
+/// leaves no file behind that could block the next call with the same name.
 pub(crate) fn leer(paths: &Paths, args: &Value) -> Result<Value> {
     exigir_escritorio()?;
     let nombre = nombre_valido(req_str(
@@ -49,26 +70,41 @@ pub(crate) fn leer(paths: &Paths, args: &Value) -> Result<Value> {
         "nombre con el que PVsyst exporta la escena, p.ej. 'Lectura_1'",
     )?)?;
     exigir_editor_abierto("leer la escena")?;
-    exportada(paths, nombre)
-}
-
-/// Exports the open scene as `nombre` and reads the file PVsyst wrote.
-fn exportada(paths: &Paths, nombre: &str) -> Result<Value> {
-    exportar::exigir_libre(paths, nombre)?;
-    let guardado = exportar::guardar(paths, nombre)?;
-    let archivo = format!("{nombre}.SHD");
-    let mut escena = crate::escena_3d::leer_escena(paths, &json!({ "archivo": archivo }))?;
+    let (mut escena, temporal) = exportar_y_leer(paths, nombre)?;
+    exportar::borrar(&temporal);
     if let Some(mapa) = escena.as_object_mut() {
-        mapa.insert("archivo".into(), json!(guardado.display().to_string()));
-        mapa.insert("origen".into(), json!("pvsyst"));
+        mapa.insert("borrado".into(), json!(true));
         mapa.insert(
             "avisos".into(),
             json!([format!(
-                "PVsyst guardó {archivo} en Shadings para leerla; bórralo si no lo necesitas."
+                "PVsyst exported the scene as {} to read it; the MCP deleted it, so no .SHD is left behind.",
+                temporal.display()
             )]),
         );
     }
     Ok(escena)
+}
+
+/// Exports the open scene under a temporary name and reads the file PVsyst wrote.
+/// The caller keeps it (a write) or deletes it (a read).
+fn exportar_y_leer(paths: &Paths, nombre: &str) -> Result<(Value, std::path::PathBuf)> {
+    let temporal = exportar::guardar_temporal(paths, nombre)?;
+    let archivo = temporal
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_default();
+    let mut escena = match crate::escena_3d::leer_escena(paths, &json!({ "archivo": archivo })) {
+        Ok(escena) => escena,
+        Err(error) => {
+            exportar::borrar(&temporal);
+            return Err(error);
+        }
+    };
+    if let Some(mapa) = escena.as_object_mut() {
+        mapa.insert("archivo".into(), json!(temporal.display().to_string()));
+        mapa.insert("origen".into(), json!("pvsyst"));
+    }
+    Ok((escena, temporal))
 }
 
 /// `gui_actuar accion:escena_importar`: imports a mesh (3DS, DAE, PVC, PVC2, PVZ2) into the
@@ -88,7 +124,6 @@ pub(crate) fn importar(paths: &Paths, args: &Value) -> Result<Value> {
         "nombre con el que PVsyst exporta la escena importada, p.ej. 'Malla_1'",
     )?)?;
     exigir_editor_abierto("importar una malla")?;
-    exportar::exigir_libre(paths, nombre)?;
     let resultado = importar::abrir_resultado(&ruta)?;
     let unidades = pasos::con_descarte(&resultado, || {
         if let Some(unidades) = opt_str(args, &["unidades"]) {
@@ -106,8 +141,19 @@ pub(crate) fn importar(paths: &Paths, args: &Value) -> Result<Value> {
         }));
     }
     importar::cerrar_resultado(&resultado, "OK")?;
-    let mut escena = exportada(paths, nombre)?;
+    let definitiva = exportar::ruta_de(paths, nombre);
+    let existia = definitiva.exists();
+    let (mut escena, temporal) = exportar_y_leer(paths, nombre)?;
+    let guardado = match exportar::conservar(&temporal, &definitiva) {
+        Ok(ruta) => ruta,
+        Err(error) => {
+            exportar::borrar(&temporal);
+            return Err(error);
+        }
+    };
     if let Some(mapa) = escena.as_object_mut() {
+        mapa.insert("archivo".into(), json!(guardado.display().to_string()));
+        mapa.insert("sobrescrito".into(), json!(existia));
         mapa.insert("importado".into(), json!(true));
         mapa.insert("unidades".into(), unidades);
     }
@@ -117,7 +163,7 @@ pub(crate) fn importar(paths: &Paths, args: &Value) -> Result<Value> {
 fn exigir_editor_abierto(para: &str) -> Result<()> {
     let editor = pasos::ventana(EDITOR).map_err(|_| {
         Error::Gui(format!(
-            "No hay editor 3D abierto: ábrelo con gui_actuar accion:funcion funcion:{ABRIR_EDITOR} y repite"
+            "No 3D editor is open: open it with gui_actuar accion:funcion funcion:{ABRIR_EDITOR} and retry"
         ))
     })?;
     exigir_habilitada(editor, para)
@@ -130,29 +176,24 @@ fn exigir_editor_vacio(paths: &Paths, nombre: &str, pedidos: &[ObjetoPedido]) ->
     exigir_editor_abierto("crear la escena")?;
     if pedidos.len() > lista::MAX_FILAS_VISIBLES {
         return Err(Error::Invalid(format!(
-            "Máximo {} objetos por escena creada en el editor",
+            "At most {} objects per scene created in the editor",
             lista::MAX_FILAS_VISIBLES
         )));
     }
     let previa = format!("previa_{nombre}");
-    let ruta = exportar::ruta_de(paths, &previa);
-    // A throwaway left by an interrupted call.
-    let _ = std::fs::remove_file(&ruta);
-    let escena = exportada(paths, &previa);
-    if let Err(error) = std::fs::remove_file(&ruta) {
-        tracing::warn!(archivo = %ruta.display(), %error, "no se pudo borrar la exportación previa");
-    }
-    let existentes = escena?
+    let (escena, temporal) = exportar_y_leer(paths, &previa)?;
+    exportar::borrar(&temporal);
+    let existentes = escena
         .get("total_objetos")
         .and_then(Value::as_u64)
         .ok_or_else(|| {
-            Error::Format("La escena exportada no dice cuántos objetos tiene: no se sabe si el editor está vacío".into())
+            Error::Format("The exported scene does not say how many objects it has: the editor may not be empty".into())
         })?;
     if existentes == 0 {
         return Ok(());
     }
     Err(Error::Invalid(format!(
-        "El editor 3D ya tiene {existentes} objetos: crear una escena escribiría las posiciones sobre ellos. Ciérralo con Cancelar (sin guardar) y ábrelo de nuevo, o usa escena_importar si solo quieres añadir"
+        "The 3D editor already has {existentes} objects: creating a scene would write positions over them. Close it with Cancelar (without saving) and open it again, or use escena_importar to only add"
     )))
 }
 
@@ -170,6 +211,6 @@ fn informe(nombre: &str, guardado: &std::path::Path, pedidos: &[ObjetoPedido]) -
         "campos_que_difieren": difieren.len(),
         "comparacion": difieren,
         "origen": "pvsyst",
-        "avisos": ["El editor 3D sigue abierto con la escena: ciérralo con Archivo > Cerrar escena para conservarla en la variante, o con Cancelar para descartarla."],
+        "avisos": ["The 3D editor is still open with the scene: close it with Archivo > Cerrar escena to keep it in the variant, or with Cancelar to discard it."],
     }))
 }
