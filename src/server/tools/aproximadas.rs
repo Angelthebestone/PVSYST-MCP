@@ -3,8 +3,8 @@
 //! They run only with `PVSYST_MCP_APROXIMACIONES=1`; otherwise they are hidden
 //! from `tools/list` and rejected with the PVsyst route that replaces them.
 
+use super::alias::canonico_de_alias;
 use super::declaracion::Herramienta;
-use super::validacion::canonico_de_alias;
 use crate::aproximaciones::{self, Aproximacion};
 use crate::config::Paths;
 use crate::error::Result;

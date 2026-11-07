@@ -11,6 +11,7 @@ use declaracion::{Anotador, Ejecutor};
 use serde_json::{json, Value};
 use std::time::Instant;
 
+mod alias;
 mod aproximadas;
 pub(crate) mod componentes;
 mod configurar;
@@ -25,6 +26,7 @@ mod restricciones_esquema;
 pub(crate) mod resultados;
 pub(crate) mod simulacion;
 pub(crate) mod sitios;
+mod tipos;
 pub(crate) mod validacion;
 mod vista;
 pub(crate) mod workspace;

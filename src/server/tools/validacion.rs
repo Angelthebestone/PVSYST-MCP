@@ -2,13 +2,14 @@
 //! presence, and declared JSON types. Kept apart from the declarations so each
 //! file stays small and the validation rules have one home.
 
+use super::alias::{normalizar_alias_argumentos, normalizar_discriminador};
 use super::declaracion::{nombre_tipo_recibido, Herramienta};
-use super::restricciones_esquema::limites_enteros;
+use super::tipos::validar_tipo_propiedad;
 use crate::args::missing;
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::idioma::{Idioma, Texto};
-use serde_json::{json, Value};
+use serde_json::Value;
 
 const VALOR_NO_VALIDO: Texto = Texto {
     es: "Valor '{valor}' no válido para {tool} ({campo}); valores: {valores}",
@@ -18,29 +19,13 @@ const ACCION_GATEADA: Texto = Texto {
     es: "Valor '{valor}' no válido para {tool} ({campo}): es una acción del MCP que solo existe con {variable}=1. Valores: {valores}",
     en: "Value '{valor}' not valid for {tool} ({campo}): it is an MCP in-house action that only exists with {variable}=1. Values: {valores}",
 };
-const TIPO_INCORRECTO: Texto = Texto {
+pub(super) const TIPO_INCORRECTO: Texto = Texto {
     es: "Tipo incorrecto para '{campo}' (esperado {esperado}, recibido {recibido})",
     en: "Wrong type for '{campo}' (expected {esperado}, got {recibido})",
 };
 const PISTA_DISCRIMINADOR: Texto = Texto {
     es: "para {tool}; valores: {valores}",
     en: "for {tool}; values: {valores}",
-};
-const CONFLICTO_ALIAS: Texto = Texto {
-    es: "Conflicto de argumentos: se pasaron '{canonico}' y su alias '{alias}' con valores distintos",
-    en: "Argument conflict: both '{canonico}' and its alias '{alias}' were passed with different values",
-};
-const RANGO_MINIMO: Texto = Texto {
-    es: "mínimo {minimo}",
-    en: "minimum {minimo}",
-};
-const RANGO_ENTRE: Texto = Texto {
-    es: "entre {minimo} y {max}",
-    en: "between {minimo} and {max}",
-};
-const FUERA_DE_RANGO: Texto = Texto {
-    es: "Valor {n} fuera de rango para '{prop}' ({rango})",
-    en: "Value {n} out of range for '{prop}' ({rango})",
 };
 
 impl Herramienta {
@@ -204,111 +189,6 @@ fn rechazar_accion_gateada(h: &Herramienta, valor: &str, paths: &Paths) -> Resul
             ("campo", disc.campo),
             ("variable", crate::aproximaciones::VARIABLE_ENTORNO),
             ("valores", &disc.valores.join(", ")),
-        ],
-    )))
-}
-
-fn normalizar_alias_argumentos(
-    argumentos: &[(&str, &str)],
-    mapa: &mut serde_json::Map<String, Value>,
-    idioma: Idioma,
-) -> Result<()> {
-    for &(alias, canonico) in argumentos {
-        let Some(valor_alias) = mapa.remove(alias) else {
-            continue;
-        };
-        match mapa.get(canonico) {
-            Some(valor_canonico) if valor_canonico != &valor_alias => {
-                return Err(Error::Invalid(
-                    CONFLICTO_ALIAS.texto_con(idioma, &[("canonico", canonico), ("alias", alias)]),
-                ));
-            }
-            Some(_) => {}
-            None => {
-                mapa.insert(canonico.to_string(), valor_alias);
-            }
-        }
-    }
-    Ok(())
-}
-
-fn normalizar_discriminador(
-    disc_opt: Option<&super::declaracion::Discriminador>,
-    valores: &[(&str, &str)],
-    mapa: &mut serde_json::Map<String, Value>,
-) {
-    let Some(disc) = disc_opt else {
-        return;
-    };
-    if let Some(val) = mapa.get_mut(disc.campo) {
-        normalizar_valor_discriminador(val, valores);
-    } else if let Some(def) = disc.defecto {
-        mapa.insert(disc.campo.to_string(), json!(def));
-    }
-}
-
-/// Canonical value behind `valor` when it is a (case-insensitive) alias in `tabla`.
-pub(super) fn canonico_de_alias<'a>(
-    tabla: &'a [(&'a str, &'a str)],
-    valor: &str,
-) -> Option<&'a str> {
-    tabla
-        .iter()
-        .find(|(alias, _)| valor.eq_ignore_ascii_case(alias))
-        .map(|&(_, canonico)| canonico)
-}
-
-fn normalizar_valor_discriminador(val: &mut Value, valores: &[(&str, &str)]) {
-    let Some(canonico) = val.as_str().and_then(|s| canonico_de_alias(valores, s)) else {
-        return;
-    };
-    *val = Value::String(canonico.to_string());
-}
-
-fn validar_tipo_propiedad(
-    prop: &(&'static str, super::declaracion::TipoDato),
-    args: &Value,
-    idioma: Idioma,
-) -> Result<()> {
-    let (prop_nombre, prop_tipo) = *prop;
-    let Some(val) = args.get(prop_nombre) else {
-        return Ok(());
-    };
-    if val.is_null() {
-        return Ok(());
-    }
-    if !prop_tipo.es_compatible(val) {
-        return Err(Error::Invalid(TIPO_INCORRECTO.texto_con(
-            idioma,
-            &[
-                ("campo", prop_nombre),
-                ("esperado", prop_tipo.nombre_esperado()),
-                ("recibido", nombre_tipo_recibido(val)),
-            ],
-        )));
-    }
-    validar_limites_enteros(prop_nombre, val, idioma)
-}
-
-/// Rejects an integer outside the bounds the schema declares for `prop_nombre`.
-fn validar_limites_enteros(prop_nombre: &str, val: &Value, idioma: Idioma) -> Result<()> {
-    let (Some((minimo, maximo)), Some(n)) = (limites_enteros(prop_nombre), val.as_i64()) else {
-        return Ok(());
-    };
-    if n >= minimo && maximo.is_none_or(|max| n <= max) {
-        return Ok(());
-    }
-    let minimo = minimo.to_string();
-    let rango = maximo.map_or_else(
-        || RANGO_MINIMO.texto_con(idioma, &[("minimo", &minimo)]),
-        |max| RANGO_ENTRE.texto_con(idioma, &[("minimo", &minimo), ("max", &max.to_string())]),
-    );
-    Err(Error::Invalid(FUERA_DE_RANGO.texto_con(
-        idioma,
-        &[
-            ("n", &n.to_string()),
-            ("prop", prop_nombre),
-            ("rango", &rango),
         ],
     )))
 }
