@@ -7,10 +7,10 @@ use crate::adapters::gui::ffi;
 use crate::adapters::gui::rotulos::Idioma;
 use crate::adapters::gui::sesion_pvsyst::Sesion;
 use crate::adapters::gui::ventanas::class_of;
+use crate::components::ficha::datos::{avisos_de_unidades, tipo_de, validar, valores_de, Tipo};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::object;
-use crate::vista_agente::clave_para_archivo;
 use serde_json::{json, Map, Value};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -47,143 +47,6 @@ const fn rotulos_ficha(idioma: Idioma) -> RotulosFicha {
 const ROTULOS: RotulosFicha = rotulos_ficha(Idioma::Es);
 
 const PAUSA_FOCO: Duration = Duration::from_millis(300);
-
-/// What differs between creating a module and an inverter. The values are typed
-/// by the keys of the entity's schema (`gui_actuar accion:rellenar`), so no
-/// coordinate lives here; a datasheet key is the entity field's `clave_archivo`.
-pub(super) struct Tipo {
-    boton_base: &'static str,
-    formulario: &'static str,
-    entidad: &'static str,
-    carpeta: &'static str,
-    extension: &'static str,
-    obligatorias: &'static [&'static str],
-    leidas: &'static [&'static str],
-}
-
-const MODULO: Tipo = Tipo {
-    boton_base: "Módulos PV",
-    formulario: "TPVModuleForm",
-    entidad: "components.panels",
-    carpeta: "PVmodules",
-    extension: "PAN",
-    obligatorias: &[
-        "Model",
-        "Manufacturer",
-        "PNom",
-        "Technol",
-        "Isc",
-        "Voc",
-        "Imp",
-        "Vmp",
-        "NCelS",
-    ],
-    leidas: &[
-        "PNom", "Isc", "Voc", "Imp", "Vmp", "NCelS", "RShunt", "RSerie", "Gamma", "muGamma",
-        "Technol",
-    ],
-};
-
-const INVERSOR: Tipo = Tipo {
-    boton_base: "Inversor de red",
-    formulario: "TGridInverterForm",
-    entidad: "components.inverters",
-    carpeta: "Inverters",
-    extension: "OND",
-    obligatorias: &[
-        "Model",
-        "Manufacturer",
-        "PNomConv",
-        "VMppMin",
-        "VMPPMax",
-        "VAbsMax",
-        "PSeuil",
-        "EfficMax",
-        "EfficEuro",
-        "MonoTri",
-    ],
-    leidas: &[
-        "PNomConv",
-        "PMaxOUT",
-        "VMppMin",
-        "VMPPMax",
-        "VAbsMax",
-        "PSeuil",
-        "EfficMax",
-        "EfficEuro",
-        "MonoTri",
-    ],
-};
-
-/// Grid phases as the file names them (`MonoTri`) and the schema option each one chooses.
-const FASES: [(&str, &str); 3] = [
-    ("Mono", "fase_monofasica"),
-    ("Tri", "fase_trifasica"),
-    ("Bi", "fase_bifasica"),
-];
-
-/// The schema option for the phase `fase` of a datasheet, when it is one PVsyst knows.
-fn opcion_de_fase(fase: &str) -> Option<&'static str> {
-    FASES
-        .iter()
-        .find(|(k, _)| k.eq_ignore_ascii_case(fase))
-        .map(|(_, opcion)| *opcion)
-}
-
-pub(super) fn tipo_de(tipo: &str) -> Result<&'static Tipo> {
-    match tipo.to_ascii_uppercase().as_str() {
-        "PAN" => Ok(&MODULO),
-        "OND" => Ok(&INVERSOR),
-        otro => Err(Error::Invalid(format!(
-            "tipo '{otro}' no soportado: PAN u OND"
-        ))),
-    }
-}
-
-fn texto(datos: &Map<String, Value>, clave: &str) -> Option<String> {
-    datos.get(clave).map(|v| match v {
-        Value::String(s) => s.clone(),
-        otro => otro.to_string(),
-    })
-}
-
-fn validar(t: &Tipo, datos: &Map<String, Value>) -> Result<()> {
-    let faltan: Vec<&str> = t
-        .obligatorias
-        .iter()
-        .copied()
-        .filter(|k| !datos.contains_key(*k))
-        .collect();
-    let conocidas =
-        |k: &str| t.obligatorias.contains(&k) || clave_para_archivo(t.entidad, k).is_some();
-    let extra: Vec<&String> = datos.keys().filter(|k| !conocidas(k)).collect();
-    if let Some(fase) = texto(datos, "MonoTri").filter(|f| opcion_de_fase(f).is_none()) {
-        return Err(Error::Invalid(format!("MonoTri '{fase}': Mono, Tri o Bi")));
-    }
-    if faltan.is_empty() && extra.is_empty() {
-        return Ok(());
-    }
-    Err(Error::Invalid(format!(
-        "Datos de la ficha: faltan {faltan:?}; no admitidos {extra:?}. PVsyst los pide en su ventana de componente"
-    )))
-}
-
-/// The values to type, by the keys of the entity: the file name (without the
-/// extension, which PVsyst adds and asks to overwrite when it is typed) and every
-/// datasheet value that is a field of the schema. Pure.
-pub(super) fn valores_de(t: &Tipo, datos: &Map<String, Value>, nombre: &str) -> Map<String, Value> {
-    let mut valores = Map::new();
-    valores.insert("nombre_archivo".into(), json!(nombre));
-    if let Some(opcion) = texto(datos, "MonoTri").and_then(|f| opcion_de_fase(&f)) {
-        valores.insert(opcion.into(), json!(true));
-    }
-    for (clave_archivo, valor) in datos {
-        if let Some(clave) = clave_para_archivo(t.entidad, clave_archivo) {
-            valores.insert(clave.into(), valor.clone());
-        }
-    }
-    valores
-}
 
 /// Types the datasheet; a field that failed or reads back differently stops before saving.
 fn rellenar(paths: &Paths, t: &Tipo, valores: &Map<String, Value>) -> Result<()> {
@@ -295,6 +158,10 @@ fn leer_guardado(
         "valores_pvsyst": valores,
         "avisos_pvsyst": avisos,
     });
+    let avisos_ficha = avisos_de_unidades(t, enviados);
+    if !avisos_ficha.is_empty() {
+        salida["avisos_ficha"] = json!(avisos_ficha);
+    }
     if !diferencias.is_empty() {
         salida["completo"] = json!(false);
         salida["diferencias_con_la_ficha"] = Value::Array(diferencias);

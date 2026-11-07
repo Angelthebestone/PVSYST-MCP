@@ -3,6 +3,7 @@
 
 mod aplicacion;
 mod dominio;
+mod flags;
 
 pub(crate) use dominio::validar_parametros;
 

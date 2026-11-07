@@ -239,7 +239,30 @@ pub(crate) fn renombrar_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     }
 
     let renombrados = renombrar_todo(&pares)?;
-    Ok(json!({ "renamed": renombrados }))
+    let mut respuesta = json!({ "renamed": renombrados });
+    // The rename already happened: a comment that cannot be updated is reported, not fatal.
+    if let Err(e) = actualizar_comentario(&pares[0].1, &stem, nuevo) {
+        respuesta["aviso"] = json!(format!(
+            "The project was renamed but its Comment still says '{stem}': {e}"
+        ));
+    }
+    Ok(respuesta)
+}
+
+/// The PRJ's `Comment` follows the new name when it was the old one: PVsyst lists the
+/// project by it, so a renamed project kept announcing its old name.
+fn actualizar_comentario(prj: &Path, anterior: &str, nuevo: &str) -> Result<()> {
+    let bytes =
+        fs::read(prj).map_err(|e| Error::io(format!("Cannot read {}", prj.display()), e))?;
+    let texto = String::from_utf8_lossy(&bytes);
+    let raiz = crate::format::object::parse_first(&texto)
+        .ok_or_else(|| Error::Format("El PRJ no contiene un PVObject".into()))?;
+    if raiz.field("Comment") != Some(anterior) {
+        return Ok(());
+    }
+    let cambios = [("Comment".to_string(), Some(nuevo.to_string()))];
+    let (nuevos, _) = edit::edit_fields(&bytes, &raiz.obj_type, &cambios)?;
+    crate::history::escribir_atomico(prj, &nuevos)
 }
 
 #[cfg(test)]

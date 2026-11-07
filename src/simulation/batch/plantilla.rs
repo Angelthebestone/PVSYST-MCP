@@ -50,6 +50,35 @@ pub(super) fn exigir_sin_separadores(contexto: &str, valor: &str) -> Result<()> 
     Ok(())
 }
 
+/// Keys of `row` no column reads: the run would use a parameter the caller believes
+/// it set, and the cell would be silently empty.
+fn claves_desconocidas(row: &Value) -> Vec<String> {
+    let Some(mapa) = row.as_object() else {
+        return vec!["<not an object>".to_string()];
+    };
+    mapa.keys()
+        .filter(|k| !COLUMNS.iter().any(|keys| keys.contains(&k.as_str())))
+        .cloned()
+        .collect()
+}
+
+/// Refuses a row that would run with a parameter nobody reads.
+fn validar_filas(filas: &[Value]) -> Result<()> {
+    for (i, row) in filas.iter().enumerate() {
+        let desconocidas = claves_desconocidas(row);
+        if desconocidas.is_empty() {
+            continue;
+        }
+        let columnas: Vec<&str> = COLUMNS.iter().map(|keys| keys[0]).collect();
+        return Err(Error::Invalid(format!(
+            "Row {}: unsupported keys {desconocidas:?}; a row takes {}",
+            i + 1,
+            columnas.join(", ")
+        )));
+    }
+    Ok(())
+}
+
 /// Cells of one batch row, each checked by [`exigir_sin_separadores`].
 fn celdas(fila: usize, row: &Value) -> Result<Vec<String>> {
     COLUMNS
@@ -71,6 +100,7 @@ pub(super) fn batch_csv(
 ) -> Result<String> {
     exigir_sin_separadores("proyecto", proyecto)?;
     exigir_sin_separadores("variante", variante)?;
+    validar_filas(filas)?;
     let cuerpo = filas
         .iter()
         .enumerate()

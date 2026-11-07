@@ -22,6 +22,7 @@ use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::object;
 use crate::history;
+use crate::idioma::{Idioma, Texto};
 use crate::workspace::{mover_a_papelera, validar_nombre, Alcance};
 use serde_json::{json, Value};
 use std::fs;
@@ -121,32 +122,56 @@ pub(crate) fn listar_componentes(paths: &Paths, args: &Value) -> Result<Value> {
     // Fallback to the bundled read-only database.
     dirs.push(crate::config::compos_ro().join(folder));
 
-    let ext = canon.to_lowercase();
-    let mut items: Vec<Value> = Vec::new();
-    let mut source = String::new();
-    for dir in dirs.iter().filter(|d| d.exists()) {
-        let found = files_with_ext(dir, &ext);
-        if !found.is_empty() {
-            source = dir.to_string_lossy().to_string();
-            items = found
-                .iter()
-                .map(|p| {
-                    json!({
-                        "file": p.file_name().and_then(|s| s.to_str()),
-                        "size_bytes": fs::metadata(p).map_or(0, |m| m.len()),
-                    })
-                })
-                .collect();
-            break;
-        }
-    }
-    Ok(json!({
+    let (items, source) = componentes_de(&dirs, &canon.to_lowercase());
+    let mut out = json!({
         "kind": kind.to_uppercase(),
         "folder": source,
         "count": items.len(),
         "components": items,
-    }))
+    });
+    // PVsyst ships only some component kinds: an absent folder is not "none found".
+    if !dirs.iter().any(|d| d.exists()) {
+        out["aviso"] = json!(SIN_CARPETA.texto_con(
+            Idioma::de_entorno(),
+            &[("carpeta", folder), ("kind", canon)],
+        ));
+    }
+    Ok(out)
 }
+
+/// Files of `ext` in the first folder that has any, and the folder to report: the one
+/// that provided them, or the one PVsyst would use when none exists.
+fn componentes_de(dirs: &[PathBuf], ext: &str) -> (Vec<Value>, String) {
+    let existentes: Vec<&PathBuf> = dirs.iter().filter(|d| d.exists()).collect();
+    for dir in &existentes {
+        let found = files_with_ext(dir, ext);
+        if found.is_empty() {
+            continue;
+        }
+        let items = found
+            .iter()
+            .map(|p| {
+                json!({
+                    "file": p.file_name().and_then(|s| s.to_str()),
+                    "size_bytes": fs::metadata(p).map_or(0, |m| m.len()),
+                })
+            })
+            .collect();
+        return (items, dir.to_string_lossy().to_string());
+    }
+    let source = existentes
+        .first()
+        .map(|d| d.to_string_lossy().to_string())
+        .or_else(|| dirs.first().map(|d| d.to_string_lossy().to_string()))
+        .unwrap_or_default();
+    (Vec::new(), source)
+}
+
+/// No `ComposPV` folder for this kind, in the workspace or in DataRO.
+const SIN_CARPETA: Texto = Texto {
+    es: "No existe la carpeta ComposPV\\{carpeta} (ni en el workspace ni en DataRO): no hay {kind} que listar. PVsyst no incluye todas las clases de componente; copia el archivo en esa carpeta",
+    en: "There is no ComposPV\\{carpeta} folder (neither in the workspace nor in DataRO): there are no {kind} to list. PVsyst does not ship every component kind; copy the file into that folder",
+};
 
 pub(crate) fn leer_componente(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);

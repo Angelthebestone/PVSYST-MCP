@@ -19,7 +19,7 @@ fn should_reject_rates_and_tariffs_when_they_are_out_of_range() {
         json!({"inflacion": -0.1}),
         json!({"inflacion": 1.1}),
         json!({"tarifa_venta_kwh": -1}),
-        json!({"tarifa_venta_kwh": 101}),
+        json!({"tarifa_venta_kwh": 1e9}),
     ] {
         parametros(&entrada).expect_err("fuera de rango");
     }

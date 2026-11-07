@@ -59,6 +59,17 @@ impl ColumnasDat<'_> {
     }
 }
 
+/// A hidden-parameter column holds one number or one text: an array or object would
+/// be written as its JSON text into a field PVsyst reads as a value.
+fn escalar(contexto: &str, valor: &Value) -> Result<String> {
+    match valor {
+        Value::Array(_) | Value::Object(_) => Err(Error::Invalid(format!(
+            "{contexto}: expected a number or text, got {valor}"
+        ))),
+        otro => Ok(value_text(otro)),
+    }
+}
+
 /// Build a `Param_Modif.dat` file (advanced/hidden parameter overrides): one
 /// `name;initial;new;unit;description` line per parameter, every field checked
 /// for separators because the format has no quoting.
@@ -68,14 +79,14 @@ fn construir_dat(
 ) -> Result<String> {
     let mut text = String::from("Hidden parameters: User's modifications;\n");
     for (key, new) in params {
-        let init = columnas
-            .iniciales
-            .and_then(|m| m.get(key))
-            .map_or_else(|| "0.0000".to_string(), value_text);
+        let init = match columnas.iniciales.and_then(|m| m.get(key)) {
+            Some(valor) => escalar(&format!("Parámetro '{key}' (inicial)"), valor)?,
+            None => "0.0000".to_string(),
+        };
         let campos = [
             key.clone(),
             init,
-            value_text(new),
+            escalar(&format!("Parámetro '{key}'"), new)?,
             ColumnasDat::texto(columnas.unidades, key),
             ColumnasDat::texto(columnas.descripciones, key),
         ];
