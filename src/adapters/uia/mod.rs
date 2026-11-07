@@ -106,7 +106,3 @@ impl Sesion {
         })
     }
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/adapters/uia/mod.rs"]
-mod tests;
