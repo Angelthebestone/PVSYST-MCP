@@ -21,6 +21,7 @@ const CLAVE_DE_ENSAYO: &[(&str, &str)] = &[
     ("proyecto", "dry_run"),
     ("simular", "dry_run"),
     ("sitio", "dry_run"),
+    ("workspace", "dry_run"),
     ("gui_actuar", "simular"),
 ];
 

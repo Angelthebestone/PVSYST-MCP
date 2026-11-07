@@ -6,17 +6,12 @@ use crate::history;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-/// Write several files as one unit. Existing files are snapshotted first; if a
-/// write fails, previous bytes are restored. Rollback errors are preserved in the error.
-pub(super) fn escribir_par(
-    workspace: &Path,
-    archivos: &[(PathBuf, Vec<u8>)],
-) -> Result<Option<String>> {
-    let existentes: Vec<PathBuf> = archivos
-        .iter()
-        .filter(|(p, _)| p.exists())
-        .map(|(p, _)| p.clone())
-        .collect();
+/// Write several files as one unit. Every destination is snapshotted first (a
+/// new one as absent, so its creation can be undone); if a write fails, previous
+/// bytes are restored. Rollback errors are preserved in the error.
+pub(super) fn escribir_par(workspace: &Path, archivos: &[(PathBuf, Vec<u8>)]) -> Result<String> {
+    let destinos: Vec<PathBuf> = archivos.iter().map(|(p, _)| p.clone()).collect();
+    let historial_id = history::snapshot(workspace, &destinos, "crear_proyecto")?;
 
     let mut previos: Vec<Option<Vec<u8>>> = Vec::with_capacity(archivos.len());
     for (p, _) in archivos {
@@ -28,12 +23,6 @@ pub(super) fn escribir_par(
             previos.push(None);
         }
     }
-
-    let historial_id = if existentes.is_empty() {
-        None
-    } else {
-        Some(history::snapshot(workspace, &existentes, "crear_proyecto")?)
-    };
 
     for (i, (path, bytes)) in archivos.iter().enumerate() {
         if let Err(e) = history::escribir_atomico(path, bytes) {

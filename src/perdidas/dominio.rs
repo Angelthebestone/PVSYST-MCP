@@ -42,6 +42,11 @@ pub(crate) struct ParametrosPerdidas {
     mismatch_pct: Option<f64>,
 }
 
+/// Validates the action's arguments without touching any file.
+pub(crate) fn validar_parametros(args: &Value) -> Result<()> {
+    ParametrosPerdidas::nuevo(EntradaPerdidas::de_args(args)?).map(|_| ())
+}
+
 impl ParametrosPerdidas {
     pub(crate) fn nuevo(entrada: EntradaPerdidas) -> Result<Self> {
         if [

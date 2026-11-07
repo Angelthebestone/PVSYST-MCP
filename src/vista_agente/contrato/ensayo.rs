@@ -18,6 +18,7 @@ fn implementa_ensayo(tool: &str, accion: &str) -> bool {
             | ("sitio", "convertir_meteo" | "crear" | "horizonte_pvgis")
             | ("proyecto", "p50_p90")
             | ("disenar_sistema", _)
+            | ("workspace", "restaurar")
             | ("gui_actuar", "escena" | "escena_importar" | "rellenar")
     )
 }

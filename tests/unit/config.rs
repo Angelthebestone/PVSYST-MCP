@@ -21,3 +21,14 @@ fn should_list_installs_newest_first_when_the_folders_hold_several_versions() {
         .collect();
     assert_eq!(nombres, ["PVsyst8.1.10", "PVsyst8.1.8"]);
 }
+
+#[test]
+fn should_document_the_dataro_override_in_the_client_example() {
+    let ejemplo = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/mcp.example.json"));
+    let json: serde_json::Value = serde_json::from_str(ejemplo).expect("ejemplo JSON válido");
+    let env = &json["mcpServers"]["pvsyst"]["env"];
+    assert!(
+        env.get("PVSYST_DATARO").is_some(),
+        "sin PVSYST_DATARO, leer DataRO falla: {env}"
+    );
+}

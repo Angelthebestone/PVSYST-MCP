@@ -110,7 +110,7 @@ pub(crate) fn editar_objeto(paths: &Paths, args: &Value) -> Result<Value> {
         .and_then(|v| v.as_object())
         .ok_or_else(|| missing("campos", "object of key: value"))?;
 
-    let changes = edit::changes_from_json(cambios);
+    let changes = edit::changes_from_json(cambios)?;
     edit::reject_invalid_keys(&changes)?;
 
     let bytes =

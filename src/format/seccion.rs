@@ -95,6 +95,12 @@ fn aplicar_cambio(
         };
     };
     match cambio.valor {
+        Some(nuevo) if viejo.trim() == nuevo.trim() => Ok(outcome(
+            cambio.clave,
+            "sin_cambio",
+            Some(viejo.clone()),
+            Some(nuevo),
+        )),
         Some(nuevo) => {
             for (i, _) in indices {
                 let fin = fin_de(&doc.lines[*i], cambio.fin);
@@ -128,6 +134,7 @@ pub(crate) fn editar_campos_seccion(
     cambios: &[(String, Option<String>)],
 ) -> Result<(Vec<u8>, Vec<ChangeOutcome>)> {
     reject_line_breaks(cambios)?;
+    super::campos_numericos::validar_valores(cambios)?;
     let mut doc = Lines::split(bytes);
     let seccion = buscar_seccion(&doc, clave)
         .ok_or_else(|| Error::NotFound(format!("Sección '{clave}' no encontrada")))?;

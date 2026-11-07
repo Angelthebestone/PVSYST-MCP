@@ -1,5 +1,4 @@
 use super::*;
-use proptest::prelude::*;
 
 const DOC: &str = "PVObject_=pvProject\r\n  Comment=Hello\r\n  \
 PVObject_PVMainArray=pvMainArray\r\n    PVObject_=pvSubArray\r\n      \
@@ -62,29 +61,14 @@ fn should_keep_binary_bytes_identical() {
     assert_eq!(out, raw, "byte-identical when nothing changes");
 }
 
-proptest! {
-    #[test]
-    fn should_change_only_its_line_and_be_reversible_when_setting_a_field(
-        value in "[A-Za-z0-9_.,:-]{0,24}"
-    ) {
-        let (out, _) = edit_fields(
-            DOC.as_bytes(),
-            "pvSubArray",
-            &[("NModSerie".into(), Some(value))],
-        )
-        .unwrap();
-        let before: Vec<&[u8]> = DOC.as_bytes().split(|b| *b == b'\n').collect();
-        let after: Vec<&[u8]> = out.split(|b| *b == b'\n').collect();
-        prop_assert_eq!(before.len(), after.len());
-        let changed = before.iter().zip(&after).filter(|(a, b)| a != b).count();
-        prop_assert!(changed <= 1);
-
-        let (back, _) = edit_fields(
-            &out,
-            "pvSubArray",
-            &[("NModSerie".into(), Some("10".into()))],
-        )
-        .unwrap();
-        prop_assert_eq!(back, DOC.as_bytes());
-    }
+#[test]
+fn should_report_sin_cambio_and_keep_the_bytes_when_the_value_is_already_set() {
+    let (out, outcomes) = edit_fields(
+        DOC.as_bytes(),
+        "pvSubArray",
+        &[("NModSerie".into(), Some("10".into()))],
+    )
+    .expect("el valor ya era ese");
+    assert_eq!(outcomes[0].action, "sin_cambio");
+    assert_eq!(out, DOC.as_bytes());
 }

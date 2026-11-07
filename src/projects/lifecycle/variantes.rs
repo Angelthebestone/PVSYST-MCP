@@ -138,11 +138,7 @@ pub(crate) fn abrir_variante(paths: &Paths, args: &Value) -> Result<VarianteAbie
 }
 
 /// Write edited variant bytes through the history-backed atomic writer.
-pub(crate) fn guardar_variante(
-    v: &VarianteAbierta,
-    nuevo: &[u8],
-    motivo: &str,
-) -> Result<Option<String>> {
+pub(crate) fn guardar_variante(v: &VarianteAbierta, nuevo: &[u8], motivo: &str) -> Result<String> {
     history::reemplazar(&v.workspace, &v.vpath, nuevo, motivo)
 }
 
@@ -151,7 +147,7 @@ pub(crate) fn guardar_variante(
 pub(crate) fn respuesta_de_edicion(
     v: &VarianteAbierta,
     parametros: &Value,
-    (cambios, historial_id): (&[ChangeOutcome], Option<String>),
+    (cambios, historial_id): (&[ChangeOutcome], String),
 ) -> Map<String, Value> {
     let mut respuesta = Map::new();
     respuesta.insert("proyecto".into(), json!(v.stem));

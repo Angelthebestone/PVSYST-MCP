@@ -39,6 +39,7 @@ pub(crate) fn configurar_almacenamiento(paths: &Paths, args: &Value) -> Result<V
         (&outcomes, historial_id),
     );
     out.insert("insertados".into(), json!(insertados));
+    out.insert("dimensionado".into(), parametros.criterio_dimensionado());
     if let Some(texto) = aviso {
         out.insert("aviso".into(), json!(texto));
     }

@@ -41,8 +41,8 @@ fn should_restore_previous_content_when_historial_targets_the_requested_workspac
         .unwrap_or_default();
     assert_eq!(
         snapshots.len(),
-        1,
-        "esperaba 1 snapshot, hubo {snapshots:?}"
+        2,
+        "la creación y la sobrescritura dejan un snapshot cada una: {snapshots:?}"
     );
 
     let resp = c.call(

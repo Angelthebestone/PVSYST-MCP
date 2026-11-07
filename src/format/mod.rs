@@ -1,6 +1,7 @@
 //! Core PVsyst file formats and codecs (pure: no I/O, no MCP, no CLI; uses crate::error for typed error reporting).
 //! Every other module may depend on this one.
 
+pub(crate) mod campos_numericos;
 pub(crate) mod cierre;
 pub(crate) mod delete;
 pub(crate) mod edit;

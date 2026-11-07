@@ -6,9 +6,16 @@ use crate::components;
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::history;
+use crate::idioma::{Idioma, Texto};
 use crate::workspace::{resolver_ruta, validar_nombre, Alcance};
 use serde_json::{json, Value};
 use std::fs;
+
+/// The imported name had no extension, so it was completed with the kind's own.
+const NOMBRE_SIN_EXTENSION: Texto = Texto {
+    es: "'nombre_nuevo' no llevaba extensión: se guardó como '{nombre}' (sin ella, listar no lo vería)",
+    en: "'nombre_nuevo' had no extension: saved as '{nombre}' (without it, listar would never see it)",
+};
 
 /// Import a component file into the workspace component database.
 pub(crate) fn importar_componente(paths: &Paths, args: &Value) -> Result<Value> {
@@ -42,17 +49,25 @@ pub(crate) fn importar_componente(paths: &Paths, args: &Value) -> Result<Value> 
             .to_string(),
     };
     validar_nombre(&name)?;
-    let target = dir.join(&name);
+    let normalizado = components::nombre_con_extension(&name, &kind);
+    let target = dir.join(&normalizado);
     components::sobrescritura::exigir_sobrescribir(&target, args)?;
     let bytes =
         fs::read(&origen).map_err(|e| Error::io(format!("Cannot read {}", origen.display()), e))?;
     let historial_id = history::reemplazar(&workspace, &target, &bytes, "importar_componente")?;
-    Ok(json!({
+    let mut out = json!({
         "imported": origen.to_string_lossy(),
         "to": target.to_string_lossy(),
         "kind": kind.to_uppercase(),
         "historial_id": historial_id,
-    }))
+    });
+    if normalizado != name {
+        out["nombre_normalizado"] = json!(normalizado);
+        out["aviso"] = json!(
+            NOMBRE_SIN_EXTENSION.texto_con(Idioma::de_entorno(), &[("nombre", &normalizado)],)
+        );
+    }
+    Ok(out)
 }
 
 /// Export a workspace component to an external file.

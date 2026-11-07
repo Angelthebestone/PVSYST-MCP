@@ -208,5 +208,5 @@ fn escribir_rvt(
     let rvs = batch_dir.join("MCP_BatchVariables.rvt");
     let content = format!("  ResultVars={}\n", list.join(";"));
     let id = history::reemplazar(workspace, &rvs, content.as_bytes(), "crear_batch")?;
-    Ok((Some(rvs.to_string_lossy().to_string()), id))
+    Ok((Some(rvs.to_string_lossy().to_string()), Some(id)))
 }

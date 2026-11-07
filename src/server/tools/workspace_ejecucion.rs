@@ -28,11 +28,15 @@ pub(super) fn ejecutar_workspace(paths: &Paths, args: &Value) -> Result<Value> {
                 .and_then(|n| usize::try_from(n).ok());
             Ok(history::listar(&workspace_of(paths, args), n.unwrap_or(20)))
         }
-        "restaurar" => history::restaurar(
-            &workspace_of(paths, args),
-            args.get("id").and_then(Value::as_str).unwrap_or_default(),
-            Alcance::de_args(args),
-        ),
+        "restaurar" => {
+            let workspace = workspace_of(paths, args);
+            history::restaurar(&history::PeticionRestauracion {
+                ws: &workspace,
+                id: args.get("id").and_then(Value::as_str).unwrap_or_default(),
+                alcance: Alcance::de_args(args),
+                dry_run: crate::args::flag(args, &["dry_run"]),
+            })
+        }
         _ => Err(Error::Invalid(format!(
             "Value '{valor}' not supported for workspace"
         ))),

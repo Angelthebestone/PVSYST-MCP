@@ -4,11 +4,36 @@ use crate::args::{flag, req_str, req_texto, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::history;
+use crate::idioma::{Idioma, Texto};
 use crate::workspace::base64::decode_base64;
 use crate::workspace::rutas::{resolver_ruta, Alcance};
 use serde_json::{json, Value};
 use std::fs;
 use std::path::Path;
+
+/// An empty write has nothing to verify, so it is refused unless `base64` is explicit.
+const CONTENIDO_VACIO: Texto = Texto {
+    es: "'contenido' no puede estar vacío: un archivo de 0 bytes no tiene nada que verificar. Pasa 'base64': true si el contenido vacío es deliberado.",
+    en: "'contenido' must not be empty: a 0-byte file has nothing to verify. Pass 'base64': true if the empty content is deliberate.",
+};
+
+/// Overwriting is this tool's default; an explicit `sobrescribir: false` vetoes it.
+fn exigir_sobrescritura(path: &Path, args: &Value) -> Result<()> {
+    let pide = args.get("sobrescribir").and_then(Value::as_bool);
+    if pide != Some(false) || !path.exists() {
+        return Ok(());
+    }
+    Err(Error::Invalid(SOBRESCRITURA_RECHAZADA.texto_con(
+        Idioma::de_entorno(),
+        &[("archivo", &path.to_string_lossy())],
+    )))
+}
+
+/// Refusal of an overwrite vetoed by the caller.
+const SOBRESCRITURA_RECHAZADA: Texto = Texto {
+    es: "'{archivo}' ya existe y se pidió 'sobrescribir': false: no se escribió nada",
+    en: "'{archivo}' already exists and 'sobrescribir': false was requested: nothing was written",
+};
 
 pub(crate) fn escribir_archivo(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
@@ -18,20 +43,12 @@ pub(crate) fn escribir_archivo(paths: &Paths, args: &Value) -> Result<Value> {
 
     validar_formato_pvsyst(&path, &bytes)?;
 
+    exigir_sobrescritura(&path, args)?;
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
             .map_err(|e| Error::io(format!("Cannot create {}", parent.display()), e))?;
     }
-    let historial_id = if path.is_file() {
-        Some(history::snapshot(
-            &workspace,
-            std::slice::from_ref(&path),
-            "escribir_archivo",
-        )?)
-    } else {
-        None
-    };
-    history::escribir_atomico(&path, &bytes)?;
+    let historial_id = history::reemplazar(&workspace, &path, &bytes, "escribir_archivo")?;
     Ok(json!({
         "path": path.to_string_lossy(),
         "bytes_written": bytes.len(),
@@ -42,6 +59,11 @@ pub(crate) fn escribir_archivo(paths: &Paths, args: &Value) -> Result<Value> {
 fn extraer_bytes_acotados(args: &Value) -> Result<Vec<u8>> {
     let content = req_texto(args, &["contenido"], "")?;
     let es_base64 = flag(args, &["base64"]);
+    if content.is_empty() && !es_base64 {
+        return Err(Error::Invalid(
+            CONTENIDO_VACIO.texto_con(Idioma::de_entorno(), &[]),
+        ));
+    }
     let limite_texto = if es_base64 {
         crate::workspace::MAX_BYTES_MAXIMO.saturating_mul(4) / 3 + 16
     } else {

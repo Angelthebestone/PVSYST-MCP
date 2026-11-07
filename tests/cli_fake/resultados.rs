@@ -47,6 +47,14 @@ fn should_snapshot_previous_deliverable_when_regenerated() {
     let primero = tool_text(&client.call(2, "resultados", args.clone()));
     let segundo = tool_text(&client.call(3, "resultados", args));
 
-    assert_eq!(primero["historial_id"], json!(null), "v={primero}");
-    assert!(segundo["historial_id"].is_string(), "v={segundo}");
+    let creacion = primero["historial_id"]
+        .as_str()
+        .unwrap_or_else(|| panic!("la creación del entregable deja historial: {primero}"));
+    let regeneracion = segundo["historial_id"]
+        .as_str()
+        .unwrap_or_else(|| panic!("la regeneración deja historial: {segundo}"));
+    assert_ne!(
+        creacion, regeneracion,
+        "cada escritura tiene su propio snapshot"
+    );
 }

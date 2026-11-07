@@ -1,6 +1,7 @@
-//! Behavioural tests for the history module.
+//! Behavioral and concurrency tests for the history module.
 
 use super::snapshot::sorted_dirs;
+use super::*;
 use serde_json::json;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -16,57 +17,63 @@ pub(super) fn crear_workspace_temporal(name: &str) -> PathBuf {
     d
 }
 
-pub(super) fn snap_dir(ws: &Path, id: &str) -> PathBuf {
-    let d = ws.join("UserData").join("mcp_history").join(id);
-    fs::create_dir_all(&d).expect("create snap dir");
-    d
-}
-
-pub(super) fn escribir_manifiesto(dir: &Path, id: &str, archivos: &serde_json::Value) {
-    let m = json!({ "id": id, "fecha": "2026-10-14T10:00:00.000Z", "motivo": "test", "archivos": archivos });
-    fs::write(dir.join("manifest.json"), m.to_string()).expect("write manifest");
-}
-
 /// Restore confined to the workspace, as every tool call does by default.
 pub(super) fn restaurar(ws: &Path, id: &str) -> crate::error::Result<serde_json::Value> {
-    super::restaurar(ws, id, crate::config::Alcance::Workspace)
+    super::restaurar(&super::PeticionRestauracion {
+        ws,
+        id,
+        alcance: crate::config::Alcance::Workspace,
+        dry_run: false,
+    })
+}
+
+/// Rehearsal of the same restore: nothing on disk may change.
+pub(super) fn ensayar(ws: &Path, id: &str) -> crate::error::Result<serde_json::Value> {
+    super::restaurar(&super::PeticionRestauracion {
+        ws,
+        id,
+        alcance: crate::config::Alcance::Workspace,
+        dry_run: true,
+    })
 }
 
 #[test]
-fn should_reject_restore_and_leave_files_untouched_when_the_original_is_outside_the_workspace() {
-    let ws = crear_workspace_temporal("bad_orig");
-    let outside_dir = crear_workspace_temporal("outside");
-    let outside_file = outside_dir.join("secret.txt");
-    fs::write(&outside_file, "intacto").expect("write outside");
-    let inside_file = ws.join("local.txt");
-    fs::write(&inside_file, "contenido_inicial").expect("write inside");
+fn should_record_a_snapshot_for_a_creation_and_restore_it_as_absent() {
+    let ws = crear_workspace_temporal("reemplazar");
+    let f = ws.join("p.txt");
+    let creacion = reemplazar(&ws, &f, b"uno", "t").expect("new");
+    assert_eq!(fs::read(&f).expect("read"), b"uno");
 
-    let snap_dir = snap_dir(&ws, "snap_outside");
-    fs::write(snap_dir.join("000.bin"), "nuevo_contenido").expect("write copia");
+    let id = reemplazar(&ws, &f, b"dos", "t").expect("replace");
+    assert_eq!(fs::read(&f).expect("read"), b"dos");
+    restaurar(&ws, &id).expect("restore");
+    assert_eq!(fs::read(&f).expect("read"), b"uno");
 
-    escribir_manifiesto(
-        &snap_dir,
-        "snap_outside",
-        &json!([{ "original": outside_file.to_string_lossy(), "copia": "000.bin", "existia": true }]),
-    );
+    restaurar(&ws, &creacion).expect("restore creation");
+    assert!(!f.exists(), "restaurar la creación vuelve a 'no existía'");
+    let _ = fs::remove_dir_all(&ws);
+}
 
-    let resultado = restaurar(&ws, "snap_outside");
-    assert!(
-        resultado.is_err(),
-        "Debe rechazar original fuera del workspace"
-    );
-    assert_eq!(fs::read_to_string(&outside_file).expect("read"), "intacto");
+#[test]
+fn should_not_touch_files_when_the_restore_is_a_rehearsal() {
+    let ws = crear_workspace_temporal("dry_run");
+    let cambiado = ws.join("cambiado.txt");
+    let creado = ws.join("creado.txt");
+    fs::write(&cambiado, "antes").expect("write");
+    let id = snapshot(&ws, &[cambiado.clone(), creado.clone()], "test").expect("snap");
+    fs::write(&cambiado, "despues").expect("write");
+    fs::write(&creado, "nuevo").expect("write");
+
+    let ensayo = ensayar(&ws, &id).expect("ensayo");
+
+    assert_eq!(ensayo["simulado"], json!(true));
+    assert_eq!(ensayo["cambiarian"], json!(2));
+    assert_eq!(fs::read_to_string(&cambiado).expect("read"), "despues");
+    assert_eq!(fs::read_to_string(&creado).expect("read"), "nuevo");
     assert_eq!(
-        fs::read_to_string(&inside_file).expect("read"),
-        "contenido_inicial"
-    );
-
-    let dirs = sorted_dirs(&ws.join("UserData").join("mcp_history"));
-    assert_eq!(
-        dirs.len(),
+        sorted_dirs(&ws.join("UserData").join("mcp_history")).len(),
         1,
-        "No debe crearse snapshot previo si el manifiesto falla"
+        "el ensayo no crea el snapshot previo a la restauración"
     );
     let _ = fs::remove_dir_all(&ws);
-    let _ = fs::remove_dir_all(&outside_dir);
 }

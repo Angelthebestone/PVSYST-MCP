@@ -83,6 +83,11 @@ fn rango(valor: f64, (min, max): (f64, f64), clave: &str) -> Result<()> {
     )))
 }
 
+/// Validates the action's arguments without touching any file.
+pub(crate) fn validar_parametros(args: &Value) -> Result<()> {
+    ParametrosSeguidor::nuevo(EntradaSeguidor::de_args(args)?).map(|_| ())
+}
+
 impl ParametrosSeguidor {
     pub(crate) fn nuevo(entrada: EntradaSeguidor) -> Result<Self> {
         let azimut_eje = entrada.azimut_eje.unwrap_or(AZIMUT_EJE_DEFECTO);
