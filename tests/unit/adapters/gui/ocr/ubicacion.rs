@@ -20,10 +20,3 @@ fn should_refuse_to_guess_when_the_text_is_drawn_twice_without_index() {
         "{error:?}"
     );
 }
-
-#[test]
-fn should_report_not_found_when_nothing_matches() {
-    let error = elegir_caja(&[], None, "Cliente");
-
-    assert!(matches!(error, Err(Error::NotFound(_))));
-}

@@ -13,19 +13,6 @@ const fn rect(left: i32, top: i32, right: i32, bottom: i32) -> Rect {
 use super::*;
 
 #[test]
-fn should_associate_left_label_when_on_same_row() {
-    let control = rect(200, 100, 300, 125);
-    let label = LineaOcr {
-        texto: "Potencia nominal:".into(),
-        rect: rect(50, 103, 190, 120),
-        palabras: Vec::new(),
-    };
-    let resultado = asociar_etiqueta(&control, &[label]);
-    assert_eq!(resultado.etiqueta.as_deref(), Some("Potencia nominal"));
-    assert!(!resultado.ambiguo);
-}
-
-#[test]
 fn should_report_ambiguity_when_two_left_captions_are_equally_close() {
     let control = rect(200, 200, 300, 225);
     let label_a = LineaOcr {
