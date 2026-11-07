@@ -179,10 +179,14 @@ pub(crate) fn mensual(tokens: &[String]) -> Result<Value> {
     Ok(json!({"columnas": columnas, "unidades": unidades, "meses": meses, "anual": anual}))
 }
 
+/// Report without the results box: PVsyst omits it in a partial report (only some
+/// pages asked for) and in reports of other tools, so the message names both.
+const SIN_RESULTADOS: &str = "El informe no trae el bloque de resultados (Produced Energy): es un informe parcial (pide las páginas de resultados con simular paginas_reporte) o no lo generó una simulación";
+
 /// Headline results: produced energy (required), specific production and PR.
 pub(crate) fn resumen(tokens: &[String]) -> Result<Value> {
     let energia = valor_de_etiqueta(tokens, "Produced Energy")
-        .ok_or_else(|| Error::Format("El informe no contiene Produced Energy".into()))?;
+        .ok_or_else(|| Error::Format(SIN_RESULTADOS.into()))?;
     Ok(json!({
         "energia_anual_kwh": energia,
         "produccion_especifica_kwh_kwp": valor_de_etiqueta(tokens, "Specific production"),
