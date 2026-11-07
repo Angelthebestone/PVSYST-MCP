@@ -32,20 +32,19 @@ pub(crate) struct Comentario<'a> {
 
 impl Comentario<'_> {
     /// Applies the rule to `objeto` (`pvProject` / `pvVCalcul`); returns the bytes and the change report.
+    ///
+    /// Without an explicit comment the object takes the new project's name, whatever the
+    /// template said: a copy named `Z_New` must not keep announcing the template it came
+    /// from, and the answer then reports the change instead of an empty `applied`.
     pub(crate) fn aplicar(&self, bytes: &[u8], objeto: &str) -> Result<(Vec<u8>, Vec<Value>)> {
-        let cambio = match self.explicito {
-            Some(c) => {
-                let cambios = [("Comment".to_string(), Some(c.to_string()))];
-                Some(edit::edit_fields(bytes, objeto, &cambios)?)
-            }
-            None => sustituir_demo(bytes, self.nombre)?,
-        };
-        Ok(match cambio {
-            Some((nuevo, cambios)) => (
-                nuevo,
-                cambios.iter().map(edit::ChangeOutcome::to_json).collect(),
-            ),
-            None => (bytes.to_vec(), Vec::new()),
-        })
+        let texto = self.explicito.unwrap_or(self.nombre);
+        let cambios = [("Comment".to_string(), Some(texto.to_string()))];
+        let (nuevo, outcomes) = edit::edit_fields(bytes, objeto, &cambios)?;
+        let aplicados = outcomes
+            .iter()
+            .filter(|o| o.action != "sin_cambio")
+            .map(edit::ChangeOutcome::to_json)
+            .collect();
+        Ok((nuevo, aplicados))
     }
 }
