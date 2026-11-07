@@ -68,12 +68,14 @@ fn should_extract_kpis_when_the_report_pdf_is_a_real_report() {
 }
 
 #[test]
-fn should_replace_the_template_site_when_linking_a_site() {
+fn should_replace_the_template_site_in_project_and_variant_when_linking_a_site() {
     let ws = tempfile::tempdir().unwrap();
     let projects = ws.path().join("Projects");
     std::fs::create_dir_all(&projects).unwrap();
     let plantilla = include_bytes!("../../fixtures/workspace/Projects/SYNTH_Plant.PRJ");
     std::fs::write(projects.join("SYNTH_Plant.PRJ"), plantilla).unwrap();
+    let vc0 = include_bytes!("../../fixtures/workspace/Projects/SYNTH_Plant.VC0");
+    std::fs::write(projects.join("SYNTH_Plant.VC0"), vc0).unwrap();
     let sit = ws.path().join("Mi.SIT");
     std::fs::write(
         &sit,
@@ -81,10 +83,23 @@ fn should_replace_the_template_site_when_linking_a_site() {
     )
     .unwrap();
     let paths = Paths::para_test(ws.path().to_path_buf());
-    proyecto::vincular_sitio(&paths, "SYNTH_Plant", &sit.to_string_lossy()).unwrap();
-    let prj = std::fs::read_to_string(projects.join("SYNTH_Plant.PRJ")).unwrap();
-    assert!(prj.contains("Comment=Sitio creado;"), "prj={prj}");
-    assert!(!prj.contains("Comment=Synthetic;Nowhere;"), "prj={prj}");
+    super::sitio_del_proyecto::vincular_sitio(
+        &paths,
+        &super::SitioDelDiseno {
+            nombre: "SYNTH_Plant",
+            variante: "VC0",
+            sit_file: &sit.to_string_lossy(),
+        },
+    )
+    .unwrap();
+    for archivo in ["SYNTH_Plant.PRJ", "SYNTH_Plant.VC0"] {
+        let texto = std::fs::read_to_string(projects.join(archivo)).unwrap();
+        assert!(texto.contains("Comment=Sitio creado;"), "{archivo}={texto}");
+        assert!(
+            !texto.contains("Comment=Synthetic;Nowhere;"),
+            "{archivo} keeps the template site: {texto}"
+        );
+    }
 }
 #[test]
 fn should_resume_the_design_when_the_project_exists_with_the_same_parameters() {
@@ -162,4 +177,41 @@ fn diseno(extra: &serde_json::Value) -> DisenoParametros {
         args[k.as_str()] = v.clone();
     }
     DisenoParametros::parse(&args).expect("parámetros")
+}
+
+#[test]
+fn should_skip_modules_without_electrical_data_when_substituting_the_template_module() {
+    // Given: a template whose module is missing, and two candidates, the first one
+    // alphabetically without Vmpp
+    let (ws, paths) = workspace_con_plantilla();
+    let modulos = ws.path().join("ComposPV").join("PVModules");
+    std::fs::create_dir_all(&modulos).unwrap();
+    std::fs::write(
+        modulos.join("A_Sin_Vmpp.PAN"),
+        "PVObject_=pvModule\n  PNom=300\n  Voc=44.5\n  Isc=9.0\nEnd of PVObject pvModule\n",
+    )
+    .unwrap();
+    std::fs::copy(
+        concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/workspace/ComposPV/PVModules/Synth_400W.PAN"
+        ),
+        modulos.join("B_Con_Datos.PAN"),
+    )
+    .unwrap();
+    let params = diseno(&json!({ "modulo": null }));
+    proyecto::ejecutar_paso_proyecto(&paths, &params).expect("proyecto");
+
+    // When
+    let paso = ejecutar_paso_dimensionado(&paths, &params).expect("dimensionado");
+
+    // Then: the module that can be sized is the substitute, and it is the one reported
+    let aviso = paso
+        .avisos
+        .iter()
+        .find(|a| a.contains("no existe"))
+        .unwrap_or_else(|| panic!("sin aviso de sustitución: {:?}", paso.avisos));
+    assert!(aviso.contains("B_Con_Datos.PAN"), "aviso={aviso}");
+    assert!(!aviso.contains("A_Sin_Vmpp.PAN"), "aviso={aviso}");
+    assert_eq!(paso.kwp_realizado, Some(8.0));
 }

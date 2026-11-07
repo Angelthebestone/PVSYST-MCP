@@ -11,12 +11,16 @@ mod dimensionado;
 mod fallo_simulacion;
 mod lectura_argumentos;
 mod meteonorm;
+mod modulo_de_plantilla;
 mod parametros;
 mod pasos;
 pub(crate) mod proyecto;
 mod serie_plantilla;
 mod simulacion;
 mod sitio;
+mod sitio_del_proyecto;
+
+pub(crate) use sitio_del_proyecto::SitioDelDiseno;
 
 #[cfg(test)]
 #[path = "../../tests/unit/easy_mode/tests.rs"]
@@ -185,7 +189,14 @@ fn correr_pasos(
     )?;
     exigir_sitio_creado(&paso_sitio)?;
     let paso_proyecto = proyecto::ejecutar_paso_proyecto(paths, params)?;
-    proyecto::vincular_sitio(paths, &params.proyecto.nombre, &paso_sitio.sit_file)?;
+    sitio_del_proyecto::vincular_sitio(
+        paths,
+        &SitioDelDiseno {
+            nombre: &params.proyecto.nombre,
+            variante: &params.variante,
+            sit_file: &paso_sitio.sit_file,
+        },
+    )?;
     let paso_orientacion = proyecto::ejecutar_paso_orientacion(paths, params)?;
     let paso_dimensionado = dimensionado::ejecutar_paso_dimensionado(paths, params)?;
     exigir_tolerancia_kwp(

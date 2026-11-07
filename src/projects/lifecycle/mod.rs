@@ -4,6 +4,7 @@ pub(crate) mod componentes_variante;
 pub(crate) mod creacion;
 pub(crate) mod dimensionamiento;
 pub(crate) mod edicion;
+pub(crate) mod plantilla;
 mod potencia_modulo;
 pub(crate) mod sitio;
 mod transacciones;

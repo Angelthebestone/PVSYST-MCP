@@ -1,13 +1,12 @@
 //! Step 4: Array sizing and inverter electrical window calculations.
 
 use super::baterias::aplicar_baterias_al_resultado;
+use super::modulo_de_plantilla::{leer_modulo, ModuloResuelto};
 use super::parametros::{DisenoParametros, TipoDiseno};
 use super::pasos::PasoDimensionadoSalida;
-use super::serie_plantilla::{
-    referencias_de_variante, resolver_serie_plantilla, Referencias, ResolucionSerie,
-};
+use super::serie_plantilla::{referencias_de_variante, resolver_serie_plantilla, ResolucionSerie};
 use crate::aproximaciones::{self, Aproximacion};
-use crate::components::pan::{self, DatosModulo};
+use crate::components::pan::DatosModulo;
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::projects::lifecycle;
@@ -117,69 +116,6 @@ pub(crate) fn ajustar_serie(kwp: f64, pmod_w: f64, ns0: u32) -> Option<(u32, u32
     })
 }
 
-/// Module data read for sizing plus the substitute module name when the template's own
-/// module is not in any database.
-struct ModuloResuelto {
-    datos: Option<DatosModulo>,
-    sustituto: Option<String>,
-}
-
-fn leer_modulo(
-    paths: &Paths,
-    params: &DisenoParametros,
-    refs: &Referencias,
-) -> Result<ModuloResuelto> {
-    let explicito = params.dimensionado.modulo.is_some();
-    let sin_modulo = ModuloResuelto {
-        datos: None,
-        sustituto: None,
-    };
-    let Some(m) = params
-        .dimensionado
-        .modulo
-        .as_deref()
-        .or(refs.modulo.as_deref())
-    else {
-        return Ok(sin_modulo);
-    };
-    match pan::leer_modulo(paths, &json!({ "modulo": m })) {
-        Ok(val) => Ok(ModuloResuelto {
-            datos: DatosModulo::de_lectura(&val),
-            sustituto: None,
-        }),
-        Err(Error::NotFound(_)) if !explicito => sustituir_modulo(paths, params, m),
-        Err(e) => Err(Error::Invalid(format!(
-            "Error al leer el módulo '{m}': {e}"
-        ))),
-    }
-}
-
-/// The template's module is missing: size with the first module available in the
-/// workspace or DataRO (stand-alone designs keep their own sizing path).
-fn sustituir_modulo(
-    paths: &Paths,
-    params: &DisenoParametros,
-    faltante: &str,
-) -> Result<ModuloResuelto> {
-    if params.tipo_sistema == TipoDiseno::Aislado {
-        return Ok(ModuloResuelto {
-            datos: None,
-            sustituto: None,
-        });
-    }
-    let ws = crate::args::workspace_of(paths, &Value::Null);
-    let nombre = pan::primer_modulo_disponible(&ws).ok_or_else(|| {
-        Error::Invalid(format!(
-            "El módulo '{faltante}' de la plantilla no existe y no hay ningún .PAN en el workspace ni en DataRO: pasa 'modulo'"
-        ))
-    })?;
-    let val = pan::leer_modulo(paths, &json!({ "modulo": nombre }))?;
-    Ok(ModuloResuelto {
-        datos: DatosModulo::de_lectura(&val),
-        sustituto: Some(nombre),
-    })
-}
-
 struct ResolucionDiseno {
     ns_opt: Option<u32>,
     nc_opt: Option<u32>,
@@ -238,7 +174,7 @@ pub(crate) fn ejecutar_paso_dimensionado(
     let mut disp = determinar_disposicion(paths, &resolucion)?;
     if let Some(nombre) = &modulo.sustituto {
         disp.avisos.push(format!(
-            "El módulo de la plantilla no existe: se usa '{nombre}' (primer .PAN disponible en el workspace o DataRO)"
+            "El módulo de la plantilla no existe: se usa '{nombre}' (primer .PAN del workspace o DataRO con Pnom, Voc y Vmpp)"
         ));
     }
     let da = argumentos_dimensionado(params, &modulo, &disp)?;

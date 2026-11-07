@@ -131,3 +131,54 @@ fn should_classify_contradictory_output_as_ambiguous() {
     assert_eq!(v["clasificacion"], json!("ambiguo"));
     assert_eq!(v["ambiguo"], json!(true));
 }
+
+/// Runs one simulation with the fake CLI and the given extra environment.
+fn simular_con(env: &[(&str, &str)]) -> serde_json::Value {
+    let ws = workspace();
+    let local = tempfile::tempdir().expect("LOCALAPPDATA temporal");
+    let mut completo = fake_env();
+    completo.push(("LOCALAPPDATA", local.path().to_str().expect("utf8")));
+    completo.extend_from_slice(env);
+    let mut client = Client::start_env(Some(&ws_str(ws.path())), &completo);
+    client.initialize();
+    tool_text(&client.call(
+        2,
+        "simular",
+        json!({ "proyecto": "SYNTH_Plant", "variante": "VC0" }),
+    ))
+}
+
+#[test]
+fn should_not_report_success_when_pvsyst_flags_the_result_as_incoherent() {
+    // Given: a run whose log carries PVsyst's incoherence warning
+    let v = simular_con(&[("FAKE_PVSYST_AVISO_INCOHERENTE", "1")]);
+
+    // Then: the result is a failure that names PVsyst's warning, not a success
+    assert_eq!(v["success"], json!(false), "v={v}");
+    assert_eq!(v["clasificacion"], json!("fallo"), "v={v}");
+    assert!(
+        v["coherencia"]["motivos"][0]
+            .as_str()
+            .is_some_and(|m| m.contains("Incoherencia en los resultados")),
+        "v={v}"
+    );
+}
+
+#[test]
+fn should_not_report_success_when_the_report_pr_is_physically_impossible() {
+    // Given: a run whose report says PR 130.6 %
+    let informe = tempfile::tempdir().expect("informe");
+    let pdf = informe.path().join("imposible.pdf");
+    super::cliente_mcp::escribir_informe_con_pr(&pdf, 130.6);
+    let v = simular_con(&[("FAKE_PVSYST_PDF", pdf.to_str().expect("utf8"))]);
+
+    // Then: the impossible PR is a failure, not a success with a nice number
+    assert_eq!(v["success"], json!(false), "v={v}");
+    assert_eq!(v["clasificacion"], json!("fallo"), "v={v}");
+    assert!(
+        v["coherencia"]["motivos"][0]
+            .as_str()
+            .is_some_and(|m| m.contains("130.6")),
+        "v={v}"
+    );
+}

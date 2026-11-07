@@ -2,10 +2,8 @@
 
 use super::parametros::DisenoParametros;
 use super::pasos::{PasoOrientacionSalida, PasoProyectoSalida};
-use super::simulacion::meteo_de_metadatos;
 use crate::config::{self, Paths};
 use crate::error::{Error, Result};
-use crate::format::edit;
 use crate::history;
 use crate::idioma::Texto;
 use crate::projects::lifecycle;
@@ -215,60 +213,6 @@ pub(crate) fn ejecutar_paso_orientacion(
         ok: true,
         detalle,
     })
-}
-
-/// Reads the `.SIT` and returns the project path with its bytes, `SitePrj` replaced by that site.
-fn prj_con_sitio(paths: &Paths, nombre: &str, sit_file: &str) -> Result<(PathBuf, Vec<u8>)> {
-    let prj_path = paths
-        .workspace
-        .join("Projects")
-        .join(format!("{nombre}.PRJ"));
-    let prj = std::fs::read(&prj_path)
-        .map_err(|e| Error::io(format!("leer {}", prj_path.display()), e))?;
-    let nuevo = lifecycle::sitio::insertar_sitio(&prj, Path::new(sit_file))?;
-    Ok((prj_path, nuevo))
-}
-
-/// Links the created site to the project (its `SitePrj` object) right after the project step,
-/// so the project never keeps the template's site.
-pub(crate) fn vincular_sitio(paths: &Paths, nombre: &str, sit_file: &str) -> Result<()> {
-    let (prj_path, nuevo) = prj_con_sitio(paths, nombre, sit_file)?;
-    history::snapshot(
-        &paths.workspace,
-        std::slice::from_ref(&prj_path),
-        "disenar_sistema: sitio en proyecto",
-    )?;
-    history::escribir_atomico(&prj_path, &nuevo)?;
-    Ok(())
-}
-
-/// Write the created site into the project (replacing its `SitePrj` object)
-/// and point `MeteoFileName` at the weather file the simulation used.
-pub(crate) fn sustituir_sitio(
-    paths: &Paths,
-    nombre: &str,
-    sit_file: &str,
-    csv: &Path,
-) -> Result<Value> {
-    let (prj_path, mut nuevo) = prj_con_sitio(paths, nombre, sit_file)?;
-    let meteo = std::fs::read(csv)
-        .ok()
-        .and_then(|b| meteo_de_metadatos(&String::from_utf8_lossy(&b)));
-    if let Some(m) = &meteo {
-        nuevo = edit::edit_fields(
-            &nuevo,
-            "pvProject",
-            &[("MeteoFileName".to_string(), Some(m.clone()))],
-        )?
-        .0;
-    }
-    history::snapshot(
-        &paths.workspace,
-        std::slice::from_ref(&prj_path),
-        "disenar_sistema: sitio en proyecto",
-    )?;
-    history::escribir_atomico(&prj_path, &nuevo)?;
-    Ok(json!({ "meteo_file": meteo }))
 }
 
 /// Files of project `nombre` in the workspace `Projects` folder: empty when the folder

@@ -74,7 +74,18 @@ pub(super) fn batch_csv(
     let cuerpo = filas
         .iter()
         .enumerate()
-        .map(|(i, row)| Ok(format!("SIM_{};{}\n", i + 1, celdas(i + 1, row)?.join(";"))))
+        .map(|(i, row)| {
+            let ident = format!("SIM_{}", i + 1);
+            let mut celdas = celdas(i + 1, row)?;
+            // One hourly CSV per row: with the column empty every run would write the
+            // same file (or none), and the batch results could not be told apart.
+            if let Some(primera) = celdas.first_mut() {
+                if primera.is_empty() {
+                    *primera = format!("{proyecto}_{ident}.csv");
+                }
+            }
+            Ok(format!("{ident};{}\n", celdas.join(";")))
+        })
         .collect::<Result<String>>()?;
     let sep = ";".repeat(20);
     let mut out = String::with_capacity(2048 + filas.len() * 128);

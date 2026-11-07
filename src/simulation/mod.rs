@@ -6,6 +6,7 @@
 pub(crate) mod avisos_pvsyst;
 pub(crate) mod batch;
 pub(crate) mod cache;
+pub(crate) mod coherencia;
 pub(crate) mod engineering;
 pub(crate) mod preestimate;
 pub(crate) mod report_pdf;
@@ -111,6 +112,7 @@ pub(crate) fn lanzar_simulacion_seguida(
             obj.insert("output_csv".into(), json!(output_csv));
             obj.insert("report_pdf".into(), json!(report_pdf));
         }
+        anotar_sin_cache(&mut respuesta, args);
         return Ok(respuesta);
     }
     if !cli::cli_available(paths) {
@@ -137,12 +139,21 @@ pub(crate) fn lanzar_simulacion_seguida(
         seguimiento,
     };
     let mut resultado = ejecucion::ejecutar_cli(&solicitud)?;
+    anotar_sin_cache(&mut resultado, args);
     if modo_gui.debe_abrir() {
         if let Err(e) = gui::spawn_gui(paths, &prj_path) {
             agregar_aviso_gui(&mut resultado, &e);
         }
     }
     Ok(resultado)
+}
+
+/// `sin_cache` bypasses the result cache; without this marker a cached reply and a
+/// fresh run look the same, so the caller cannot tell the flag did anything.
+fn anotar_sin_cache(resultado: &mut Value, args: &Value) {
+    if flag(args, &["sin_cache"]) {
+        resultado["sin_cache"] = json!(true);
+    }
 }
 
 #[cfg(test)]

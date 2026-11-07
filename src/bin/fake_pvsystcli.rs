@@ -75,11 +75,14 @@ fn emitir_progreso() {
 }
 
 /// `run-simulation`: copy the canned CSV/PDF to the `-ocf:` / `-rpf:` targets.
+/// `FAKE_PVSYST_PDF` replaces the canned report, for a run whose KPIs must differ.
 fn copy_outputs(dir: &Path, args: &[String]) {
     let results = dir.join("..").join("results");
-    for (flag, source) in [("-ocf:", "MCP_E2E.csv"), ("-rpf:", "MCP_E2E.pdf")] {
-        if let (Some(target), Ok(_)) = (option(args, flag), fs::metadata(results.join(source))) {
-            let _ = fs::copy(results.join(source), target);
+    let pdf = env::var_os("FAKE_PVSYST_PDF")
+        .map_or_else(|| results.join("MCP_E2E.pdf"), std::path::PathBuf::from);
+    for (flag, source) in [("-ocf:", results.join("MCP_E2E.csv")), ("-rpf:", pdf)] {
+        if let (Some(target), Ok(_)) = (option(args, flag), fs::metadata(&source)) {
+            let _ = fs::copy(&source, target);
         }
     }
 }
@@ -100,7 +103,7 @@ fn write_simulation_log() {
         .map(|d| d.as_secs())
         .unwrap_or(0);
     let log_path = admin_dir.join(format!("{now}Err.log"));
-    let log_content = concat!(
+    let mut log_content = String::from(concat!(
         "23:16:40|Norm|TSimulationHandl|ExecSimulation      |LErrorList.Count = 3Incident global = 657 W/m², :The MPP voltage is lower (by 3 V) than the minimum MPP voltage of the inverter.\n",
         "23:16:49|Warn|TSimulation     |HandleErrorMessages |Errors during the simulation:\n",
         "        |    |                |                    |ErrorList: 1882 error messages\n",
@@ -111,7 +114,13 @@ fn write_simulation_log() {
         "        |    |                |                    |Incident global = 657 W/m², :The MPP voltage is lower (by 3 V) than the minimum MPP voltage of the inverter.\n",
         "23:16:49|Warn|TEnvManager     |InitLicense         |No license file\n",
         "23:16:49|Err |PVsystCLI       |CMD OUTPUT          |The license file C:\\license.lic is missing.\n",
-    );
+    ));
+    if env::var("FAKE_PVSYST_AVISO_INCOHERENTE").as_deref() == Ok("1") {
+        log_content.push_str(concat!(
+            "23:17:02|Warn|TSimulation     |HandleErrorMessages |Por favor, póngase en contacto con support@pvsyst.com: Incoherencia en los resultados de la simulación: Error de balance energético nominal del conjunto (-33.33 %).\n",
+            "        |    |                |                    |EArrNom calculation is not consistent with the array.\n",
+        ));
+    }
     let _ = fs::write(log_path, log_content);
 }
 

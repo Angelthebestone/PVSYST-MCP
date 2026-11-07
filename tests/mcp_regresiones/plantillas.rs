@@ -36,3 +36,42 @@ fn should_write_only_to_the_workspace_when_creating_a_project_from_a_dataro_demo
         "DataRO escrito: resp={out}"
     );
 }
+
+#[test]
+fn should_rewrite_the_variant_site_when_creating_a_project_from_a_site() {
+    // Given: a template whose variant simulates the synthetic site, and another site
+    let ws = synthetic_workspace();
+    let proyectos = ws.path().join("Projects");
+    let sitios = ws.path().join("Sites");
+    fs::create_dir_all(&sitios).expect("Sites");
+    fs::write(
+        sitios.join("Lugar.SIT"),
+        "PVObject_=pvSite\n  Comment=Lugar;Colombia;\n  NomF=Lugar\n  Latitude=4.7000\n  Longitude=-74.1000\nEnd of PVObject pvSite\n",
+    )
+    .expect("sit");
+
+    // When
+    let mut c = Client::start(Some(ws.path().to_str().expect("ws")));
+    c.initialize();
+    let resp = c.call(
+        1,
+        "proyecto",
+        json!({ "accion": "crear", "plantilla": "SYNTH_Plant", "nombre_nuevo": "Con_Sitio", "sitio": "Lugar" }),
+    );
+    let out = tool_text(&resp);
+    assert_eq!(resp["result"]["isError"], false, "resp={resp}");
+
+    // Then: project and variant both carry the requested site, not the template's
+    for archivo in ["Con_Sitio.PRJ", "Con_Sitio.VC0"] {
+        let texto = fs::read_to_string(proyectos.join(archivo)).expect(archivo);
+        assert!(
+            texto.contains("Comment=Lugar;Colombia;"),
+            "{archivo}={texto}"
+        );
+        assert!(
+            !texto.contains("Comment=Synthetic;Nowhere;"),
+            "{archivo} keeps the template site: {texto}"
+        );
+    }
+    assert_eq!(out["variant_site_updated"], json!(true), "out={out}");
+}
