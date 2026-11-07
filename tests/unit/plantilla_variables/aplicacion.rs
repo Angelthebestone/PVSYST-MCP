@@ -41,6 +41,30 @@ fn should_create_and_list_rvt_file() {
 }
 
 #[test]
+fn should_record_history_when_anadir_creates_the_rvt_file() {
+    let (tmp, paths) = workspace_temporal();
+    let res = gestionar_rvt(
+        &paths,
+        &json!({
+            "archivo": "Nueva.RVT",
+            "operacion": "anadir",
+            "variables": ["HSol", "AzSol"]
+        }),
+    )
+    .expect("anadir sobre archivo inexistente");
+
+    let id = res["historial_id"]
+        .as_str()
+        .expect("la creación del .RVT también deja historial");
+    assert!(tmp
+        .path()
+        .join("UserData")
+        .join("mcp_history")
+        .join(id)
+        .is_dir());
+}
+
+#[test]
 fn should_add_variables_with_history() {
     let (_tmp, paths) = workspace_temporal();
     let rvt_nombre = "TestAdd.RVT";

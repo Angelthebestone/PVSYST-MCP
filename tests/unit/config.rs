@@ -82,3 +82,14 @@ fn should_list_nothing_when_the_install_folder_does_not_exist() {
 fn should_scan_the_install_folders_once_when_asked_repeatedly() {
     assert!(std::ptr::eq(instalaciones(), instalaciones()));
 }
+
+#[test]
+fn should_document_the_dataro_override_in_the_client_example() {
+    let ejemplo = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/mcp.example.json"));
+    let json: serde_json::Value = serde_json::from_str(ejemplo).expect("ejemplo JSON válido");
+    let env = &json["mcpServers"]["pvsyst"]["env"];
+    assert!(
+        env.get("PVSYST_DATARO").is_some(),
+        "sin PVSYST_DATARO, leer DataRO falla: {env}"
+    );
+}
