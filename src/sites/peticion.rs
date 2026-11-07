@@ -31,10 +31,20 @@ pub(super) fn construir_peticion_crear(
         "output_sit_file": out_sit,
         "country_code": args.get("country_code").cloned().unwrap_or(json!("")),
         "region": args.get("region").cloned().unwrap_or(json!("")),
-        "source": source,
+        "source": args
+            .get("source")
+            .and_then(Value::as_str)
+            .filter(|s| !s.is_empty())
+            .unwrap_or(source),
         "dry_run": args.get("dry_run").cloned().unwrap_or(json!(false)),
         "timeout_s": args.get("timeout_s").cloned().unwrap_or(Value::Null),
     });
+    // Keys `create-site` reads that the request would otherwise drop on this path.
+    for clave in ["albedo", "log_level", "permitir_fuera_del_workspace"] {
+        if let Some(valor) = args.get(clave) {
+            v[clave] = valor.clone();
+        }
+    }
     if let Some(ws_val) = args.get("workspace") {
         v["workspace"] = ws_val.clone();
     }

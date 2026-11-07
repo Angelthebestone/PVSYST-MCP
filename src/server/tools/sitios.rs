@@ -52,6 +52,7 @@ pub(crate) const TOOL_SITIO: Herramienta = Herramienta {
         ("puntos", TipoDato::Array),
         ("variables", TipoDato::Array),
         ("valores", TipoDato::ArrayOrObject),
+        ("confirmar", TipoDato::Boolean),
     ],
     requeridos: &[],
     discriminador: Some(Discriminador {

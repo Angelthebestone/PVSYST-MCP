@@ -232,6 +232,12 @@ fn construir_respuesta_meteo(p: RespuestaMeteoParams<'_>) -> Result<Value> {
     }
 }
 
+/// Trial executions one `meteo_pvgis` call can spend.
+const EJECUCIONES_METEO_PVGIS: u32 = 2;
+
+/// The two PVsystCLI commands of a `meteo_pvgis` call, for the confirmation gate.
+const PLAN_METEO_PVGIS: [&str; 2] = ["create-site (solo si el sitio no existe)", "convert-meteo"];
+
 /// Hourly TMY from PVGIS → CSV + MEF → `.MET` via the CLI with transactional staging.
 pub(crate) fn meteo_pvgis(paths: &Paths, args: &Value) -> Result<Value> {
     let ws = workspace_of(paths, args);
@@ -239,6 +245,17 @@ pub(crate) fn meteo_pvgis(paths: &Paths, args: &Value) -> Result<Value> {
     let lon = req_numero(args, "longitud", "número")?;
     let nombre = req_str(args, &["nombre_sitio"], "")?;
     validar_nombre(nombre)?;
+
+    // Worst case of one call: `create-site` for a missing site plus `convert-meteo`.
+    // Spending trial executions has to be the caller's decision, not a surprise.
+    if let Some(aviso) = crate::adapters::ledger::requiere_confirmacion(
+        &ws,
+        args,
+        EJECUCIONES_METEO_PVGIS,
+        &PLAN_METEO_PVGIS.map(str::to_string),
+    ) {
+        return Ok(aviso);
+    }
 
     let ctx = ContextoMeteo {
         paths,
