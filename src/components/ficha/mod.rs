@@ -8,6 +8,7 @@
 //! * **PAN** modules clone an existing text `.PAN` template in the workspace or DataRO.
 
 mod contraste;
+pub(crate) mod datos;
 pub(crate) mod inversor;
 pub(crate) mod modulo;
 pub(crate) mod pvsyst;

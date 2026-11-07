@@ -41,15 +41,15 @@ fn ficha_ond() -> serde_json::Map<String, Value> {
 fn should_require_the_grid_voltage_and_write_it_when_creating_an_inverter_from_a_datasheet() {
     let mut sin_red = ficha_ond();
     sin_red.remove("VOutConv");
-    let error = pvsyst::validar(&pvsyst::INVERSOR, &sin_red).expect_err("sin VOutConv");
+    let error = datos::validar(&datos::INVERSOR, &sin_red).expect_err("sin VOutConv");
     assert!(error.to_string().contains("VOutConv"), "error={error}");
 
-    let valores = pvsyst::valores_de(&pvsyst::INVERSOR, &ficha_ond(), "AC-20K");
+    let valores = datos::valores_de(&datos::INVERSOR, &ficha_ond(), "AC-20K");
     assert_eq!(valores["voltaje_red_v"], json!(400));
 
     let mut en_vatios = ficha_ond();
     en_vatios.insert("PNomConv".into(), json!(50_000));
-    let error = pvsyst::validar(&pvsyst::INVERSOR, &en_vatios).expect_err("kW fuera de rango");
+    let error = datos::validar(&datos::INVERSOR, &en_vatios).expect_err("kW fuera de rango");
     assert!(error.to_string().contains("PNomConv"), "error={error}");
 }
 
@@ -58,6 +58,6 @@ fn should_refuse_text_in_a_numeric_datasheet_field_when_creating_from_a_ficha() 
     let mut datos = ficha_ond();
     datos.insert("PNomConv".into(), json!("abc"));
 
-    let error = pvsyst::validar(&pvsyst::INVERSOR, &datos).expect_err("PNomConv no numérico");
+    let error = datos::validar(&datos::INVERSOR, &datos).expect_err("PNomConv no numérico");
     assert!(error.to_string().contains("PNomConv"), "error={error}");
 }
