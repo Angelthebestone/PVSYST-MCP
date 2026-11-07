@@ -13,7 +13,7 @@ fn should_keep_the_positional_layout_when_writing_the_batch_csv() {
     assert_eq!(lines[4].matches(';').count(), 20, "Project line");
     assert_eq!(lines[5].matches(';').count(), 18, "Variants line");
     let sim = lines.iter().find(|l| l.starts_with("SIM_1;")).expect("row");
-    assert_eq!(*sim, "SIM_1;;30;180;;;;;;;;;;;;;;;;;a");
+    assert_eq!(*sim, "SIM_1;P_SIM_1.csv;30;180;;;;;;;;;;;;;;;;;a");
     assert_eq!(sim.matches(';').count(), COLUMNS.len());
 }
 
