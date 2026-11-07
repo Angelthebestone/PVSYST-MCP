@@ -223,6 +223,10 @@ fn should_read_and_write_via_application() {
     let res_escritura = crate::horizonte_archivo::escribir_horizonte(&paths, &args_escribir)
         .expect("Escritura de horizonte");
     assert_eq!(res_escritura["puntos"], 3);
+    assert!(
+        res_escritura["historial_id"].as_str().is_some(),
+        "crear el .HOR también deja historial: {res_escritura}"
+    );
 
     let args_leer = json!({
         "archivo": "TestHorizonte.HOR"
