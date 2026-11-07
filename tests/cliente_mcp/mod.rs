@@ -211,6 +211,21 @@ pub fn fixture(rel: &str) -> PathBuf {
         .join(rel)
 }
 
+/// Writes a one-page PVsyst-shaped report whose summary box reads `pr_pct`, for runs
+/// whose KPIs have to differ from the canned fixture.
+pub fn escribir_informe_con_pr(destino: &Path, pr_pct: f64) {
+    let contenido = format!(
+        "BT (Produced Energy) Tj (Specific production) Tj (Perf. Ratio PR) Tj (14299) Tj (1589) Tj ({pr_pct}) Tj ET"
+    );
+    let comprimido = miniz_oxide::deflate::compress_to_vec_zlib(contenido.as_bytes(), 6);
+    let mut pdf = b"%PDF-1.4\n1 0 obj\n<< /Length ".to_vec();
+    pdf.extend_from_slice(comprimido.len().to_string().as_bytes());
+    pdf.extend_from_slice(b" /Filter /FlateDecode >>\nstream\n");
+    pdf.extend_from_slice(&comprimido);
+    pdf.extend_from_slice(b"\nendstream\nendobj\ntrailer\n<<>>\n%%EOF\n");
+    std::fs::write(destino, pdf).expect("write report");
+}
+
 /// A private, self-cleaning copy of the synthetic workspace in `tests/fixtures/workspace`.
 pub fn synthetic_workspace() -> tempfile::TempDir {
     let tmp = tempfile::tempdir().expect("temp dir");

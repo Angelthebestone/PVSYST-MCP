@@ -6,6 +6,7 @@
 pub(crate) mod avisos_pvsyst;
 pub(crate) mod batch;
 pub(crate) mod cache;
+pub(crate) mod coherencia;
 pub(crate) mod engineering;
 pub(crate) mod preestimate;
 pub(crate) mod report_pdf;

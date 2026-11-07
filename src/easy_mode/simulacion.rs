@@ -113,7 +113,12 @@ pub(crate) fn leer_kpis(paths: &Paths, args: &Value) -> Result<Value> {
         out.insert("kwp".into(), json!(k));
     }
 
-    Ok(Value::Object(out))
+    let mut leidos = Value::Object(out);
+    // A saved result can be older than the configuration it is read with: its own PR
+    // is the only figure that says whether it can still be used.
+    let pr = leidos.get("pr_pct").and_then(Value::as_f64);
+    crate::simulation::coherencia::anotar(&mut leidos, pr);
+    Ok(leidos)
 }
 
 /// The result CSV named by `archivo`/`output_csv`/`csv`, else the latest one

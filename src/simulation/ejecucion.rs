@@ -44,6 +44,15 @@ pub(crate) fn finalizar(plan: &Plan, out: &cli::CliOutput, contexto: &Value) -> 
     if !avisos.is_empty() {
         resultado["avisos_pvsyst"] = json!(avisos);
     }
+    // Only a report this run wrote says anything about this run's result.
+    let pr = produced(plan.antes.1, super::estado::mtime(plan.rpf.as_deref()))
+        .then(|| {
+            plan.rpf
+                .as_deref()
+                .and_then(super::coherencia::pr_del_informe)
+        })
+        .flatten();
+    super::coherencia::aplicar(&mut resultado, &avisos, pr);
     resultado
 }
 
