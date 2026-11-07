@@ -140,6 +140,25 @@ const FASES: [(&str, &str); 3] = [
     ("Bi", "fase_bifasica"),
 ];
 
+/// PVsyst's technology list: the value a `.PAN` stores and the label its combo offers.
+/// Only the pair measured on 8.1.8 is mapped; any other value is typed as given and
+/// PVsyst answers with the options it has.
+const TECNOLOGIAS: &[(&str, &str)] = &[("mtSiMono", "Si-mono")];
+
+/// A datasheet value as the window takes it: `Technol` accepts the file's own value.
+fn valor_de_ventana(clave: &str, valor: &Value) -> Value {
+    if clave != "tecnologia" {
+        return valor.clone();
+    }
+    let Some(texto) = valor.as_str() else {
+        return valor.clone();
+    };
+    TECNOLOGIAS
+        .iter()
+        .find(|(archivo, _)| archivo.eq_ignore_ascii_case(texto))
+        .map_or_else(|| valor.clone(), |(_, etiqueta)| json!(etiqueta))
+}
+
 /// The schema option for the phase `fase` of a datasheet, when it is one PVsyst knows.
 fn opcion_de_fase(fase: &str) -> Option<&'static str> {
     FASES
@@ -246,7 +265,7 @@ pub(super) fn valores_de(t: &Tipo, datos: &Map<String, Value>, nombre: &str) -> 
     }
     for (clave_archivo, valor) in datos {
         if let Some(clave) = clave_para_archivo(t.entidad, clave_archivo) {
-            valores.insert(clave.into(), valor.clone());
+            valores.insert(clave.into(), valor_de_ventana(clave, valor));
         }
     }
     valores
