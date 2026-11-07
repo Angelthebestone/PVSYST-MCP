@@ -560,6 +560,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   801x701 instead of 1202x1052, so coordinate clicks missed. Verified at 150 %
   only; 100 % and 125 % are covered by unit tests of the scaling.
 
+### Added
+
+- **History covers creations.** `escribir_archivo`, `escribir_horizonte`,
+  `escribir_serie`, `editar`, `componente`, `proyecto` and the batch writers take
+  the snapshot before writing, so the first version of a new file is in
+  `historial` (`historial_id` is not null) and `workspace restaurar` can bring it
+  back. The snapshot of a file that did not exist records `existia:false`.
+- **`workspace restaurar` accepts `dry_run`:** it lists what it would restore and
+  writes nothing (`simulado:true`). Before, it restored for real and listed
+  `dry_run` in `ignorados`.
+- **`gui_actuar accion:fila` takes `clase`** and selects rows in the three
+  controls whose geometry was measured (project tree `TVirtualStringTree` of
+  `TProjectLoadForm`, module chooser `TListBox` of `TChoixObjetPVForm`, object
+  table `TVirtualStringTree` of `TShdObjectSelectionForm`). Any other control is
+  refused, naming the measured ones.
+- **`disenar_sistema` resumes:** a project an earlier run left behind with the
+  same parameters is reused instead of failing with `Project exists`.
+
+### Fixed
+
+- `editar` refuses object and array values in `campos` instead of writing their
+  JSON text into a field PVsyst reads as one value.
+- `escena_leer` exports the scene under a temporary name and deletes that file
+  before answering, so a later `escena_leer` or `escena` with the same name no
+  longer fails with `already exists`.
+- `reiniciar` verifies that the process ended after its dialog button and
+  escalates to a forced kill; `muerte` says which one ended it.
+- The three GUI routes (`proyecto dimensionar`, `proyecto p50_p90`,
+  `sitio horizonte_pvgis`) load the project they act on, report the cause PVsyst
+  logged instead of the symptom, and drop the benign `TEnergyMixSet`/`EndTags`
+  parse notices.
+- `gui_actuar accion:teclas` does not send keys on the user desktop when the
+  control cannot take the focus; the isolated desktop reports `foco:false` and
+  sends them.
+- `esperar` re-checks once (1.5 s) before reporting a timeout, so a slow load
+  that ends just after the deadline is not a false negative.
+
+### Changed
+
+- **The `initialize` instructions were rewritten** with 12 facts checked against
+  the runtime: components by name, key names, window waits, `resultados
+  que:resumen`, where `dry_run` exists, truncation, the `workspace` override,
+  the modal `TDEMOForm`, the measured rows and `ignorados`.
+- Tool descriptions say what the runtime does: `componente` by name,
+  `pvsyst_cli` arguments in `opciones`, `resultados que:resumen`, `simular`
+  `dry_run`/`costo_estimado`, `esperar` as a window wait, `fila` in the measured
+  controls, `disenar_sistema` module choice/resume/Meteonorm, and the `workspace`
+  override says what it replaces instead of asking for a trusted client.
+- `mcpb/manifest.json` and the alias tables of both READMEs are generated from
+  the registry by `tools/generar_contrato.py` (`--check` fails on a stale copy),
+  and a test fails when the manifest drifts from the registry.
+- Two runtime messages of the server layer (`include_text` outside `que:csv`, and
+  `dry_run` with `filas`/`parametros`) answer in English through
+  `crate::idioma::Texto`.
+
 ## [0.3.0] - 2026-10-20
 
 ### Added
