@@ -107,11 +107,24 @@ pub(crate) const ELEMENTOS: &[Elemento] = &[
     },
 ];
 
+/// Whether an element brings the objects it needs to work, or only itself.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum AlcanceElemento {
+    /// The element plus its complements (a battery needs a load to discharge into).
+    ConComplementos,
+    /// Only the element: inserting objects the caller did not ask for changes the project.
+    SoloElElemento,
+}
+
 fn elementos_pendientes(
     catalogo: &'static Elemento,
     nuevo: &[u8],
+    alcance: AlcanceElemento,
 ) -> Result<Vec<&'static Elemento>> {
     let mut pendientes = vec![catalogo];
+    if alcance == AlcanceElemento::SoloElElemento {
+        return Ok(pendientes);
+    }
     for nombre in catalogo.complementos {
         let comp = ELEMENTOS
             .iter()
@@ -199,10 +212,14 @@ pub(crate) struct ElementoAplicado {
     pub(crate) insertados: Vec<Value>,
 }
 
-/// Insert catalogue element `nombre` into `bytes`, including its complements.
-pub(crate) fn aplicar_elemento(bytes: Vec<u8>, nombre: &str) -> Result<ElementoAplicado> {
+/// Insert catalogue element `nombre` into `bytes`, with the complements `alcance` asks for.
+pub(crate) fn aplicar_elemento(
+    bytes: Vec<u8>,
+    nombre: &str,
+    alcance: AlcanceElemento,
+) -> Result<ElementoAplicado> {
     let catalogo = catalogo_de(nombre)?;
-    let pendientes = elementos_pendientes(catalogo, &bytes)?;
+    let pendientes = elementos_pendientes(catalogo, &bytes, alcance)?;
     let (bytes, insertados) = pendientes.iter().try_fold(
         (bytes, Vec::<Value>::new()),
         |(actual, insertados), elem| {
@@ -234,7 +251,11 @@ pub(crate) fn anadir(paths: &Paths, args: &Value) -> Result<Value> {
     let alcance = Alcance::de_args(args);
     let prj = crate::projects::resolve_project_file_con_alcance(&ws, proyecto, alcance)?;
     let destino = ruta_variante(&prj, variante)?;
-    let aplicado = aplicar_elemento(leer_bytes(&destino)?, elemento)?;
+    let aplicado = aplicar_elemento(
+        leer_bytes(&destino)?,
+        elemento,
+        AlcanceElemento::ConComplementos,
+    )?;
     let neutralizado = aplicado
         .insertados
         .iter()
