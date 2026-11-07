@@ -9,8 +9,8 @@ use serde_json::Value;
 pub(crate) const TOOL_PVSYST_CLI: Herramienta = Herramienta {
     nombre: "pvsyst_cli",
     descripcion: crate::idioma::Texto {
-        es: "Passthrough a cualquier comando de PVsystCLI.",
-        en: "Passthrough to any PVsystCLI command.",
+        es: "Passthrough a cualquier comando de PVsystCLI. Los argumentos van en 'opciones'; cualquier otra clave se lista en ignorados y no se pasa.",
+        en: "Passthrough to any PVsystCLI command. Its arguments go in 'opciones'; any other key is listed in ignorados and not passed.",
     },
     anotaciones: Anotaciones {
         titulo: crate::idioma::Texto {
@@ -125,7 +125,7 @@ const SINONIMOS_GUI_OBSERVAR: Sinonimos = Sinonimos {
 
 pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
     nombre: "gui_actuar",
-    descripcion: crate::idioma::Texto { es: "Actua sobre la GUI de PVsyst: clic (tambien por texto visible), escribir, seleccionar, pestana, teclas, fila de una lista o arbol, menus por posicion, cerrar, lanzar, reiniciar, esperas, rellenar un formulario por claves y validar, importar (mallas) o crear una escena 3D en el editor.", en: "Acts on the PVsyst GUI: click (also by on-screen text), type, select, tab page, keys, list or tree row, menus by position, close, launch, restart, waits, fill a form by keys and validate, import (meshes) or build a 3D scene in the editor." },
+    descripcion: crate::idioma::Texto { es: "Actua sobre la GUI de PVsyst: clic, clic_texto (texto visible, por OCR), escribir, seleccionar, pestana, teclas, fila de una lista o arbol con geometria medida, menus por posicion, cerrar, lanzar, reiniciar, esperar a que aparezca una ventana (no es una pausa), rellenar un formulario por claves y validar, importar (mallas) o crear una escena 3D en el editor.", en: "Acts on the PVsyst GUI: click, clic_texto (on-screen text, by OCR), type, select, tab page, keys, a row of a list or tree with measured geometry, menus by position, close, launch, restart, wait for a window to appear (not a sleep), fill a form by keys and validate, import (meshes) or build a 3D scene in the editor." },
     anotaciones: Anotaciones {
         titulo: crate::idioma::Texto { es: "Actuar en GUI", en: "Act on GUI" },
         es_solo_lectura: false,

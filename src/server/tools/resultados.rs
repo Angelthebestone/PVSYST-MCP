@@ -12,7 +12,7 @@ use serde_json::{json, Value};
 
 pub(crate) const TOOL_RESULTADOS: Herramienta = Herramienta {
     nombre: "resultados",
-    descripcion: crate::idioma::Texto { es: "Resultados: KPIs, resumen, CSV, perdidas, mensual, comparacion, medido_vs_simulado, P50/P90, carbono, economia y entregable.", en: "Results: KPIs, summary, CSV, losses, monthly, comparison, measured vs simulated, P50/P90, carbon, economics and deliverable." },
+    descripcion: crate::idioma::Texto { es: "Resultados: KPIs, resumen, CSV, perdidas, mensual, comparacion, medido_vs_simulado, P50/P90, carbono, economia y entregable. que:resumen devuelve KPIs, la tabla mensual y las perdidas principales en una sola llamada.", en: "Results: KPIs, summary, CSV, losses, monthly, comparison, measured vs simulated, P50/P90, carbon, economics and deliverable. que:resumen returns the KPIs, the monthly table and the main losses in one call." },
     anotaciones: Anotaciones {
         titulo: crate::idioma::Texto { es: "Resultados", en: "Results" },
         es_solo_lectura: false,
@@ -86,7 +86,7 @@ const SINONIMOS_RESULTADOS: Sinonimos = Sinonimos {
 
 fn ejecutar_resultados(paths: &Paths, args: &Value) -> Result<Value> {
     let valor = args.get("que").and_then(Value::as_str).unwrap_or("kpis");
-    exigir_include_text_solo_csv(valor, args)?;
+    exigir_include_text_solo_csv(paths, valor, args)?;
     if matches!(valor, "kpis" | "resumen") {
         exigir_proyecto_de_kpis(paths, args)?;
     }
@@ -108,12 +108,17 @@ fn ejecutar_resultados(paths: &Paths, args: &Value) -> Result<Value> {
     }
 }
 
+const INCLUDE_TEXT_SOLO_CSV: Texto = Texto {
+    es: "'include_text' solo aplica a que:csv (recibido que:{valor})",
+    en: "'include_text' only applies to que:csv (got que:{valor})",
+};
+
 /// `include_text` only shapes the CSV listing; elsewhere it would be silently ignored.
-fn exigir_include_text_solo_csv(valor: &str, args: &Value) -> Result<()> {
+fn exigir_include_text_solo_csv(paths: &Paths, valor: &str, args: &Value) -> Result<()> {
     if valor != "csv" && args.get("include_text").is_some() {
-        return Err(Error::Invalid(format!(
-            "'include_text' solo aplica a que:csv (recibido que:{valor})"
-        )));
+        return Err(Error::Invalid(
+            INCLUDE_TEXT_SOLO_CSV.texto_con(paths.idioma, &[("valor", valor)]),
+        ));
     }
     Ok(())
 }

@@ -27,5 +27,7 @@ fn should_refuse_a_dry_run_that_would_write_when_the_action_has_no_rehearsal() {
         "accion": "ejecutar", "proyecto": "Casa",
         "filas": [{ "tilt": 20 }], "dry_run": true,
     });
-    assert!(rechazo("simular", &args).contains("no admite 'filas'"));
+    let mensaje = rechazo("simular", &args);
+    assert!(mensaje.contains("'filas'"), "{mensaje}");
+    assert!(mensaje.contains("dry_run"), "{mensaje}");
 }

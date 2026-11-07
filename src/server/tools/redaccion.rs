@@ -23,6 +23,6 @@ pub(super) const PREFIJO_REQUERIDOS_POR_ACCION: Texto = Texto {
 
 /// Description of the trusted-client `workspace` confinement override.
 pub(super) const DESCRIPCION_WORKSPACE: Texto = Texto {
-    es: "Ruta del workspace que reemplaza la raíz de confinamiento para esta llamada. Requiere cliente MCP de confianza.",
-    en: "Workspace path that replaces the confinement root for this call. Requires a trusted MCP client.",
+    es: "Ruta del workspace que reemplaza la raíz de confinamiento para esta llamada: lecturas y escrituras quedan confinadas a ella. El servidor no comprueba quién la pide, así que pásala solo desde un cliente que controles.",
+    en: "Workspace path that replaces the confinement root for this call: reads and writes are confined to it. The server does not check who asks, so pass it only from a client you control.",
 };
