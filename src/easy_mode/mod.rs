@@ -231,33 +231,35 @@ fn aviso_previo(
     let ejecuciones = u32::from(fases.crear_sitio) + u32::from(fases.simular);
     let plan = plan_de(&params.proyecto.nombre, &params.variante, fases);
     if crate::args::flag(args, &["dry_run"]) {
-        return Some(plan_de_ejecucion(
+        return Some(plan_de_ejecucion(PlanDeEjecucion {
             paths,
-            &plan,
+            plan: &plan,
             ejecuciones,
-            !fases.crear_sitio,
-        ));
+            sitio_reutilizado: !fases.crear_sitio,
+        }));
     }
     ledger::requiere_confirmacion(&paths.workspace, args, ejecuciones, &plan)
 }
 
 /// What the call would do and what it would cost, without doing any of it.
-fn plan_de_ejecucion(
-    paths: &Paths,
-    plan: &[String],
+struct PlanDeEjecucion<'a> {
+    paths: &'a Paths,
+    plan: &'a [String],
     ejecuciones: u32,
     sitio_reutilizado: bool,
-) -> Value {
+}
+
+fn plan_de_ejecucion(p: PlanDeEjecucion<'_>) -> Value {
     json!({
         "dry_run": true,
-        "plan": plan,
-        "sitio_reutilizado": sitio_reutilizado,
-        "costo_estimado": ledger::costo_estimado(&paths.workspace, ejecuciones),
+        "plan": p.plan,
+        "sitio_reutilizado": p.sitio_reutilizado,
+        "costo_estimado": ledger::costo_estimado(&p.paths.workspace, p.ejecuciones),
         "siguiente_paso": Texto {
             es: "repite la misma llamada sin dry_run",
             en: "repeat the same call without dry_run",
         }
-        .en_idioma(paths.idioma),
+        .en_idioma(p.paths.idioma),
     })
 }
 
