@@ -233,10 +233,28 @@ export format definitions. Both are PVObject text.
 A `PVObject_=pvModule` document with the "Basic data" + "Manufacturer
 specifications" fields (names from
 `help\component-database\photovoltaics-modules\...\pv-modules-basic-data`):
-`Manufacturer`, `Model`, `DataSource`, `Technology`, `PNom` (nominal power),
+`Manufacturer`, `Model`, `DataSource`, `Technol` (the technology code, e.g.
+`mtSiMono`; older files spell it `Technology`), `PNom` (nominal power),
 `Gref`/`Tref` (measurement reference conditions), **`Isc`**, **`Voc`**,
 `Imp`/`Vmpp` (max-power point), `muIsc` (Isc temperature coefficient). The
 `.OND` above is the same format, so a v8 `.PAN` is fully text.
+
+#### Dimensions and commercial data live in `pvCommercial`
+
+`Width`, `Height`, `Depth` and the manufacturer data are **not** fields of
+`pvModule`: PVsyst keeps them in the nested `PVObject_Commercial=pvCommercial`.
+A module without them cannot be simulated ("The sizes of this module are not
+defined"), and `componente crear_desde_ficha` does not create them. The way to
+set them is the generic editor on that object:
+
+```
+editar accion:campos archivo:"ComposPV\PVModules\X.PAN" objeto:"pvCommercial"
+       campos:{"Width":1.046,"Height":1.752,"Depth":0.035}
+```
+
+`componente editar`/`crear` only change fields the root object already has, so
+they refuse these keys instead of inserting them where PVsyst does not read
+them.
 
 `leer_modulo` maps a rich alias list (`PNom`/`Pnom`/`NominalPower`,
 `Impp`/`Imp`/`IMPP`, `Vmpp`/`Vmp`/`VMPP`, `muIsc`/`MuISC`, …).
