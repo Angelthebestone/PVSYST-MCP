@@ -75,6 +75,49 @@ fn preparar_bloque(bloque: &[u8], opts: &OpcionesBloque<'_>) -> Result<Vec<Vec<u
     Ok(out)
 }
 
+/// Object types in the order PVsyst writes them inside a variant, measured on the demo
+/// projects of 8.1.8. A type not listed keeps the old behaviour (before the parent's end).
+const ORDEN_PVSYST: &[&str] = &[
+    "pvSite",
+    "pvMeteo",
+    "pvHorizon",
+    "pvMainArray",
+    "pvAgeing",
+    "pvCircuit",
+    "pvSystem",
+    "pvShading",
+    "pvModuleLayout",
+    "pvLoad",
+    "pvGridStorage",
+    "pvCarbonBalance",
+];
+
+/// Line where a new `tipo` goes among the children of `pi`: before the first sibling
+/// PVsyst writes after it. `None` when the order says nothing about it.
+fn linea_de_orden(spans: &[ObjSpan], pi: usize, tipo: &str) -> Option<usize> {
+    let pos = ORDEN_PVSYST
+        .iter()
+        .position(|t| t.eq_ignore_ascii_case(tipo))?;
+    let padre = &spans[pi];
+    spans
+        .iter()
+        .enumerate()
+        .filter(|(si, s)| {
+            *si != pi
+                && s.open > padre.open
+                && s.open < padre.close
+                && es_hijo_directo(spans, pi, *si)
+        })
+        .filter(|(_, s)| {
+            ORDEN_PVSYST
+                .iter()
+                .position(|t| t.eq_ignore_ascii_case(&s.ty))
+                .is_some_and(|p| p > pos)
+        })
+        .map(|(_, s)| s.open)
+        .min()
+}
+
 /// True when span `si` lies inside span `pi` with no intermediate span between them.
 fn es_hijo_directo(spans: &[ObjSpan], pi: usize, si: usize) -> bool {
     let (p, s) = (&spans[pi], &spans[si]);
@@ -158,7 +201,9 @@ pub(crate) fn insertar_objeto(
             Ok(join(&lineas))
         }
         None => {
-            lineas.splice(padre.close..padre.close, nuevo);
+            // PVsyst's own order first, so a new object does not land after the results.
+            let punto = linea_de_orden(&spans, pi, &ns.ty).unwrap_or(padre.close);
+            lineas.splice(punto..punto, nuevo);
             Ok(join(&lineas))
         }
     }
