@@ -18,7 +18,7 @@ fn clase_de_campo(clase: &str) -> Result<&'static str> {
         "tradiobutton" | "opcion" => Ok("TRadioButton"),
         "tcheckbox" | "check" => Ok("TCheckBox"),
         _ => Err(Error::Invalid(format!(
-            "Clase de campo no soportada '{clase}'; usa TEdit, TComboBox, TRadioButton o TCheckBox"
+            "Unsupported field class '{clase}'; use TEdit, TComboBox, TRadioButton or TCheckBox"
         ))),
     }
 }
@@ -40,7 +40,7 @@ pub(crate) fn campo_de(args: &Value) -> Result<Campo> {
             .ok_or_else(|| {
                 crate::args::missing(
                     &format!("campo.{clave}"),
-                    "posición en px a 96 DPI dentro del formulario",
+                    "position in px at 96 DPI inside the form",
                 )
             })
     };
@@ -70,7 +70,7 @@ fn clase_admitida(clase: &str, clases: &[&str], accion: &str) -> Result<()> {
         return Ok(());
     }
     Err(Error::Invalid(format!(
-        "'{accion}' sobre la clase {clase} no tiene efecto: indique 'campo' (clase, x, y) del control o una ventana de clase {}",
+        "'{accion}' on class {clase} has no effect: pass 'campo' (clase, x, y) of the control or a window of class {}",
         clases.join("/")
     )))
 }
@@ -82,7 +82,7 @@ fn formulario(args: &Value) -> Result<Formulario> {
 /// Types `texto` into a form field (`campo`) or directly into the target control.
 pub(crate) fn escribir(args: &Value) -> Result<Value> {
     exigir_sin_etiqueta(args, "escribir")?;
-    let texto = crate::args::req_str(args, &["texto"], "texto a escribir")?;
+    let texto = crate::args::req_str(args, &["texto"], "text to type")?;
     if args.get("campo").is_some() {
         let f = formulario(args)?;
         f.escribir(campo_de(args)?, texto)?;
@@ -110,14 +110,14 @@ fn exigir_sin_etiqueta(args: &Value, accion: &str) -> Result<()> {
         return Ok(());
     }
     Err(Error::Invalid(format!(
-        "'etiqueta' no aplica a '{accion}': indique 'campo' (clase, x, y) del control"
+        "'etiqueta' does not apply to '{accion}': pass 'campo' (clase, x, y) of the control"
     )))
 }
 
 /// Picks the first combo item that starts with `texto`.
 pub(crate) fn seleccionar(args: &Value) -> Result<Value> {
     exigir_sin_etiqueta(args, "seleccionar")?;
-    let texto = crate::args::req_str(args, &["texto"], "prefijo del item de la lista")?;
+    let texto = crate::args::req_str(args, &["texto"], "prefix of the list item")?;
     let elegido = if args.get("campo").is_some() {
         let f = formulario(args)?;
         f.seleccionar(campo_de(args)?, texto)?;
@@ -129,7 +129,7 @@ pub(crate) fn seleccionar(args: &Value) -> Result<Value> {
     };
     if !elegido {
         return Err(Error::Invalid(format!(
-            "PVsyst no ofrece '{texto}' en esa lista"
+            "PVsyst offers no '{texto}' in that list (items are matched by prefix, not by substring)"
         )));
     }
     Ok(json!({ "accion": "seleccionar", "texto": texto }))
@@ -138,12 +138,12 @@ pub(crate) fn seleccionar(args: &Value) -> Result<Value> {
 /// Shows tab page `indice` of the target form.
 pub(crate) fn pagina(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     let indice = match args.get("indice") {
-        None => return Err(crate::args::missing("indice", "pestaña a mostrar")),
+        None => return Err(crate::args::missing("indice", "tab page to show")),
         Some(v) => v
             .as_u64()
             .and_then(|n| usize::try_from(n).ok())
             .ok_or_else(|| {
-                Error::Invalid("'indice' debe ser un entero mayor o igual que 0".into())
+                Error::Invalid("'indice' must be an integer greater than or equal to 0".into())
             })?,
     };
     let f = formulario(args)?;
@@ -160,27 +160,56 @@ fn con_motivo_del_veto(paths: &crate::config::Paths, h: Hwnd, e: Error) -> Error
     let ventana = format!("0x{h:X}");
     match super::ocr::formulario(paths, &json!({ "ventana": ventana })) {
         Ok(vista) => Error::Gui(format!(
-            "{texto}. Textos del formulario: {}",
+            "{texto}. Form texts: {}",
             vista.get("textos").unwrap_or(&Value::Null)
         )),
-        Err(err) => Error::Gui(format!("{texto}. Textos no disponibles: {err}")),
+        Err(err) => Error::Gui(format!("{texto}. Texts unavailable: {err}")),
     }
 }
 
-/// Waits until the target window is gone or hidden.
-pub(crate) fn esperar_cierre_accion(args: &Value) -> Result<Value> {
-    let h = hwnd_de(args, "ventana")?;
+/// A window that is not there is already closed: waiting for it is a trivial
+/// success, not the not-found error the resolver raises for a missing reference.
+fn respuesta_ya_cerrada(args: &Value, espera_ms: u64) -> Value {
+    json!({
+        "accion": "esperar_cierre",
+        "ventana": args.get("ventana").cloned().unwrap_or(Value::Null),
+        "cerrado": true,
+        "ya_cerrada": true,
+        "espera_ms": espera_ms,
+        "aviso": "No window matches that reference now: it was already closed (or never existed). gui_observar que:ventanas lists the open ones.",
+    })
+}
+
+fn esperar_cierre_con<F>(args: &Value, resolver: F) -> Result<Value>
+where
+    F: FnOnce(&Value) -> Result<Hwnd>,
+{
     let espera_ms = args
         .get("timeout_ms")
         .and_then(Value::as_u64)
         .unwrap_or(10_000);
+    if args.get("proceso").is_none() && !super::proceso::gui_running() {
+        return Ok(respuesta_ya_cerrada(args, espera_ms));
+    }
+    let h = match resolver(args) {
+        Ok(h) => h,
+        Err(Error::NotFound(_)) => return Ok(respuesta_ya_cerrada(args, espera_ms)),
+        Err(error) => return Err(error),
+    };
     let cerrado = esperar_cierre(h, Duration::from_millis(espera_ms));
     Ok(json!({
         "accion": "esperar_cierre",
         "hwnd": format!("0x{h:X}"),
         "cerrado": cerrado,
+        "ya_cerrada": false,
         "espera_ms": espera_ms,
     }))
+}
+
+/// Waits until the target window is gone or hidden; an already closed window is
+/// the trivial success the natural use after `cerrar` expects.
+pub(crate) fn esperar_cierre_accion(args: &Value) -> Result<Value> {
+    esperar_cierre_con(args, |a| hwnd_de(a, "ventana"))
 }
 
 #[cfg(test)]

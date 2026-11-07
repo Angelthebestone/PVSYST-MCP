@@ -75,7 +75,7 @@ pub(crate) fn geometria_de(control: &Control<'_>) -> Result<&'static Geometria, 
 fn medidas() -> String {
     TABLAS
         .iter()
-        .map(|g| format!("{} de {}", g.clase, g.anfitrion))
+        .map(|g| format!("{} of {}", g.clase, g.anfitrion))
         .collect::<Vec<_>>()
         .join(", ")
 }

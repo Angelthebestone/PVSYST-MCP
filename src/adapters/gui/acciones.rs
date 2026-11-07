@@ -1,10 +1,13 @@
 //! Window actions: clicks, messages, physical inputs and desktop interactivity.
 
+use super::cierre;
 use super::conduccion::esperar_cierre;
 use super::ffi::{self, Hwnd, BM_CLICK, GA_ROOT, SW_RESTORE, WM_CLOSE};
 use super::modal;
 use super::rotulos::{rotulos_acciones, Idioma, RotulosAcciones};
-use super::ventanas::{class_of, rect_of, resolve, text_of, ventanas_de, visible, window_json};
+use super::ventanas::{
+    class_of, pid_of, rect_of, resolve, text_of, ventanas_de, visible, window_json,
+};
 use crate::args::{opt_i32, opt_u32, req_str};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
@@ -45,9 +48,7 @@ pub(crate) fn clic_por_mensajes(h: Hwnd) -> Result<()> {
         MecanismoClic::Raton => {
             let cr = ffi::rect_cliente(h);
             if cr.right <= 0 || cr.bottom <= 0 {
-                return Err(Error::Gui(format!(
-                    "El control 0x{h:X} no tiene área visible"
-                )));
+                return Err(Error::Gui(format!("Control 0x{h:X} has no visible area")));
             }
             ffi::clic_en_cliente(h, (cr.right / 2, cr.bottom / 2))
         }
@@ -56,7 +57,7 @@ pub(crate) fn clic_por_mensajes(h: Hwnd) -> Result<()> {
         Ok(())
     } else {
         Err(Error::Gui(format!(
-            "PostMessage falló para el control 0x{h:X}"
+            "PostMessage failed for control 0x{h:X}"
         )))
     }
 }
@@ -68,14 +69,14 @@ fn enviar_mensaje(h: Hwnd, args: &Value) -> Result<()> {
     let lparam = args.get("lparam").map_or(Ok(0), |v| {
         v.as_i64()
             .and_then(|n| isize::try_from(n).ok())
-            .ok_or_else(|| Error::Invalid("'lparam' debe ser un entero".into()))
+            .ok_or_else(|| Error::Invalid("'lparam' must be an integer".into()))
     })?;
     ffi::send_message_timeout(
         h,
         ffi::Mensaje::nuevo(msg, wparam, lparam),
         ffi::TIMEOUT_MENSAJE_MS,
     )
-    .ok_or_else(|| Error::Gui("PVsyst no respondió en 3 s al enviar mensaje".into()))?;
+    .ok_or_else(|| Error::Gui("PVsyst did not answer in 3 s to the message".into()))?;
     Ok(())
 }
 
@@ -111,7 +112,7 @@ pub(crate) fn cerrar_ventana(h: Hwnd, args: &Value) -> Result<()> {
         Some(b) => clic_por_mensajes(b)?,
         None if class_of(h) == CLASE_MENSAJE => {
             return Err(Error::Gui(format!(
-                "El mensaje 0x{h:X} es una pregunta: léela con gui_observar que:formulario o controles y responde con click sobre el botón elegido"
+                "Message 0x{h:X} is a question: read it with gui_observar que:formulario or controles and answer with click on the chosen button"
             )))
         }
         None => {
@@ -128,7 +129,7 @@ fn desplazamiento(args: &Value) -> Result<Option<(i32, i32)>> {
         (Some(dx), Some(dy)) => Ok(Some((dx, dy))),
         (None, None) => Ok(None),
         _ => Err(Error::Invalid(
-            "'dx' y 'dy' van juntos (enteros, px a 96 DPI desde la esquina del control)".into(),
+            "'dx' and 'dy' go together (integers, px at 96 DPI from the control corner)".into(),
         )),
     }
 }
@@ -156,7 +157,7 @@ fn ejecutar_accion(h: Hwnd, action: &str, args: &Value) -> Result<()> {
     match action {
         "click" => match desplazamiento(args)? {
             Some(punto) if ffi::clic_en_cliente(h, punto) => {}
-            Some(_) => return Err(Error::Gui(format!("PostMessage falló para 0x{h:X}"))),
+            Some(_) => return Err(Error::Gui(format!("PostMessage failed for 0x{h:X}"))),
             None => clic_por_mensajes(h)?,
         },
         "cerrar" => cerrar_ventana(h, args)?,
@@ -183,7 +184,7 @@ pub(crate) fn exigir_escritorio() -> Result<()> {
     if escritorio_interactivo() {
         Ok(())
     } else {
-        Err(Error::Gui("Escritorio no interactivo".into()))
+        Err(Error::Gui("Desktop is not interactive".into()))
     }
 }
 
@@ -202,12 +203,21 @@ pub(crate) fn invocar(args: &Value) -> Result<Value> {
     if !matches!(action, "activar" | "mensaje") {
         modal::exigir_habilitada(h, modal::PARA_ACTUAR)?;
     }
+    let cerrar = action == "cerrar";
+    // The pid must be read while the window still exists: a destroyed HWND
+    // reports pid 0 and the re-observation would see nothing.
+    let pid = cerrar.then(|| pid_of(h));
+    let antes = pid.map(cierre::instantanea);
     ffi::traer_al_frente(ffi::get_ancestor(h, GA_ROOT));
     ejecutar_accion(h, action, args)?;
 
-    let cerrar = action == "cerrar";
+    let mut reabiertas = Vec::new();
     if cerrar {
         exigir_cerrada(h)?;
+        std::thread::sleep(cierre::ESPERA_REAPARICION);
+        if let (Some(antes), Some(pid)) = (antes, pid) {
+            reabiertas = cierre::reabiertas(&antes, &cierre::instantanea(pid), h);
+        }
     }
     let mut window = window_json(h);
     if cerrar {
@@ -220,6 +230,8 @@ pub(crate) fn invocar(args: &Value) -> Result<Value> {
         "hwnd": format!("0x{:X}", h),
         "action": action,
         "window": window,
+        "reabiertas": reabiertas,
+        "aviso": cierre::aviso(&reabiertas),
     }))
 }
 
@@ -227,9 +239,7 @@ pub(crate) fn invocar(args: &Value) -> Result<Value> {
 /// (the trial dialog); it stays an error so a mistyped name is not taken for success.
 fn no_encontrado(referencia: &str, accion: &str) -> Error {
     if accion == "cerrar" {
-        return Error::Gui(format!(
-            "Ventana '{referencia}' no encontrada (¿ya cerrada?)"
-        ));
+        return Error::Gui(format!("Window '{referencia}' not found (already closed?)"));
     }
     Error::Gui(format!("Control '{referencia}' not found"))
 }
@@ -241,7 +251,7 @@ fn exigir_cerrada(h: Hwnd) -> Result<()> {
         return Ok(());
     }
     Err(Error::Gui(format!(
-        "{} sigue abierta tras pedir el cierre: puede haber abierto una confirmación (gui_observar que:ventanas)",
+        "{} is still open after asking it to close: it may have opened a confirmation (gui_observar que:ventanas)",
         class_of(h)
     )))
 }

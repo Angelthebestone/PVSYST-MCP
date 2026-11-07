@@ -5,7 +5,7 @@
 
 use super::acciones::{clic_por_mensajes, CLASE_EXCEPCION, CLASE_MENSAJE};
 use super::conduccion::{esperar, formularios};
-use super::ffi::{pids_de_ejecutable, Hwnd};
+use super::ffi::{self, pids_de_ejecutable, Hwnd};
 use super::ocr::captura_ocr::lineas_vivas;
 use super::ocr::ubicacion::plegar;
 use super::proceso::lanzar;
@@ -20,6 +20,8 @@ const INICIO: &str = "THomeForm";
 const EJECUTABLE: &str = "PVsyst.exe";
 const ROTULOS: RotulosRecuperacion = rotulos_recuperacion(Idioma::Es);
 const ESPERA_SALIDA: Duration = Duration::from_secs(20);
+/// Time a forced kill gets to take effect before the process counts as alive.
+const ESPERA_TRAS_KILL: Duration = Duration::from_secs(5);
 const ESPERA_ARRANQUE: Duration = Duration::from_secs(60);
 const SONDEO: Duration = Duration::from_millis(250);
 
@@ -82,7 +84,7 @@ fn nueva_instancia(anterior: u32) -> Reaparicion {
 
 fn pulsar(ventana: Hwnd, rotulo: &str) -> Result<()> {
     let boton = hijo_visible_con_texto(ventana, rotulo)
-        .ok_or_else(|| Error::Gui(format!("El diálogo de fallo no ofrece '{rotulo}'")))?;
+        .ok_or_else(|| Error::Gui(format!("The failure dialog has no '{rotulo}' button")))?;
     clic_por_mensajes(boton)
 }
 
@@ -109,26 +111,76 @@ fn salir_del_fallo(fallo: &Fallo) -> Result<Salida> {
 fn proceso_en_fallo(args: &Value) -> Result<(u32, Fallo)> {
     let pids = target_pids(args)?;
     if pids.is_empty() {
-        return Err(Error::NotFound("PVsyst no está en ejecución".into()));
+        return Err(Error::NotFound("PVsyst is not running".into()));
     }
     pids.into_iter()
         .find_map(|pid| fallo_de(pid).map(|f| (pid, f)))
         .ok_or_else(|| {
             Error::Invalid(
-                "PVsyst no muestra un diálogo de fallo (madExcept o el aviso de inestabilidad): no hay nada que reiniciar. Usa cerrar o lanzar".into(),
+                "PVsyst shows no failure dialog (madExcept or the instability warning): there is nothing to restart. Use cerrar or lanzar".into(),
             )
         })
 }
 
+/// What happened to the old process once its failure screen was answered.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Muerte {
+    /// It ended by itself after the dialog's button.
+    Termino,
+    /// It survived the button and the forced kill ended it.
+    Matado,
+    /// It is still running: the caller must know.
+    SigueVivo,
+}
+
+impl Muerte {
+    const fn nombre(self) -> &'static str {
+        match self {
+            Self::Termino => "termino",
+            Self::Matado => "kill_forzado",
+            Self::SigueVivo => "sigue_vivo",
+        }
+    }
+}
+
+/// Escalation policy: wait for the process to end and only kill it when it did
+/// not. The closures are the process port, so a fake can drive the decision.
+fn asegurar_muerte(
+    sigue_vivo_tras_boton: impl FnOnce() -> bool,
+    matar: impl FnOnce() -> bool,
+    sigue_vivo_tras_kill: impl FnOnce() -> bool,
+) -> Muerte {
+    if !sigue_vivo_tras_boton() {
+        return Muerte::Termino;
+    }
+    if !matar() {
+        return Muerte::SigueVivo;
+    }
+    if sigue_vivo_tras_kill() {
+        Muerte::SigueVivo
+    } else {
+        Muerte::Matado
+    }
+}
+
 /// Restarts PVsyst from its failure screen: the madExcept dialog's own
 /// restart button, or "No" on the instability warning followed by a launch.
+/// A process that survives its button is killed, and the answer says so.
 pub(crate) fn reiniciar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     let (pid, fallo) = proceso_en_fallo(args)?;
     let salida = salir_del_fallo(&fallo)?;
-    if !esperar_salida(pid) {
+    let muerte = asegurar_muerte(
+        || !esperar_salida(pid),
+        || ffi::terminar_proceso(pid),
+        || {
+            esperar_mientras(ESPERA_TRAS_KILL, SONDEO, || {
+                pids_de_ejecutable(EJECUTABLE).contains(&pid)
+            })
+        },
+    );
+    if muerte == Muerte::SigueVivo {
         return Err(Error::Gui(format!(
-            "PVsyst (pid {pid}) no terminó en {} s tras pulsar el botón del diálogo",
-            ESPERA_SALIDA.as_secs()
+            "PVsyst (pid {pid}) is still running: it did not end after its dialog button nor after a forced kill. End it from Task Manager and retry"
         )));
     }
     let reaparicion = if salida.pvsyst_se_reinicia {
@@ -140,13 +192,19 @@ pub(crate) fn reiniciar(paths: &crate::config::Paths, args: &Value) -> Result<Va
         Reaparicion::Lista(p) => p,
         Reaparicion::SinInicio(p) => {
             return Err(Error::Gui(format!(
-                "PVsyst se reinició (pid {p}) pero su pantalla de inicio no apareció en {} s",
+                "PVsyst restarted (pid {p}) but its home screen did not appear in {} s",
                 ESPERA_ARRANQUE.as_secs()
             )))
         }
         Reaparicion::Ninguna => arrancar_de_nuevo(paths)?,
     };
-    Ok(json!({ "accion": "reiniciar", "via": salida.via, "pid_anterior": pid, "pid": pid_nuevo }))
+    Ok(json!({
+        "accion": "reiniciar",
+        "via": salida.via,
+        "muerte": muerte.nombre(),
+        "pid_anterior": pid,
+        "pid": pid_nuevo,
+    }))
 }
 
 fn arrancar_de_nuevo(paths: &crate::config::Paths) -> Result<u32> {
@@ -155,5 +213,9 @@ fn arrancar_de_nuevo(paths: &crate::config::Paths) -> Result<u32> {
         .get("pid")
         .and_then(Value::as_u64)
         .and_then(|p| u32::try_from(p).ok())
-        .ok_or_else(|| Error::Gui("PVsyst no devolvió pid al lanzarse".into()))
+        .ok_or_else(|| Error::Gui("PVsyst did not return a pid when launched".into()))
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/adapters/gui/recuperacion.rs"]
+mod tests;

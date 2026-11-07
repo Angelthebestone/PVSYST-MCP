@@ -61,7 +61,7 @@ recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactament
 | `MicrosoftWindowsTooltip` | aplicacion | 4 | no | — | — | 1 |
 | `TAdvancedSimForm` | variante | 2 | sí (`variante.simulacion_avanzada`) | 5 | 11 | 4 |
 | `TAgingToolForm` | variante | 2 | sí (`variante.simulacion_avanzada.herramienta_de_envejecimiento`) | 5 | 6 | 1 |
-| `TArrayCharactForm` | variante | 2 | sí (`herramientas.factor_transposicion`) | 14 | 4 | 1 |
+| `TArrayCharactForm` | variante | 2 | sí (`herramientas.comportamiento_electrico`) | 14 | 4 | 1 |
 | `TArrayLossesPlotForm` | resultados | 2 | sí (`variante.perdidas_detalladas.grafico_de_perdidas`) | 12 | 2 | 1 |
 | `TArraySizingForm` | variante | 3 | sí (`variante.sistema.dimensionamiento`) | 0 | 1 | 1 |
 | `TBacktrackingForm` | variante | 2 | no | — | — | 1 |
@@ -140,7 +140,7 @@ recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactament
 | `TTableFieldForm` | meteo | 2 | sí (`escena_3d.crear.generador_fv`) | 7 | 3 | 1 |
 | `TThinObjectsForm` | escena_3d | 2 | sí (`escena_3d.herramientas.sombreado_objetos_delgados`) | 3 | 1 | 1 |
 | `TToolsForm` | aplicacion | 3 | sí (`inicio.herramientas`) | 0 | 6 | 1 |
-| `TTranspositionForm` | variante | 2 | no | — | — | 1 |
+| `TTranspositionForm` | variante | 2 | sí (`herramientas.factor_transposicion`) | — | — | 1 |
 | `TUserNeedsForm` | variante | 2 | sí (`variante.autoconsumo`) | 8 | 6 | 2 |
 | `TVCManageForm` | variante | 2 | no | — | — | 1 |
 | `TVoltageOptimiseForm` | variante | 2 | no | — | — | 1 |
@@ -166,7 +166,7 @@ Medido en vivo con el release (PVsyst 8.1.7; la tabla de objetos del editor 3D y
 - La geometría vale para el control medido: clase y ventana anfitriona (`TVirtualStringTree` de `TProjectLoadForm`; `TListBox` de `TChoixObjetPVForm` titulado «Eligiendo un módulo FV»; `TVirtualStringTree` de `TShdObjectSelectionForm`). Los otros 14 selectores y cualquier otro control se rechazan con un error que lista dónde se midió.
 - Antes del clic `fila` exige que la ventana esté al frente y el control tenga el foco, y que el punto de clic caiga dentro del control; se niega con menos de 3 huecos visibles. La banda se lee comparando la captura de antes y la de después, y se comprueba que ninguna ventana se abrió ni se cerró.
 
-`que:esquema` trae `abierta_con` por clase: las funciones del catálogo que la abren. `herramientas.factor_transposicion` declara `TArrayCharactForm`, la ventana que se vio abrir; `TTranspositionForm` queda sin función que la abra.
+`que:esquema` trae `abierta_con` por clase: las funciones del catálogo que la abren. `herramientas.factor_transposicion` declara `TTranspositionForm`, la ventana que se vio abrir en vivo; `TArrayCharactForm` la abre `herramientas.comportamiento_electrico`.
 
 ## Barras de acciones (`TActionToolBar`, Tarea D idea 4)
 Decisión: **no se ofrece una acción por coordenadas de barra**. Un clic ciego en un icono no tiene postcondición sin OCR (a diferencia de
@@ -217,9 +217,8 @@ Recorridas en vivo con el release (PVsyst 8.1.7, 144 DPI, 2026-10-28, PRUEBA): c
 - Los campos de estos diálogos incluyen `TUpDown` (flechas de los campos numéricos), que la vista no lee; los números de la tabla cuentan solo los controles legibles.
 
 ## No abiertas, solo clasificadas desde el mapa
-`MicrosoftWindowsTooltip`, `TBacktrackingForm`, `TShedElecShadingForm`, `TSystemegridDCForm`, `TTranspositionForm`, `TVCManageForm`, `TVoltageOptimiseForm`.
-Motivos: requieren un sitio elegido o un proyecto con resultados (botones deshabilitados en un proyecto nuevo), o la función del
-catálogo abre otra ventana (`herramientas.factor_transposicion` abre `TArrayCharactForm`, no `TTranspositionForm`).
+`MicrosoftWindowsTooltip`, `TBacktrackingForm`, `TShedElecShadingForm`, `TSystemegridDCForm`, `TVCManageForm`, `TVoltageOptimiseForm`.
+Motivos: requieren un sitio elegido o un proyecto con resultados (botones deshabilitados en un proyecto nuevo).
 `MicrosoftWindowsTooltip` no es de PVsyst.
 
 ## Límites declarados

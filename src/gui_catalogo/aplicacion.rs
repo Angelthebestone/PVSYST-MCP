@@ -209,7 +209,7 @@ fn visibles(args: &Value) -> Result<Vec<Hwnd>> {
 /// posted to that form still runs, and PVsyst raises an internal exception
 /// that forces a restart, so commands are refused while the host is disabled.
 fn exigir_anfitrion_habilitado(anfitrion: Hwnd) -> Result<()> {
-    modal::exigir_habilitada(anfitrion, "lanzar comandos de menú")
+    modal::exigir_habilitada(anfitrion, "sending menu commands")
 }
 
 fn enviar_comando(anfitrion: Hwnd, id: u16) -> Result<()> {

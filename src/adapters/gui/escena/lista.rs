@@ -60,7 +60,7 @@ fn fijar_objeto(lista: &Formulario, fila: usize, objeto: &ObjetoPedido) -> Resul
 /// Types `valor` in the cell at (`columna` px, `fila`). The editor typed into is the
 /// one under the click: the previous cell's editor may still exist for a moment.
 fn celda(lista: &Formulario, (columna, fila): (i32, usize), valor: f64) -> Result<()> {
-    let fila = i32::try_from(fila).map_err(|_| Error::Invalid("Fila fuera de rango".into()))?;
+    let fila = i32::try_from(fila).map_err(|_| Error::Invalid("Row out of range".into()))?;
     let dy = PRIMERA_FILA_PX + fila * PASO_FILA_PX;
     let tabla = hijo_n(lista.h, "TVirtualStringTree", 0)?;
     let (x, y) = punto_fisico(tabla, (columna, dy));

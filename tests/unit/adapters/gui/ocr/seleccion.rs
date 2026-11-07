@@ -18,7 +18,7 @@ fn should_refuse_to_guess_when_a_fragment_matches_several_fields() {
         .unwrap_err()
         .to_string();
     assert!(
-        error.contains("varios") && error.contains("Uc") && error.contains("Uv"),
+        error.contains("several") && error.contains("Uc") && error.contains("Uv"),
         "{error}"
     );
 }

@@ -1,6 +1,7 @@
 //! Window enumeration, identification and inspection via Win32.
 
 use super::ffi::{self, enum_children, enum_windows, pids_de_ejecutable, Hwnd, Rect};
+use super::modal;
 use crate::args::{flag, req_str};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
@@ -230,10 +231,14 @@ pub(crate) fn ventanas(args: &Value) -> Result<Value> {
     if visible_only {
         out.retain(|w| w["visible"].as_bool().unwrap_or(false));
     }
+    let modal = modal::modal_de(&pids).map(window_json);
+    let resumen_modal = modal.clone();
+    modal::agregar_modal(&mut out, modal);
     Ok(json!({
         "processes": pids,
         "count": out.len(),
         "windows": out,
+        "modal": resumen_modal,
     }))
 }
 

@@ -17,6 +17,18 @@ fn should_name_a_catalogued_parent_that_opens_the_host_when_function_requires_on
 }
 
 #[test]
+fn should_read_menu_ids_at_run_time_when_the_project_window_hosts_a_menu_item() {
+    // The project window's command ids move between instances: a fixed id there
+    // would post the wrong command.
+    let con_id_fijo: Vec<_> = funciones()
+        .filter(|f| f.ventana == "TProjectForm" && matches!(f.acceso, Acceso::Menu { .. }))
+        .map(|f| f.clave)
+        .collect();
+
+    assert!(con_id_fijo.is_empty(), "{con_id_fijo:?}");
+}
+
+#[test]
 fn should_reach_every_host_window_without_cycles_when_functions_require_a_parent() {
     for f in funciones() {
         let mut visitadas = HashSet::from([f.clave]);
@@ -35,18 +47,6 @@ fn should_reach_every_host_window_without_cycles_when_functions_require_a_parent
 }
 
 #[test]
-fn should_read_menu_ids_at_run_time_when_the_project_window_hosts_a_menu_item() {
-    // The project window's command ids move between instances: a fixed id there
-    // would post the wrong command.
-    let con_id_fijo: Vec<_> = funciones()
-        .filter(|f| f.ventana == "TProjectForm" && matches!(f.acceso, Acceso::Menu { .. }))
-        .map(|f| f.clave)
-        .collect();
-
-    assert!(con_id_fijo.is_empty(), "{con_id_fijo:?}");
-}
-
-#[test]
 fn should_carry_no_user_paths_or_project_names_when_the_window_map_is_published() {
     let mapa = super::recurso::como_recurso()["mapa"].to_string();
 
@@ -60,4 +60,25 @@ fn should_carry_no_user_paths_or_project_names_when_the_window_map_is_published(
         !mapa.contains("C:\\\\"),
         "el mapa contiene una ruta de disco"
     );
+}
+
+#[test]
+fn should_map_factor_transposicion_to_the_window_it_opens() {
+    let halladas = buscar(funciones(), "herramientas.factor_transposicion");
+    let [funcion] = halladas.as_slice() else {
+        panic!("factor_transposicion is not in the catalogue");
+    };
+
+    assert_eq!(funcion.ventana, "TToolsForm");
+    assert_eq!(funcion.abre, Some("TTranspositionForm"));
+}
+
+#[test]
+fn should_map_comportamiento_electrico_to_its_own_window() {
+    let halladas = buscar(funciones(), "herramientas.comportamiento_electrico");
+    let [funcion] = halladas.as_slice() else {
+        panic!("comportamiento_electrico is not in the catalogue");
+    };
+
+    assert_eq!(funcion.abre, Some("TArrayCharactForm"));
 }

@@ -59,11 +59,11 @@ pub(crate) fn campo_por_etiqueta<'a>(
     match candidatos.as_slice() {
         [unico] => Ok(unico),
         [] => Err(Error::NotFound(format!(
-            "Ningún campo se llama '{buscada}'. Rótulos vistos: {}",
+            "No field is called '{buscada}'. Labels seen: {}",
             etiquetas(campos)
         ))),
         varios => Err(Error::Invalid(format!(
-            "'{buscada}' coincide con varios campos: {}",
+            "'{buscada}' matches several fields: {}",
             varios
                 .iter()
                 .filter_map(|c| c.etiqueta.as_deref())
@@ -79,7 +79,7 @@ pub(crate) fn valor_logico(texto: &str) -> Result<bool> {
         "true" | "1" | "si" | "sí" | "yes" | "marcado" | "on" => Ok(true),
         "false" | "0" | "no" | "desmarcado" | "off" => Ok(false),
         otro => Err(Error::Invalid(format!(
-            "'{otro}' no es un valor lógico (true/false, sí/no, 1/0)"
+            "'{otro}' is not a logical value (true/false, sí/no, 1/0)"
         ))),
     }
 }
