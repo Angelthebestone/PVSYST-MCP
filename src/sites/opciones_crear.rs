@@ -49,6 +49,9 @@ const ARCHIVOS: [(&str, &str, Archivo); 3] = [
 /// output `.SIT` may not leave the workspace unless `permitir_fuera_del_workspace`.
 pub(super) fn archivos_sitio(ws: &Path, args: &Value) -> Result<Vec<String>> {
     let alcance = crate::workspace::Alcance::de_args(args);
+    // `sitio crear` from coordinates feeds `create-site` a CSV it writes itself, so on a
+    // dry run the input cannot exist yet; the real run checks it again.
+    let dry_run = crate::args::flag(args, &[crate::args::DRY_RUN]);
     let mut opciones = Vec::with_capacity(ARCHIVOS.len());
     for (clave, bandera, rol) in ARCHIVOS {
         let Some(valor) = texto(args, &[clave]) else {
@@ -58,7 +61,7 @@ pub(super) fn archivos_sitio(ws: &Path, args: &Value) -> Result<Vec<String>> {
             continue;
         };
         let ruta = crate::workspace::resolver_ruta(ws, &valor, alcance)?;
-        if rol != Archivo::Salida {
+        if rol != Archivo::Salida && !dry_run {
             exigir_archivo(clave, &ruta)?;
         }
         opciones.push(format!("{bandera}:{}", ruta.display()));

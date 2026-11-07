@@ -16,7 +16,7 @@ use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::value_text;
 use entrada::{exigir_archivo, validar_coordenadas, validar_region, validar_timeshift};
-use peticion::construir_peticion_crear;
+use peticion::{construir_peticion_crear, fuente_nasa};
 use serde_json::{json, Value};
 
 /// Textual form of a JSON scalar (string/number/bool); `None` for the rest.
@@ -154,19 +154,18 @@ fn nombre_por_coordenadas(lat: f64, lon: f64) -> String {
         .replace('-', "m")
 }
 
+/// Where the derived monthly climatology goes: the CSV `create-site` consumes.
+fn ruta_csv_mensual(ws: &std::path::Path, name: &str) -> std::path::PathBuf {
+    ws.join("UserData").join(format!("{name}_Monthly.csv"))
+}
+
 /// Write the derived monthly climatology as the CSV `create-site` consumes.
-fn escribir_csv_mensual(
-    ws: &std::path::Path,
-    name: &str,
-    clim: &nasa::Climatology,
-) -> Result<std::path::PathBuf> {
-    let csv_path = ws.join("UserData").join(format!("{name}_Monthly.csv"));
+fn escribir_csv_mensual(csv_path: &std::path::Path, clim: &nasa::Climatology) -> Result<()> {
     if let Some(p) = csv_path.parent() {
         let _ = std::fs::create_dir_all(p);
     }
-    std::fs::write(&csv_path, clim.to_create_site_csv())
-        .map_err(|e| Error::io(format!("Cannot write {}", csv_path.display()), e))?;
-    Ok(csv_path)
+    std::fs::write(csv_path, clim.to_create_site_csv())
+        .map_err(|e| Error::io(format!("Cannot write {}", csv_path.display()), e))
 }
 
 /// `output_sit_file`, else `<workspace>/Sites/<name>.SIT`.
@@ -226,6 +225,43 @@ fn exigir_nombre_libre_si_explicito(ws: &std::path::Path, args: &Value, name: &s
     reuse::exigir_nombre_libre(ws, name)
 }
 
+/// Files a coordinate site needs on disk: the monthly CSV it consumes and the `.SIT`
+/// `create-site` writes.
+struct DestinoSitio {
+    csv: std::path::PathBuf,
+    sit: String,
+}
+
+impl DestinoSitio {
+    fn de_args(ws: &std::path::Path, args: &Value, nombre: &str) -> Result<Self> {
+        Ok(Self {
+            csv: ruta_csv_mensual(ws, nombre),
+            sit: ruta_sit(ws, args, nombre)?,
+        })
+    }
+
+    /// Request of the `create-site` call that builds this site, dry run or not.
+    fn peticion(&self, nombre: &str, (lat, lon): (f64, f64), args: &Value) -> Value {
+        construir_peticion_crear(
+            nombre,
+            (lat, lon),
+            &fuente_nasa(lat, lon),
+            &self.csv,
+            &self.sit,
+            args,
+        )
+    }
+
+    /// PVsystCLI does not create the output folder: ensure it exists first.
+    fn crear_carpeta_salida(&self) -> Result<()> {
+        let Some(parent) = std::path::Path::new(&self.sit).parent() else {
+            return Ok(());
+        };
+        std::fs::create_dir_all(parent)
+            .map_err(|e| Error::io(format!("No se pudo crear {}", parent.display()), e))
+    }
+}
+
 /// Create a site from **coordinates alone**: monthly weather is derived from the
 /// NASA SSE 1°×1° grids shipped with PVsyst (`DataRO\*_World.*`), so no weather
 /// file is needed. This is the easy path for "design X kWp at these coordinates".
@@ -240,28 +276,28 @@ pub(crate) fn crear_sitio_coordenadas(paths: &Paths, args: &Value) -> Result<Val
     crate::workspace::validar_nombre(&name)?;
     validar_region(args)?;
 
-    let clim = nasa::climatology(lat, lon)?;
     let ws = crate::args::workspace_of(paths, args);
+    let destino = DestinoSitio::de_args(&ws, args, &name)?;
+    // A dry run answers with the command line it would run: no grid lookup, no
+    // monthly CSV and no output folder either.
+    if flag(args, &[DRY_RUN]) {
+        return crear_sitio(paths, &destino.peticion(&name, (lat, lon), args));
+    }
+
+    let clim = nasa::climatology(lat, lon)?;
     if let Some(existente) = sitio_reutilizado(&ws, args, (lat, lon))? {
         return Ok(resumen_clima(existente, &clim));
     }
     exigir_nombre_libre_si_explicito(&ws, args, &name)?;
-    let csv_path = escribir_csv_mensual(&ws, &name, &clim)?;
+    escribir_csv_mensual(&destino.csv, &clim)?;
+    destino.crear_carpeta_salida()?;
 
-    let out_sit = ruta_sit(&ws, args, &name)?;
-    // PVsystCLI does not create the output folder: ensure it exists first.
-    if let Some(parent) = std::path::Path::new(&out_sit).parent() {
-        std::fs::create_dir_all(parent)
-            .map_err(|e| Error::io(format!("No se pudo crear {}", parent.display()), e))?;
-    }
-
-    let v = construir_peticion_crear(&name, (lat, lon), &clim, &csv_path, &out_sit, args);
-    let create_site = crear_sitio(paths, &v)?;
+    let create_site = crear_sitio(paths, &destino.peticion(&name, (lat, lon), args))?;
     let mut out = resumen_clima(
         json!({
             "site": name,
-            "sit_file": out_sit,
-            "weather_csv": csv_path.to_string_lossy(),
+            "sit_file": destino.sit,
+            "weather_csv": destino.csv.to_string_lossy(),
             "create_site": create_site,
         }),
         &clim,
@@ -290,3 +326,7 @@ fn resumen_clima(mut base: Value, clim: &nasa::Climatology) -> Value {
     base["monthly_temp_c"] = json!(clim.temp.iter().map(|v| round1(*v)).collect::<Vec<_>>());
     base
 }
+
+#[cfg(test)]
+#[path = "../../tests/unit/sites/mod.rs"]
+mod tests;
