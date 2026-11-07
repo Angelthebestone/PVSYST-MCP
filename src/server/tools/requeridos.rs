@@ -80,15 +80,19 @@ impl Herramienta {
         json!({ "anyOf": alternativas })
     }
 
-    /// Argument keys the tool does not declare and `accion` does not read; the
-    /// handler never looks at them.
+    /// Argument keys the handler never looks at: the ones the tool does not declare
+    /// and the declared ones `accion` does not read.
     pub(crate) fn desconocidos(&self, args: &Value, accion: &str) -> Vec<String> {
         let Value::Object(mapa) = args else {
             return Vec::new();
         };
         let consumidos = self.consumidos(accion);
+        let no_leidos = no_leidos(self.nombre, accion);
         mapa.keys()
-            .filter(|clave| !self.declara(clave) && !consumidos.contains(&clave.as_str()))
+            .filter(|clave| {
+                no_leidos.contains(&clave.as_str())
+                    || (!self.declara(clave) && !consumidos.contains(&clave.as_str()))
+            })
             .cloned()
             .collect()
     }
@@ -137,6 +141,31 @@ impl Herramienta {
                 .is_some_and(|d| d.campo == clave)
             || self.propiedades.iter().any(|(nombre, _)| *nombre == clave)
     }
+}
+
+/// Declared keys an action does not read. The schema is per tool, so a key that
+/// belongs to another action of the same tool reaches the handler and is dropped;
+/// naming it in `ignorados` is the only way the caller learns it was not applied.
+/// Only the gaps measured against the handlers are listed: an action not named
+/// here reads every key it declares.
+const NO_LEIDOS: [(&str, &str, &[&str]); 5] = [
+    ("proyecto", "dimensionar", &["n_serie", "n_paralelo"]),
+    ("proyecto", "perdidas", &["perdida_separada", "comentario"]),
+    ("simular", "ejecutar", &["variables", "unidades"]),
+    ("workspace", "historial", &["proyecto", "ruta"]),
+    (
+        "sitio",
+        "convertir_meteo",
+        &["output_sit_file", "sit_file", "weather_data_file"],
+    ),
+];
+
+/// Declared keys `accion` of `herramienta` does not read.
+fn no_leidos(herramienta: &str, accion: &str) -> &'static [&'static str] {
+    NO_LEIDOS
+        .iter()
+        .find(|(tool, accion_leida, _)| *tool == herramienta && *accion_leida == accion)
+        .map_or(&[], |(_, _, claves)| *claves)
 }
 
 fn esta_vacio_o_nulo(args: &Value, clave: &str) -> bool {
