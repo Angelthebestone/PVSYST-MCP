@@ -148,8 +148,9 @@ impl Herramienta {
 /// naming it in `ignorados` is the only way the caller learns it was not applied.
 /// Only the gaps measured against the handlers are listed: an action not named
 /// here reads every key it declares.
-const NO_LEIDOS: [(&str, &str, &[&str]); 5] = [
+const NO_LEIDOS: [(&str, &str, &[&str]); 6] = [
     ("proyecto", "dimensionar", &["n_serie", "n_paralelo"]),
+    ("resultados", "csv", &["internet"]),
     ("proyecto", "perdidas", &["perdida_separada", "comentario"]),
     ("simular", "ejecutar", &["variables", "unidades"]),
     ("workspace", "historial", &["proyecto", "ruta"]),

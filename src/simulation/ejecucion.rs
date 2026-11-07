@@ -24,21 +24,7 @@ pub(crate) fn finalizar(plan: &Plan, out: &cli::CliOutput, contexto: &Value) -> 
     if let Some(razon) = &plan.advertencia_cache {
         resultado["cache_advertencia"] = json!(razon);
     }
-
-    if let Some(k) = &plan.clave {
-        if resultado["success"] == json!(true) {
-            let guardado = cache::guardar(
-                &plan.workspace,
-                k,
-                plan.ocf.as_deref().map(Path::new),
-                plan.rpf.as_deref().map(Path::new),
-                &resultado,
-            );
-            if let Err(e) = guardado {
-                resultado["cache_error"] = json!(e.to_string());
-            }
-        }
-    }
+    guardar_en_cache(plan, &mut resultado);
     resultado["costo"] = ledger::registrar(&plan.workspace, &out.stdout, plan.ejecuciones);
     let avisos = super::avisos_simulacion(plan.inicio);
     if !avisos.is_empty() {
@@ -53,7 +39,90 @@ pub(crate) fn finalizar(plan: &Plan, out: &cli::CliOutput, contexto: &Value) -> 
         })
         .flatten();
     super::coherencia::aplicar(&mut resultado, &avisos, pr);
+    if let Some(proyecto) = contexto.get("project").and_then(Value::as_str) {
+        if let Some(aviso) = aviso_meteo_distinta(plan, proyecto) {
+            agregar_advertencia(&mut resultado, &aviso);
+        }
+    }
     resultado
+}
+
+/// Stores the result under its cache key, reporting a failure to do so.
+fn guardar_en_cache(plan: &Plan, resultado: &mut Value) {
+    let Some(k) = &plan.clave else {
+        return;
+    };
+    if resultado["success"] != json!(true) {
+        return;
+    }
+    let guardado = cache::guardar(
+        &plan.workspace,
+        k,
+        plan.ocf.as_deref().map(Path::new),
+        plan.rpf.as_deref().map(Path::new),
+        resultado,
+    );
+    if let Err(e) = guardado {
+        resultado["cache_error"] = json!(e.to_string());
+    }
+}
+
+/// Appends one warning to the answer's `advertencias` list.
+fn agregar_advertencia(resultado: &mut Value, aviso: &str) {
+    let mut advertencias = resultado
+        .get("advertencias")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    advertencias.push(json!(aviso));
+    resultado["advertencias"] = Value::Array(advertencias);
+}
+
+/// Weather file a result CSV was simulated with (`Weather data;<file>;`).
+fn meteo_del_csv(csv: &Path) -> Option<String> {
+    let bytes = std::fs::read(csv).ok()?;
+    let texto = String::from_utf8_lossy(&bytes);
+    for linea in texto.lines().take(40) {
+        let mut campos = linea.split(';');
+        if !campos
+            .next()
+            .unwrap_or("")
+            .trim()
+            .eq_ignore_ascii_case("Weather data")
+        {
+            continue;
+        }
+        return campos
+            .next()
+            .map(|v| v.trim().to_string())
+            .filter(|v| !v.is_empty());
+    }
+    None
+}
+
+/// The run used a weather file other than the project's: its figures describe a
+/// different location than the project the result is saved in.
+fn aviso_meteo_distinta(plan: &Plan, proyecto: &str) -> Option<String> {
+    let csv = plan.ocf.as_deref().map(Path::new)?;
+    let del_resultado = meteo_del_csv(csv)?;
+    let prj = std::fs::read(
+        plan.workspace
+            .join("Projects")
+            .join(format!("{proyecto}.PRJ")),
+    )
+    .ok()?;
+    let del_proyecto = crate::projects::lifecycle::sitio::meteo_del_proyecto(&prj)?;
+    let nombre = |ruta: &str| {
+        Path::new(ruta)
+            .file_name()
+            .map_or_else(|| ruta.to_string(), |n| n.to_string_lossy().into_owned())
+            .to_ascii_lowercase()
+    };
+    (nombre(&del_resultado) != nombre(&del_proyecto)).then(|| {
+        format!(
+            "the result was simulated with '{del_resultado}' but the project points to '{del_proyecto}': the figures describe another weather file"
+        )
+    })
 }
 
 /// Everything a synchronous simulation needs, grouped to keep call sites small.
