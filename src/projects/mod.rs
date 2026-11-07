@@ -151,8 +151,30 @@ pub(crate) fn listar_proyectos(paths: &Paths, args: &Value) -> Result<Value> {
         "projects_dir": projects_dir.to_string_lossy(),
         "count": projects.len(),
         "projects": projects,
+        "templates_dir": crate::config::proyectos_demo_ro().to_string_lossy(),
+        "templates": plantillas_ro(texto.as_deref()),
         "advertencias": recorrido.advertencias(),
     }))
+}
+
+/// The read-only demo projects PVsyst ships: `proyecto crear` takes them as templates,
+/// so a listing that left them out hid half of what can be created from.
+fn plantillas_ro(texto: Option<&str>) -> Vec<Value> {
+    let base = crate::config::proyectos_demo_ro();
+    let mut prjs: Vec<PathBuf> = Vec::new();
+    // Read-only folder: an unreadable one leaves the list empty, it is not an error.
+    let _ = walk_ext(&base, ".prj", &mut prjs);
+    prjs.sort();
+    prjs.retain(|prj| coincide_texto(prj, texto));
+    prjs.iter()
+        .map(|prj| {
+            json!({
+                "name": prj.file_stem().and_then(|s| s.to_str()).unwrap_or(""),
+                "prj": prj.to_string_lossy(),
+                "solo_lectura": true,
+            })
+        })
+        .collect()
 }
 
 /// Read a .PRJ or .VCi file and return its parsed object tree plus key fields.
