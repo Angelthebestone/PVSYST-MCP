@@ -4,6 +4,7 @@
 use super::conduccion::formularios;
 use super::ffi::Hwnd;
 use super::modal;
+use super::proceso::pids_pvsyst;
 use super::ventanas::{class_of, text_of};
 use serde_json::{json, Value};
 use std::time::Duration;
@@ -31,8 +32,13 @@ pub(crate) fn instantanea(pid: u32) -> Vec<VentanaViva> {
         })
         .collect();
     // A modal embedded as a child window is not in the top-level list, and it is
-    // exactly the form that can block the next call.
-    if let Some(h) = modal::modal_de(&[pid]) {
+    // exactly the form that can block the next call. It can belong to another
+    // process of the same executable, so every PVsyst process is searched.
+    let mut pids = pids_pvsyst();
+    if !pids.contains(&pid) {
+        pids.push(pid);
+    }
+    if let Some(h) = modal::modal_de(&pids) {
         if !vivas.iter().any(|v| v.h == h) {
             vivas.push(VentanaViva {
                 h,
