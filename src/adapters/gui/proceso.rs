@@ -52,19 +52,22 @@ pub(crate) fn cerrar_todo(args: &Value) -> Result<Value> {
     }
     let mut cerradas = 0;
     let mut rondas = 0;
-    loop {
-        let vivas = visibles_de(&pids);
-        if !otra_ronda(vivas.len(), rondas) {
-            break;
-        }
-        for h in &vivas {
+    let mut quedan = visibles_de(&pids);
+    while otra_ronda(quedan.len(), rondas) {
+        for h in &quedan {
             super::acciones::cerrar_ventana(*h, &con_cancelar)?;
             cerradas += 1;
         }
         rondas += 1;
         std::thread::sleep(ESPERA_RONDA);
+        let vivas = visibles_de(&pids);
+        // A round that closed no window will not close one in the next round either.
+        let cerro_alguna = quedan.iter().any(|h| !vivas.contains(h));
+        quedan = vivas;
+        if !cerro_alguna {
+            break;
+        }
     }
-    let quedan = visibles_de(&pids);
     Ok(json!({
         "accion": "cerrar_todo",
         "pids": pids,
