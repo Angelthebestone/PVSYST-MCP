@@ -185,7 +185,14 @@ fn correr_pasos(
     )?;
     exigir_sitio_creado(&paso_sitio)?;
     let paso_proyecto = proyecto::ejecutar_paso_proyecto(paths, params)?;
-    proyecto::vincular_sitio(paths, &params.proyecto.nombre, &paso_sitio.sit_file)?;
+    proyecto::vincular_sitio(
+        paths,
+        &proyecto::SitioDelDiseno {
+            nombre: &params.proyecto.nombre,
+            variante: &params.variante,
+            sit_file: &paso_sitio.sit_file,
+        },
+    )?;
     let paso_orientacion = proyecto::ejecutar_paso_orientacion(paths, params)?;
     let paso_dimensionado = dimensionado::ejecutar_paso_dimensionado(paths, params)?;
     exigir_tolerancia_kwp(

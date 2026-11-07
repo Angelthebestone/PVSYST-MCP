@@ -121,15 +121,38 @@ fn sit_pedido(workspace: &Path, args: &Value) -> Result<Option<PathBuf>> {
     Ok(Some(sit))
 }
 
+/// The site changed but the project still reads the template's weather file: the
+/// simulation would run the new location with the old weather (E116's symptom).
+fn aviso_meteo_de_plantilla(prj: &[u8]) -> Option<String> {
+    let meteo = super::sitio::meteo_del_proyecto(prj)?;
+    Some(format!(
+        "the project still simulates with the template's weather file '{meteo}': give the site its own .MET with convertir_meteo or simular"
+    ))
+}
+
+/// Links the requested site into the project and its variant, before either is written.
+fn vincular_sitio_pedido(nuevo: &mut Personalizado, sit: Option<&Path>) -> Result<Option<String>> {
+    let Some(sit) = sit else {
+        return Ok(None);
+    };
+    nuevo.prj = super::sitio::insertar_sitio(&nuevo.prj, sit)?;
+    nuevo.var = super::sitio::insertar_sitio_en_variante(&nuevo.var, sit)?;
+    Ok(aviso_meteo_de_plantilla(&nuevo.prj))
+}
+
+/// Variant the new project starts from: `variante`, `VC0` by default.
+fn variante_pedida(args: &Value) -> String {
+    args.get("variante")
+        .and_then(Value::as_str)
+        .unwrap_or("VC0")
+        .to_uppercase()
+}
+
 pub(crate) fn crear_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
     let plantilla = req_str(args, &["plantilla"], "existing project to base on")?;
     let nombre = nombre_del_nuevo_proyecto(args)?;
-    let variante = args
-        .get("variante")
-        .and_then(|v| v.as_str())
-        .unwrap_or("VC0")
-        .to_uppercase();
+    let variante = variante_pedida(args);
 
     let alcance = Alcance::de_args(args);
     let src_prj = resolver_plantilla(&workspace, plantilla, alcance)?;
@@ -158,24 +181,26 @@ pub(crate) fn crear_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     let sit = sit_pedido(&workspace, args)?;
     // The site goes into the project before the pair is written: a site that cannot be
     // linked leaves nothing behind, and it lands in this call's workspace and folder.
-    if let Some(sit) = &sit {
-        nuevo.prj = super::sitio::insertar_sitio(&nuevo.prj, sit)?;
-    }
-
+    let aviso_meteo = vincular_sitio_pedido(&mut nuevo, sit.as_deref())?;
     let historial_id = escribir_par(
         &workspace,
         &[(new_prj.clone(), nuevo.prj), (new_var.clone(), nuevo.var)],
     )?;
 
-    Ok(json!({
+    let mut respuesta = json!({
         "project": nombre,
         "project_file": new_prj.to_string_lossy(),
         "variant_file": new_var.to_string_lossy(),
         "based_on": src_stem,
         "sitio": sit.as_ref().map(|p| p.to_string_lossy().to_string()),
+        "variant_site_updated": sit.is_some(),
         "applied": nuevo.applied,
         "historial_id": historial_id,
-    }))
+    });
+    if let Some(aviso) = aviso_meteo {
+        respuesta["warning"] = json!(aviso);
+    }
+    Ok(respuesta)
 }
 
 /// Move each path into the recycle bin; returns (moved paths, failure messages).

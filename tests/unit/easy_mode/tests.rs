@@ -68,12 +68,14 @@ fn should_extract_kpis_when_the_report_pdf_is_a_real_report() {
 }
 
 #[test]
-fn should_replace_the_template_site_when_linking_a_site() {
+fn should_replace_the_template_site_in_project_and_variant_when_linking_a_site() {
     let ws = tempfile::tempdir().unwrap();
     let projects = ws.path().join("Projects");
     std::fs::create_dir_all(&projects).unwrap();
     let plantilla = include_bytes!("../../fixtures/workspace/Projects/SYNTH_Plant.PRJ");
     std::fs::write(projects.join("SYNTH_Plant.PRJ"), plantilla).unwrap();
+    let vc0 = include_bytes!("../../fixtures/workspace/Projects/SYNTH_Plant.VC0");
+    std::fs::write(projects.join("SYNTH_Plant.VC0"), vc0).unwrap();
     let sit = ws.path().join("Mi.SIT");
     std::fs::write(
         &sit,
@@ -81,10 +83,23 @@ fn should_replace_the_template_site_when_linking_a_site() {
     )
     .unwrap();
     let paths = Paths::para_test(ws.path().to_path_buf());
-    proyecto::vincular_sitio(&paths, "SYNTH_Plant", &sit.to_string_lossy()).unwrap();
-    let prj = std::fs::read_to_string(projects.join("SYNTH_Plant.PRJ")).unwrap();
-    assert!(prj.contains("Comment=Sitio creado;"), "prj={prj}");
-    assert!(!prj.contains("Comment=Synthetic;Nowhere;"), "prj={prj}");
+    proyecto::vincular_sitio(
+        &paths,
+        &proyecto::SitioDelDiseno {
+            nombre: "SYNTH_Plant",
+            variante: "VC0",
+            sit_file: &sit.to_string_lossy(),
+        },
+    )
+    .unwrap();
+    for archivo in ["SYNTH_Plant.PRJ", "SYNTH_Plant.VC0"] {
+        let texto = std::fs::read_to_string(projects.join(archivo)).unwrap();
+        assert!(texto.contains("Comment=Sitio creado;"), "{archivo}={texto}");
+        assert!(
+            !texto.contains("Comment=Synthetic;Nowhere;"),
+            "{archivo} keeps the template site: {texto}"
+        );
+    }
 }
 #[test]
 fn should_resume_the_design_when_the_project_exists_with_the_same_parameters() {

@@ -2,7 +2,7 @@
 
 use super::parametros::DisenoParametros;
 use super::pasos::{EstadoSimulacion, KpisSalida, PasoSimulacionSalida};
-use super::proyecto::sustituir_sitio;
+use super::proyecto::{sustituir_sitio, SitioDelDiseno};
 use crate::args::{opt_str, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
@@ -141,6 +141,7 @@ type SitioKpisResultado = (
 
 struct ContextoActualizacionSitio<'a> {
     nombre_proyecto: &'a str,
+    variante: &'a str,
     sit_file: &'a str,
     csv_out: &'a str,
     pdf_out: &'a str,
@@ -156,8 +157,11 @@ fn actualizar_sitio_y_kpis(
     if matches!(ctx.estado, EstadoSimulacion::Correcta) {
         let sitio = sustituir_sitio(
             paths,
-            ctx.nombre_proyecto,
-            ctx.sit_file,
+            &SitioDelDiseno {
+                nombre: ctx.nombre_proyecto,
+                variante: ctx.variante,
+                sit_file: ctx.sit_file,
+            },
             Path::new(ctx.csv_out),
         );
         let (s_ok, det) = match sitio {
@@ -242,6 +246,7 @@ pub(crate) fn ejecutar_paso_simulacion(
     };
     let ctx_act = ContextoActualizacionSitio {
         nombre_proyecto,
+        variante: &params.variante,
         sit_file,
         csv_out: &csv_out,
         pdf_out: &pdf_out,
