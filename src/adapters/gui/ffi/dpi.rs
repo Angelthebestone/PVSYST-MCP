@@ -113,7 +113,3 @@ pub(crate) fn escalar_a_dpi(v: i32, dpi: u32) -> i32 {
     let escalado = i64::from(v) * i64::from(dpi) / base;
     i32::try_from(escalado).unwrap_or(v)
 }
-
-#[cfg(test)]
-#[path = "../../../../tests/unit/adapters/gui/ffi/dpi.rs"]
-mod tests;

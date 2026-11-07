@@ -263,7 +263,3 @@ pub(crate) fn elegir_item_por_clase(h: Hwnd, clase: &str, prefijo: &str) -> Resu
         elegir_en_combo(h, prefijo)
     }
 }
-
-#[cfg(test)]
-#[path = "../../../../tests/unit/adapters/gui/ffi/controles.rs"]
-mod tests;

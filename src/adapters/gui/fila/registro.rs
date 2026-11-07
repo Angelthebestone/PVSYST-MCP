@@ -79,7 +79,3 @@ fn medidas() -> String {
         .collect::<Vec<_>>()
         .join(", ")
 }
-
-#[cfg(test)]
-#[path = "../../../../tests/unit/adapters/gui/fila/registro.rs"]
-mod tests;

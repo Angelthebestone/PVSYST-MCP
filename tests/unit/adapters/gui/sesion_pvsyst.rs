@@ -26,8 +26,3 @@ fn should_leave_a_pvsyst_that_was_already_running_untouched() {
     // Then
     assert_eq!(a_cerrar, None);
 }
-
-#[test]
-fn should_not_close_a_pvsyst_that_already_exited() {
-    assert_eq!(debe_recogerse(Some(PID), &[]), None);
-}

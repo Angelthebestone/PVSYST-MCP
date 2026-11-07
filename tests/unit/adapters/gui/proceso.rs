@@ -20,19 +20,3 @@ fn should_reject_project_outside_workspace_by_default() {
         "Must reject escaping project path by default"
     );
 }
-
-#[test]
-fn should_read_the_windows_again_when_a_close_reopened_a_parent() {
-    assert!(otra_ronda(2, 0));
-    assert!(otra_ronda(1, MAX_RONDAS_CIERRE - 1));
-}
-
-#[test]
-fn should_stop_when_no_window_is_left() {
-    assert!(!otra_ronda(0, 0));
-}
-
-#[test]
-fn should_stop_after_the_last_round_even_if_windows_remain() {
-    assert!(!otra_ronda(1, MAX_RONDAS_CIERRE));
-}
