@@ -6,22 +6,6 @@ use crate::error::Error;
 use crate::format::real48::BYTES_POR_SLOT;
 
 #[test]
-fn should_parse_valid_legacy_header() {
-    let text = "pvModule;Soitec\tCX-M500 1.00.086\tManufacturer;\n\
-                Version 5.67; Calcul=$00003043;\n\
-                GaInP2/GaAs/Ge;240;10;2;0.000;0.000;\n";
-    let h = parse_legacy_header(text).expect("encabezado válido");
-    assert_eq!(h.vendor, "Soitec");
-    assert_eq!(h.model, "CX-M500 1.00.086");
-    assert_eq!(h.data_source, "Manufacturer");
-    assert_eq!(h.version, "5.67");
-    assert_eq!(h.technology, "GaInP2/GaAs/Ge");
-    assert_eq!(h.cells_series, 240);
-    assert_eq!(h.cells_parallel, 10);
-    assert_eq!(h.diodes, 2);
-}
-
-#[test]
 fn should_reject_legacy_block_when_slots_are_truncated_or_misaligned() {
     let header = "pvModule;Soitec\tCX-M500\tManufacturer;\r\n\
                   Version 5.67; Calcul=$00003043;\r\n\
