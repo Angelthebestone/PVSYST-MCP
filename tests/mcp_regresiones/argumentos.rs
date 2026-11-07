@@ -54,7 +54,7 @@ fn should_describe_listar_texto_as_a_search_filter_not_gui_input() {
 }
 
 #[test]
-fn should_write_an_empty_file() {
+fn should_refuse_an_empty_contenido() {
     let ws = synthetic_workspace();
     let mut c = servidor(&ws);
     let resp = c.call(
@@ -62,13 +62,9 @@ fn should_write_an_empty_file() {
         "escribir_archivo",
         json!({ "archivo": "UserData/vacio.txt", "contenido": "" }),
     );
-    assert_eq!(tool_text(&resp)["bytes_written"], 0, "resp={resp}");
-    assert_eq!(
-        fs::metadata(ws.path().join("UserData/vacio.txt"))
-            .unwrap()
-            .len(),
-        0
-    );
+    let msg = error_text(&resp);
+    assert!(msg.contains("must not be empty"), "{msg}");
+    assert!(!ws.path().join("UserData/vacio.txt").exists());
 }
 
 #[test]

@@ -81,8 +81,8 @@ fn workspace_historial_and_restore_honor_the_workspace_argument() {
         .unwrap_or_default();
     assert_eq!(
         snapshots.len(),
-        1,
-        "esperaba 1 snapshot, hubo {snapshots:?}"
+        2,
+        "la creación y la sobrescritura dejan un snapshot cada una: {snapshots:?}"
     );
 
     let resp = c.call(
