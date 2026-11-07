@@ -8,6 +8,7 @@ pub(crate) use crate::state::{CapturaFlujo, Sink};
 use std::io::Read;
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
+use std::time::{Duration, Instant};
 
 /// Límite máximo de bytes almacenados por flujo (stdout o stderr).
 /// Si el subproceso supera este límite, los bytes restantes se siguen
@@ -16,6 +17,9 @@ pub(crate) const LIMITE_BYTES_STREAM: usize = 1024 * 1024; // 1 MiB
 
 /// Tamaño del buffer temporal para lecturas de pipe.
 const TAMANO_BUFFER_PIPE: usize = 8192;
+
+/// Intervalo con el que se comprueba si un lector terminó.
+const SONDEO_LECTOR: Duration = Duration::from_millis(20);
 
 impl CapturaFlujo {
     /// Agrega un fragmento de bytes respetando el límite máximo asignado.
@@ -62,9 +66,6 @@ pub(crate) fn drain<R: Read + Send + 'static>(
                 }
                 Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
                 Err(e) => {
-                    if let Ok(mut guard) = sink.lock() {
-                        guard.error_io = Some(e.to_string());
-                    }
                     return Err(Error::io(
                         format!("Error leyendo pipe de {nombre_flujo}"),
                         e,
@@ -74,6 +75,32 @@ pub(crate) fn drain<R: Read + Send + 'static>(
         }
         Ok(())
     })
+}
+
+/// Espera a que el hilo lector termine, como mucho hasta `fin`. Un nieto que hereda
+/// la tubería impide el EOF aunque el proceso ya haya salido: vencido el plazo, el
+/// hilo se abandona y el flujo se marca truncado en lugar de bloquear la respuesta.
+pub(crate) fn esperar_lector(
+    lector: JoinHandle<Result<()>>,
+    (sink, flujo): (&Sink, &str),
+    fin: Instant,
+) -> Result<()> {
+    while !lector.is_finished() {
+        if Instant::now() >= fin {
+            tracing::warn!(
+                flujo,
+                "la tubería sigue abierta tras salir el proceso; se devuelve lo capturado"
+            );
+            if let Ok(mut guard) = sink.lock() {
+                guard.truncado = true;
+            }
+            return Ok(());
+        }
+        thread::sleep(SONDEO_LECTOR);
+    }
+    lector
+        .join()
+        .map_err(|_| Error::Cli(format!("Hilo lector de {flujo} terminó con pánico")))?
 }
 
 /// Longitud actual del buffer, sin copiarlo, para no reescanear stdout en cada vuelta.

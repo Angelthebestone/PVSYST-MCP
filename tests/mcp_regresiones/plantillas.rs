@@ -3,7 +3,7 @@ use serde_json::json;
 use std::fs;
 
 #[test]
-fn should_create_project_from_a_datar_demo_template_writing_only_to_the_workspace() {
+fn should_write_only_to_the_workspace_when_creating_a_project_from_a_dataro_demo_template() {
     let ws = synthetic_workspace();
     let data_ro = tempfile::tempdir().expect("DataRO temporal");
     let demos = data_ro.path().join("PVsyst8.1_Data").join("Projects");
@@ -38,41 +38,40 @@ fn should_create_project_from_a_datar_demo_template_writing_only_to_the_workspac
 }
 
 #[test]
-fn should_link_the_requested_workspace_site_when_creating_a_project_with_sitio() {
+fn should_rewrite_the_variant_site_when_creating_a_project_from_a_site() {
+    // Given: a template whose variant simulates the synthetic site, and another site
     let ws = synthetic_workspace();
-    let sites = ws.path().join("Sites");
-    fs::create_dir_all(&sites).expect("carpeta de sitios");
+    let proyectos = ws.path().join("Projects");
+    let sitios = ws.path().join("Sites");
+    fs::create_dir_all(&sitios).expect("Sites");
     fs::write(
-        sites.join("SITIO_Test.SIT"),
-        "PVObject_=pvSite\r\n  Name=SITIO_Test\r\nEnd of PVObject pvSite\r\n",
+        sitios.join("Lugar.SIT"),
+        "PVObject_=pvSite\n  Comment=Lugar;Colombia;\n  NomF=Lugar\n  Latitude=4.7000\n  Longitude=-74.1000\nEnd of PVObject pvSite\n",
     )
-    .expect("sitio");
+    .expect("sit");
 
-    let ws_str = ws.path().to_string_lossy().to_string();
-    let mut c = Client::start(Some(&ws_str));
+    // When
+    let mut c = Client::start(Some(ws.path().to_str().expect("ws")));
     c.initialize();
     let resp = c.call(
         1,
         "proyecto",
-        json!({ "accion": "crear", "plantilla": "SYNTH_Plant", "nombre_nuevo": "Copia_Sitio", "sitio": "SITIO_Test" }),
+        json!({ "accion": "crear", "plantilla": "SYNTH_Plant", "nombre_nuevo": "Con_Sitio", "sitio": "Lugar" }),
     );
     let out = tool_text(&resp);
-    assert!(out["sitio"].is_string(), "resp={out}");
-    let prj = fs::read_to_string(ws.path().join("Projects").join("Copia_Sitio.PRJ")).expect("PRJ");
-    assert!(prj.contains("SITIO_Test"), "PRJ sin el sitio pedido");
-}
+    assert_eq!(resp["result"]["isError"], false, "resp={resp}");
 
-#[test]
-fn should_reject_a_sitio_missing_from_the_workspace_before_writing_the_project() {
-    let ws = synthetic_workspace();
-    let ws_str = ws.path().to_string_lossy().to_string();
-    let mut c = Client::start(Some(&ws_str));
-    c.initialize();
-    let resp = c.call(
-        1,
-        "proyecto",
-        json!({ "accion": "crear", "plantilla": "SYNTH_Plant", "nombre_nuevo": "Sin_Sitio", "sitio": "NO_EXISTE" }),
-    );
-    assert_eq!(resp["result"]["isError"], json!(true), "resp={resp}");
-    assert!(!ws.path().join("Projects").join("Sin_Sitio.PRJ").exists());
+    // Then: project and variant both carry the requested site, not the template's
+    for archivo in ["Con_Sitio.PRJ", "Con_Sitio.VC0"] {
+        let texto = fs::read_to_string(proyectos.join(archivo)).expect(archivo);
+        assert!(
+            texto.contains("Comment=Lugar;Colombia;"),
+            "{archivo}={texto}"
+        );
+        assert!(
+            !texto.contains("Comment=Synthetic;Nowhere;"),
+            "{archivo} keeps the template site: {texto}"
+        );
+    }
+    assert_eq!(out["variant_site_updated"], json!(true), "out={out}");
 }

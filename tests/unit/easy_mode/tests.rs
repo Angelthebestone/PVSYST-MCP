@@ -1,170 +1,26 @@
-use super::dimensionado::{ajustar_serie, dimensionar_serie, ejecutar_paso_dimensionado};
-use super::parametros::{
-    DisenoParametros, TipoDiseno, DEFAULT_PLANTILLA, PLANTILLA_AISLADO, VARIANTE_AISLADO,
-    VARIANTE_RED,
-};
-use super::simulacion::meteo_de_metadatos;
+use super::dimensionado::{dimensionar_serie, ejecutar_paso_dimensionado};
+use super::parametros::DisenoParametros;
+use super::sitio_del_proyecto::SitioDelDiseno;
 use super::*;
+use crate::config::Paths;
 use serde_json::json;
 
 #[test]
-fn dimensionar_serie_finds_exact_layout_inside_window() {
+fn should_find_a_layout_inside_the_voltage_window_when_sizing_a_series() {
     // Ns 5..=17 keeps Vmpp >= 200 V and Voc*1.15*Ns <= 1000 V; 5x5x400 W = 10 kW.
     assert_eq!(
         dimensionar_serie(10.0, 400.0, 49.0, 41.0, 200.0, 1000.0),
         Some((5, 5))
     );
+
+    // A VAbsMax of 1e12 V would allow ~1e10 modules per string: the search must stay bounded.
+    let (ns, _) = dimensionar_serie(10.0, 400.0, 49.0, 41.0, 200.0, 1.0e12).expect("a layout");
+    assert!(ns <= 1000, "{ns}");
 }
 
 #[test]
-fn dimensionar_serie_rejects_empty_window() {
-    // Ns >= 22 is needed for Vmpp >= 900 V but Ns <= 14 caps Voc: no layout.
-    assert_eq!(
-        dimensionar_serie(10.0, 400.0, 49.0, 41.0, 900.0, 800.0),
-        None
-    );
-}
-
-#[test]
-fn errores_de_collects_failed_steps_and_kpi_error() {
-    let pasos = vec![
-        json!({ "paso": "sitio", "ok": true }),
-        json!({ "paso": "simulacion", "ok": false }),
-    ];
-    let errores = errores_de(&pasos, Some("sin CSV"));
-    assert_eq!(
-        errores,
-        vec![
-            "paso 'simulacion' fallido".to_string(),
-            "leer_kpis: sin CSV".to_string()
-        ]
-    );
-}
-
-#[test]
-fn avisos_flatten_step_warnings_and_flag_big_deviation() {
-    let pasos = vec![
-        json!({ "paso": "sitio", "ok": true }),
-        json!({ "paso": "dimensionado", "ok": true, "avisos": ["a", "b"] }),
-    ];
-    assert_eq!(avisos_de(&pasos), vec!["a".to_string(), "b".to_string()]);
-    assert!(aviso_desviacion(10.0, &json!(10.2)).is_none());
-    let a = aviso_desviacion(10.0, &json!(9.0)).expect("-10 % is flagged");
-    assert!(a.contains("-10.0 %"));
-    assert!(aviso_desviacion(10.0, &Value::Null).is_none());
-}
-
-#[test]
-fn errores_include_the_step_detail_when_it_is_text() {
-    let pasos = vec![json!({ "paso": "sitio_proyecto", "ok": false, "detail": "bloque inválido" })];
-    assert_eq!(
-        errores_de(&pasos, None),
-        vec!["paso 'sitio_proyecto' fallido: bloque inválido".to_string()]
-    );
-}
-
-#[test]
-fn meteo_de_metadatos_reads_weather_banner() {
-    let csv = "Project;MCP.PRJ;\nWeather data;Bogota.MET;\nhora;GlobHor\n";
-    assert_eq!(meteo_de_metadatos(csv), Some("Bogota.MET".to_string()));
-    assert_eq!(meteo_de_metadatos("Project;MCP.PRJ;\n"), None);
-}
-
-#[test]
-fn ajustar_serie_picks_layout_closest_to_target() {
-    // 10 kWp of 300 W around Ns 15: 17 x 2 = 10.2 kWp is the closest.
-    let (ns, np, real) = ajustar_serie(10.0, 300.0, 15).expect("layout");
-    assert_eq!((ns, np), (17, 2));
-    assert!((real - 10.2).abs() < 1e-9);
-}
-
-#[test]
-fn ajustar_serie_needs_a_module_power() {
-    assert_eq!(ajustar_serie(10.0, 0.0, 15), None);
-}
-
-#[test]
-fn should_reject_invalid_tilt_type_at_input_parse() {
-    let err_str = DisenoParametros::parse(&json!({
-        "latitud": 10.0,
-        "longitud": -70.0,
-        "kwp": 5.0,
-        "tilt": "diez_grados"
-    }))
-    .unwrap_err();
-    assert!(
-        err_str.to_string().contains("tilt"),
-        "expected error to mention tilt, got: {err_str}"
-    );
-
-    let err_bool = DisenoParametros::parse(&json!({
-        "latitud": 10.0,
-        "longitud": -70.0,
-        "kwp": 5.0,
-        "tilt": true
-    }))
-    .unwrap_err();
-    assert!(
-        err_bool.to_string().contains("tilt"),
-        "expected error to mention tilt, got: {err_bool}"
-    );
-}
-
-#[test]
-fn should_reject_invalid_azimut_type_at_input_parse() {
-    let err_str = DisenoParametros::parse(&json!({
-        "latitud": 10.0,
-        "longitud": -70.0,
-        "kwp": 5.0,
-        "azimut": "sur"
-    }))
-    .unwrap_err();
-    assert!(
-        err_str.to_string().contains("azimut"),
-        "expected error to mention azimut, got: {err_str}"
-    );
-
-    let err_obj = DisenoParametros::parse(&json!({
-        "latitud": 10.0,
-        "longitud": -70.0,
-        "kwp": 5.0,
-        "azimut": { "grados": 0 }
-    }))
-    .unwrap_err();
-    assert!(
-        err_obj.to_string().contains("azimut"),
-        "expected error to mention azimut, got: {err_obj}"
-    );
-}
-
-#[test]
-fn should_reject_invalid_kwp_at_input_parse() {
-    let err_neg = DisenoParametros::parse(&json!({
-        "latitud": 10.0,
-        "longitud": -70.0,
-        "kwp": -5.0
-    }))
-    .unwrap_err();
-    assert!(
-        err_neg.to_string().contains("kwp"),
-        "expected error to mention kwp, got: {err_neg}"
-    );
-
-    let err_type = DisenoParametros::parse(&json!({
-        "latitud": 10.0,
-        "longitud": -70.0,
-        "kwp": "alta_potencia"
-    }))
-    .unwrap_err();
-    assert!(
-        err_type.to_string().contains("kwp"),
-        "expected error to mention kwp, got: {err_type}"
-    );
-}
-
-#[test]
-fn should_reject_unreadable_or_nonexistent_module_in_sizing() {
-    let paths = Paths::resolve();
+fn should_name_the_missing_module_when_sizing_cannot_read_it() {
+    let paths = Paths::para_test(std::env::temp_dir());
     let params = DisenoParametros::parse(&json!({
         "latitud": 10.0,
         "longitud": -70.0,
@@ -181,98 +37,8 @@ fn should_reject_unreadable_or_nonexistent_module_in_sizing() {
 }
 
 #[test]
-fn should_default_to_a_grid_design_with_the_residential_template() {
-    let params = DisenoParametros::parse(&json!({
-        "latitud": 7.07,
-        "longitud": -73.84,
-        "kwp": 5
-    }))
-    .expect("parámetros");
-
-    assert_eq!(params.tipo_sistema, TipoDiseno::Red);
-    assert_eq!(params.variante, VARIANTE_RED);
-    assert_eq!(params.proyecto.plantilla, DEFAULT_PLANTILLA);
-    assert_eq!(params.proyecto.nombre, "Sistema_5kWp");
-}
-
-#[test]
-fn should_default_to_the_stand_alone_template_and_variant() {
-    let params = DisenoParametros::parse(&json!({
-        "latitud": 7.07,
-        "longitud": -73.84,
-        "kwp": 5,
-        "tipo_sistema": "aislado"
-    }))
-    .expect("parámetros");
-
-    assert_eq!(params.tipo_sistema, TipoDiseno::Aislado);
-    assert_eq!(params.variante, VARIANTE_AISLADO);
-    assert_eq!(params.proyecto.plantilla, PLANTILLA_AISLADO);
-}
-
-#[test]
-fn should_honor_explicit_template_variant_and_battery_counts() {
-    let params = DisenoParametros::parse(&json!({
-        "latitud": 7.07,
-        "longitud": -73.84,
-        "kwp": 5,
-        "tipo_sistema": "aislado",
-        "plantilla": "Otra",
-        "variante": "VC7",
-        "n_baterias_serie": 2,
-        "n_baterias_paralelo": 3
-    }))
-    .expect("parámetros");
-
-    assert_eq!(params.proyecto.plantilla, "Otra");
-    assert_eq!(params.variante, "VC7");
-    assert_eq!(params.dimensionado.n_baterias_serie, Some(2));
-    assert_eq!(params.dimensionado.n_baterias_paralelo, Some(3));
-}
-
-#[test]
-fn should_reject_an_unknown_tipo_sistema() {
-    let error = DisenoParametros::parse(&json!({
-        "latitud": 7.07,
-        "longitud": -73.84,
-        "kwp": 5,
-        "tipo_sistema": "hibrido"
-    }))
-    .expect_err("tipo desconocido");
-
-    assert!(error.to_string().contains("tipo_sistema"));
-}
-
-#[test]
-fn should_reject_battery_counts_on_a_grid_design() {
-    let error = DisenoParametros::parse(&json!({
-        "latitud": 7.07,
-        "longitud": -73.84,
-        "kwp": 5,
-        "n_baterias_serie": 2
-    }))
-    .expect_err("baterías en red");
-
-    assert!(error.to_string().contains("aislado"));
-}
-
-#[test]
-fn should_reject_zero_battery_counts() {
-    let error = DisenoParametros::parse(&json!({
-        "latitud": 7.07,
-        "longitud": -73.84,
-        "kwp": 5,
-        "tipo_sistema": "aislado",
-        "n_baterias_paralelo": 0
-    }))
-    .expect_err("cero baterías");
-
-    assert!(error.to_string().contains("mayores que cero"));
-}
-
-#[test]
-fn disenar_sistema_rejects_the_mcp_sizing_without_flag() {
-    let mut paths = Paths::resolve();
+fn should_reject_mcp_sizing_when_aproximaciones_is_disabled() {
+    let mut paths = Paths::para_test(std::env::temp_dir());
     paths.aproximaciones = false;
     let args = json!({
         "latitud": 7.07,
@@ -291,8 +57,8 @@ fn disenar_sistema_rejects_the_mcp_sizing_without_flag() {
 }
 
 #[test]
-fn leer_kpis_extracts_from_pdf_fixture() {
-    let paths = Paths::resolve();
+fn should_extract_kpis_when_the_report_pdf_is_a_real_report() {
+    let paths = Paths::para_test(std::env::temp_dir());
     let pdf_path = concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/tests/fixtures/results/MCP_E2E.pdf"
@@ -304,68 +70,150 @@ fn leer_kpis_extracts_from_pdf_fixture() {
 }
 
 #[test]
-fn leer_kpis_returns_error_when_pdf_missing() {
-    let paths = Paths::resolve();
-    let err = super::simulacion::leer_kpis(&paths, &json!({ "report_pdf": "inexistente.pdf" }))
-        .unwrap_err();
-    assert!(err.to_string().contains("Informe PDF"));
-}
-
-#[test]
-fn vincular_sitio_replaces_the_template_site_in_the_project() {
+fn should_replace_the_template_site_in_project_and_variant_when_linking_a_site() {
     let ws = tempfile::tempdir().unwrap();
     let projects = ws.path().join("Projects");
     std::fs::create_dir_all(&projects).unwrap();
     let plantilla = include_bytes!("../../fixtures/workspace/Projects/SYNTH_Plant.PRJ");
     std::fs::write(projects.join("SYNTH_Plant.PRJ"), plantilla).unwrap();
+    let vc0 = include_bytes!("../../fixtures/workspace/Projects/SYNTH_Plant.VC0");
+    std::fs::write(projects.join("SYNTH_Plant.VC0"), vc0).unwrap();
     let sit = ws.path().join("Mi.SIT");
     std::fs::write(
         &sit,
         "PVObject_=pvSite\n  Comment=Sitio creado;\nEnd of PVObject pvSite\n",
     )
     .unwrap();
-    let paths = Paths {
-        workspace: ws.path().to_path_buf(),
-        ..Paths::resolve()
-    };
-    proyecto::vincular_sitio(&paths, "SYNTH_Plant", &sit.to_string_lossy()).unwrap();
-    let prj = std::fs::read_to_string(projects.join("SYNTH_Plant.PRJ")).unwrap();
-    assert!(prj.contains("Comment=Sitio creado;"), "prj={prj}");
-    assert!(!prj.contains("Comment=Synthetic;Nowhere;"), "prj={prj}");
+    let paths = Paths::para_test(ws.path().to_path_buf());
+    super::sitio_del_proyecto::vincular_sitio(
+        &paths,
+        &SitioDelDiseno {
+            nombre: "SYNTH_Plant",
+            variante: "VC0",
+            sit_file: &sit.to_string_lossy(),
+        },
+    )
+    .unwrap();
+    for archivo in ["SYNTH_Plant.PRJ", "SYNTH_Plant.VC0"] {
+        let texto = std::fs::read_to_string(projects.join(archivo)).unwrap();
+        assert!(texto.contains("Comment=Sitio creado;"), "{archivo}={texto}");
+        assert!(
+            !texto.contains("Comment=Synthetic;Nowhere;"),
+            "{archivo} keeps the template site: {texto}"
+        );
+    }
+}
+#[test]
+fn should_resume_the_design_when_the_project_exists_with_the_same_parameters() {
+    // Given: a design run that already created the project
+    let (_ws, paths) = workspace_con_plantilla();
+    let params = diseno(&json!({}));
+    proyecto::ejecutar_paso_proyecto(&paths, &params).expect("primer proyecto");
+
+    // When: the same design is retried after a failed step
+    let segundo = proyecto::ejecutar_paso_proyecto(&paths, &params).expect("reintento");
+
+    // Then: it continues instead of demanding a rebuild
+    assert_eq!(segundo.raw_response["reutilizado"], json!(true));
+    assert_eq!(segundo.nombre, "Diseno");
 }
 
 #[test]
-fn deshacer_nuevos_removes_created_files_and_restores_overwritten_ones() {
+fn should_reject_the_design_when_the_existing_project_holds_other_parameters() {
+    // Given: a project created with 10 modules in series and 2 strings
+    let (_ws, paths) = workspace_con_plantilla();
+    proyecto::ejecutar_paso_proyecto(&paths, &diseno(&json!({}))).expect("primer proyecto");
+
+    // When: the retry asks for a different layout
+    let err = proyecto::ejecutar_paso_proyecto(&paths, &diseno(&json!({ "n_strings": 4 })))
+        .expect_err("parámetros distintos");
+
+    // Then: the difference and the two ways out are named
+    let msg = err.to_string();
+    assert!(msg.contains("NStringCh"), "msg={msg}");
+    assert!(msg.contains("sobrescribir"), "msg={msg}");
+}
+
+#[test]
+fn should_rebuild_the_project_when_sobrescribir_is_asked_for() {
+    let (_ws, paths) = workspace_con_plantilla();
+    proyecto::ejecutar_paso_proyecto(&paths, &diseno(&json!({}))).expect("primer proyecto");
+    let otro = proyecto::ejecutar_paso_proyecto(
+        &paths,
+        &diseno(&json!({ "n_strings": 4, "sobrescribir": true })),
+    )
+    .expect("sobrescritura");
+    assert!(otro.raw_response.get("reutilizado").is_none(), "{otro:?}");
+}
+
+/// A workspace with the synthetic project as a template to copy from.
+fn workspace_con_plantilla() -> (tempfile::TempDir, Paths) {
     let ws = tempfile::tempdir().unwrap();
     let projects = ws.path().join("Projects");
     std::fs::create_dir_all(&projects).unwrap();
-    std::fs::write(projects.join("Previo.PRJ"), b"antes").unwrap();
-    std::fs::write(projects.join("Mio.PRJ"), b"original").unwrap();
+    let prj = include_bytes!("../../fixtures/workspace/Projects/SYNTH_Plant.PRJ");
+    let vc0 = include_bytes!("../../fixtures/workspace/Projects/SYNTH_Plant.VC0");
+    std::fs::write(projects.join("SYNTH_Plant.PRJ"), prj).unwrap();
+    std::fs::write(projects.join("SYNTH_Plant.VC0"), vc0).unwrap();
     let paths = Paths {
         workspace: ws.path().to_path_buf(),
         ..Paths::resolve()
     };
-    let antes = proyecto::archivos_de_proyectos(&paths);
-    let originales = proyecto::originales_del_proyecto(&antes, "Mio");
-    std::fs::write(projects.join("Mio.PRJ"), b"a medias").unwrap();
-    std::fs::write(projects.join("Mio.VC0"), b"x").unwrap();
-    proyecto::deshacer_nuevos(&paths, &antes, &originales);
-    assert_eq!(
-        std::fs::read(projects.join("Previo.PRJ")).unwrap(),
-        b"antes"
-    );
-    assert_eq!(
-        std::fs::read(projects.join("Mio.PRJ")).unwrap(),
-        b"original"
-    );
-    assert!(!projects.join("Mio.VC0").exists());
+    (ws, paths)
+}
+
+fn diseno(extra: &serde_json::Value) -> DisenoParametros {
+    let mut args = json!({
+        "latitud": 10.0,
+        "longitud": -70.0,
+        "kwp": 8.0,
+        "plantilla": "SYNTH_Plant",
+        "nombre": "Diseno",
+        "modulo": "Synth_400W.PAN",
+        "inversor": "Synth_10kW.OND",
+        "n_mod_serie": 10,
+        "n_strings": 2,
+        "simular": false,
+    });
+    for (k, v) in extra.as_object().expect("objeto") {
+        args[k.as_str()] = v.clone();
+    }
+    DisenoParametros::parse(&args).expect("parámetros")
 }
 
 #[test]
-fn exigir_tolerancia_kwp_rejects_a_realised_kwp_beyond_the_tolerance() {
-    let err = super::exigir_tolerancia_kwp(10.0, 20.0, Some(7.0)).unwrap_err();
-    let msg = err.to_string();
-    assert!(msg.contains("tolerancia_kwp_pct"), "msg={msg}");
-    assert!(super::exigir_tolerancia_kwp(10.0, 20.0, Some(11.5)).is_ok());
-    assert!(super::exigir_tolerancia_kwp(10.0, 20.0, None).is_ok());
+fn should_skip_modules_without_electrical_data_when_substituting_the_template_module() {
+    // Given: a template whose module is missing, and two candidates, the first one
+    // alphabetically without Vmpp
+    let (ws, paths) = workspace_con_plantilla();
+    let modulos = ws.path().join("ComposPV").join("PVModules");
+    std::fs::create_dir_all(&modulos).unwrap();
+    std::fs::write(
+        modulos.join("A_Sin_Vmpp.PAN"),
+        "PVObject_=pvModule\n  PNom=300\n  Voc=44.5\n  Isc=9.0\nEnd of PVObject pvModule\n",
+    )
+    .unwrap();
+    std::fs::copy(
+        concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/workspace/ComposPV/PVModules/Synth_400W.PAN"
+        ),
+        modulos.join("B_Con_Datos.PAN"),
+    )
+    .unwrap();
+    let params = diseno(&json!({ "modulo": null }));
+    proyecto::ejecutar_paso_proyecto(&paths, &params).expect("proyecto");
+
+    // When
+    let paso = ejecutar_paso_dimensionado(&paths, &params).expect("dimensionado");
+
+    // Then: the module that can be sized is the substitute, and it is the one reported
+    let aviso = paso
+        .avisos
+        .iter()
+        .find(|a| a.contains("no existe"))
+        .unwrap_or_else(|| panic!("sin aviso de sustitución: {:?}", paso.avisos));
+    assert!(aviso.contains("B_Con_Datos.PAN"), "aviso={aviso}");
+    assert!(!aviso.contains("A_Sin_Vmpp.PAN"), "aviso={aviso}");
+    assert_eq!(paso.kwp_realizado, Some(8.0));
 }

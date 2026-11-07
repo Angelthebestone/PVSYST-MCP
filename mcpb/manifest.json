@@ -342,7 +342,7 @@
       "win32"
     ]
   },
-  "description": "Automates PVsyst 8.1.7 through its data files and the documented PVsystCLI commands.",
+  "description": "Automates PVsyst 8.1 (measured on 8.1.7 and 8.1.8) through its data files, the documented PVsystCLI commands and its own windows.",
   "display_name": "PVsyst MCP",
   "documentation": "https://github.com/Angelthebestone/PVSYST-MCP#readme",
   "homepage": "https://github.com/Angelthebestone/PVSYST-MCP",
@@ -374,6 +374,7 @@
         "PVSYST_GUI": "${user_config.pvsyst_gui}",
         "PVSYST_MCP_APROXIMACIONES": "${user_config.aproximaciones}",
         "PVSYST_MCP_ESCRITORIO": "${user_config.escritorio}",
+        "PVSYST_MCP_IDIOMA": "${user_config.idioma}",
         "PVSYST_WORKSPACE": "${user_config.workspace}"
       }
     },
@@ -382,63 +383,63 @@
   "support": "https://github.com/Angelthebestone/PVSYST-MCP/issues",
   "tools": [
     {
-      "description": "Entorno PVsyst: diagnostico, licencia, logs y preferencias. / EN: PVsyst environment: diagnostics, licence, logs and preferences.",
+      "description": "PVsyst environment: diagnostics, licence, logs and preferences.",
       "name": "entorno"
     },
     {
-      "description": "E2E en una llamada: coordenadas + kWp (red o aislado) -> sitio -> proyecto -> dimensionado -> simulacion -> KPIs. / EN: End-to-end in one call: coordinates + kWp (grid or stand-alone) -> site -> project -> sizing -> simulation -> KPIs.",
+      "description": "End-to-end in one call: coordinates + kWp (grid or stand-alone) -> site -> project -> sizing -> simulation -> KPIs. The module is 'modulo' when given, else the template's, else the first .PAN available. A project an earlier call left behind with the same parameters is reused instead of rebuilt. synthetic_weather needs Meteonorm: without it the call is refused before spending a trial execution.",
       "name": "disenar_sistema"
     },
     {
-      "description": "Lista proyectos, componentes, modulos, archivos u objetos. / EN: Lists projects, components, modules, files or objects.",
+      "description": "Lists projects, components, modules, files or objects.",
       "name": "listar"
     },
     {
-      "description": "Lee cualquier archivo PVsyst: proyecto, modulo, sitio, meteo, componente, objeto o bytes crudos (detectado por archivo). / EN: Reads any PVsyst file: project, module, site, weather, component, object or raw bytes (detected from the file).",
+      "description": "Reads any PVsyst file: project, module, site, weather, component, object or raw bytes (detected from the file).",
       "name": "leer"
     },
     {
-      "description": "Edita campos, inserta o elimina objetos PVObject (byte-preserving, con historial). accion:campos acepta archivo+objeto+campos (objeto PVObject) o proyecto+variante+ediciones (variante de proyecto). / EN: Edits fields, inserts or removes PVObject objects (byte-preserving, with history). accion:campos takes archivo+objeto+campos (PVObject) or proyecto+variante+ediciones (project variant).",
+      "description": "Edits fields, inserts or removes PVObject objects (byte-preserving, with history). accion:campos takes archivo+objeto+campos (PVObject) or proyecto+variante+ediciones (project variant).",
       "name": "editar"
     },
     {
-      "description": "Escribe un archivo dentro del workspace (con historial). / EN: Writes a file inside the workspace (with history).",
+      "description": "Writes a file inside the workspace (with history).",
       "name": "escribir_archivo"
     },
     {
-      "description": "Ciclo de vida de proyectos y variantes: crear, eliminar, renombrar, dimensionar (pre-dimensionado de PVsyst), diagnosticar, anadir objetos, convertir a seguidor, limite de inyeccion, almacenamiento, perdidas, bombeo, economia, P50-P90, configurar (varios cambios de variante en una llamada con 'pasos'). / EN: Project and variant lifecycle: create, delete, rename, size (PVsyst pre-sizing), diagnose, add objects, convert to tracker, injection limit, storage, losses, pumping, economics, P50-P90, configure (several variant changes in one call via 'pasos').",
+      "description": "Project and variant lifecycle: create, delete, rename, size (PVsyst pre-sizing), diagnose, add objects, convert to tracker, injection limit, storage, losses, pumping, economics, P50-P90, configure (several variant changes in one call via 'pasos').",
       "name": "proyecto"
     },
     {
-      "description": "Base de datos de componentes: crear, borrar, importar, exportar o crear desde ficha tecnica (PVsyst ajusta el modelo en su ventana). importar: origen (archivo), nombre_nuevo opcional; 'destino' no aplica. / EN: Component database: create, delete, import, export or create from a datasheet (PVsyst fits the model in its own window). import: origen (file), optional nombre_nuevo; 'destino' does not apply.",
+      "description": "Component database: create, delete, import, export or create from a datasheet (PVsyst fits the model in its own window). Every operation but importar addresses the component by NAME (componente); importar takes a path (origen) and an optional nombre_nuevo ('destino' does not apply).",
       "name": "componente"
     },
     {
-      "description": "Sitios y meteo: crear (coordenadas o CSV), convertir, geometria solar, horizonte y TMY de PVGIS. / EN: Sites and weather: create (coordinates or CSV), convert, solar geometry, PVGIS horizon and TMY.",
+      "description": "Sites and weather: create (coordinates or CSV), convert, PVGIS horizon and TMY.",
       "name": "sitio"
     },
     {
-      "description": "Simulacion: ejecutar (con filas/parametros opcionales), preparar entrada, estado, preestimar y barrido. / EN: Simulation: run (optional rows/parameters), prepare input, status, pre-estimate and sweep.",
+      "description": "Simulation: run (optional rows/parameters), prepare input and status. dry_run shows the command line and the trial executions the run would spend (costo_estimado) without running it.",
       "name": "simular"
     },
     {
-      "description": "Resultados: KPIs, resumen, CSV, perdidas, mensual, comparacion, medido_vs_simulado, P50/P90, carbono, economia y entregable. / EN: Results: KPIs, summary, CSV, losses, monthly, comparison, measured vs simulated, P50/P90, carbon, economics and deliverable.",
+      "description": "Results: KPIs, CSV, losses, monthly, comparison, P50/P90, carbon, economics and deliverable. que:resumen returns the KPIs, the monthly table and the main losses in one call.",
       "name": "resultados"
     },
     {
-      "description": "Workspace: crear, exportar, importar, exportar proyecto, historial de cambios y restaurar. / EN: Workspace: create, export, import, export project, change history and restore.",
+      "description": "Workspace: create, export, import, export project, change history and restore.",
       "name": "workspace"
     },
     {
-      "description": "Passthrough a cualquier comando de PVsystCLI. / EN: Passthrough to any PVsystCLI command.",
+      "description": "Passthrough to any PVsystCLI command. Its arguments go in 'opciones'; any other key is listed in ignorados and not passed.",
       "name": "pvsyst_cli"
     },
     {
-      "description": "Observa la GUI de PVsyst: ventanas, controles, texto, captura PNG, formularios por OCR, vista de agente (campos con clave estable, sin OCR), menus y arbol UIA. / EN: Observes the PVsyst GUI: windows, controls, text, PNG capture, OCR forms, agent view (fields by stable key, no OCR), menus and UIA tree.",
+      "description": "Observes the PVsyst GUI: windows, controls, text, PNG capture, OCR forms, agent view (fields by stable key, no OCR), menus and UIA tree.",
       "name": "gui_observar"
     },
     {
-      "description": "Actua sobre la GUI de PVsyst: clic (tambien por texto visible), escribir, seleccionar, pestana, teclas, fila de una lista o arbol, menus por posicion, cerrar, lanzar, reiniciar, esperas, rellenar un formulario por claves y validar un pedido de escena 3D. / EN: Acts on the PVsyst GUI: click (also by on-screen text), type, select, tab page, keys, list or tree row, menus by position, close, launch, restart, waits, fill a form by keys and validate a 3D scene request.",
+      "description": "Acts on the PVsyst GUI: click, clic_texto (on-screen text, by OCR), type, select, tab page, keys, a row of a list or tree with measured geometry, menus by position, close, launch, restart, wait for a window to appear (not a sleep), fill a form by keys and validate, import (meshes) or build a 3D scene in the editor.",
       "name": "gui_actuar"
     }
   ],
@@ -456,6 +457,13 @@
       "description": "compartido (default): the GUI tools drive PVsyst on your desktop. aislado: they run PVsyst on a private hidden desktop so the agent never takes your focus, cursor or keyboard (PVsyst warns when you already have it open; Ctrl/Shift shortcuts are not available there).",
       "required": false,
       "title": "Desktop for the PVsyst GUI",
+      "type": "string"
+    },
+    "idioma": {
+      "default": "en",
+      "description": "Language of the MCP surface shown to the client: tool descriptions, titles, schemas, recipes, prompts, resources and messages. en (default) or es.",
+      "required": false,
+      "title": "Client-facing language",
       "type": "string"
     },
     "pvsyst_cli": {

@@ -3,9 +3,10 @@
 use crate::args::{flag, no_encontrado, req_str, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::format::edit::ChangeOutcome;
 use crate::history;
 use crate::workspace::{validar_nombre, Alcance};
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -18,15 +19,23 @@ pub(crate) fn es_variante_valida(nombre: &str) -> bool {
         && b[2].is_ascii_alphanumeric()
 }
 
-/// Variant file `<parent>/<stem>.<variante>`; rejects anything that is not a
-/// variant identifier so user input cannot escape the project folder.
+/// Variant file `<parent>/<stem>.<variante>`; rejects a stem that is not a plain
+/// name and anything that is not a variant identifier, so user input cannot escape
+/// the project folder.
 pub(crate) fn ruta_variante(parent: &Path, stem: &str, variante: &str) -> Result<PathBuf> {
-    if !es_variante_valida(variante) {
-        return Err(Error::Invalid(format!(
-            "Variante inválida '{variante}': debe ser VCn o CMn (n alfanumérico)"
-        )));
-    }
+    validar_nombre(stem)?;
+    exigir_variante_valida(variante)?;
     Ok(parent.join(format!("{stem}.{variante}")))
+}
+
+/// [`es_variante_valida`] as a boundary check: the error names the expected form.
+pub(crate) fn exigir_variante_valida(variante: &str) -> Result<()> {
+    if es_variante_valida(variante) {
+        return Ok(());
+    }
+    Err(Error::Invalid(format!(
+        "Variante inválida '{variante}': debe ser VCn o CMn (n alfanumérico)"
+    )))
 }
 
 /// File stem of a project path as an owned string.
@@ -59,13 +68,12 @@ pub(crate) fn entero_opcional(args: &Value, clave: &str) -> Result<Option<u64>> 
         .ok_or_else(|| Error::Invalid(format!("'{clave}' debe ser un entero positivo")))
 }
 
-/// Variant files `<stem>.VCn` / `<stem>.CMn` in `parent`, sorted.
-pub(crate) fn variant_files(parent: &Path, stem: &str) -> Vec<PathBuf> {
-    let mut v: Vec<PathBuf> = fs::read_dir(parent)
+/// Variant files `<stem>.VCn` / `<stem>.CMn` in `parent`, sorted: the one rule for
+/// what a variant is. An unreadable folder is an error, so a rename or a delete
+/// never skips variants it could not see.
+pub(crate) fn variant_files(parent: &Path, stem: &str) -> Result<Vec<PathBuf>> {
+    let mut v: Vec<PathBuf> = crate::workspace::entradas_de(parent)?
         .into_iter()
-        .flatten()
-        .flatten()
-        .map(|e| e.path())
         .filter(|p| p.file_stem().and_then(|s| s.to_str()) == Some(stem))
         .filter(|p| {
             p.extension()
@@ -74,12 +82,13 @@ pub(crate) fn variant_files(parent: &Path, stem: &str) -> Vec<PathBuf> {
         })
         .collect();
     v.sort();
-    v
+    Ok(v)
 }
 
 /// "Variant not found" error listing the variants that do exist beside the project.
 pub(crate) fn variante_no_encontrada(parent: &Path, stem: &str, pedido: &str) -> Error {
     let opciones: Vec<String> = variant_files(parent, stem)
+        .unwrap_or_default()
         .iter()
         .filter_map(|p| {
             p.extension()
@@ -129,12 +138,26 @@ pub(crate) fn abrir_variante(paths: &Paths, args: &Value) -> Result<VarianteAbie
 }
 
 /// Write edited variant bytes through the history-backed atomic writer.
-pub(crate) fn guardar_variante(
-    v: &VarianteAbierta,
-    nuevo: &[u8],
-    motivo: &str,
-) -> Result<Option<String>> {
+pub(crate) fn guardar_variante(v: &VarianteAbierta, nuevo: &[u8], motivo: &str) -> Result<String> {
     history::reemplazar(&v.workspace, &v.vpath, nuevo, motivo)
+}
+
+/// What every `proyecto <accion>` that edits a variant answers: which variant, the parameters
+/// applied, each change PVsyst's file took and the history entry. The action adds its own keys.
+pub(crate) fn respuesta_de_edicion(
+    v: &VarianteAbierta,
+    parametros: &Value,
+    (cambios, historial_id): (&[ChangeOutcome], String),
+) -> Map<String, Value> {
+    let mut respuesta = Map::new();
+    respuesta.insert("proyecto".into(), json!(v.stem));
+    respuesta.insert("variante".into(), json!(v.variante));
+    respuesta.insert("archivo".into(), json!(v.vpath.display().to_string()));
+    respuesta.insert("parametros".into(), parametros.clone());
+    let cambios: Vec<Value> = cambios.iter().map(ChangeOutcome::to_json).collect();
+    respuesta.insert("cambios".into(), json!(cambios));
+    respuesta.insert("historial_id".into(), json!(historial_id));
+    respuesta
 }
 
 pub(crate) fn crear_variante(paths: &Paths, args: &Value) -> Result<Value> {
@@ -175,7 +198,7 @@ pub(crate) fn crear_variante(paths: &Paths, args: &Value) -> Result<Value> {
     let bytes = fs::read(&src)
         .map_err(|e| Error::io(format!("Cannot read variant {}", src.display()), e))?;
     let historial_id = history::reemplazar(&workspace, &dst, &bytes, "crear_variante")?;
-    let todas: Vec<String> = variant_files(&parent, &stem)
+    let todas: Vec<String> = variant_files(&parent, &stem)?
         .iter()
         .filter_map(|p| p.file_name().and_then(|s| s.to_str()).map(str::to_string))
         .collect();

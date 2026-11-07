@@ -59,6 +59,11 @@ pub(crate) struct ParametrosInyeccion {
     tan_phi: Option<f64>,
 }
 
+/// Validates the action's arguments without touching any file.
+pub(crate) fn validar_parametros(args: &Value) -> Result<()> {
+    ParametrosInyeccion::nuevo(EntradaInyeccion::de_args(args)?).map(|_| ())
+}
+
 impl ParametrosInyeccion {
     pub(crate) fn nuevo(entrada: EntradaInyeccion) -> Result<Self> {
         let potencia_kw = entrada

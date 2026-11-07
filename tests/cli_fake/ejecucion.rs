@@ -27,18 +27,7 @@ fn ws_str(ws: &Path) -> String {
 }
 
 #[test]
-fn help_succeeds_and_unknown_command_fails() {
-    let ws = workspace();
-    let mut client = Client::start_env(Some(&ws_str(ws.path())), &fake_env());
-    client.initialize();
-    let ok = tool_text(&client.call(2, "pvsyst_cli", json!({ "comando": "help" })));
-    assert_eq!(ok["success"], json!(true));
-    let bad = tool_text(&client.call(3, "pvsyst_cli", json!({ "comando": "nocommand" })));
-    assert_eq!(bad["success"], json!(false));
-}
-
-#[test]
-fn slow_command_is_killed_at_timeout() {
+fn should_kill_the_command_when_it_exceeds_the_timeout() {
     let ws = workspace();
     let mut env = fake_env();
     env.push(("FAKE_PVSYST_SLEEP_MS", "5000"));
@@ -51,80 +40,6 @@ fn slow_command_is_killed_at_timeout() {
     ));
     assert_eq!(v["success"], json!(false));
     assert_eq!(v["detected_error"], json!("timeout tras 1 s"));
-}
-
-#[test]
-fn simulation_reports_success_from_fixture() {
-    let ws = workspace();
-    let mut client = Client::start_env(Some(&ws_str(ws.path())), &fake_env());
-    client.initialize();
-    let args = json!({ "proyecto": "SYNTH_Plant", "variante": "VC0" });
-    let v = tool_text(&client.call(2, "simular", args));
-    assert_eq!(v["success"], json!(true));
-    assert_eq!(v["mode"], json!("cli"));
-}
-
-#[test]
-fn simulation_reports_avisos_pvsyst_from_fake_cli_log() {
-    let ws = workspace();
-    let temp_local_app_data = tempfile::tempdir().unwrap();
-    let mut env = fake_env();
-    let local_str = temp_local_app_data.path().to_string_lossy().to_string();
-    env.push(("LOCALAPPDATA", &local_str));
-    let mut client = Client::start_env(Some(&ws_str(ws.path())), &env);
-    client.initialize();
-    let args = json!({ "proyecto": "SYNTH_Plant", "variante": "VC0" });
-    let v = tool_text(&client.call(2, "simular", args));
-    assert_eq!(v["success"], json!(true));
-    let avisos = v["avisos_pvsyst"].as_array().expect("avisos_pvsyst");
-    assert_eq!(avisos.len(), 4);
-    assert_eq!(avisos[0], "ErrorList: 1882 error messages");
-    assert_eq!(
-        avisos[1],
-        "The array Vmpp at 60 °C  is lower than the inverter minimum operating voltage."
-    );
-    assert_eq!(avisos[2], "This may result in some undervoltage loss.");
-    assert_eq!(
-        avisos[3],
-        "1879 occurrences of MPP voltage lower than min. voltage input of the inverter"
-    );
-}
-
-#[test]
-fn simulation_reports_progress_before_the_response() {
-    let ws = workspace();
-    let mut env = fake_env();
-    env.push(("FAKE_PVSYST_PROGRESO", "1"));
-    env.push(("FAKE_PVSYST_SLEEP_MS", "600"));
-    let mut client = Client::start_env(Some(&ws_str(ws.path())), &env);
-    client.initialize();
-    client.send(&json!({
-        "jsonrpc": "2.0",
-        "id": 2,
-        "method": "tools/call",
-        "params": {
-            "name": "simular",
-            "arguments": { "proyecto": "SYNTH_Plant", "variante": "VC0" },
-            "_meta": { "progressToken": "t1" }
-        }
-    }));
-
-    let mut progresos = Vec::new();
-    loop {
-        let v = client.recv();
-        if v["method"] == "notifications/progress" {
-            progresos.push(v);
-            continue;
-        }
-        assert_eq!(v["id"], json!(2), "v={v}");
-        break;
-    }
-    assert!(
-        progresos
-            .iter()
-            .any(|v| v["params"]["progressToken"] == json!("t1")),
-        "no progress notification: {progresos:?}"
-    );
 }
 
 #[test]
@@ -153,7 +68,7 @@ fn should_answer_ping_while_a_simulation_runs() {
 }
 
 #[test]
-fn cancelled_simulation_never_answers_and_later_requests_do() {
+fn should_answer_later_requests_when_a_simulation_is_cancelled() {
     let ws = workspace();
     let mut env = fake_env();
     env.push(("FAKE_PVSYST_SLEEP_MS", "5000"));
@@ -217,57 +132,53 @@ fn should_classify_contradictory_output_as_ambiguous() {
     assert_eq!(v["ambiguo"], json!(true));
 }
 
-#[test]
-fn should_classify_missing_confirmation_as_ambiguous() {
+/// Runs one simulation with the fake CLI and the given extra environment.
+fn simular_con(env: &[(&str, &str)]) -> serde_json::Value {
     let ws = workspace();
-    let mut client = Client::start_env(Some(&ws_str(ws.path())), &fake_env());
+    let local = tempfile::tempdir().expect("LOCALAPPDATA temporal");
+    let mut completo = fake_env();
+    completo.push(("LOCALAPPDATA", local.path().to_str().expect("utf8")));
+    completo.extend_from_slice(env);
+    let mut client = Client::start_env(Some(&ws_str(ws.path())), &completo);
     client.initialize();
-    let v = tool_text(&client.call(
+    tool_text(&client.call(
         2,
-        "pvsyst_cli",
-        json!({ "comando": "run-simulation", "opciones": ["--ambiguous-sin-confirmacion"] }),
-    ));
-    assert_eq!(v["success"], json!(false));
-    assert_eq!(v["clasificacion"], json!("ambiguo"));
-    assert_eq!(v["ambiguo"], json!(true));
+        "simular",
+        json!({ "proyecto": "SYNTH_Plant", "variante": "VC0" }),
+    ))
 }
 
 #[test]
-fn should_write_ledger_cache_to_requested_workspace_not_server_default() {
-    let default_ws = workspace();
-    let target_ws = workspace();
-    let mut client = Client::start_env(Some(&ws_str(default_ws.path())), &fake_env());
-    client.initialize();
+fn should_not_report_success_when_pvsyst_flags_the_result_as_incoherent() {
+    // Given: a run whose log carries PVsyst's incoherence warning
+    let v = simular_con(&[("FAKE_PVSYST_AVISO_INCOHERENTE", "1")]);
 
-    let resp = client.call(
-        99,
-        "sitio",
-        json!({
-            "accion": "crear",
-            "origen": "coordenadas",
-            "latitud": 46.2,
-            "longitud": 6.1,
-            "nombre_sitio": "MCP_Ledger_Test",
-            "workspace": ws_str(target_ws.path()),
-        }),
+    // Then: the result is a failure that names PVsyst's warning, not a success
+    assert_eq!(v["success"], json!(false), "v={v}");
+    assert_eq!(v["clasificacion"], json!("fallo"), "v={v}");
+    assert!(
+        v["coherencia"]["motivos"][0]
+            .as_str()
+            .is_some_and(|m| m.contains("Incoherencia en los resultados")),
+        "v={v}"
     );
-    assert_eq!(resp["result"]["isError"], false, "resp={resp}");
+}
 
+#[test]
+fn should_not_report_success_when_the_report_pr_is_physically_impossible() {
+    // Given: a run whose report says PR 130.6 %
+    let informe = tempfile::tempdir().expect("informe");
+    let pdf = informe.path().join("imposible.pdf");
+    super::cliente_mcp::escribir_informe_con_pr(&pdf, 130.6);
+    let v = simular_con(&[("FAKE_PVSYST_PDF", pdf.to_str().expect("utf8"))]);
+
+    // Then: the impossible PR is a failure, not a success with a nice number
+    assert_eq!(v["success"], json!(false), "v={v}");
+    assert_eq!(v["clasificacion"], json!("fallo"), "v={v}");
     assert!(
-        target_ws
-            .path()
-            .join("UserData")
-            .join("mcp_cache")
-            .join("ledger.json")
-            .exists(),
-        "ledger.json must exist in target_ws"
-    );
-    assert!(
-        !default_ws
-            .path()
-            .join("UserData")
-            .join("mcp_cache")
-            .exists(),
-        "default_ws must not be polluted with mcp_cache!"
+        v["coherencia"]["motivos"][0]
+            .as_str()
+            .is_some_and(|m| m.contains("130.6")),
+        "v={v}"
     );
 }

@@ -4,15 +4,16 @@ use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, Sino
 use crate::args::{flag, missing, DRY_RUN};
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::idioma::Texto;
 use crate::progreso::SeguimientoTarea;
 use crate::simulation::{self, batch, preestimate};
 use serde_json::{Map, Value};
 
 pub(crate) const TOOL_SIMULAR: Herramienta = Herramienta {
     nombre: "simular",
-    descripcion: "Simulacion: ejecutar (con filas/parametros opcionales), preparar entrada, estado, preestimar y barrido. / EN: Simulation: run (optional rows/parameters), prepare input, status, pre-estimate and sweep.",
+    descripcion: crate::idioma::Texto { es: "Simulacion: ejecutar (con filas/parametros opcionales), preparar entrada, estado, preestimar y barrido. dry_run muestra la linea de comando y las ejecuciones de prueba que gastaria (costo_estimado) sin ejecutar. preestimar y barrido son aproximaciones del MCP: necesitan PVSYST_MCP_APROXIMACIONES=1.", en: "Simulation: run (optional rows/parameters), prepare input, status, pre-estimate and sweep. dry_run shows the command line and the trial executions the run would spend (costo_estimado) without running it. preestimar and barrido are MCP approximations: they need PVSYST_MCP_APROXIMACIONES=1." },
     anotaciones: Anotaciones {
-        titulo: "Simular / Simulate",
+        titulo: crate::idioma::Texto { es: "Simular", en: "Simulate" },
         es_solo_lectura: false,
         es_destructiva: false,
         es_idempotente: false,
@@ -77,6 +78,7 @@ pub(crate) const TOOL_SIMULAR: Herramienta = Herramienta {
         ("preestimar", &["latitud", "longitud", "kwp"]),
         ("barrido", &["latitud", "longitud", "kwp"]),
     ],
+    consumidos_por_accion: &[],
     sinonimos: SINONIMOS_SIMULAR,
     ejecutar: Ejecutor::Seguido(ejecutar_simular),
 };
@@ -121,7 +123,7 @@ fn ejecutar_simular(
     let valor = TOOL_SIMULAR.accion(args);
     match valor {
         "ejecutar" => {
-            exigir_ensayo_sin_escritura(args)?;
+            exigir_ensayo_sin_escritura(paths, args)?;
             let (vivos, _) = preparar_entrada(paths, args)?;
             simulation::lanzar_simulacion_seguida(paths, &vivos, seguimiento)
         }
@@ -139,21 +141,26 @@ fn ejecutar_simular(
             Ok(Value::Object(preparados))
         }
         "estado" => simulation::estado_simulacion(paths, args),
-        "preestimar" => preestimate::preestimar(paths, args),
+        "preestimar" => preestimate::preestimar(args),
         "barrido" => preestimate::barrido(paths, args, seguimiento),
         _ => Err(Error::Invalid(format!(
-            "Valor '{valor}' no soportado para simular"
+            "Value '{valor}' not supported for simular"
         ))),
     }
 }
 
+const ENSAYO_SIN_ESCRITURA: Texto = Texto {
+    es: "dry_run no admite 'filas' ni 'parametros': prepararlos escribe archivos del workspace. Quita dry_run, o prepara antes con accion:preparar",
+    en: "dry_run does not take 'filas' or 'parametros': preparing them writes workspace files. Drop dry_run, or prepare first with accion:preparar",
+};
+
 /// `filas` and `parametros` are written to the workspace before the run starts, so
 /// a dry run that carried them would already have changed files.
-fn exigir_ensayo_sin_escritura(args: &Value) -> Result<()> {
+fn exigir_ensayo_sin_escritura(paths: &Paths, args: &Value) -> Result<()> {
     let escribe = args.get("filas").is_some() || args.get("parametros").is_some();
     if flag(args, &[DRY_RUN]) && escribe {
         return Err(Error::Invalid(
-            "dry_run no admite 'filas' ni 'parametros': prepararlos escribe archivos del workspace. Quita dry_run, o prepara antes con accion:preparar".into(),
+            ENSAYO_SIN_ESCRITURA.en_idioma(paths.idioma).to_string(),
         ));
     }
     Ok(())

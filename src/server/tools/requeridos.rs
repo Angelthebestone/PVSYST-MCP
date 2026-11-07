@@ -3,7 +3,9 @@
 //! undeclared arguments are reported back instead of being silently dropped.
 
 use super::declaracion::{extraer_aliases, Herramienta};
+use super::redaccion::PREFIJO_REQUERIDOS_POR_ACCION;
 use crate::error::{Error, Result};
+use crate::idioma::Idioma;
 use serde_json::{json, Map, Value};
 
 impl Herramienta {
@@ -25,7 +27,7 @@ impl Herramienta {
     }
 
     /// Adds the per-action required keys of the admitted discriminator values to its description.
-    pub(crate) fn anotar_requeridos_por_accion(&self, prop: &mut Value) {
+    pub(crate) fn anotar_requeridos_por_accion(&self, prop: &mut Value, idioma: Idioma) {
         let admitidas: Vec<&str> = prop["enum"]
             .as_array()
             .into_iter()
@@ -43,7 +45,8 @@ impl Herramienta {
             return;
         }
         let previo = prop["description"].as_str().unwrap_or_default().to_owned();
-        prop["description"] = json!(format!("{previo} Requeridos por acción: {detalle}."));
+        let prefijo = PREFIJO_REQUERIDOS_POR_ACCION.en_idioma(idioma);
+        prop["description"] = json!(format!("{previo}{prefijo}{detalle}."));
     }
 
     /// Top-level `required` keeps the keys without aliases. Each aliased required key
@@ -77,15 +80,29 @@ impl Herramienta {
         json!({ "anyOf": alternativas })
     }
 
-    /// Argument keys the tool does not declare; the handler would never read them.
-    pub(crate) fn desconocidos(&self, args: &Value) -> Vec<String> {
+    /// Argument keys the handler never looks at: the ones the tool does not declare
+    /// and the declared ones `accion` does not read.
+    pub(crate) fn desconocidos(&self, args: &Value, accion: &str) -> Vec<String> {
         let Value::Object(mapa) = args else {
             return Vec::new();
         };
+        let consumidos = self.consumidos(accion);
+        let no_leidos = no_leidos(self.nombre, accion);
         mapa.keys()
-            .filter(|clave| !self.declara(clave))
+            .filter(|clave| {
+                no_leidos.contains(&clave.as_str())
+                    || (!self.declara(clave) && !consumidos.contains(&clave.as_str()))
+            })
             .cloned()
             .collect()
+    }
+
+    /// Keys `accion` reads that the tool declares for its other actions only.
+    fn consumidos(&self, accion: &str) -> &'static [&'static str] {
+        self.consumidos_por_accion
+            .iter()
+            .find(|(acc, _)| *acc == accion)
+            .map_or(&[], |(_, claves)| *claves)
     }
 
     /// Every required key of `accion`: the tool-wide ones first, then the action's own.
@@ -120,6 +137,32 @@ impl Herramienta {
                 .is_some_and(|d| d.campo == clave)
             || self.propiedades.iter().any(|(nombre, _)| *nombre == clave)
     }
+}
+
+/// Declared keys an action does not read. The schema is per tool, so a key that
+/// belongs to another action of the same tool reaches the handler and is dropped;
+/// naming it in `ignorados` is the only way the caller learns it was not applied.
+/// Only the gaps measured against the handlers are listed: an action not named
+/// here reads every key it declares.
+const NO_LEIDOS: [(&str, &str, &[&str]); 6] = [
+    ("proyecto", "dimensionar", &["n_serie", "n_paralelo"]),
+    ("resultados", "csv", &["internet"]),
+    ("proyecto", "perdidas", &["perdida_separada", "comentario"]),
+    ("simular", "ejecutar", &["variables", "unidades"]),
+    ("workspace", "historial", &["proyecto", "ruta"]),
+    (
+        "sitio",
+        "convertir_meteo",
+        &["output_sit_file", "sit_file", "weather_data_file"],
+    ),
+];
+
+/// Declared keys `accion` of `herramienta` does not read.
+fn no_leidos(herramienta: &str, accion: &str) -> &'static [&'static str] {
+    NO_LEIDOS
+        .iter()
+        .find(|(tool, accion_leida, _)| *tool == herramienta && *accion_leida == accion)
+        .map_or(&[], |(_, _, claves)| *claves)
 }
 
 fn esta_vacio_o_nulo(args: &Value, clave: &str) -> bool {

@@ -3,7 +3,8 @@
 use super::cache::{self, ClaveCache};
 use crate::adapters::ledger;
 use crate::args::{flag, opt_str};
-use crate::error::Result;
+use crate::error::{Error, Result};
+use crate::workspace::{resolver_ruta, Alcance};
 use serde_json::{json, Value};
 use std::path::Path;
 
@@ -69,6 +70,40 @@ pub(crate) fn push_options(args: &Value, cli_args: &mut Vec<String>) {
     }
 }
 
+/// Flags the MCP builds itself (workspace, project, variant, outputs, batch...):
+/// `extra_options` may not repeat them, or PVsystCLI would act on another target.
+const BANDERAS_PROPIAS: [&str; 9] = [
+    "-w", "-p", "-v", "-swg", "-odc", "-rp", "-rst", "-rl", "-ll",
+];
+
+/// Rejects an `extra_options` entry that redefines a flag the MCP sets from its own
+/// arguments, and any entry that is not a string. O(e·k), k ≤ 19.
+pub(crate) fn validar_extra_options(args: &Value) -> Result<()> {
+    let Some(extra) = args.get("extra_options").and_then(Value::as_array) else {
+        return Ok(());
+    };
+    let propias: Vec<&str> = FILE_OPTIONS
+        .iter()
+        .chain(DATE_OPTIONS.iter())
+        .map(|(_, f)| *f)
+        .chain(BANDERAS_PROPIAS)
+        .collect();
+    for opcion in extra {
+        let texto = opcion.as_str().ok_or_else(|| {
+            Error::Invalid(format!(
+                "'extra_options' solo admite textos (recibido {opcion})"
+            ))
+        })?;
+        let bandera = texto.split(':').next().unwrap_or_default().trim();
+        if propias.iter().any(|p| p.eq_ignore_ascii_case(bandera)) {
+            return Err(Error::Invalid(format!(
+                "'extra_options' no puede redefinir '{bandera}': usa el argumento propio de simular"
+            )));
+        }
+    }
+    Ok(())
+}
+
 pub(crate) fn argumentos_cli(
     args: &Value,
     workspace: &Path,
@@ -85,39 +120,44 @@ pub(crate) fn argumentos_cli(
     cli_args
 }
 
+/// `args` with `output_csv` and `report_pdf` resolved: a caller path goes through
+/// `resolver_ruta` (confined unless `permitir_fuera_del_workspace`), a missing one
+/// defaults to `Results/<stem>_<variante>.csv|pdf`.
 pub(crate) fn con_salidas_por_defecto(
     args: &Value,
     workspace: &Path,
     stem: &str,
     variante: &str,
-) -> Value {
+) -> Result<Value> {
     let mut salidas = args.clone();
     let Some(obj) = salidas.as_object_mut() else {
-        return salidas;
+        return Ok(salidas);
     };
     let base = format!("{stem}_{variante}");
-    // `join` keeps absolute paths as they are and anchors relative ones to the workspace.
+    let alcance = Alcance::de_args(args);
     let csv = opt_str(args, &["output_csv"]).or_else(|| opt_str(args, &["csv"]));
-    let ruta_csv = csv.map_or_else(
-        || workspace.join("Results").join(format!("{base}.csv")),
-        |v| workspace.join(v),
-    );
+    let ruta_csv = match csv {
+        Some(v) => resolver_ruta(workspace, v, alcance)?,
+        None => workspace.join("Results").join(format!("{base}.csv")),
+    };
     obj.insert("output_csv".into(), json!(ruta_csv.to_string_lossy()));
     let pdf = opt_str(args, &["report_pdf"]).or_else(|| opt_str(args, &["pdf"]));
     let ruta_pdf = match (pdf, flag(args, &["sin_pdf"])) {
-        (Some(v), _) => Some(workspace.join(v)),
+        (Some(v), _) => Some(resolver_ruta(workspace, v, alcance)?),
         (None, false) => Some(workspace.join("Results").join(format!("{base}.pdf"))),
         (None, true) => None,
     };
     if let Some(ruta) = ruta_pdf {
         obj.insert("report_pdf".into(), json!(ruta.to_string_lossy()));
     }
-    salidas
+    Ok(salidas)
 }
 
+/// The outputs come from the command line PVsystCLI receives (`-ocf`, `-rpf`), which
+/// holds the defaulted paths too: `args` only has the ones the caller spelled out.
 pub(crate) fn preparar(args: &Value, workspace: &Path, cli_args: &[String]) -> Result<Previo> {
-    let ocf = opt_str(args, &["output_csv"]).map(str::to_string);
-    let rpf = opt_str(args, &["report_pdf"]).map(str::to_string);
+    let ocf = cache::valor(cli_args, "-ocf").map(str::to_string);
+    let rpf = cache::valor(cli_args, "-rpf").map(str::to_string);
     let lote = cli_args.iter().any(|a| a.starts_with("-bpf:"));
     let ejecuciones = ejecuciones_previstas(cli_args);
     let (clave, advertencia_cache) = if lote || flag(args, &["sin_cache"]) {

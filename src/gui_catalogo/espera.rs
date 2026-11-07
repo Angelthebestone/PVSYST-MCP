@@ -31,6 +31,8 @@ pub(super) struct Resultado {
     pub(super) nuevas: Vec<Hwnd>,
     /// Ventanas de la clase esperada que ya estaban abiertas antes.
     pub(super) ya_abiertas: Vec<Hwnd>,
+    /// Llegó la ventana esperada (o alguna nueva, si no se esperaba una clase).
+    pub(super) llego: bool,
 }
 
 impl Resultado {
@@ -38,7 +40,14 @@ impl Resultado {
         Self {
             nuevas: Vec::new(),
             ya_abiertas: Vec::new(),
+            llego: false,
         }
+    }
+
+    /// The class that was expected and never showed up, nor was already open: the
+    /// action did not do what the catalogue says it does.
+    pub(super) fn clase_ausente<'a>(&self, esperada: Option<&'a str>) -> Option<&'a str> {
+        esperada.filter(|_| !self.llego && self.ya_abiertas.is_empty())
     }
 
     pub(super) fn nuevas_json(&self) -> Vec<Value> {
@@ -83,9 +92,8 @@ where
     let antes = solicitud.antes;
     let esperada = solicitud.esperada;
     loop {
-        let Ok(ahora) = consultar_visibles() else {
-            return Ok(Resultado::vacio());
-        };
+        // A failed enumeration is an error, not "no window appeared".
+        let ahora = consultar_visibles()?;
         let nuevas = ventanas_nuevas(&ahora, antes);
         let llegada = match esperada {
             Some(clase) => !de_clase(&nuevas, clase).is_empty(),
@@ -96,6 +104,7 @@ where
             return Ok(Resultado {
                 nuevas,
                 ya_abiertas,
+                llego: llegada,
             });
         }
         std::thread::sleep(SONDEO);

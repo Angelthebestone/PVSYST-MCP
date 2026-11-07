@@ -30,8 +30,8 @@ pub(super) const FUNCIONES: &[Funcion] = &[
         "Factor de transposición",
     )
     .requiere("inicio.herramientas")
-    .abre("TArrayCharactForm")
-    .nota("en vivo abre la misma ventana que comportamiento_electrico; TTranspositionForm no se ha visto abrir"),
+    .abre("TTranspositionForm")
+    .nota("measured on PVsyst 8.1.8: opens its own form, not the electrical behaviour one"),
     Funcion::boton(
         "herramientas.calculo_mensual_meteo",
         HERRAMIENTAS,

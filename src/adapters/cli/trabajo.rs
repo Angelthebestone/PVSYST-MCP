@@ -6,7 +6,7 @@
 use super::captura::{crear_sink, texto_sink};
 use super::proceso::{run_inner, CliOutput, ParametrosEjecucion};
 use crate::config::Paths;
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::progreso::SeguimientoTarea;
 pub(crate) use crate::state::Trabajo;
 use std::sync::Arc;
@@ -30,15 +30,18 @@ pub(crate) fn run_en_segundo_plano(
 ) -> Result<String> {
     let id = paths.estado.siguiente_trabajo();
     let sink = crear_sink();
-    if let Ok(mut mapa) = paths.estado.trabajos.lock() {
-        mapa.insert(
+    paths
+        .estado
+        .trabajos
+        .lock()
+        .map_err(|_| Error::Cli("Mutex de trabajos envenenado: no se lanzó el trabajo".into()))?
+        .insert(
             id.clone(),
             Trabajo {
                 sink: Arc::clone(&sink),
                 resultado: None,
             },
         );
-    }
     let paths_clon = paths.clone();
     let args_clon = cli_args.to_vec();
     let id_hilo = id.clone();
@@ -50,7 +53,7 @@ pub(crate) fn run_en_segundo_plano(
             timeout,
             seguimiento: &seguimiento,
         };
-        let resultado = run_inner(&params, &sink);
+        let resultado = sin_panico(|| run_inner(&params, &sink));
         if let Ok(mut mapa) = paths_clon.estado.trabajos.lock() {
             if let Some(t) = mapa.get_mut(&id_hilo) {
                 t.resultado = Some(resultado);
@@ -58,6 +61,16 @@ pub(crate) fn run_en_segundo_plano(
         }
     });
     Ok(id)
+}
+
+/// Runs a job body so that a panic becomes an error result: otherwise the job would
+/// never record an outcome and `estado_trabajo` would answer "ejecutando" forever.
+pub(crate) fn sin_panico(trabajo: impl FnOnce() -> Result<CliOutput>) -> Result<CliOutput> {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(trabajo)).unwrap_or_else(|_| {
+        Err(Error::Cli(
+            "El hilo del trabajo terminó con pánico antes de registrar su resultado".into(),
+        ))
+    })
 }
 
 /// Consulta el estado actual del trabajo `id`, o `None` si no existe en memoria.

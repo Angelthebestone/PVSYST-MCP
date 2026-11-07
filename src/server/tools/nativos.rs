@@ -8,10 +8,15 @@ use serde_json::Value;
 
 pub(crate) const TOOL_PVSYST_CLI: Herramienta = Herramienta {
     nombre: "pvsyst_cli",
-    descripcion:
-        "Passthrough a cualquier comando de PVsystCLI. / EN: Passthrough to any PVsystCLI command.",
+    descripcion: crate::idioma::Texto {
+        es: "Passthrough a cualquier comando de PVsystCLI. Los argumentos van en 'opciones'; cualquier otra clave se lista en ignorados y no se pasa.",
+        en: "Passthrough to any PVsystCLI command. Its arguments go in 'opciones'; any other key is listed in ignorados and not passed.",
+    },
     anotaciones: Anotaciones {
-        titulo: "PVsystCLI",
+        titulo: crate::idioma::Texto {
+            es: "PVsystCLI",
+            en: "PVsystCLI",
+        },
         es_solo_lectura: false,
         es_destructiva: true,
         es_idempotente: false,
@@ -26,6 +31,7 @@ pub(crate) const TOOL_PVSYST_CLI: Herramienta = Herramienta {
     requeridos: &["comando"],
     discriminador: None,
     requeridos_por_accion: &[],
+    consumidos_por_accion: &[],
     sinonimos: SINONIMOS_PVSYST_CLI,
     ejecutar: Ejecutor::Simple(ejecutar_cli),
 };
@@ -41,9 +47,9 @@ const SINONIMOS_PVSYST_CLI: Sinonimos = Sinonimos {
 
 pub(crate) const TOOL_GUI_OBSERVAR: Herramienta = Herramienta {
     nombre: "gui_observar",
-    descripcion: "Observa la GUI de PVsyst: ventanas, controles, texto, captura PNG, formularios por OCR, vista de agente (campos con clave estable, sin OCR), menus y arbol UIA. / EN: Observes the PVsyst GUI: windows, controls, text, PNG capture, OCR forms, agent view (fields by stable key, no OCR), menus and UIA tree.",
+    descripcion: crate::idioma::Texto { es: "Observa la GUI de PVsyst: ventanas, controles, texto, captura PNG, formularios por OCR, vista de agente (campos con clave estable, sin OCR), menus y arbol UIA.", en: "Observes the PVsyst GUI: windows, controls, text, PNG capture, OCR forms, agent view (fields by stable key, no OCR), menus and UIA tree." },
     anotaciones: Anotaciones {
-        titulo: "Observar GUI / Observe GUI",
+        titulo: crate::idioma::Texto { es: "Observar GUI", en: "Observe GUI" },
         es_solo_lectura: true,
         es_destructiva: false,
         es_idempotente: true,
@@ -89,6 +95,7 @@ pub(crate) const TOOL_GUI_OBSERVAR: Herramienta = Herramienta {
         ],
     }),
     requeridos_por_accion: &[],
+    consumidos_por_accion: &[],
     sinonimos: SINONIMOS_GUI_OBSERVAR,
     ejecutar: Ejecutor::Simple(ejecutar_observar),
 };
@@ -120,9 +127,9 @@ const SINONIMOS_GUI_OBSERVAR: Sinonimos = Sinonimos {
 
 pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
     nombre: "gui_actuar",
-    descripcion: "Actua sobre la GUI de PVsyst: clic (tambien por texto visible), escribir, seleccionar, pestana, teclas, fila de una lista o arbol, menus por posicion, cerrar, lanzar, reiniciar, esperas, rellenar un formulario por claves y validar un pedido de escena 3D. / EN: Acts on the PVsyst GUI: click (also by on-screen text), type, select, tab page, keys, list or tree row, menus by position, close, launch, restart, waits, fill a form by keys and validate a 3D scene request.",
+    descripcion: crate::idioma::Texto { es: "Actua sobre la GUI de PVsyst: clic, clic_texto (texto visible, por OCR), escribir, seleccionar, pestana, teclas, fila de una lista o arbol con geometria medida, menus por posicion, cerrar, lanzar, reiniciar, esperar a que aparezca una ventana (no es una pausa), rellenar un formulario por claves y validar, importar (mallas) o crear una escena 3D en el editor.", en: "Acts on the PVsyst GUI: click, clic_texto (on-screen text, by OCR), type, select, tab page, keys, a row of a list or tree with measured geometry, menus by position, close, launch, restart, wait for a window to appear (not a sleep), fill a form by keys and validate, import (meshes) or build a 3D scene in the editor." },
     anotaciones: Anotaciones {
-        titulo: "Actuar en GUI / Act on GUI",
+        titulo: crate::idioma::Texto { es: "Actuar en GUI", en: "Act on GUI" },
         es_solo_lectura: false,
         es_destructiva: true,
         es_idempotente: false,
@@ -159,12 +166,15 @@ pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
         ("etiqueta", TipoDato::String),
         ("menu", TipoDato::Integer),
         ("item", TipoDato::Integer),
+        ("subitem", TipoDato::Integer),
         ("dx", TipoDato::Integer),
         ("dy", TipoDato::Integer),
         ("entidad", TipoDato::String),
         ("valores", TipoDato::Object),
         ("simular", TipoDato::Boolean),
         ("escena", TipoDato::String),
+        ("unidades", TipoDato::String),
+        ("archivo", TipoDato::String),
         ("objetos", TipoDato::Array),
     ],
     requeridos: &[],
@@ -186,7 +196,10 @@ pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
         ("clic_texto", &["ventana", "texto"]),
         ("secuencia", &["pasos"]),
         ("escena", &["escena", "objetos"]),
+        ("escena_leer", &["escena"]),
+        ("escena_importar", &["archivo", "escena"]),
     ],
+    consumidos_por_accion: &[],
     sinonimos: SINONIMOS_GUI_ACTUAR,
     ejecutar: Ejecutor::Simple(ejecutar_actuar),
 };

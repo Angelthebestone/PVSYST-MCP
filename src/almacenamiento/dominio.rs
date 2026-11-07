@@ -4,6 +4,7 @@
 use crate::args::{missing, opt_f64, opt_u32};
 use crate::error::{Error, Result};
 use crate::format::edit::EdicionObjeto;
+use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Value};
 
 pub(crate) const BATERIA_DEFECTO: &str = "Generic_LI_Module_180Ah.BTR";
@@ -102,6 +103,19 @@ pub(crate) struct ParametrosAlmacenamiento {
     p_max_carga_kw: f64,
     p_max_descarga_kw: f64,
     soc_inicial: f64,
+    /// Whether the caller gave the bank size, or these are this MCP's defaults.
+    banco_dimensionado_por_el_llamador: bool,
+}
+
+/// What the default bank size is and what it is not.
+const BANCO_POR_DEFECTO: Texto = Texto {
+    es: "NBattSerie y NBattParall son los valores por defecto del MCP ({n_serie}×{n_paralelo}): no se calculan a partir de la carga ni de la generación. Pásalos para dimensionar el banco.",
+    en: "NBattSerie and NBattParall are this MCP's defaults ({n_serie}×{n_paralelo}): they are not derived from the load or the generation. Pass them to size the bank.",
+};
+
+/// Validates the action's arguments without touching any file.
+pub(crate) fn validar_parametros(args: &Value) -> Result<()> {
+    ParametrosAlmacenamiento::nuevo(EntradaAlmacenamiento::de_args(args)?).map(|_| ())
 }
 
 impl ParametrosAlmacenamiento {
@@ -115,6 +129,8 @@ impl ParametrosAlmacenamiento {
             .bateria
             .unwrap_or_else(|| BATERIA_DEFECTO.to_string());
         validar_bateria(&bateria)?;
+        let banco_dimensionado_por_el_llamador =
+            entrada.n_serie.is_some() && entrada.n_paralelo.is_some();
         let n_serie = entrada.n_serie.unwrap_or(N_SERIE_DEFECTO);
         let n_paralelo = entrada.n_paralelo.unwrap_or(N_PARALELO_DEFECTO);
         if n_serie == 0 || n_paralelo == 0 {
@@ -145,6 +161,7 @@ impl ParametrosAlmacenamiento {
             p_max_carga_kw,
             p_max_descarga_kw,
             soc_inicial,
+            banco_dimensionado_por_el_llamador,
         })
     }
 
@@ -166,6 +183,35 @@ impl ParametrosAlmacenamiento {
             "p_max_descarga_kw": self.p_max_descarga_kw,
             "soc_inicial": self.soc_inicial,
         })
+    }
+
+    /// Where the bank size came from, so the answer never implies a calculation
+    /// that did not happen.
+    pub(crate) fn criterio_dimensionado(&self) -> Value {
+        let origen = if self.banco_dimensionado_por_el_llamador {
+            "parametros"
+        } else {
+            "valores_por_defecto"
+        };
+        let mut criterio = json!({
+            "origen": origen,
+            "n_serie": self.n_serie,
+            "n_paralelo": self.n_paralelo,
+        });
+        if self.banco_dimensionado_por_el_llamador {
+            return criterio;
+        }
+        let nota = BANCO_POR_DEFECTO.texto_con(
+            Idioma::de_entorno(),
+            &[
+                ("n_serie", &self.n_serie.to_string()),
+                ("n_paralelo", &self.n_paralelo.to_string()),
+            ],
+        );
+        if let Some(obj) = criterio.as_object_mut() {
+            obj.insert("nota".into(), json!(nota));
+        }
+        criterio
     }
 
     /// Object editions for `pvSystem` and `pvGridStorage`.

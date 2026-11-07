@@ -7,7 +7,9 @@ use super::espera::{esperar_nuevas, Resultado, SolicitudEspera};
 use crate::adapters::gui::acciones::clic_por_mensajes;
 use crate::adapters::gui::conduccion::Formulario;
 use crate::adapters::gui::ffi::{self, Hwnd, WM_COMMAND};
-use crate::adapters::gui::menu_por_posicion::{contar_menus, id_en_posicion, Posicion};
+use crate::adapters::gui::menu_por_posicion::{
+    contar_menus, id_en_posicion, id_en_submenu, Posicion,
+};
 use crate::adapters::gui::modal;
 use crate::adapters::gui::resumen::resumen_de_ventana;
 use crate::adapters::gui::ventanas::{
@@ -73,7 +75,11 @@ fn abrir_funcion(args: &Value, funcion: &Funcion) -> Result<Value> {
         )?,
     };
     let efecto_json = funcion.efecto.nombre();
-    Ok(json!({
+    let ausente = match funcion.efecto {
+        Efecto::Cierra => None,
+        _ => visto.clase_ausente(funcion.abre),
+    };
+    let mut respuesta = json!({
         "funcion": funcion.clave,
         "etiqueta": funcion.etiqueta,
         "efecto": efecto_json,
@@ -81,7 +87,17 @@ fn abrir_funcion(args: &Value, funcion: &Funcion) -> Result<Value> {
         "ya_abiertas": visto.ya_abiertas_json(),
         "nota": funcion.nota,
         "resumen": visto.primera_nueva().map(resumen_de_ventana),
-    }))
+    });
+    if let (Some(clase), Some(o)) = (ausente, respuesta.as_object_mut()) {
+        o.insert("completo".into(), json!(false));
+        o.insert(
+            "error".into(),
+            json!(format!(
+                "PVsyst no abrió la ventana esperada ({clase}) en el plazo de espera"
+            )),
+        );
+    }
+    Ok(respuesta)
 }
 
 fn anfitrion_de(args: &Value, funcion: &Funcion) -> Result<Hwnd> {
@@ -124,7 +140,7 @@ pub(crate) fn menu(args: &Value) -> Result<Value> {
 /// would run another command: a request typed by hand is checked against the
 /// real bar. Catalogue entries are fixed data, verified live, and skip this.
 fn exigir_menu_en_la_barra(anfitrion: Hwnd, pedido: PedidoMenu) -> Result<()> {
-    let PedidoMenu::Posicion { menu, .. } = pedido else {
+    let (PedidoMenu::Posicion { menu, .. } | PedidoMenu::Submenu { menu, .. }) = pedido else {
         return Ok(());
     };
     exigir_anfitrion_habilitado(anfitrion)?;
@@ -145,6 +161,10 @@ fn id_de_pedido(anfitrion: Hwnd, pedido: PedidoMenu) -> Result<u16> {
         PedidoMenu::Posicion { menu, item } => {
             exigir_anfitrion_habilitado(anfitrion)?;
             id_en_posicion(anfitrion, Posicion { menu, item })
+        }
+        PedidoMenu::Submenu { menu, item, sub } => {
+            exigir_anfitrion_habilitado(anfitrion)?;
+            id_en_submenu(anfitrion, Posicion { menu, item }, sub)
         }
     }
 }
@@ -189,7 +209,7 @@ fn visibles(args: &Value) -> Result<Vec<Hwnd>> {
 /// posted to that form still runs, and PVsyst raises an internal exception
 /// that forces a restart, so commands are refused while the host is disabled.
 fn exigir_anfitrion_habilitado(anfitrion: Hwnd) -> Result<()> {
-    modal::exigir_habilitada(anfitrion, "lanzar comandos de menú")
+    modal::exigir_habilitada(anfitrion, "sending menu commands")
 }
 
 fn enviar_comando(anfitrion: Hwnd, id: u16) -> Result<()> {

@@ -1,12 +1,12 @@
 //! GDI screen capture workflow, image cropping and PNG file writing.
 
-use super::base64::base64;
 use super::ffi::{self, Hwnd, GA_ROOT};
 use super::gdi::capture_pixels;
 use super::png::png_rgb;
 use super::ventanas::{class_of, hwnd_de, json_identidad_ventana, rect_of, visible};
 use crate::args::flag;
 use crate::error::{Error, Result};
+use crate::workspace::codificar_base64 as base64;
 use crate::workspace::{resolver_ruta, Alcance};
 use serde_json::{json, Value};
 use std::path::PathBuf;

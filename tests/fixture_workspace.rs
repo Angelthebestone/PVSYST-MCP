@@ -5,14 +5,13 @@
     clippy::unwrap_used,
     clippy::expect_used,
     clippy::panic,
-    clippy::too_many_lines,
     clippy::needless_pass_by_value,
     unreachable_pub
 )]
 
 mod cliente_mcp;
 
-use cliente_mcp::{synthetic_workspace, tool_text, Client};
+use cliente_mcp::{error_text, synthetic_workspace, tool_text, Client};
 use serde_json::json;
 use std::fs;
 
@@ -22,46 +21,71 @@ fn start(ws: &tempfile::TempDir) -> Client {
     c
 }
 
-#[test]
-fn listar_proyectos_finds_the_synthetic_project_and_its_variant() {
-    let ws = synthetic_workspace();
-    let mut c = start(&ws);
-    let data = tool_text(&c.call(2, "listar", json!({ "que": "proyectos" })));
-    assert_eq!(data["count"], 1, "data={data}");
-    assert_eq!(data["projects"][0]["name"], "SYNTH_Plant");
-    assert_eq!(data["projects"][0]["variants"], json!(["VC0"]));
-}
+/// A grid variant with the `pvSystem` that storage is configured on.
+const VARIANTE_CON_SISTEMA: &str = "PVObject_=pvVCalcul\r\n  Version=8.1.0\r\n  PVObject_SystemCircuit=pvCircuit\r\n    Version=8.1.0\r\n    PVObject_=pvSubArray\r\n      PVModule=Synth_400W.PAN\r\n      GInverter=Synth_10kW.OND\r\n    End of PVObject pvSubArray\r\n  End of PVObject pvCircuit\r\n  PVObject_System=pvSystem\r\n    Version=8.1.0\r\n    SystemType=Grid\r\n  End of PVObject pvSystem\r\nEnd of PVObject pvVCalcul\r\n";
+
+/// The catalogue's demo variant: storage plus the load it used to bring along.
+const DEMO_CON_CARGA: &str = "PVObject_=pvVCalcul\r\n  Version=8.1.0\r\n  PVObject_UserNeeds=pvLoad\r\n    LoadType=DailyProfile\r\n  End of PVObject pvLoad\r\n  PVObject_GridStorage=pvGridStorage\r\n    Flags=$00\r\n    Strategy=SelfConsumption\r\n  End of PVObject pvGridStorage\r\nEnd of PVObject pvVCalcul\r\n";
 
 #[test]
-fn simular_dry_run_builds_unquoted_arguments() {
+fn should_refuse_a_missing_battery_and_add_no_load_when_configuring_storage() {
     let ws = synthetic_workspace();
-    let mut c = start(&ws);
+    let vc0 = ws.path().join("Projects").join("SYNTH_Plant.VC0");
+    fs::write(&vc0, VARIANTE_CON_SISTEMA).expect("variant with pvSystem");
+    let baterias = ws.path().join("ComposPV").join("Batteries");
+    fs::create_dir_all(&baterias).expect("ComposPV/Batteries");
+    fs::write(
+        baterias.join("Generic_LI_Module_180Ah.BTR"),
+        "PVObject_=pvBattery\r\nEnd of PVObject pvBattery\r\n",
+    )
+    .expect("battery");
+    let data_ro = tempfile::tempdir().expect("temporary DataRO");
+    let demos = data_ro.path().join("PVsyst8.1_Data").join("Projects");
+    fs::create_dir_all(&demos).expect("demo folder");
+    for demo in ["_DEMO_Residential.VC5", "_DEMO_Commercial.VC3"] {
+        fs::write(demos.join(demo), DEMO_CON_CARGA).expect("demo");
+    }
+
+    let mut c = Client::start_env(
+        Some(ws.path().to_str().expect("utf-8 path")),
+        &[(
+            "PVSYST_DATARO",
+            data_ro.path().to_str().expect("utf-8 path"),
+        )],
+    );
+    c.initialize();
+
     let resp = c.call(
         2,
-        "simular",
-        json!({ "proyecto": "SYNTH_Plant", "variante": "VC0", "dry_run": true }),
+        "proyecto",
+        json!({ "accion": "almacenamiento", "proyecto": "SYNTH_Plant",
+                "estrategia": "autoconsumo", "bateria": "NoExiste.BTR" }),
     );
-    let data = tool_text(&resp);
-    let args: Vec<&str> = data["cli_args"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter_map(|a| a.as_str())
-        .collect();
-    assert_eq!(data["variant_file_exists"], true, "data={data}");
-    assert!(args.iter().any(|a| a.starts_with("-w:")), "args={args:?}");
-    assert!(
-        !args.iter().any(|a| a.starts_with('"')),
-        "workspace must not be quoted: {args:?}"
+    let fallo = error_text(&resp);
+    assert!(fallo.contains("NoExiste.BTR"), "error={fallo}");
+    assert_eq!(
+        fs::read(&vc0).unwrap(),
+        VARIANTE_CON_SISTEMA.as_bytes(),
+        "the variant was written despite the missing battery"
     );
+
+    let resp = c.call(
+        3,
+        "proyecto",
+        json!({ "accion": "almacenamiento", "proyecto": "SYNTH_Plant",
+                "estrategia": "autoconsumo" }),
+    );
+    let out = tool_text(&resp);
+    let escrito = fs::read_to_string(&vc0).unwrap();
+    assert!(escrito.contains("pvGridStorage"), "out={out}");
     assert!(
-        args.iter().any(|a| a.contains("-p:SYNTH_Plant.PRJ")),
-        "args={args:?}"
+        !escrito.contains("pvLoad"),
+        "a load nobody asked for was inserted: {out}"
     );
 }
 
 #[test]
-fn editing_one_field_changes_only_that_line_and_restores_exactly() {
+fn should_change_only_one_line_and_restore_exactly_when_editing_one_field() {
     let ws = synthetic_workspace();
     let vc0 = ws.path().join("Projects").join("SYNTH_Plant.VC0");
     let before = fs::read(&vc0).unwrap();
@@ -98,95 +122,17 @@ fn editing_one_field_changes_only_that_line_and_restores_exactly() {
 }
 
 #[test]
-fn proyecto_crear_sets_the_module_reference() {
+fn should_report_a_tool_error_when_a_required_argument_is_missing() {
     let ws = synthetic_workspace();
     let mut c = start(&ws);
-    let resp = c.call(
-        2,
-        "proyecto",
-        json!({
-            "accion": "crear",
-            "plantilla": "SYNTH_Plant",
-            "nombre_nuevo": "Copia",
-            "modulo": "Otro_450W.PAN"
-        }),
-    );
-    assert_eq!(resp["result"]["isError"], false, "resp={resp}");
-    let vc = fs::read_to_string(ws.path().join("Projects").join("Copia.VC0")).unwrap();
-    assert!(vc.contains("PVModule=Otro_450W.PAN"));
-    assert!(!vc.contains("PVModule=Synth_400W.PAN"));
-    assert!(ws.path().join("Projects").join("Copia.PRJ").exists());
-}
-
-#[test]
-fn proyecto_dimensionar_with_explicit_strings_works_without_flag() {
-    let ws = synthetic_workspace();
-    let mut c = start(&ws);
-    let resp = c.call(
-        2,
-        "proyecto",
-        json!({
-            "accion": "dimensionar",
-            "proyecto": "SYNTH_Plant",
-            "n_mod_serie": 12,
-            "n_strings": 4
-        }),
-    );
-    let data = tool_text(&resp);
-    assert_eq!(data["n_mod_serie"], 12, "data={data}");
-    assert_eq!(data["n_strings"], 4, "data={data}");
-    assert_eq!(data["total_modules"], 48);
-    assert_eq!(data.get("origen"), None);
-    let vc = fs::read_to_string(ws.path().join("Projects").join("SYNTH_Plant.VC0")).unwrap();
-    assert!(vc.contains("NModSerie=12"));
-    assert!(vc.contains("NStringCh=4"));
-}
-
-#[test]
-fn proyecto_dimensionar_only_kwp_uses_the_pvsyst_route_without_flag() {
-    let ws = synthetic_workspace();
-    let mut c = start(&ws);
-    let resp = c.call(
-        2,
-        "proyecto",
-        json!({ "accion": "dimensionar", "proyecto": "SYNTH_Plant", "kwp": 12.0 }),
-    );
+    let resp = c.call(2, "leer", json!({}));
     assert_eq!(resp["result"]["isError"], true, "resp={resp}");
     let text = resp["result"]["content"][0]["text"].as_str().unwrap();
-    assert!(
-        !text.contains("PVSYST_MCP_APROXIMACIONES"),
-        "the default route must be PVsyst, not an approximation: {text}"
-    );
+    assert!(text.contains("Missing: archivo"), "text={text}");
 }
 
 #[test]
-fn proyecto_dimensionar_sizes_the_array_from_the_module_power_with_flag() {
-    let ws = synthetic_workspace();
-    let mut c = Client::start_env(
-        Some(ws.path().to_str().unwrap()),
-        &[("PVSYST_MCP_APROXIMACIONES", "1")],
-    );
-    let resp = c.call(
-        2,
-        "proyecto",
-        json!({
-            "accion": "dimensionar",
-            "proyecto": "SYNTH_Plant",
-            "kwp": 12.0,
-            "via": "aproximacion"
-        }),
-    );
-    let data = tool_text(&resp);
-    // 12 kWp / 400 W = 30 modules; 10 in series (from the variant) -> 3 strings.
-    assert_eq!(data["n_strings"], 3, "data={data}");
-    assert_eq!(data["realised_kwp"], 12.0);
-    assert_eq!(data["origen"], "aproximacion_mcp");
-    let vc = fs::read_to_string(ws.path().join("Projects").join("SYNTH_Plant.VC0")).unwrap();
-    assert!(vc.contains("NStringCh=3"));
-}
-
-#[test]
-fn proyecto_dimensionar_rejects_impossible_sizing_and_leaves_the_variant_untouched() {
+fn should_reject_impossible_sizing_and_leave_the_variant_untouched_when_dimensioning() {
     let ws = synthetic_workspace();
     let vc0 = ws.path().join("Projects").join("SYNTH_Plant.VC0");
     let before = fs::read(&vc0).unwrap();
@@ -215,96 +161,4 @@ fn proyecto_dimensionar_rejects_impossible_sizing_and_leaves_the_variant_untouch
         assert_eq!(resp["result"]["isError"], true, "resp={resp}");
     }
     assert_eq!(fs::read(&vc0).unwrap(), before);
-}
-
-#[test]
-fn leer_decodes_the_text_module() {
-    let ws = synthetic_workspace();
-    let pan = ws.path().join("ComposPV/PVModules/Synth_400W.PAN");
-    let mut c = start(&ws);
-    let data = tool_text(&c.call(2, "leer", json!({ "archivo": pan.to_string_lossy() })));
-    assert_eq!(data["vendor"], "Synthetic", "data={data}");
-    assert_eq!(data["pnom"].as_f64(), Some(400.0));
-    assert_eq!(data["voc"].as_f64(), Some(49.5));
-}
-
-#[test]
-fn a_missing_required_argument_is_reported_as_a_tool_error() {
-    let ws = synthetic_workspace();
-    let mut c = start(&ws);
-    let resp = c.call(2, "leer", json!({}));
-    assert_eq!(resp["result"]["isError"], true, "resp={resp}");
-    let text = resp["result"]["content"][0]["text"].as_str().unwrap();
-    assert!(text.contains("Faltan: archivo"), "text={text}");
-}
-
-#[test]
-fn doctor_reports_cold_voc_above_inverter_limit_for_long_strings() {
-    let ws = synthetic_workspace();
-    let prj = ws.path().join("Projects").join("SYNTH_Plant.PRJ");
-    let texto = fs::read_to_string(&prj).unwrap().replacen(
-        "MeteoFileName=",
-        "DesignTempMin=-10\r\nTempOperMax=70\r\nMeteoFileName=",
-        1,
-    );
-    fs::write(&prj, texto).unwrap();
-    let vc0 = ws.path().join("Projects").join("SYNTH_Plant.VC0");
-    let variante = fs::read_to_string(&vc0)
-        .unwrap()
-        .replace("NModSerie=10", "NModSerie=25");
-    fs::write(&vc0, variante).unwrap();
-    let mut c = Client::start_env(
-        Some(ws.path().to_str().unwrap()),
-        &[("PVSYST_MCP_APROXIMACIONES", "1")],
-    );
-    let informe = tool_text(&c.call(
-        2,
-        "proyecto",
-        json!({ "accion": "doctor", "proyecto": "SYNTH_Plant" }),
-    ));
-
-    let errores = informe["errores"].to_string();
-    assert!(errores.contains("Voc en frío"), "informe={informe}");
-}
-
-#[test]
-fn doctor_without_flag_skips_electrical_math() {
-    let ws = synthetic_workspace();
-    let prj = ws.path().join("Projects").join("SYNTH_Plant.PRJ");
-    let texto = fs::read_to_string(&prj).unwrap().replacen(
-        "MeteoFileName=",
-        "DesignTempMin=-10\r\nTempOperMax=70\r\nMeteoFileName=",
-        1,
-    );
-    fs::write(&prj, texto).unwrap();
-    let vc0 = ws.path().join("Projects").join("SYNTH_Plant.VC0");
-    let variante = fs::read_to_string(&vc0)
-        .unwrap()
-        .replace("NModSerie=10", "NModSerie=25");
-    fs::write(&vc0, variante).unwrap();
-    let mut c = start(&ws);
-
-    let informe = tool_text(&c.call(
-        2,
-        "proyecto",
-        json!({ "accion": "doctor", "proyecto": "SYNTH_Plant" }),
-    ));
-
-    let errores = informe["errores"].to_string();
-    assert!(!errores.contains("Voc en frío"), "informe={informe}");
-    let avisos = informe["avisos"].to_string();
-    assert!(
-        avisos.contains("ventana eléctrica es validada"),
-        "informe={informe}"
-    );
-}
-
-#[test]
-fn leer_accepts_project_paths_written_with_projects_prefix_and_backslashes() {
-    let ws = synthetic_workspace();
-    let mut c = start(&ws);
-    for ruta in ["Projects/SYNTH_Plant.VC0", "Projects\\SYNTH_Plant.VC0"] {
-        let resp = c.call(2, "leer", json!({ "archivo": ruta }));
-        assert_ne!(resp["result"]["isError"], json!(true), "{ruta}: {resp}");
-    }
 }

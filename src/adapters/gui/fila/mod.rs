@@ -132,7 +132,7 @@ fn exigir_escritorio_medido() -> Result<()> {
     exigir_escritorio()?;
     if escritorio::es_aislado() {
         return Err(Error::Gui(
-            "fila usa un clic físico, que no está medido en el escritorio aislado: usa accion:clic_texto o PVSYST_MCP_ESCRITORIO sin aislar".into(),
+            "fila uses a physical click, which is not measured on the isolated desktop: use accion:clic_texto or PVSYST_MCP_ESCRITORIO without isolation".into(),
         ));
     }
     Ok(())
@@ -150,9 +150,55 @@ fn geometria_del_control(h: Hwnd) -> Result<&'static Geometria> {
     registro::geometria_de(&control).map_err(ErrorFila::a_error)
 }
 
+/// The control the request points at: `ventana` itself, or the only visible
+/// child of class `clase` when the caller names the host form. A list or tree
+/// has no window per row, so naming its class is how the caller picks it.
+fn control_de(args: &Value) -> Result<Hwnd> {
+    let h = hwnd_de(args, "ventana")?;
+    let Some(clase) = args.get("clase").and_then(Value::as_str) else {
+        return Ok(h);
+    };
+    if class_of(h) == clase {
+        return Ok(h);
+    }
+    let hijos: Vec<(Hwnd, String)> = ffi::enum_children(h)
+        .into_iter()
+        .filter(|c| visible(*c))
+        .map(|c| (c, class_of(c)))
+        .collect();
+    unico_de_clase(&hijos, clase)
+}
+
+/// Exactly one visible child of `clase`; several are ambiguous and none names
+/// the classes that are there, so the caller can correct the request.
+fn unico_de_clase(hijos: &[(Hwnd, String)], clase: &str) -> Result<Hwnd> {
+    let mut encontrados = hijos.iter().filter(|(_, c)| c == clase);
+    match (encontrados.next(), encontrados.next()) {
+        (Some((h, _)), None) => Ok(*h),
+        (None, _) => Err(Error::Invalid(format!(
+            "No visible child of class '{clase}' in that window. Visible classes: {}",
+            clases_visibles(hijos)
+        ))),
+        (Some(_), Some(_)) => Err(Error::Invalid(format!(
+            "More than one '{clase}' in that window: pass the control's hwnd as 'ventana'"
+        ))),
+    }
+}
+
+fn clases_visibles(hijos: &[(Hwnd, String)]) -> String {
+    let mut clases: Vec<&str> = hijos.iter().map(|(_, c)| c.as_str()).collect();
+    clases.sort_unstable();
+    clases.dedup();
+    if clases.is_empty() {
+        "none".to_string()
+    } else {
+        clases.join(", ")
+    }
+}
+
 pub(crate) fn fila(args: &Value) -> Result<Value> {
     exigir_escritorio_medido()?;
-    let h = hwnd_de(args, "ventana")?;
+    let h = control_de(args)?;
     let indice = indice_de(args)?;
     modal::exigir_habilitada(h, modal::PARA_ACTUAR)?;
     let geom = geometria_del_control(h)?;
@@ -178,3 +224,7 @@ pub(crate) fn fila(args: &Value) -> Result<Value> {
         "verificado": "banda_resaltada",
     }))
 }
+
+#[cfg(test)]
+#[path = "../../../../tests/unit/adapters/gui/fila/seleccion.rs"]
+mod tests;

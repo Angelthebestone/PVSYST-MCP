@@ -11,7 +11,6 @@ use std::sync::{Arc, Mutex};
 pub(crate) struct CapturaFlujo {
     pub(crate) bytes: Vec<u8>,
     pub(crate) truncado: bool,
-    pub(crate) error_io: Option<String>,
 }
 
 /// Stream capture shared between the reader thread and observers.

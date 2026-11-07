@@ -2,7 +2,7 @@
 
 use super::parametros::DisenoParametros;
 use super::pasos::{EstadoSimulacion, KpisSalida, PasoSimulacionSalida};
-use super::proyecto::sustituir_sitio;
+use super::sitio_del_proyecto::{sustituir_sitio, SitioDelDiseno};
 use crate::args::{opt_str, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 
 const SIMULATION_LOG_LEVEL: u32 = 3;
 /// Weather file named in a result CSV banner (`Weather data;<file>;...`).
-pub(crate) fn meteo_de_metadatos(texto: &str) -> Option<String> {
+pub(super) fn meteo_de_metadatos(texto: &str) -> Option<String> {
     texto.lines().find_map(|linea| {
         let mut campos = linea.split(';');
         if campos.next()?.trim() != "Weather data" {
@@ -113,7 +113,12 @@ pub(crate) fn leer_kpis(paths: &Paths, args: &Value) -> Result<Value> {
         out.insert("kwp".into(), json!(k));
     }
 
-    Ok(Value::Object(out))
+    let mut leidos = Value::Object(out);
+    // A saved result can be older than the configuration it is read with: its own PR
+    // is the only figure that says whether it can still be used.
+    let pr = leidos.get("pr_pct").and_then(Value::as_f64);
+    crate::simulation::coherencia::anotar(&mut leidos, pr);
+    Ok(leidos)
 }
 
 /// The result CSV named by `archivo`/`output_csv`/`csv`, else the latest one
@@ -141,6 +146,7 @@ type SitioKpisResultado = (
 
 struct ContextoActualizacionSitio<'a> {
     nombre_proyecto: &'a str,
+    variante: &'a str,
     sit_file: &'a str,
     csv_out: &'a str,
     pdf_out: &'a str,
@@ -156,8 +162,11 @@ fn actualizar_sitio_y_kpis(
     if matches!(ctx.estado, EstadoSimulacion::Correcta) {
         let sitio = sustituir_sitio(
             paths,
-            ctx.nombre_proyecto,
-            ctx.sit_file,
+            &SitioDelDiseno {
+                nombre: ctx.nombre_proyecto,
+                variante: ctx.variante,
+                sit_file: ctx.sit_file,
+            },
             Path::new(ctx.csv_out),
         );
         let (s_ok, det) = match sitio {
@@ -180,14 +189,15 @@ pub(crate) fn extraer_kpis(paths: &Paths, csv_path: &str, pdf_path: &str) -> Res
         paths,
         &json!({ "archivo": csv_path, "report_pdf": pdf_path }),
     )?;
+    // `leer_kpis` reads the PDF only: the CSV is the one given, and the kWp is the
+    // design's `kwp_realizado`, not a KPI of the report.
     Ok(KpisSalida {
-        csv: k_val.get("csv").cloned().unwrap_or(json!(csv_path)),
+        csv: json!(csv_path),
         energia_producida_kwh: k_val.get("energia_anual_kwh").and_then(Value::as_f64),
         produccion_especifica_kwh_kwp: k_val
             .get("produccion_especifica_kwh_kwp")
             .and_then(Value::as_f64),
         pr_pct: k_val.get("pr_pct").and_then(Value::as_f64),
-        kwp: k_val.get("kwp").and_then(Value::as_f64),
     })
 }
 
@@ -241,6 +251,7 @@ pub(crate) fn ejecutar_paso_simulacion(
     };
     let ctx_act = ContextoActualizacionSitio {
         nombre_proyecto,
+        variante: &params.variante,
         sit_file,
         csv_out: &csv_out,
         pdf_out: &pdf_out,
@@ -248,6 +259,9 @@ pub(crate) fn ejecutar_paso_simulacion(
     };
     let (ok_sitio, detalle_sitio, kpis, kpis_error) = actualizar_sitio_y_kpis(paths, &ctx_act);
     let avisos_pvsyst = avisos_de_simulacion(&sim);
+    let detalle_error = (!ok)
+        .then(|| super::fallo_simulacion::explicar(&sim, paths.idioma))
+        .flatten();
     Ok(PasoSimulacionSalida {
         sim_info: sim.get("stdout_tail").cloned().unwrap_or(Value::Null),
         avisos_pvsyst,
@@ -258,6 +272,7 @@ pub(crate) fn ejecutar_paso_simulacion(
         sim_ok: ok,
         sitio_proyecto_ok: ok_sitio,
         sitio_proyecto_detalle: detalle_sitio,
+        detalle_error,
     })
 }
 

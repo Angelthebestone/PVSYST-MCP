@@ -48,12 +48,13 @@ impl ResumenRecorrido {
     }
 }
 
-pub(crate) fn mtime_secs(p: &Path) -> u64 {
+/// Modification time in Unix seconds; `None` when the file or its time cannot be read.
+pub(crate) fn mtime_unix(p: &Path) -> Option<u64> {
     fs::metadata(p)
         .ok()
         .and_then(|m| m.modified().ok())
         .and_then(|t| t.duration_since(SystemTime::UNIX_EPOCH).ok())
-        .map_or(0, |d| d.as_secs())
+        .map(|d| d.as_secs())
 }
 
 fn serializar_items(archivos: &[PathBuf], ext: &Option<String>, workspace: &Path) -> Vec<Value> {
@@ -70,7 +71,7 @@ fn serializar_items(archivos: &[PathBuf], ext: &Option<String>, workspace: &Path
             json!({
                 "relative": f.strip_prefix(workspace).unwrap_or(f).to_string_lossy(),
                 "size_bytes": fs::metadata(f).map_or(0, |m| m.len()),
-                "modified_unix": mtime_secs(f),
+                "modified_unix": mtime_unix(f).unwrap_or(0),
             })
         })
         .collect();

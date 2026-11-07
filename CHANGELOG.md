@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Configurable client-facing language** via `PVSYST_MCP_IDIOMA` (`es` or `en`, default `en`; also a
+  user-configurable option of the mcpb bundle). It selects the language of every client-visible
+  string: tool descriptions and titles, schema annotations, recipes (resource and prompts),
+  `pvsyst://` resource names, the server `instructions` of `initialize` and the runtime messages
+  (missing arguments, wrong types, out-of-range values, alias conflicts, unknown tool or resource,
+  licence instructions, workspace rejections and approximation warnings). Protocol identifiers
+  (`accion`/`que` values, argument names, `detalle` values) stay as they are.
 - **`vista` block on every tool answer** (all 15 tools, every `accion`/`que`, errors included):
   `estado` (`ok|parcial|error`), `resumen`, `campos` with stable keys, unit and origin (`pvsyst`, `mcp`,
   `aproximacion_mcp`), `avisos`, `siguiente` as `{tool, argumentos}` that the target tool accepts as
@@ -23,19 +30,143 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   real call. Clients without `structuredContent` get the failure's `vista` as a second text item.
   Contract, size measurements and the tool × action matrix: `docs/vista_agente_salidas.md`.
 
+### Fixed
+- Review of the PR (Haiku review, `docs/REVISION_HAIKU_HALLAZGOS.md`), each finding reproduced first:
+  - **Confinement**: project names that are not plain relative paths (`\Users\x`, `C:x`), RVT templates, `simular`
+    `output_csv`/`report_pdf`, `sitio crear` `weather_data_file`/`cmd_options_file`/`output_sit_file`, horizon and series lookups and
+    DataRO fallbacks stay inside the workspace unless `permitir_fuera_del_workspace`; `sitio` of `proyecto crear`, history ids,
+    insertion roles and written file names (`CONIN$`, `CONOUT$`) are validated; variants are `VCn`/`CMn` everywhere.
+  - **Refused input instead of silent changes**: `extra_options` that redefine a flag the MCP builds (`-w`, `-p`, `-v`, `-ocf`, `-s`,
+    …); batch fields with `;` or line breaks; non-text `opciones` of `pvsyst_cli`, `variables` of RVT and series, `variantes` of
+    `resultados comparar`; a non-numeric `PNomConv`; invalid `offset`/`limite`; repeated series variables; `editar` of a component
+    without `cambios`. `sitio crear` needs its weather file to exist (as `convertir_meteo` already did).
+  - **Partial work is reported**: `rellenar` keeps the fields typed before a failure and adds `campos_que_difieren`, `completo:false`,
+    `errores` and `formulario_error`; `gui_actuar accion:funcion` says when the expected window never opened; PVsyst sizing and horizon
+    import compare what was saved; `crear_desde_ficha` stops before saving a datasheet that was not typed as asked and lists
+    `diferencias_con_la_ficha`; a legacy MEF without readable variables is `completo:false`; a deliverable lists `secciones_omitidas`.
+  - **No data loss on failure paths**: `disenar_sistema` undoes only its own project's files; `proyecto crear` writes the site into the
+    PRJ before the pair is written (and in the call's workspace); `doctor` keeps checking after an unreadable variant; exports of a
+    component or a project need `sobrescribir` to replace a file; `PVsyst.ini` and series files keep bytes outside UTF-8; truncated
+    files are refused; folders are listed without dropping unreadable entries.
+  - **Processes and cache**: PVsystCLI is always killed and reaped on an early exit; reader threads and `tar` stderr no longer block;
+    a background job is recorded before it starts and a panic is its error; default outputs are cached and restored; `-s` enters
+    the cache key; a damaged cache entry or ledger no longer breaks a run or skips the trial confirmation.
+  - Simulation KPIs of `disenar_sistema` no longer carry an always-null `kwp` (the design answer has `kwp_realizado`), and a PAN created
+    by approximation no longer carries an always-empty `ignorados`.
+- Review of the PR (cloud ultrareview), each finding checked against the code first:
+  - A `gui_actuar accion:paso` that asks for no verification (`verificado:false`) is `ok` again; only a scene answer that counts
+    `campos_que_difieren` is partial.
+  - `escena_importar simular:true` answers `simulado:true`, so the contract offers the real call as the next step; `archivo` is made
+    absolute (PVsyst's dialog resolves a relative name against its own folder); on a scene that already has objects PVsyst asks
+    «¿Desea despejar la escena de sombreado actual?» and the answer is «No» (the import adds). Measured live: 66 tables into a scene of 3 → 69.
+  - `escena` refuses an editor that already holds objects (it types positions into rows 0..N); the check exports the scene under a
+    throwaway name and deletes it. An empty scene exports fine (`total_objetos:0`).
+  - A failed step of `escena`, `escena_importar` or the export drops the open dialog («Cancelar», and «No» to «¿mantener
+    modificaciones?») instead of leaving PVsyst behind a modal. Measured: a `unidades` PVsyst does not offer closes `TImportResultForm`.
+  - `rellenar` applies check boxes and options first and reads the form again, so a field they enable can be filled in the same call;
+    after a failure on another tab it returns to tab 0.
+  - `proyecto dimensionar` accepts PVsyst's own rounding of the planned power (12.345 reads back 12.3).
+  - The inverter phase of a datasheet goes through the schema options (`fase_*`), not a click by caption.
+  - The PVsyst install lookup takes major 8 only (the GUI map was measured on 8.1.x); a PVsyst 9 needs `PVSYST_GUI`/`PVSYST_CLI`.
+  - `proyecto dimensionar`, P50 and horizon are refused on the isolated desktop before PVsyst is touched: loading a project and saving its
+    variant now go through menus, which need the keyboard (they used to click the toolbar with an emulated mouse; not measured on
+    the isolated desktop, `tests/aislado.rs` has never run).
+- Review of the PR (code-review), each finding checked against the code first:
+  - `escena_importar`: a failure while opening the dialog or waiting for «Importar resultado» closes whatever it left open (file dialog,
+    PVsyst's error box); an error box ends the wait at once instead of after 120 s. The protected-folder check compares path components of
+    the absolute and the real path (`PROGRA~1`, junctions), not a substring of the text.
+  - `rellenar` never clicks a check box whose state it could not read, and refuses an option asked as `false` before typing anything.
+    A number reads back as `ok` only within half a unit of the last decimal PVsyst shows (12.345 reads 12.3; 100 read as 100.9 is
+    `distinto`); counts are exact. The datasheet flow (`componente crear`) and the project steps fail, listing every field PVsyst did
+    not take, instead of saving or sizing on top of it.
+  - `gui_actuar accion:teclas` on a child control works again on the isolated desktop (`foco:false` if the control did not take the focus).
+  - Scene text files: grouped objects count one by one, a file cut off while PVsyst writes it is refused, and a missing `total_objetos`
+    is not read as an empty editor. `describir_escena` lists at most 1000 colliding pairs (`colisiones_total` counts all).
+  - The install folders of PVsyst are listed once per process, not on every request that needs `DataRO`.
+  - `escena_importar`: if «Importar resultado» does not close after «OK» or «Cancelar» (or the click fails), the form is dropped with
+    «Cancelar» and, failing that, closed, and the error says whether it is gone. `componente crear` retries the focus of a save dialog
+    once and logs when it still is not there. Not measured with PVsyst.
+- **`disenar_sistema` sizing no longer loops over billions of candidates** when a database file carries an absurd voltage (a tiny `Voc`, a
+  huge or non-finite `VAbsMax`): the series search stops at 1000 modules and a non-finite voltage finds no layout.
+- **`http_get` (PVGIS, uncertainty lookups) refuses a body over 64 MiB** and stops reading it instead of buffering whatever the server sends.
+- A `tools/call` that arrives as a notification and fails is logged; a failed rollback of `disenar_sistema` is logged instead of ignored.
+
+### Changed
+- The six `proyecto` actions that edit a variant (storage, pumping, injection limit, losses, economics, tracker) build their answer with one
+  function (`respuesta_de_edicion`); the identical range check of losses and economics lives in `args::rango_opcional`.
+- **`proyecto dimensionar` and the active-variant choice no longer use coordinates.** The System window and the project window are
+  schema entities (`variante.system`, `proyecto.ventana`) and the flow fills them by key with `rellenar`; the coordinate constants and
+  `Formulario::{leer, marcar}` are gone. Measured on PVsyst 8.1.8: 50 kWp gave 28 modules in series × 4 strings, saved as `NModSerie=28`,
+  `NStringCh=4`, `PNomSizing=50.0`.
+- `rellenar` no longer reports an option or a check box as "recalculated" when only its caption was read.
+
+- **The project window's bar clicks are gone**: «Cargar proyecto» and «Guardar la variante activa» run their catalogued menu commands and
+  the project list's first row is chosen with `accion:fila`, instead of clicking fixed offsets of a toolbar. `Formulario::clic_barra`
+  is deleted.
+
 ### Added
-- **`gui_actuar accion:escena`** validates a 3D scene request (`escena`, `objetos`:
-  `paralelepipedo`, `tejado_dos_aguas`, `chimenea`, `arbol`) without PVsyst: types, ranges, the file slot of
-  each dimension and collisions. Ranges are the MCP's, not PVsyst's, and collisions are inferred (anchor not
-  proven). It is validation only (`creado:false`, with a warning that creation in the editor is not
-  implemented): scenes are never written by hand.
+- **`variante.orientation`** (`TOrientationForm`, fixed plane), **`variante.system`** and **`proyecto.ventana`** entities for
+  `que:vista`/`rellenar`, checked against a variant PVsyst 8.1.8 saved (`FieldTilt`, `FieldAzim`, `NModSerie`, `NStringCh`, `NInverter`,
+  `PNomSizing`). New field type `casilla` (`true`/`false`) for the options of a group; an option is cleared by choosing another.
+- **Conditional fields**: `CampoEsquema::si` declares the check box a field depends on (`depende_de` in `que:esquema`); the
+  inverter schema models its check boxes and phase/frequency options (`definir_corriente_ca_nominal`, `fase_trifasica`, ...), and
+  `que:vista` lists the anchor of every unmapped control (`sin_mapear`).
+- **`que:vista` of a window without a schema returns `abierta_con`**: what opened the instance whose title the map recorded, so the 15
+  windows of class `TChoixObjetPVForm` (and the 4 `TDetailedLossesForm`, 3 `TDimensForm`) are told apart by title. `TDateTimePicker`
+  is now read (checked live); `TListBox` is deliberately not (it would list the component databases through the GUI).
+- **Crear menu of the 3D editor catalogued**: `TTrackerFieldForm`, `TShedFieldForm` (shared by tables, domes and sun shields),
+  `TRectFieldForm` and `TPolyFieldForm` open from `escena_3d.crear.*`, with every tab read (map: 89 classes).
+- **`gui_actuar accion:escena_importar`** (`archivo` + `escena`, optional `unidades`, `simular`) imports a 3D mesh (3DS, DAE, PVC, PVC2,
+  PVZ2) into the scene open in the editor with PVsyst's own «Importar una escena 3D»: the menu entry, the Windows file dialog and
+  «Importar resultado». PVsyst converts the mesh; the MCP exports the scene afterwards and returns it. Measured on PVsyst 8.1.8: the
+  sample `SHD_PVC_Fixed_Example.pvc` gives 66 PV tables, 2 orientations and a group, as the dialog announced. `simular:true` reads the
+  file and drops the import with «Cancelar». A path under `Program Files` is refused before PVsyst is touched (PVsyst refuses it).
+- **`gui_actuar accion:menu` takes `subitem`** for an entry of a submenu (`menu` 0, `item` 4, `subitem` 0 = «Importar ▸ Importar una
+  escena 3D»): the id is read from the submenu's own `HMENU`, so the submenu is never entered.
+- **`gui_observar que:esquema entidad:escena_3d.formas`** describes the 27 shapes of the 3D editor (PVsyst type, combo entry, each parameter
+  with label, unit, default, range) before the agent asks for a scene; the unfiltered listing points to it (`otras_entidades`).
+- **`rellenar` fills several tabs** (`en_pagina` in the schema: tab 0 first, the others in order, back on tab 0). The inverter's
+  efficiency fields live on tab 1.
+- **`componente crear_desde_ficha` types by schema keys** instead of coordinates (`components.panels`, `components.inverters`; the
+  datasheet key is the field's `clave_archivo`). On PVsyst 8.1.8 the old coordinate flow did not save: the «Guardar» button of the
+  save dialog only answers when the file-name field has the focus, and the file name must not carry the extension. Checked live: a
+  module (`Technol=mtSiMono`, `NCelS=72`) and an inverter (efficiencies on tab 1, `MonoTri=Tri`) saved. PVsyst recalculates
+  `PSeuil` (0.00) when it builds the efficiency profile.
+- **`rellenar`/`vista` entity `components.batteries`** (battery window, «Datos básicos», 10 fields), checked against a `.BTR` PVsyst
+  saved. The file keeps the internal resistance in ohm and the coulombic efficiency as a fraction, the window shows mOhm and %.
+- **`rellenar`/`vista` entity `components.inverters`** (grid inverter window, «Parámetros principales»): 15 text and number fields with
+  units and file keys checked against an `.OND` PVsyst 8.1.8 saved (the trial licence saves components). Ranges are the MCP's.
+- **`gui_actuar accion:escena_leer`** (`escena`) lists the objects of the scene open in the 3D editor. The table of
+  objects has no controls per row, so PVsyst exports the scene with «Exportar escena (.SHD)» under that name and
+  the file is read back (`origen:pvsyst`); the file stays in `Shadings`.
+- **`gui_actuar accion:escena` builds a 3D scene in PVsyst's editor.** Tried on PVsyst 8.1.8 in PRUEBA, which
+  does save scenes (`Archivo > Exportar escena (.SHD)` wrote the file; the project was not touched). With
+  `simular:true` it only validates the request (`escena`, `objetos`) without PVsyst: types, ranges and
+  collisions. Without it, with the editor open on an empty scene, it creates each object in the elementary-object
+  dialog, sets the position in «Lista y gestión de objetos», has PVsyst save the scene and compares the saved
+  file with the request, field by field (`comparacion` rows `{objeto, clave, pedido, leido, estado}`,
+  `verificado`). The MCP never writes a scene file. Up to 20 objects (the table shows 20 rows) and the scene
+  name must not exist in `Shadings`.
+- **The 27 shapes of the elementary-object dialog** (`oeTree`, `oeHouse`, …) with their PVsyst type name, the
+  label of each parameter and its position in `Params=`, measured live and proven against a scene PVsyst saved
+  (`tests/fixtures/escena_3d/Formas27_8_1_8.SHD`), and again with a different value in every parameter of the 27
+  shapes (0 differences); the 11th value of `turbina_eolica` and `pilon_electrico` is `pala_angulo_deg` and
+  `espesor_malla`. The `cable` dialog has an extra «Objeto delgado» edit, which is left as is. Ranges are
+  the MCP's, not PVsyst's. Breaking change for the
+  unreleased `escena` request: dimensions now use PVsyst's own parameters (`anchura_dx`, `longitud_dy`,
+  `altura_dz`, tree `altura_punto_medio`…) and the `tejado_dos_aguas`/`chimenea`/`arbol` keys of the first draft
+  are gone.
+- **`leer` reads the text form of a scene** (`PVObject_=pvShading`, UTF-8 with byte-order mark) that PVsyst 8.1.8
+  saves; before, such a file failed with «Incoherencia entre extensión y clase raíz». The geometry reports
+  `tipo_pvsyst` (`oeParallelepipede`).
 - **Window coverage:** every one of the 82 window classes of `docs/gui_mapa.json` is registered in one of four
   states and listed in `gui_observar que:esquema` (`cobertura`). `que:vista` on a window without a schema
   returns its fields by control class and 96-DPI position (combo items included) or its buttons.
 
 - **`gui_actuar accion:fila`** (`ventana`, `indice`) selects row N of a list or tree that has no window per
   row, with a physical click on geometry declared per control class (`TVirtualStringTree`: header 21 px, rows
-  19 px; `TListBox`: border 2 px, rows 13 px; px at 96 DPI, scaled by the window DPI). It checks the result
+  19 px; `TListBox`: border 2 px, rows 13 px; the object table of the 3D editor: header 32 px, rows 26 px, measured on
+  PVsyst 8.1.8; px at 96 DPI, scaled by the window DPI). It checks the result
   without OCR: the highlighted band of a capture must be the requested row, and the click must not have opened
   or closed anything. A wrong row, an empty slot, an out-of-range index, a click PVsyst took as "open this item"
   and a control without measured geometry (class and hosting window) are errors. The window must be in front and
@@ -51,6 +182,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   seen to open (`TArrayCharactForm`, not `TTranspositionForm`).
 
 ### Fixed
+- The PVsyst install is no longer pinned to `C:\Program Files\PVsyst8.1.7`: `PVsystCLI.exe` and `PVsyst.exe` are
+  looked up in the newest `PVsyst<n>.x` folder (n ≥ 8) under Program Files, Program Files (x86) and
+  `%LOCALAPPDATA%\Programs` (`PVSYST_CLI`/`PVSYST_GUI` still win). Seen on 8.1.8 (build 49527): `THomeForm`,
+  `TChoixObjetPVForm`, `TPVModuleForm` (16 fields) keep their classes; still TRIAL.
+- `vista.campos` gave a unit to text values whose key ends like one (`frente_a` → `A`); only numbers get a unit.
 - `vista.estado` no longer says `ok` for a PVsystCLI run with `success:false`, a timeout or a `detected_error`
   (error code `fallo_cli`), nor for an answer with `completo:false`, `error` or `errores` (`fallo_parcial`). A run
   that produced its output file only warns about its process error.
@@ -423,6 +559,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   DPI-unaware). Before, on a 150 % screen the MCP saw PVsyst's window at
   801x701 instead of 1202x1052, so coordinate clicks missed. Verified at 150 %
   only; 100 % and 125 % are covered by unit tests of the scaling.
+
+### Added
+
+- **History covers creations.** `escribir_archivo`, `escribir_horizonte`,
+  `escribir_serie`, `editar`, `componente`, `proyecto` and the batch writers take
+  the snapshot before writing, so the first version of a new file is in
+  `historial` (`historial_id` is not null) and `workspace restaurar` can bring it
+  back. The snapshot of a file that did not exist records `existia:false`.
+- **`workspace restaurar` accepts `dry_run`:** it lists what it would restore and
+  writes nothing (`simulado:true`). Before, it restored for real and listed
+  `dry_run` in `ignorados`.
+- **`gui_actuar accion:fila` takes `clase`** and selects rows in the three
+  controls whose geometry was measured (project tree `TVirtualStringTree` of
+  `TProjectLoadForm`, module chooser `TListBox` of `TChoixObjetPVForm`, object
+  table `TVirtualStringTree` of `TShdObjectSelectionForm`). Any other control is
+  refused, naming the measured ones.
+- **`disenar_sistema` resumes:** a project an earlier run left behind with the
+  same parameters is reused instead of failing with `Project exists`.
+
+### Fixed
+
+- `editar` refuses object and array values in `campos` instead of writing their
+  JSON text into a field PVsyst reads as one value.
+- `escena_leer` exports the scene under a temporary name and deletes that file
+  before answering, so a later `escena_leer` or `escena` with the same name no
+  longer fails with `already exists`.
+- `reiniciar` verifies that the process ended after its dialog button and
+  escalates to a forced kill; `muerte` says which one ended it.
+- The three GUI routes (`proyecto dimensionar`, `proyecto p50_p90`,
+  `sitio horizonte_pvgis`) load the project they act on, report the cause PVsyst
+  logged instead of the symptom, and drop the benign `TEnergyMixSet`/`EndTags`
+  parse notices.
+- `gui_actuar accion:teclas` does not send keys on the user desktop when the
+  control cannot take the focus; the isolated desktop reports `foco:false` and
+  sends them.
+- `esperar` re-checks once (1.5 s) before reporting a timeout, so a slow load
+  that ends just after the deadline is not a false negative.
+
+### Changed
+
+- **The `initialize` instructions were rewritten** with 12 facts checked against
+  the runtime: components by name, key names, window waits, `resultados
+  que:resumen`, where `dry_run` exists, truncation, the `workspace` override,
+  the modal `TDEMOForm`, the measured rows and `ignorados`.
+- Tool descriptions say what the runtime does: `componente` by name,
+  `pvsyst_cli` arguments in `opciones`, `resultados que:resumen`, `simular`
+  `dry_run`/`costo_estimado`, `esperar` as a window wait, `fila` in the measured
+  controls, `disenar_sistema` module choice/resume/Meteonorm, and the `workspace`
+  override says what it replaces instead of asking for a trusted client.
+- `mcpb/manifest.json` and the alias tables of both READMEs are generated from
+  the registry by `tools/generar_contrato.py` (`--check` fails on a stale copy),
+  and a test fails when the manifest drifts from the registry.
+- Two runtime messages of the server layer (`include_text` outside `que:csv`, and
+  `dry_run` with `filas`/`parametros`) answer in English through
+  `crate::idioma::Texto`.
 
 ## [0.3.0] - 2026-10-20
 

@@ -134,10 +134,21 @@ pub(super) const ENTRADAS: &[Entrada] = &[
     entrada(
         "gui_actuar",
         "escena",
-        "Escena 3D validada: objetos, formas y colisiones, sin tocar PVsyst.",
+        "Escena 3D: validada (simular) o creada en el editor y comparada con el archivo que PVsyst guardó.",
     )
-    .solo_ensayo()
     .luego(TRAS_VISTA),
+    entrada(
+        "gui_actuar",
+        "escena_leer",
+        "Objetos de la escena abierta en el editor 3D, leídos del archivo que PVsyst exportó.",
+    )
+    .luego(&[VER_VENTANAS]),
+    entrada(
+        "gui_actuar",
+        "escena_importar",
+        "Malla importada en el editor 3D por PVsyst; la escena que PVsyst exportó confirma los objetos.",
+    )
+    .luego(&[VER_VENTANAS]),
     entrada(
         "gui_actuar",
         "secuencia",

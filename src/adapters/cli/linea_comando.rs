@@ -83,6 +83,23 @@ pub(crate) fn requerir_cli(paths: &Paths) -> Result<()> {
     }
 }
 
+/// Range of PVsystCLI's `-ll` log level.
+const LOG_LEVEL_MIN: i64 = 0;
+const LOG_LEVEL_MAX: i64 = 3;
+
+/// Rejects a `log_level` outside PVsystCLI's `-ll` range (0 to 3).
+pub(crate) fn validar_log_level(args: &Value) -> Result<()> {
+    let Some(v) = args.get("log_level").and_then(Value::as_i64) else {
+        return Ok(());
+    };
+    if (LOG_LEVEL_MIN..=LOG_LEVEL_MAX).contains(&v) {
+        return Ok(());
+    }
+    Err(Error::Invalid(format!(
+        "'log_level' debe estar entre {LOG_LEVEL_MIN} y {LOG_LEVEL_MAX} (recibido {v})"
+    )))
+}
+
 #[cfg(test)]
 #[path = "../../../tests/unit/adapters/cli/linea_comando.rs"]
 mod tests;

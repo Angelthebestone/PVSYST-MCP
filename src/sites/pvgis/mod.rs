@@ -4,6 +4,7 @@
 //! and horizon insertion into project variants.
 
 pub(crate) mod adquisicion;
+mod horizonte;
 pub(crate) mod normalizacion;
 pub(crate) mod persistencia;
 mod staging;
@@ -18,12 +19,13 @@ use std::path::{Path, PathBuf};
 use serde_json::{json, Value};
 
 use crate::args::{opt_str, req_numero, req_str, workspace_of};
+
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::object;
-use crate::projects::resolve_project_file;
 use crate::sites;
 use crate::workspace::{resolver_ruta, validar_nombre, Alcance};
+pub(crate) use horizonte::horizonte;
 
 /// Origin classification for site resolution in weather generation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -44,73 +46,6 @@ pub(crate) struct PeticionSitioMeteo<'a> {
     pub(crate) nombre: &'a str,
 }
 
-/// The MCP's own horizon factors (`FHHDiffus` as the mean of cos² h).
-const APROXIMACION_HORIZONTE: crate::aproximaciones::Aproximacion =
-    crate::aproximaciones::Aproximacion {
-        funcion: "sitio horizonte_pvgis via aproximacion (FHHDiffus calculado por el MCP)",
-        alternativa: "sitio horizonte_pvgis sin 'via': PVsyst importa PVGIS y calcula los factores",
-    };
-
-/// PVGIS horizon of the project site: imported by PVsyst's horizon window by
-/// default, or by the MCP with `via: "aproximacion"`.
-pub(crate) fn horizonte(paths: &Paths, args: &Value) -> Result<Value> {
-    crate::aproximaciones::exigir_ruta_pvsyst_sin_workspace(paths, args, "El horizonte PVGIS")?;
-    let proyecto = req_str(args, &["proyecto"], "")?;
-    let proyecto = proyecto.strip_suffix(".PRJ").unwrap_or(proyecto);
-    let variante = opt_str(args, &["variante"]).unwrap_or("VC0");
-    crate::aproximaciones::segun_via(
-        paths,
-        args,
-        &APROXIMACION_HORIZONTE,
-        (
-            || crate::projects::gui::horizonte::importar_pvgis(paths, proyecto, variante),
-            || horizonte_pvgis(paths, args),
-        ),
-    )
-}
-
-/// Fill the variant's `pvHorizon` with the PVGIS horizon profile of the project site.
-fn horizonte_pvgis(paths: &Paths, args: &Value) -> Result<Value> {
-    let ws = workspace_of(paths, args);
-    let proyecto = req_str(args, &["proyecto"], "")?;
-    let variante = opt_str(args, &["variante"]).unwrap_or("VC0");
-    let prj = resolve_project_file(&ws, proyecto)?;
-    let var = prj.with_extension(variante);
-    if !var.exists() {
-        return Err(Error::NotFound(format!(
-            "Variante '{variante}' no encontrada: {}",
-            var.display()
-        )));
-    }
-    let (lat, lon) = persistencia::sitio_prj(&prj)?;
-    let todos = adquisicion::descargar_perfil_horizonte(lat, lon)?;
-    let total = todos.len();
-    let puntos = normalizacion::diezmar(todos);
-    let fhh = normalizacion::calcular_fhh(&puntos);
-
-    let peticion = persistencia::PeticionHorizonte {
-        paths,
-        ws: &ws,
-        var: &var,
-        proyecto,
-        variante,
-        lat,
-        lon,
-        fhh,
-        puntos: &puntos,
-    };
-    let id = persistencia::aplicar_horizonte(&peticion)?;
-
-    Ok(json!({
-        "ok": true,
-        "variante": var.display().to_string(),
-        "puntos": puntos.len(),
-        "puntos_pvgis": total,
-        "FHHDiffus": fhh,
-        "factores_aproximados": true,
-        "historial_id": id,
-    }))
-}
 /// Context bundle for weather generation workflow.
 struct ContextoMeteo<'a> {
     paths: &'a Paths,
@@ -200,6 +135,12 @@ fn construir_respuesta_meteo(p: RespuestaMeteoParams<'_>) -> Result<Value> {
     }
 }
 
+/// Trial executions one `meteo_pvgis` call can spend.
+const EJECUCIONES_METEO_PVGIS: u32 = 2;
+
+/// The two PVsystCLI commands of a `meteo_pvgis` call, for the confirmation gate.
+const PLAN_METEO_PVGIS: [&str; 2] = ["create-site (solo si el sitio no existe)", "convert-meteo"];
+
 /// Hourly TMY from PVGIS → CSV + MEF → `.MET` via the CLI with transactional staging.
 pub(crate) fn meteo_pvgis(paths: &Paths, args: &Value) -> Result<Value> {
     let ws = workspace_of(paths, args);
@@ -207,6 +148,17 @@ pub(crate) fn meteo_pvgis(paths: &Paths, args: &Value) -> Result<Value> {
     let lon = req_numero(args, "longitud", "número")?;
     let nombre = req_str(args, &["nombre_sitio"], "")?;
     validar_nombre(nombre)?;
+
+    // Worst case of one call: `create-site` for a missing site plus `convert-meteo`.
+    // Spending trial executions has to be the caller's decision, not a surprise.
+    if let Some(aviso) = crate::adapters::ledger::requiere_confirmacion(
+        &ws,
+        args,
+        EJECUCIONES_METEO_PVGIS,
+        &PLAN_METEO_PVGIS.map(str::to_string),
+    ) {
+        return Ok(aviso);
+    }
 
     let ctx = ContextoMeteo {
         paths,

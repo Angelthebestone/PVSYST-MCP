@@ -12,8 +12,10 @@ use serde_json::{json, Value};
 
 pub(crate) const APROXIMACION_DIMENSIONAR_KWP: Aproximacion = Aproximacion {
     funcion: "proyecto dimensionar por kwp via aproximacion",
-    alternativa:
-        "proyecto dimensionar con kwp sin 'via': lo dimensiona el pre-dimensionado de PVsyst (ventana Sistema)",
+    alternativa: crate::idioma::Texto {
+        es: "proyecto dimensionar con kwp sin 'via': lo dimensiona el pre-dimensionado de PVsyst (ventana Sistema)",
+        en: "proyecto dimensionar with kwp without 'via': PVsyst's pre-sizing (System window) does the sizing",
+    },
 };
 
 /// Largest DC target accepted (kWp): above any real single PVsyst variant.
@@ -191,6 +193,18 @@ fn deducir_disposicion(c: &ConsultaModulo<'_>, pnom: f64) -> Result<DisposicionC
 /// Size a variant's sub-array: as given (`n_mod_serie` + `n_strings`), by
 /// PVsyst's pre-sizing for a target `kwp`, or with the MCP's own rule when
 /// `via: "aproximacion"` is asked for.
+/// Validates the sizing arguments without opening the variant.
+pub(crate) fn validar_parametros(args: &Value) -> Result<()> {
+    leer_kwp_opcional(args)?;
+    if let Some(n) = entero_opcional(args, "n_mod_serie")? {
+        validar_n_serie(n)?;
+    }
+    if let Some(n) = entero_opcional(args, "n_strings")? {
+        validar_n_strings(n)?;
+    }
+    Ok(())
+}
+
 pub(crate) fn dimensionar_variante(paths: &Paths, args: &Value) -> Result<Value> {
     let manual = entero_opcional(args, "n_mod_serie")?.is_some()
         && entero_opcional(args, "n_strings")?.is_some();
@@ -199,7 +213,14 @@ pub(crate) fn dimensionar_variante(paths: &Paths, args: &Value) -> Result<Value>
     }
     let kwp = leer_kwp(args)?;
     exigir_sin_pre_dimensionado(args)?;
-    aproximaciones::exigir_ruta_pvsyst_sin_workspace(paths, args, "El pre-dimensionado")?;
+    aproximaciones::exigir_ruta_pvsyst_sin_workspace(
+        paths,
+        args,
+        crate::idioma::Texto {
+            es: "El pre-dimensionado",
+            en: "The pre-sizing",
+        },
+    )?;
     let v = abrir_variante(paths, args)?;
     crate::projects::gui::dimensionado::dimensionar(paths, &v.stem, &v.variante, kwp)
 }
@@ -249,11 +270,11 @@ fn dimensionar_en_archivo(paths: &Paths, args: &Value) -> Result<Value> {
         module: &pan_name,
         pnom,
         kwp: disp.target_kwp,
-        historial_id: historial_id.as_deref(),
+        historial_id: Some(&historial_id),
     };
     let mut resp = respuesta_dimensionado(&ctx, &res, &outcomes);
     if !disp.es_nativo {
-        aproximaciones::marcar(&mut resp, &APROXIMACION_DIMENSIONAR_KWP);
+        aproximaciones::marcar(&mut resp, &APROXIMACION_DIMENSIONAR_KWP, paths.idioma);
     }
     Ok(resp)
 }

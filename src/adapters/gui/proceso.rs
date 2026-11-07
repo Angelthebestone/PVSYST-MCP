@@ -2,7 +2,9 @@
 
 use super::escritorio;
 use super::ffi::{self, enum_windows, pids_de_ejecutable};
-use super::ventanas::{class_of, enum_windows_de, pid_of, ventanas, visible, window_brief};
+use super::ventanas::{
+    class_of, enum_windows_de, pid_of, ventanas, visible, window_brief, window_json,
+};
 use crate::args::flag;
 use crate::error::{Error, Result};
 use crate::workspace::{resolver_ruta, Alcance};
@@ -13,32 +15,65 @@ const DEFAULT_LAUNCH_WAIT_SECS: u64 = 30;
 const MAX_LAUNCH_WAIT_SECS: u64 = 120;
 const AVISO_DEMO: &str = "TDEMOForm";
 const POLL_INTERVAL_MS: u64 = 250;
+/// Closing an editor can reopen its parent, so the list is read again each round.
+const MAX_RONDAS_CIERRE: usize = 12;
+const ESPERA_RONDA: std::time::Duration = std::time::Duration::from_millis(300);
+
+/// Processes of the PVsyst executable currently running.
+pub(crate) fn pids_pvsyst() -> Vec<u32> {
+    pids_de_ejecutable("PVsyst.exe")
+}
 
 pub(crate) fn gui_running() -> bool {
-    !pids_de_ejecutable("PVsyst.exe").is_empty()
+    !pids_pvsyst().is_empty()
 }
 
 /// `gui_actuar accion:cerrar_todo`: closes every visible top window of the
 /// running PVsyst. It presses Cancelar/No before the default buttons unless the call
 /// passes `cancelar:false`, so a save prompt is never accepted by accident.
-pub(crate) fn cerrar_todo(_paths: &crate::config::Paths, args: &Value) -> Result<Value> {
-    let pids = pids_de_ejecutable("PVsyst.exe");
-    let ventanas_vivas: Vec<ffi::Hwnd> = pids
-        .iter()
+fn visibles_de(pids: &[u32]) -> Vec<ffi::Hwnd> {
+    pids.iter()
         .flat_map(|p| enum_windows_de(*p))
         .filter(|h| visible(*h))
-        .collect();
+        .collect()
+}
+
+/// Whether another round is needed: the list is re-read after each one, because
+/// closing an editor can reopen the selector it came from.
+fn otra_ronda(quedan: usize, rondas: usize) -> bool {
+    quedan > 0 && rondas < MAX_RONDAS_CIERRE
+}
+
+pub(crate) fn cerrar_todo(args: &Value) -> Result<Value> {
+    let pids = pids_pvsyst();
     let mut con_cancelar = args.clone();
     if let Some(argumentos) = con_cancelar.as_object_mut() {
         argumentos.entry("cancelar").or_insert(json!(true));
     }
-    for h in &ventanas_vivas {
-        super::acciones::cerrar_ventana(*h, &con_cancelar)?;
+    let mut cerradas = 0;
+    let mut rondas = 0;
+    let mut quedan = visibles_de(&pids);
+    while otra_ronda(quedan.len(), rondas) {
+        for h in &quedan {
+            super::acciones::cerrar_ventana(*h, &con_cancelar)?;
+            cerradas += 1;
+        }
+        rondas += 1;
+        std::thread::sleep(ESPERA_RONDA);
+        let vivas = visibles_de(&pids);
+        // A round that closed no window will not close one in the next round either.
+        let cerro_alguna = quedan.iter().any(|h| !vivas.contains(h));
+        quedan = vivas;
+        if !cerro_alguna {
+            break;
+        }
     }
     Ok(json!({
         "accion": "cerrar_todo",
         "pids": pids,
-        "cerradas": ventanas_vivas.len(),
+        "cerradas": cerradas,
+        "rondas": rondas,
+        "quedan": quedan.iter().map(|h| window_json(*h)).collect::<Vec<_>>(),
     }))
 }
 
@@ -109,7 +144,7 @@ fn comprobar_proyecto_libre(args: &Value) -> Result<()> {
         return Ok(());
     }
     Err(Error::Gui(
-        "'proyecto' no se puede abrir: PVsyst ya está en ejecución. Ciérrelo (gui_actuar accion:cerrar_todo) y repita lanzar con proyecto".into(),
+        "'proyecto' cannot be opened: PVsyst is already running. Close it (gui_actuar accion:cerrar_todo) and repeat lanzar with proyecto".into(),
     ))
 }
 
@@ -118,12 +153,9 @@ fn comprobar_proyecto_libre(args: &Value) -> Result<()> {
 /// running instance instead of spawning another one.
 fn ya_abierta(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     comprobar_proyecto_libre(args)?;
-    let pid = pids_de_ejecutable("PVsyst.exe")
-        .first()
-        .copied()
-        .unwrap_or(0);
+    let pid = pids_pvsyst().first().copied().unwrap_or(0);
     cerrar_aviso_demo_si_pedido(pid, args);
-    let windows = ventanas(paths, &json!({ "visibles": true }))?;
+    let windows = ventanas(&json!({ "visibles": true }))?;
     Ok(json!({
         "pid": pid,
         "gui": paths.gui_exe.to_string_lossy(),
@@ -155,7 +187,7 @@ pub(crate) fn lanzar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         .min(MAX_LAUNCH_WAIT_SECS);
     let ready = esperar_formulario_principal(pid, wait);
     cerrar_aviso_demo_si_pedido(pid, args);
-    let wins = ventanas(paths, &json!({ "visibles": true }))?;
+    let wins = ventanas(&json!({ "visibles": true }))?;
     Ok(json!({
         "pid": pid,
         "gui": paths.gui_exe.to_string_lossy(),

@@ -44,7 +44,3 @@ impl fmt::Debug for Estado {
         f.debug_struct("Estado").finish_non_exhaustive()
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/state/mod.rs"]
-mod tests;

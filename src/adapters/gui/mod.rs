@@ -10,13 +10,15 @@
 //! an interactive desktop.
 
 pub(crate) mod acciones;
-pub(crate) mod base64;
 pub(crate) mod campo_por_etiqueta;
 pub(crate) mod campos;
 pub(crate) mod captura;
+pub(crate) mod causa_pvsyst;
+pub(crate) mod cierre;
 pub(crate) mod clic_por_texto;
 pub(crate) mod combinacion;
 pub(crate) mod conduccion;
+pub(crate) mod escena;
 pub(crate) mod escritorio;
 pub(crate) mod esperas;
 pub(crate) mod ffi;
@@ -35,6 +37,7 @@ pub(crate) mod secuencia;
 pub(crate) mod sesion_pvsyst;
 pub(crate) mod sondeo;
 pub(crate) mod teclado;
+pub(crate) mod uia_paso;
 pub(crate) mod uia_vista;
 pub(crate) mod ventanas;
 
@@ -43,6 +46,7 @@ pub(crate) use proceso::gui_running;
 /// Lines of PVsyst's own log `que:mensajes` returns when `lineas` is absent.
 const MENSAJES_POR_DEFECTO: usize = 50;
 
+use crate::args::flag;
 use crate::error::{Error, Result};
 use serde_json::Value;
 
@@ -54,9 +58,9 @@ pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Val
         .and_then(Value::as_str)
         .unwrap_or("ventanas")
     {
-        "ventanas" => ventanas::ventanas(paths, args),
+        "ventanas" => ventanas::ventanas(args),
         "controles" => uia_vista::controles_con_uia(paths, args),
-        "leer" => ventanas::leer(paths, args),
+        "leer" => ventanas::leer(args),
         "capturar" => captura::capturar(paths, args),
         "uia" => uia_vista::observar_uia(paths, args),
         "arbol" => uia_vista::observar_arbol(paths, args),
@@ -106,6 +110,8 @@ pub(crate) const ACCIONES: &[&str] = &[
     "cerrar_todo",
     "secuencia",
     "escena",
+    "escena_leer",
+    "escena_importar",
 ];
 
 /// `actuar` dispatcher. `accion`: click | clic_fisico | clic_texto | mensaje |
@@ -119,12 +125,12 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         .unwrap_or("click")
     {
         accion @ ("click" | "mensaje" | "cerrar" | "activar") => {
-            acciones::invocar(paths, args).map_err(|e| Error::Gui(format!("{e} (accion {accion})")))
+            acciones::invocar(args).map_err(|e| Error::Gui(format!("{e} (accion {accion})")))
         }
         "clic_texto" => clic_por_texto::clic_texto(args),
         "clic_fisico" => {
             acciones::exigir_escritorio()?;
-            acciones::invocar(paths, args)
+            acciones::invocar(args)
         }
         "teclas" => teclado::teclas(args),
         "fila" => fila::fila(args),
@@ -132,18 +138,21 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         "menu" => crate::gui_catalogo::menu(args),
         "campo" => campo_por_etiqueta::campo(paths, args),
         "rellenar" => crate::vista_agente::rellenar(paths, args),
-        "escena" => crate::escena_3d::pedir_escena(args),
-        "escribir" => campos::escribir(paths, args),
-        "seleccionar" => campos::seleccionar(paths, args),
+        "escena" if flag(args, &["simular"]) => crate::escena_3d::pedir_escena(args),
+        "escena" => escena::crear(paths, args),
+        "escena_leer" => escena::leer(paths, args),
+        "escena_importar" => escena::importar(paths, args),
+        "escribir" => campos::escribir(args),
+        "seleccionar" => campos::seleccionar(args),
         "pagina" => campos::pagina(paths, args),
-        "esperar_cierre" => campos::esperar_cierre_accion(paths, args),
+        "esperar_cierre" => campos::esperar_cierre_accion(args),
         "lanzar" => proceso::lanzar(paths, args),
-        "cerrar_todo" => proceso::cerrar_todo(paths, args),
+        "cerrar_todo" => proceso::cerrar_todo(args),
         "secuencia" => secuencia::secuencia(paths, args),
         "reiniciar" => recuperacion::reiniciar(paths, args),
-        "uia_invocar" => uia_vista::uia_invocar(args),
+        "uia_invocar" => uia_paso::uia_invocar(args),
         "esperar" => esperas::esperar(args),
-        "paso" => uia_vista::paso(args),
+        "paso" => uia_paso::paso(args),
         other => Err(Error::Invalid(format!(
             "Unknown accion '{other}' ({})",
             ACCIONES.join("|")

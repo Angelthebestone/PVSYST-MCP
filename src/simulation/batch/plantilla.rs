@@ -39,19 +39,53 @@ fn pick(row: &Value, keys: &[&str]) -> String {
         .unwrap_or_default()
 }
 
-/// Cells of one batch row; PVsyst's CSV has no quoting, so a separator or
-/// line break inside a value would shift columns or add rows.
+/// PVsyst's batch files (`.csv`, `Param_Modif.dat`, `.rvt`) have no quoting: a
+/// `;` or a line break inside a value would shift columns or add rows.
+pub(super) fn exigir_sin_separadores(contexto: &str, valor: &str) -> Result<()> {
+    if valor.contains([';', '\r', '\n']) {
+        return Err(Error::Invalid(format!(
+            "{contexto}: el valor no puede contener ';' ni saltos de línea"
+        )));
+    }
+    Ok(())
+}
+
+/// Keys of `row` no column reads: the run would use a parameter the caller believes
+/// it set, and the cell would be silently empty.
+fn claves_desconocidas(row: &Value) -> Vec<String> {
+    let Some(mapa) = row.as_object() else {
+        return vec!["<not an object>".to_string()];
+    };
+    mapa.keys()
+        .filter(|k| !COLUMNS.iter().any(|keys| keys.contains(&k.as_str())))
+        .cloned()
+        .collect()
+}
+
+/// Refuses a row that would run with a parameter nobody reads.
+fn validar_filas(filas: &[Value]) -> Result<()> {
+    for (i, row) in filas.iter().enumerate() {
+        let desconocidas = claves_desconocidas(row);
+        if desconocidas.is_empty() {
+            continue;
+        }
+        let columnas: Vec<&str> = COLUMNS.iter().map(|keys| keys[0]).collect();
+        return Err(Error::Invalid(format!(
+            "Row {}: unsupported keys {desconocidas:?}; a row takes {}",
+            i + 1,
+            columnas.join(", ")
+        )));
+    }
+    Ok(())
+}
+
+/// Cells of one batch row, each checked by [`exigir_sin_separadores`].
 fn celdas(fila: usize, row: &Value) -> Result<Vec<String>> {
     COLUMNS
         .iter()
         .map(|keys| {
             let celda = pick(row, keys);
-            if celda.contains([';', '\r', '\n']) {
-                return Err(Error::Invalid(format!(
-                    "Fila {fila}, columna '{}': el valor no puede contener ';' ni saltos de línea",
-                    keys[0]
-                )));
-            }
+            exigir_sin_separadores(&format!("Fila {fila}, columna '{}'", keys[0]), &celda)?;
             Ok(celda)
         })
         .collect()
@@ -64,10 +98,24 @@ pub(super) fn batch_csv(
     filas: &[Value],
     stamp: &str,
 ) -> Result<String> {
+    exigir_sin_separadores("proyecto", proyecto)?;
+    exigir_sin_separadores("variante", variante)?;
+    validar_filas(filas)?;
     let cuerpo = filas
         .iter()
         .enumerate()
-        .map(|(i, row)| Ok(format!("SIM_{};{}\n", i + 1, celdas(i + 1, row)?.join(";"))))
+        .map(|(i, row)| {
+            let ident = format!("SIM_{}", i + 1);
+            let mut celdas = celdas(i + 1, row)?;
+            // One hourly CSV per row: with the column empty every run would write the
+            // same file (or none), and the batch results could not be told apart.
+            if let Some(primera) = celdas.first_mut() {
+                if primera.is_empty() {
+                    *primera = format!("{proyecto}_{ident}.csv");
+                }
+            }
+            Ok(format!("{ident};{}\n", celdas.join(";")))
+        })
         .collect::<Result<String>>()?;
     let sep = ";".repeat(20);
     let mut out = String::with_capacity(2048 + filas.len() * 128);

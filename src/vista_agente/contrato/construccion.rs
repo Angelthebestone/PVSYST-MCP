@@ -106,6 +106,10 @@ fn falla_la_cli(salida: &Value) -> bool {
 /// Keys that say the answer is missing part of what was asked for.
 fn es_incompleta(salida: &Value) -> bool {
     salida.get("completo").and_then(Value::as_bool) == Some(false)
+        || salida
+            .get("campos_que_difieren")
+            .and_then(Value::as_u64)
+            .is_some_and(|n| n > 0)
         || !textos_de(salida, "errores").is_empty()
         || !textos_de(salida, "error").is_empty()
 }
@@ -223,7 +227,7 @@ pub(crate) fn siguiente_de(
     estado: Estado,
     salida: &Value,
 ) -> Vec<PasoSiguiente> {
-    if let Some(pendiente) = pendiente_de(ctx, salida, estado) {
+    if let Some(pendiente) = pendiente_de(salida, estado) {
         return vec![pendiente.siguiente(ctx)];
     }
     let pasos: &[Paso] = match (estado, catalogo::buscar(ctx.tool, ctx.accion)) {
@@ -239,7 +243,7 @@ pub(crate) fn siguiente_de(
 /// The `vista` block for an answer that arrived.
 pub(crate) fn construir(ctx: &Contexto<'_>, salida: &Value) -> Vista {
     let base = estado_de(salida);
-    let pendiente = pendiente_de(ctx, salida, base);
+    let pendiente = pendiente_de(salida, base);
     let estado = match pendiente {
         Some(Pendiente::Confirmacion) => Estado::Parcial,
         _ => base,

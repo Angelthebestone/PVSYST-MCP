@@ -1,5 +1,7 @@
-//! PV module window (`TPVModuleForm`, "Datos básicos" page), PVsyst 8.1.7.
-//! Anchors are the control corners in the form's 96-DPI layout, measured live;
+//! PV module window (`TPVModuleForm`, "Datos básicos" page). Anchors are the control
+//! corners in the form's 96-DPI layout, measured live on PVsyst 8.1.7; units and file
+//! keys were checked against a `.PAN` saved by PVsyst 8.1.8. [INFERENCIA] ranges and
+//! the `clave_archivo` of fields not in that `.PAN` have no measured source;
 //! file keys are the ones `componente crear_desde_ficha` already writes.
 
 use crate::vista_agente::dominio::{Ancla, CampoEsquema, Entidad};
@@ -25,8 +27,12 @@ pub(crate) static PANELES: Entidad = Entidad {
         .en_archivo("PNom")
         .en("W"),
         CampoEsquema::lista("tecnologia", "Tecnología", en(116, 211)).en_archivo("Technol"),
-        CampoEsquema::numero("g_ref_w_m2", "GRef", en(233, 276), (100.0, 2000.0)).en("W/m2"),
-        CampoEsquema::numero("t_ref_c", "TRef", en(478, 276), (-50.0, 100.0)).en("°C"),
+        CampoEsquema::numero("g_ref_w_m2", "GRef", en(233, 276), (100.0, 2000.0))
+            .en_archivo("GRef")
+            .en("W/m2"),
+        CampoEsquema::numero("t_ref_c", "TRef", en(478, 276), (-50.0, 100.0))
+            .en_archivo("TRef")
+            .en("°C"),
         CampoEsquema::numero("isc_a", "Isc", en(233, 300), (0.0, 100.0))
             .en_archivo("Isc")
             .en("A"),

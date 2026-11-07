@@ -1,12 +1,14 @@
 //! PVsyst economic-evaluation parameters and their section changes.
 
-use crate::args::{missing, opt_f64, opt_u32};
+use crate::args::{missing, opt_f64, opt_u32, rango_opcional};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
 
 const MAX_VIDA_ANIOS: u32 = 100;
 const MAX_TASA: f64 = 1.0;
-const MAX_TARIFA_KWH: f64 = 100.0;
+/// A sale tariff is in the project's currency, so no currency range applies: this is
+/// only a sanity bound, far above any real tariff per kWh.
+const MAX_TARIFA_KWH: f64 = 1_000_000.0;
 const LONGITUD_CODIGO_MONEDA: usize = 3;
 const DECIMALES_TASA: usize = 4;
 const DECIMALES_TARIFA: usize = 5;
@@ -37,18 +39,6 @@ impl<'a> EntradaEconomicos<'a> {
     }
 }
 
-fn rango(valor: Option<f64>, max: f64, clave: &str) -> Result<()> {
-    let Some(valor) = valor else {
-        return Ok(());
-    };
-    if (0.0..=max).contains(&valor) {
-        return Ok(());
-    }
-    Err(Error::Invalid(format!(
-        "'{clave}' debe estar entre 0 y {max}: {valor}"
-    )))
-}
-
 fn validar_moneda(moneda: &str) -> Result<()> {
     if moneda.len() == LONGITUD_CODIGO_MONEDA && moneda.chars().all(|c| c.is_ascii_uppercase()) {
         return Ok(());
@@ -66,6 +56,11 @@ pub(crate) struct ParametrosEconomicos {
     tasa_descuento: Option<f64>,
     inflacion: Option<f64>,
     tarifa_venta_kwh: Option<f64>,
+}
+
+/// Validates the action's arguments without touching any file.
+pub(crate) fn validar_parametros(args: &Value) -> Result<()> {
+    ParametrosEconomicos::nuevo(EntradaEconomicos::de_args(args)?).map(|_| ())
 }
 
 impl ParametrosEconomicos {
@@ -91,9 +86,9 @@ impl ParametrosEconomicos {
                 )));
             }
         }
-        rango(entrada.tasa_descuento, MAX_TASA, "tasa_descuento")?;
-        rango(entrada.inflacion, MAX_TASA, "inflacion")?;
-        rango(entrada.tarifa_venta_kwh, MAX_TARIFA_KWH, "tarifa_venta_kwh")?;
+        rango_opcional(entrada.tasa_descuento, MAX_TASA, "tasa_descuento")?;
+        rango_opcional(entrada.inflacion, MAX_TASA, "inflacion")?;
+        rango_opcional(entrada.tarifa_venta_kwh, MAX_TARIFA_KWH, "tarifa_venta_kwh")?;
         Ok(Self {
             moneda: entrada.moneda.map(str::to_string),
             vida_anios: entrada.vida_anios,

@@ -9,6 +9,7 @@ use serde_json::{json, Map, Value};
 use std::path::Path;
 
 use super::cierre::{coincide_tipo_cierre, extraer_tipo_cierre};
+use super::span::tstart;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct PvNode {
@@ -46,10 +47,6 @@ impl PvNode {
         }
         Value::Object(map)
     }
-}
-
-fn tstart(s: &str) -> &str {
-    s.trim_start_matches(|c: char| c.is_whitespace() || c == '\u{FEFF}')
 }
 
 pub(crate) fn list_header(trimmed: &str) -> Option<(&str, &str)> {

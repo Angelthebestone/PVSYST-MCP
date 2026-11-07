@@ -3,7 +3,7 @@
 //! Gestiona el ciclo de vida del subproceso, la captura con límite de memoria,
 //! la cancelación cooperativa y la publicación de avance.
 
-use super::captura::{crear_sink, es_truncado, texto_sink, Sink};
+use super::captura::{crear_sink, es_truncado, esperar_lector, texto_sink, Sink};
 use super::linea_comando::{display_command_line, requerir_cli, timeout_de, TIMEOUT_DEFECTO_S};
 use super::salida_json::output_json;
 use crate::args::{flag, req_str, DRY_RUN};
@@ -26,6 +26,9 @@ const SIN_PROGRESO: f64 = -1.0;
 
 /// Cantidad de bytes ya escaneados en la ronda anterior.
 const SIN_BYTES_ESCANEADOS: usize = 0;
+
+/// Plazo para que los lectores lleguen al EOF una vez terminado el proceso.
+const PLAZO_LECTORES: Duration = Duration::from_secs(5);
 
 /// Parámetros de ejecución agrupados para cumplir con el límite de parámetros.
 pub(crate) struct ParametrosEjecucion<'a> {
@@ -88,12 +91,9 @@ pub(crate) fn run_inner(params: &ParametrosEjecucion<'_>, out_sink: &Sink) -> Re
         seguimiento: params.seguimiento,
     };
     let resultado = esperar_proceso(&mut child, &espera);
-    reader_out
-        .join()
-        .map_err(|_| Error::Cli("Hilo lector de stdout terminó con pánico".to_string()))??;
-    reader_err
-        .join()
-        .map_err(|_| Error::Cli("Hilo lector de stderr terminó con pánico".to_string()))??;
+    let fin_lectura = Instant::now() + PLAZO_LECTORES;
+    esperar_lector(reader_out, (out_sink, "stdout"), fin_lectura)?;
+    esperar_lector(reader_err, (&err_sink, "stderr"), fin_lectura)?;
     let (exit_code, timed_out) = resultado?;
 
     Ok(CliOutput {
@@ -118,25 +118,36 @@ struct EsperaProceso<'a> {
     seguimiento: &'a SeguimientoTarea<'a>,
 }
 
+/// Kills and reaps the child on every early exit, so no PVsystCLI is left running.
+/// `kill` fails only when the process already ended, which is what is wanted.
+fn terminar(child: &mut Child) {
+    if let Err(e) = child.kill() {
+        tracing::debug!(error = %e, "PVsystCLI ya había terminado");
+    }
+    if let Err(e) = child.wait() {
+        tracing::warn!(error = %e, "no se pudo recoger el estado de PVsystCLI");
+    }
+}
+
 fn esperar_proceso(child: &mut Child, espera: &EsperaProceso<'_>) -> Result<(Option<i32>, bool)> {
     let deadline = Instant::now() + espera.timeout;
     let mut ultimo_informado = SIN_PROGRESO;
     let mut bytes_escaneados = SIN_BYTES_ESCANEADOS;
     loop {
         if espera.seguimiento.esta_cancelado() {
-            let _ = child.kill();
-            let _ = child.wait();
+            terminar(child);
             return Err(Error::Cli("Simulación cancelada por el cliente".into()));
         }
-        if let Some(status) = child
-            .try_wait()
-            .map_err(|e| Error::io("Waiting for PVsystCLI", e))?
-        {
-            return Ok((status.code(), false));
+        match child.try_wait() {
+            Ok(Some(status)) => return Ok((status.code(), false)),
+            Ok(None) => {}
+            Err(e) => {
+                terminar(child);
+                return Err(Error::io("Waiting for PVsystCLI", e));
+            }
         }
         if Instant::now() >= deadline {
-            let _ = child.kill();
-            let _ = child.wait();
+            terminar(child);
             return Ok((None, true));
         }
         // Solo se copia el stdout acumulado cuando el lector añadió bytes nuevos.
@@ -158,6 +169,29 @@ fn esperar_proceso(child: &mut Child, espera: &EsperaProceso<'_>) -> Result<(Opt
     }
 }
 
+/// `opciones` as PVsystCLI arguments: a list of texts, or an object `{opcion: valor}`.
+/// Anything else, or a list item that is not text, is refused instead of dropped.
+pub(crate) fn opciones_de(args: &Value) -> Result<Vec<String>> {
+    match args.get("opciones") {
+        None | Some(Value::Null) => Ok(Vec::new()),
+        Some(Value::Array(lista)) => lista
+            .iter()
+            .map(|o| {
+                o.as_str().map(str::to_string).ok_or_else(|| {
+                    Error::Invalid(format!("'opciones' solo admite textos (recibido {o})"))
+                })
+            })
+            .collect(),
+        Some(Value::Object(mapa)) => Ok(mapa
+            .iter()
+            .map(|(k, v)| format!("--{}:{}", k.trim_start_matches('-'), value_text(v)))
+            .collect()),
+        Some(otro) => Err(Error::Invalid(format!(
+            "'opciones' debe ser una lista o un objeto (recibido {otro})"
+        ))),
+    }
+}
+
 /// Ejecuta cualquier comando con argumentos en crudo (passthrough de `pvsyst_cli`).
 pub(crate) fn ejecutar(paths: &Paths, args: &Value) -> Result<Value> {
     let comando = req_str(
@@ -167,20 +201,7 @@ pub(crate) fn ejecutar(paths: &Paths, args: &Value) -> Result<Value> {
     )?;
 
     let mut cli_args: Vec<String> = vec![comando.to_string()];
-    if let Some(opts) = args.get("opciones").and_then(Value::as_array) {
-        for o in opts {
-            if let Some(s) = o.as_str() {
-                cli_args.push(s.to_string());
-            }
-        }
-    }
-    if let Some(opts) = args.get("opciones").and_then(Value::as_object) {
-        for (k, v) in opts {
-            let val = value_text(v);
-            let flag = k.trim_start_matches('-');
-            cli_args.push(format!("--{flag}:{val}"));
-        }
-    }
+    cli_args.extend(opciones_de(args)?);
 
     let dry_run = flag(args, &[DRY_RUN]);
     let command_line = display_command_line(&paths.cli_exe.to_string_lossy(), &cli_args);

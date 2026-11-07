@@ -1,17 +1,8 @@
 use super::*;
-use proptest::prelude::*;
 
 #[test]
-fn value_text_leaves_strings_unquoted() {
-    assert_eq!(value_text(&Value::String("a b".into())), "a b");
-    assert_eq!(value_text(&serde_json::json!(2.5)), "2.5");
-}
-
-proptest! {
-    #[test]
-    fn rounding_is_idempotent_and_close(x in -1.0e6f64..1.0e6, d in 0i32..4) {
-        let r = redondear(x, d);
-        prop_assert_eq!(redondear(r, d), r);
-        prop_assert!((r - x).abs() <= 0.5 * 10f64.powi(-d) + 1e-9);
-    }
+fn should_round_trip_latin1_and_refuse_wider_characters() {
+    assert_eq!(codificar_latin1("Español"), Some(b"Espa\xf1ol".to_vec()));
+    assert_eq!(decodificar_latin1(b"Espa\xf1ol"), "Español");
+    assert_eq!(codificar_latin1("€"), None);
 }

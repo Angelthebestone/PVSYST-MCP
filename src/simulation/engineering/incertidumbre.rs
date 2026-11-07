@@ -97,12 +97,22 @@ pub(crate) fn incertidumbre(p50: f64, sigma_meteo: f64, sigma_modelo: f64, fuent
 const APROXIMACION_P50: crate::aproximaciones::Aproximacion =
     crate::aproximaciones::Aproximacion {
         funcion: "resultados p50_p90 via aproximacion (sigmas por defecto del MCP)",
-        alternativa: "resultados p50_p90 sin 'via': lee la página P50-P90 del informe de PVsyst (configúrala con proyecto accion:p50_p90)",
+        alternativa: crate::idioma::Texto {
+            es: "resultados p50_p90 sin 'via': lee la página P50-P90 del informe de PVsyst (configúrala con proyecto accion:p50_p90)",
+            en: "resultados p50_p90 without 'via': reads PVsyst's P50-P90 report page (configure it with proyecto accion:p50_p90)",
+        },
     };
 
 /// P50/P90 from PVsyst's report page, or the MCP's approximation with `via`.
 pub(crate) fn p50_p90(paths: &Paths, args: &Value) -> Result<Value> {
-    crate::aproximaciones::exigir_ruta_pvsyst_sin_workspace(paths, args, "El P50/P90")?;
+    crate::aproximaciones::exigir_ruta_pvsyst_sin_workspace(
+        paths,
+        args,
+        crate::idioma::Texto {
+            es: "El P50/P90",
+            en: "The P50/P90",
+        },
+    )?;
     let c = caso(paths, args)?;
     let v = crate::aproximaciones::segun_via(
         paths,

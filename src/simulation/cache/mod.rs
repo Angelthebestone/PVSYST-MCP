@@ -6,7 +6,7 @@
 mod key;
 mod store;
 
-pub(crate) use key::{clave, ClaveCache};
+pub(crate) use key::{clave, valor, ClaveCache};
 pub(crate) use store::{buscar, guardar};
 
 #[cfg(test)]

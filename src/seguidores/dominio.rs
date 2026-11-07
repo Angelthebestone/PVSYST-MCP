@@ -4,7 +4,6 @@ use crate::args::{opt_f64, opt_u32};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
 
-pub(crate) const AZIMUT_EJE_DEFECTO: f64 = 0.0;
 pub(crate) const ANGULO_MAX_DEFECTO: f64 = 60.0;
 pub(crate) const PITCH_DEFECTO_M: f64 = 8.0;
 pub(crate) const ANCHO_COLECTOR_DEFECTO_M: f64 = 4.25;
@@ -66,7 +65,8 @@ impl EntradaSeguidor {
 /// Validated tracker configuration.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct ParametrosSeguidor {
-    azimut_eje: f64,
+    /// `None` when the caller did not ask for one: the file keeps its own azimuth.
+    azimut_eje: Option<f64>,
     angulo_max: f64,
     pitch_m: f64,
     ancho_colector_m: f64,
@@ -83,10 +83,17 @@ fn rango(valor: f64, (min, max): (f64, f64), clave: &str) -> Result<()> {
     )))
 }
 
+/// Validates the action's arguments without touching any file.
+pub(crate) fn validar_parametros(args: &Value) -> Result<()> {
+    ParametrosSeguidor::nuevo(EntradaSeguidor::de_args(args)?).map(|_| ())
+}
+
 impl ParametrosSeguidor {
     pub(crate) fn nuevo(entrada: EntradaSeguidor) -> Result<Self> {
-        let azimut_eje = entrada.azimut_eje.unwrap_or(AZIMUT_EJE_DEFECTO);
-        rango(azimut_eje, (MIN_AZIMUT, MAX_AZIMUT), "azimut_eje")?;
+        if let Some(azimut) = entrada.azimut_eje {
+            rango(azimut, (MIN_AZIMUT, MAX_AZIMUT), "azimut_eje")?;
+        }
+        let azimut_eje = entrada.azimut_eje;
         let angulo_max = entrada.angulo_max.unwrap_or(ANGULO_MAX_DEFECTO);
         if angulo_max <= 0.0 {
             return Err(Error::Invalid(format!(
@@ -128,25 +135,20 @@ impl ParametrosSeguidor {
     }
 }
 
+/// An angle as PVsyst writes it.
+fn angulo(valor: f64) -> String {
+    format!("{:.*}", DECIMALES_ANGULO, valor)
+}
+
 /// `pvOrient` changes that turn a fixed plane into a one-axis tracker.
 pub(crate) fn cambios_orientacion(
     p: &ParametrosSeguidor,
     no_orient: &str,
 ) -> Vec<(String, Option<String>)> {
-    vec![
+    let mut cambios: Vec<(String, Option<String>)> = vec![
         ("NoOrient".into(), Some(no_orient.to_string())),
-        (
-            "AxisAzim".into(),
-            Some(format!("{:.*}", DECIMALES_ANGULO, p.azimut_eje)),
-        ),
-        (
-            "MinPhi".into(),
-            Some(format!("{:.*}", DECIMALES_ANGULO, -p.angulo_max)),
-        ),
-        (
-            "MaxPhi".into(),
-            Some(format!("{:.*}", DECIMALES_ANGULO, p.angulo_max)),
-        ),
+        ("MinPhi".into(), Some(angulo(-p.angulo_max))),
+        ("MaxPhi".into(), Some(angulo(p.angulo_max))),
         (
             "UsesBacktracking".into(),
             Some(p.backtracking.valor().to_string()),
@@ -160,7 +162,17 @@ pub(crate) fn cambios_orientacion(
             Some(format!("{:.*}", DECIMALES_METRO, p.ancho_colector_m)),
         ),
         ("NSheds".into(), Some(p.n_filas.to_string())),
-    ]
+    ];
+    // Without an explicit azimuth the file keeps its own: writing a default turned a
+    // -8.0 axis into 0.0 and left the comment announcing -8.0.
+    if let Some(azimut) = p.azimut_eje {
+        cambios.push(("AxisAzim".into(), Some(angulo(azimut))));
+        cambios.push((
+            "Comment".into(),
+            Some(format!("Unlimited trackers, Azim. {}°", angulo(azimut))),
+        ));
+    }
+    cambios
 }
 
 #[cfg(test)]

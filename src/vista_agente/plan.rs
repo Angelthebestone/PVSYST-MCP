@@ -13,11 +13,7 @@ pub(crate) struct Cambio {
 }
 
 fn numero_de(valor: &Value) -> Option<f64> {
-    match valor {
-        Value::Number(n) => n.as_f64(),
-        Value::String(s) => s.trim().replace(',', ".").parse().ok(),
-        _ => None,
-    }
+    crate::format::numero_json(valor)
 }
 
 /// Text of `valor` for `campo`, or why it is not acceptable.
@@ -35,6 +31,11 @@ fn texto_de(campo: &CampoEsquema, valor: &Value) -> std::result::Result<String, 
             validar_rango(n, minimo, maximo)?;
             Ok(n.to_string())
         }
+        TipoValor::Casilla => match valor {
+            Value::Bool(b) => Ok(b.to_string()),
+            Value::String(t) if matches!(t.as_str(), "true" | "false") => Ok(t.clone()),
+            _ => Err("debe ser true o false".into()),
+        },
         TipoValor::Texto | TipoValor::Lista => match valor.as_str().map(str::trim) {
             Some(t) if !t.is_empty() => Ok(t.to_string()),
             _ => Err("debe ser un texto no vacío".into()),
@@ -52,6 +53,11 @@ fn validar_rango<T: Copy + PartialOrd + std::fmt::Display>(
     } else {
         Ok(())
     }
+}
+
+/// An option (radio button) cannot be switched off by itself.
+fn apaga_opcion(campo: &CampoEsquema, texto: &str) -> bool {
+    campo.clase == "TRadioButton" && texto == "false"
 }
 
 /// Validates `valores` against `entidad`. Every problem is reported at once;
@@ -75,6 +81,11 @@ pub(crate) fn planificar(
         .filter(|c| valores.contains_key(c.clave))
     {
         match texto_de(campo, &valores[campo.clave]) {
+            // Refused here, before anything is typed: the write could not honour it half way.
+            Ok(texto) if apaga_opcion(campo, &texto) => problemas.push(format!(
+                "'{}' es una opción: se apaga eligiendo otra de su grupo",
+                campo.clave
+            )),
             Ok(texto) => cambios.push(Cambio { campo, texto }),
             Err(motivo) => problemas.push(format!("'{}' {motivo}", campo.clave)),
         }
@@ -99,19 +110,37 @@ pub(crate) fn es_valido(campo: &CampoEsquema, texto: &str) -> bool {
 }
 
 /// Whether the value read back is the one asked for: numbers compare by value
-/// (PVsyst writes `200` as `200.0`), texts as they are.
+/// (PVsyst writes `200` as `200.0`) and a decimal number may differ by what PVsyst
+/// drops from its own field (12.345 reads back 12.3), never more; counts are exact; texts
+/// compare as they are.
 pub(crate) fn coincide(campo: &CampoEsquema, pedido: &str, leido: &str) -> bool {
+    let numeros = || {
+        Some((
+            numero_de(&Value::from(pedido))?,
+            numero_de(&Value::from(leido))?,
+        ))
+    };
     match campo.tipo {
-        TipoValor::Numero { .. } | TipoValor::Entero { .. } => {
-            match (
-                numero_de(&Value::from(pedido)),
-                numero_de(&Value::from(leido)),
-            ) {
-                (Some(a), Some(b)) => (a - b).abs() <= f64::EPSILON * a.abs().max(1.0) * 8.0,
-                _ => false,
-            }
+        TipoValor::Entero { .. } => {
+            numeros().is_some_and(|(a, b)| (a - b).abs() <= precision_f64(a))
         }
-        TipoValor::Texto => pedido == leido,
+        TipoValor::Numero { .. } => numeros()
+            .is_some_and(|(a, b)| (a - b).abs() <= redondeo_mostrado(leido).max(precision_f64(a))),
+        TipoValor::Texto | TipoValor::Casilla => pedido == leido,
         TipoValor::Lista => leido.to_lowercase().starts_with(&pedido.to_lowercase()),
     }
+}
+
+/// The noise of an `f64` comparison around `a`.
+fn precision_f64(a: f64) -> f64 {
+    f64::EPSILON * a.abs().max(1.0) * 8.0
+}
+
+/// Half a unit of the last decimal `leido` shows: the most PVsyst can have rounded away.
+fn redondeo_mostrado(leido: &str) -> f64 {
+    let decimales = leido.trim().rsplit_once(['.', ',']).map_or(0, |(_, cola)| {
+        cola.chars().take_while(char::is_ascii_digit).count()
+    });
+    // The slack absorbs the binary error of values that sit exactly on the half unit.
+    0.5 * 10f64.powi(-i32::try_from(decimales).unwrap_or(i32::MAX)) * (1.0 + 1e-9)
 }

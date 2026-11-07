@@ -159,6 +159,8 @@ ejecutó la acción real (la mayoría escribe o gasta ejecuciones de prueba).
 | `gui_actuar` | `reiniciar` | PVsyst reiniciado. | `gui_observar que=ventanas` | unitaria (catálogo + validación) |
 | `gui_actuar` | `cerrar_todo` | Ventanas de PVsyst cerradas. | `gui_observar que=ventanas` | en vivo: ok |
 | `gui_actuar` | `escena` | Escena 3D validada: objetos, formas y colisiones, sin tocar PVsyst. | `gui_observar que=esquema`; `gui_observar que=ventanas` | unitaria (catálogo + validación) |
+| `gui_actuar` | `escena_leer` | Objetos de la escena abierta en el editor 3D, leídos del archivo que PVsyst exportó. | `gui_observar que=ventanas` | en vivo (PVsyst 8.1.8) |
+| `gui_actuar` | `escena_importar` | Malla importada en el editor 3D por PVsyst; la escena que PVsyst exportó confirma los objetos. | `gui_observar que=ventanas` | en vivo (PVsyst 8.1.8) |
 | `gui_actuar` | `secuencia` | Secuencia de pasos de GUI ejecutada. | `gui_observar que=ventanas`; `gui_observar que=esquema` | unitaria (catálogo + validación) |
 | `proyecto` | `crear` | Proyecto creado desde una plantilla. | `? `; `? ` | unitaria (catálogo + validación) |
 | `proyecto` | `eliminar` | Proyecto eliminado. | `? ` | unitaria (catálogo + validación) |

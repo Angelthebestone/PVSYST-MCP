@@ -3,11 +3,12 @@
 //! They run only with `PVSYST_MCP_APROXIMACIONES=1`; otherwise they are hidden
 //! from `tools/list` and rejected with the PVsyst route that replaces them.
 
+use super::alias::canonico_de_alias;
 use super::declaracion::Herramienta;
-use super::validacion::canonico_de_alias;
 use crate::aproximaciones::{self, Aproximacion};
 use crate::config::Paths;
 use crate::error::Result;
+use crate::idioma::{Idioma, Texto};
 use serde_json::Value;
 
 /// `(tool, action, approximation)`. O(n) lookup over a handful of rows.
@@ -17,7 +18,10 @@ static ACCIONES: &[(&str, &str, Aproximacion)] = &[
         "preestimar",
         Aproximacion {
             funcion: "simular preestimar",
-            alternativa: "simular accion:ejecutar sobre el proyecto (PVsystCLI run-simulation)",
+            alternativa: Texto {
+                es: "simular accion:ejecutar sobre el proyecto (PVsystCLI run-simulation)",
+                en: "simular accion:ejecutar on the project (PVsystCLI run-simulation)",
+            },
         },
     ),
     (
@@ -25,7 +29,10 @@ static ACCIONES: &[(&str, &str, Aproximacion)] = &[
         "barrido",
         Aproximacion {
             funcion: "simular barrido",
-            alternativa: "simular accion:ejecutar con 'filas' (modo lote -bpf: Plane tilt / Plane azim por fila)",
+            alternativa: Texto {
+                es: "simular accion:ejecutar con 'filas' (modo lote -bpf: Plane tilt / Plane azim por fila)",
+                en: "simular accion:ejecutar with 'filas' (batch mode -bpf: Plane tilt / Plane azim per row)",
+            },
         },
     ),
     (
@@ -33,7 +40,10 @@ static ACCIONES: &[(&str, &str, Aproximacion)] = &[
         "geometria_solar",
         Aproximacion {
             funcion: "sitio geometria_solar",
-            alternativa: "simular accion:ejecutar con un SFI que pida HSol, AzSol, AngInc, GlobInc y FTransp (input_sfi_file)",
+            alternativa: Texto {
+                es: "simular accion:ejecutar con un SFI que pida HSol, AzSol, AngInc, GlobInc y FTransp (input_sfi_file)",
+                en: "simular accion:ejecutar with an SFI that requests HSol, AzSol, AngInc, GlobInc and FTransp (input_sfi_file)",
+            },
         },
     ),
     (
@@ -41,7 +51,10 @@ static ACCIONES: &[(&str, &str, Aproximacion)] = &[
         "medido_vs_simulado",
         Aproximacion {
             funcion: "resultados medido_vs_simulado",
-            alternativa: "la herramienta de datos medidos de la GUI de PVsyst (Herramientas → Datos medidos)",
+            alternativa: Texto {
+                es: "la herramienta de datos medidos de la GUI de PVsyst (Herramientas → Datos medidos)",
+                en: "the measured-data tool of the PVsyst GUI (Tools → Measured data)",
+            },
         },
     ),
 ];
@@ -57,13 +70,6 @@ pub(crate) fn de(tool: &str, accion: &str) -> Option<&'static Aproximacion> {
 /// Rejects an approximated action unless approximations are enabled.
 pub(crate) fn exigir(paths: &Paths, tool: &str, accion: &str) -> Result<()> {
     de(tool, accion).map_or(Ok(()), |ap| aproximaciones::exigir(paths, ap))
-}
-
-/// Labels the result of an approximated action.
-pub(crate) fn marcar(tool: &str, accion: &str, resultado: &mut Value) {
-    if let Some(ap) = de(tool, accion) {
-        aproximaciones::marcar(resultado, ap);
-    }
 }
 
 /// Removes approximated actions, and the aliases that resolve to them, from a tool
@@ -85,7 +91,7 @@ pub(crate) fn ocultar(h: &Herramienta, campo: &str, esquema: &mut Value) {
 
 /// Hides the in-house route from every `via` enum, and from its description,
 /// when approximations are off.
-pub(crate) fn ocultar_via(esquema: &mut Value) {
+pub(crate) fn ocultar_via(esquema: &mut Value, idioma: Idioma) {
     if let Some(valores) = esquema
         .pointer_mut("/inputSchema/properties/via/enum")
         .and_then(Value::as_array_mut)
@@ -93,30 +99,42 @@ pub(crate) fn ocultar_via(esquema: &mut Value) {
         valores.retain(|v| v.as_str() != Some(crate::aproximaciones::VIA_APROXIMACION));
     }
     if let Some(descripcion) = esquema.pointer_mut("/inputSchema/properties/via/description") {
-        *descripcion = Value::from(DESCRIPCION_VIA_SOLO_PVSYST);
+        *descripcion = Value::from(DESCRIPCION_VIA_SOLO_PVSYST.en_idioma(idioma));
     }
 }
 
-const DESCRIPCION_VIA_SOLO_PVSYST: &str = "pvsyst (defecto): la ruta de PVsyst.";
+const DESCRIPCION_VIA_SOLO_PVSYST: Texto = Texto {
+    es: "pvsyst (defecto): la ruta de PVsyst.",
+    en: "pvsyst (default): the PVsyst route.",
+};
 
 /// Tool descriptions without the in-house actions, for `tools/list` when they are off.
-static DESCRIPCIONES_SIN_APROXIMACIONES: &[(&str, &str)] = &[
+static DESCRIPCIONES_SIN_APROXIMACIONES: &[(&str, Texto)] = &[
     (
         "simular",
-        "Simulacion: ejecutar (con filas/parametros opcionales), preparar entrada y estado. / EN: Simulation: run (optional rows/parameters), prepare input and status.",
+        Texto {
+            es: "Simulacion: ejecutar (con filas/parametros opcionales), preparar entrada y estado. dry_run muestra la linea de comando y las ejecuciones de prueba que gastaria (costo_estimado) sin ejecutar.",
+            en: "Simulation: run (optional rows/parameters), prepare input and status. dry_run shows the command line and the trial executions the run would spend (costo_estimado) without running it.",
+        },
     ),
     (
         "sitio",
-        "Sitios y meteo: crear (coordenadas o CSV), convertir, horizonte y TMY de PVGIS. / EN: Sites and weather: create (coordinates or CSV), convert, PVGIS horizon and TMY.",
+        Texto {
+            es: "Sitios y meteo: crear (coordenadas o CSV), convertir, horizonte y TMY de PVGIS.",
+            en: "Sites and weather: create (coordinates or CSV), convert, PVGIS horizon and TMY.",
+        },
     ),
     (
         "resultados",
-        "Resultados: KPIs, CSV, perdidas, mensual, comparacion, P50/P90, carbono, economia y entregable. / EN: Results: KPIs, CSV, losses, monthly, comparison, P50/P90, carbon, economics and deliverable.",
+        Texto {
+            es: "Resultados: KPIs, CSV, perdidas, mensual, comparacion, P50/P90, carbono, economia y entregable. que:resumen devuelve KPIs, la tabla mensual y las perdidas principales en una sola llamada.",
+            en: "Results: KPIs, CSV, losses, monthly, comparison, P50/P90, carbon, economics and deliverable. que:resumen returns the KPIs, the monthly table and the main losses in one call.",
+        },
     ),
 ];
 
 /// Replaces the tool description by its version without in-house actions, if it has one.
-pub(crate) fn ocultar_descripcion(tool: &str, esquema: &mut Value) {
+pub(crate) fn ocultar_descripcion(tool: &str, esquema: &mut Value, idioma: Idioma) {
     let Some((_, texto)) = DESCRIPCIONES_SIN_APROXIMACIONES
         .iter()
         .find(|(nombre, _)| *nombre == tool)
@@ -124,7 +142,7 @@ pub(crate) fn ocultar_descripcion(tool: &str, esquema: &mut Value) {
         return;
     };
     if let Some(descripcion) = esquema.get_mut("description") {
-        *descripcion = Value::from(*texto);
+        *descripcion = Value::from(texto.en_idioma(idioma));
     }
 }
 

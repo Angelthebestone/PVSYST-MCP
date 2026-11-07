@@ -1,5 +1,5 @@
 //! Catalogue filters for `listar_modulos`: nominal power range and free text
-//! over file name, vendor and model. Module metadata is parsed by `pan.rs`.
+//! over file name, vendor and model. Module metadata is parsed by `components::pan`.
 
 use crate::error::Result;
 use serde_json::{json, Value};
@@ -13,10 +13,7 @@ pub(crate) struct Criterios {
 
 /// Number from a JSON number or a numeric string (decimal comma allowed).
 pub(crate) fn numero(v: &Value) -> Option<f64> {
-    v.as_f64().or_else(|| {
-        v.as_str()
-            .and_then(|s| s.trim().replace(',', ".").parse::<f64>().ok())
-    })
+    crate::format::numero_json(v)
 }
 
 /// Module metadata shown in the listing; a parse failure becomes `error`.
@@ -71,7 +68,3 @@ impl Criterios {
         Some(entrada)
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/components/buscar.rs"]
-mod tests;

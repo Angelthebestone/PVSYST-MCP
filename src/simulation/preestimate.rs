@@ -102,7 +102,7 @@ fn con_workspace(args: &Value, mut destino: Value) -> Value {
 
 /// Specific yield and monthly energy of one orientation, or the best orientations of the
 /// sweep when no `tilt` or `azimut` is given. Runs locally and uses no trial execution.
-pub(crate) fn preestimar(_paths: &Paths, args: &Value) -> Result<Value> {
+pub(crate) fn preestimar(args: &Value) -> Result<Value> {
     let kwp = kwp_de(args)?;
     let sitio = sitio_de(args)?;
     let clima = Clima::de_nasa(sitio.latitud, sitio.longitud)?;
@@ -218,7 +218,3 @@ pub(crate) fn barrido(
         "supuestos": supuestos(),
     }))
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/simulation/preestimate.rs"]
-mod tests;

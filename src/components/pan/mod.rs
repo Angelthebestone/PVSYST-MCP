@@ -27,9 +27,9 @@ fn num(v: Option<&str>) -> Value {
     match v {
         Some(s) => {
             let t = s.trim();
-            match t.replace(',', ".").parse::<f64>() {
-                Ok(f) => json!(f),
-                Err(_) => json!(t),
+            match crate::format::numero_texto(t) {
+                Some(f) => json!(f),
+                None => json!(t),
             }
         }
         None => Value::Null,
@@ -55,7 +55,8 @@ fn parse_text_module(text: &str) -> Result<Value> {
         "vendor": root.find_deep("Manufacturer").unwrap_or(""),
         "model": root.find_deep("Model").or_else(|| root.field("Model")).unwrap_or(""),
         "data_source": root.find_deep("DataSource").unwrap_or(""),
-        "technology": root.find_deep("Technology").unwrap_or(""),
+        // PVsyst's own `.PAN` files name it `Technol`; `Technology` is the fixture spelling.
+        "technology": alias(&root, &["Technol", "Technology"]).unwrap_or(""),
         "version": root.field("Version").unwrap_or(""),
         "pnom": pnom,
         "voc": voc,
@@ -106,7 +107,8 @@ pub(crate) fn resolve_module_file(
 ) -> Result<PathBuf> {
     let direct = Path::new(name);
     if direct.is_absolute() {
-        if direct.starts_with(crate::config::compos_ro()) && direct.exists() {
+        // Canonical, not lexical: `ComposPV\..\..\x.PAN` starts with the base but leaves it.
+        if crate::components::resolucion::es_base_solo_lectura(direct) {
             return Ok(direct.to_path_buf());
         }
         let resolved = crate::workspace::resolver_ruta(ws, name, alcance)?;
@@ -153,17 +155,18 @@ pub(crate) fn leer_modulo(paths: &Paths, args: &Value) -> Result<Value> {
     Ok(result)
 }
 
-/// File name of the first `.PAN` (sorted) found in the workspace database, then in the
-/// bundled read-only one; `None` when neither has any module.
-pub(crate) fn primer_modulo_disponible(workspace: &Path) -> Option<String> {
-    [workspace.join("ComposPV"), crate::config::compos_ro()]
-        .iter()
-        .find_map(|carpeta| {
-            let mut pans: Vec<PathBuf> = Vec::new();
-            let _recorrido = walk_ext(carpeta, ".pan", &mut pans);
-            pans.sort();
-            pans.first()?.file_name()?.to_str().map(str::to_owned)
-        })
+/// File names of every `.PAN` in the workspace database, or of the bundled read-only
+/// one when the workspace has none, sorted by path.
+pub(crate) fn modulos_disponibles(workspace: &Path) -> Vec<String> {
+    let mut pans: Vec<PathBuf> = Vec::new();
+    let _recorrido = walk_ext(&workspace.join("ComposPV"), ".pan", &mut pans);
+    if pans.is_empty() {
+        let _recorrido = walk_ext(&crate::config::compos_ro(), ".pan", &mut pans);
+    }
+    pans.sort();
+    pans.iter()
+        .filter_map(|p| p.file_name()?.to_str().map(str::to_owned))
+        .collect()
 }
 
 /// List *.PAN files available to the workspace (ComposPV/PVmodules) plus, as a

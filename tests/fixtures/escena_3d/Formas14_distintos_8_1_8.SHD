@@ -1,0 +1,241 @@
+﻿  PVObject_=pvShading
+    Comment=Ninguna escena de sombreado definida
+    Version=8.1.8
+    Flags=$00
+    Precision=1
+    FracOmbreMod=1.000
+    FracOmbreThin=0.400
+    DisplayedRef=refGeographical
+
+    ListeObjets, list of=14 TShdObject
+
+      PVObject_1=pvShdElemObject
+        Comment=F00_triangulo
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=1
+        ColorSurf=$C0FF
+        DOrigine=0.500000,-5.250000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeTriangle
+        Params=1.100,1.200,1.300,13.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_2=pvShdElemObject
+        Comment=F01_triangulo_isosceles
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=2
+        ColorSurf=$C0FF
+        DOrigine=3.500000,-4.250000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeTriangleIsocele
+        Params=1.100,1.200,12.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_3=pvShdElemObject
+        Comment=F02_triangulo_rectangulo
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=3
+        ColorSurf=$C0FF
+        DOrigine=6.500000,-3.250000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeTriangleRectangle
+        Params=1.100,1.200,12.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_4=pvShdElemObject
+        Comment=F03_rectangulo
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=4
+        ColorSurf=$C0FF
+        DOrigine=9.500000,-2.250000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeRectangle
+        Params=1.100,2.200,12.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_5=pvShdElemObject
+        Comment=F04_trapecio
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=5
+        ColorSurf=$C0FF
+        DOrigine=12.500000,-1.250000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeTrapeze
+        Params=3.100,2.200,1.300,0.900,14.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_6=pvShdElemObject
+        Comment=F05_poligono_regular
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=6
+        ColorSurf=$C0FF
+        DOrigine=15.500000,-0.250000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeRegularPolygon
+        Params=1.100,7.000,12.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_7=pvShdElemObject
+        Comment=F06_sector_seudocircular
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=7
+        ColorSurf=$C0FF
+        DOrigine=18.500000,0.750000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oePseudoCircleSector
+        Params=1.100,170.000,9.000,13.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_8=pvShdElemObject
+        Comment=F07_paralelepipedo
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=8
+        ColorSurf=$C0FF
+        DOrigine=21.500000,1.750000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeParallelepipede
+        Params=1.100,1.200,1.300,
+      End of PVObject pvShdElemObject
+
+      PVObject_9=pvShdElemObject
+        Comment=F08_piramide_cuadrada
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=9
+        ColorSurf=$C0FF
+        DOrigine=24.500000,2.750000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeSquarePyramid
+        Params=1.100,2.200,
+      End of PVObject pvShdElemObject
+
+      PVObject_10=pvShdElemObject
+        Comment=F09_prisma_triangular
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=10
+        ColorSurf=$C0FF
+        DOrigine=27.500000,3.750000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeTriangularprism
+        Params=1.100,1.200,1.300,1.400,
+      End of PVObject pvShdElemObject
+
+      PVObject_11=pvShdElemObject
+        Comment=F10_prisma_hexagonal
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=11
+        ColorSurf=$C0FF
+        DOrigine=30.500000,4.750000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeHexagonalPrism
+        Params=1.100,1.200,
+      End of PVObject pvShdElemObject
+
+      PVObject_12=pvShdElemObject
+        Comment=F11_prisma_octogonal
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=12
+        ColorSurf=$C0FF
+        DOrigine=33.500000,5.750000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeOctogonalPrism
+        Params=1.100,1.200,
+      End of PVObject pvShdElemObject
+
+      PVObject_13=pvShdElemObject
+        Comment=F12_porcion_de_cilindro
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=13
+        ColorSurf=$C0FF
+        DOrigine=36.500000,6.750000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oePortionCylinder
+        Params=1.100,170.000,10.000,1.400,
+      End of PVObject pvShdElemObject
+
+      PVObject_14=pvShdElemObject
+        Comment=F13_casa_techo_dos_lados
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=14
+        ColorSurf=$00B3E4FF
+        ColorBord=$0002409B
+        DOrigine=39.500000,7.750000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeHouse
+        Params=8.100,12.200,5.300,34.000,1.000,1.100,
+      End of PVObject pvShdElemObject
+    End of ListeObjets
+
+    Orientations, list of=1 TOrientGroup
+
+      PVObject_=pvOrient
+        Comment=Fixed, Tilt 25.0°, Azim. 20.0°
+        Version=8.1.8
+        Flags=$00
+      NoOrient=1
+      FieldType=FixedPlane
+      FieldTilt=25.0
+      FieldAzim=20.0
+      BaseSlope=0.0
+      UsesTiltAver=False
+      UsesAzimAver=False
+      UsesSlopeAver=False
+      BTNoTrackers=-1,-1,
+      End of TOrientGroup
+    End of Orientations
+  End of PVObject pvShading

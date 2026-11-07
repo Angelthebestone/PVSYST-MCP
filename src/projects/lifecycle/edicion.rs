@@ -38,7 +38,7 @@ fn edicion_de(ed: &Value) -> Result<EdicionObjeto> {
         .ok_or_else(|| missing("campos", "objeto con los campos a cambiar"))?;
     Ok(EdicionObjeto {
         selector: selector.to_string(),
-        cambios: edit::changes_from_json(campos),
+        cambios: edit::changes_from_json(campos)?,
     })
 }
 

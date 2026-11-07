@@ -13,6 +13,7 @@ use serde_json::{json, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use super::plantilla::{carpeta_de_salida, resolver_plantilla, sit_pedido, variante_pedida};
 use super::transacciones::{escribir_par, renombrar_todo};
 
 /// Variant bytes with the optional module / inverter / sizing overrides applied.
@@ -73,62 +74,30 @@ fn personalizar(args: &Value, prj_src: &[u8], var_src: &[u8]) -> Result<Personal
     Ok(Personalizado { prj, var, applied })
 }
 
-/// Resolves the base project: the workspace first, then the read-only DataRO demo projects.
-fn resolver_plantilla(workspace: &Path, plantilla: &str, alcance: Alcance) -> Result<PathBuf> {
-    match crate::projects::resolve_project_file_con_alcance(workspace, plantilla, alcance) {
-        Ok(p) => Ok(p),
-        Err(e) => plantilla_demo_ro(plantilla).ok_or(e),
-    }
+/// The site changed but the project still reads the template's weather file: the
+/// simulation would run the new location with the old weather (E116's symptom).
+fn aviso_meteo_de_plantilla(prj: &[u8]) -> Option<String> {
+    let meteo = super::sitio::meteo_del_proyecto(prj)?;
+    Some(format!(
+        "the project still simulates with the template's weather file '{meteo}': give the site its own .MET with convertir_meteo or simular"
+    ))
 }
 
-/// A PVsyst demo project in DataRO named `plantilla`, with or without `.PRJ`.
-fn plantilla_demo_ro(plantilla: &str) -> Option<PathBuf> {
-    if Path::new(plantilla).is_absolute() || plantilla.contains("..") {
-        return None;
-    }
-    let base = crate::config::proyectos_demo_ro();
-    [plantilla.to_string(), format!("{plantilla}.PRJ")]
-        .iter()
-        .map(|c| base.join(c))
-        .find(|p| p.is_file())
-}
-
-/// Output always goes to the workspace: a DataRO template is never written beside.
-fn carpeta_de_salida(workspace: &Path, src_prj: &Path, src_parent: &Path) -> PathBuf {
-    if src_prj.starts_with(workspace) {
-        src_parent.to_path_buf()
-    } else {
-        workspace.join("Projects")
-    }
-}
-
-/// The workspace `Sites/<sitio>.SIT` requested with `sitio`; a missing site is an error.
-fn sit_pedido(workspace: &Path, args: &Value) -> Result<Option<PathBuf>> {
-    let Some(sitio) = args.get("sitio").and_then(Value::as_str) else {
+/// Links the requested site into the project and its variant, before either is written.
+fn vincular_sitio_pedido(nuevo: &mut Personalizado, sit: Option<&Path>) -> Result<Option<String>> {
+    let Some(sit) = sit else {
         return Ok(None);
     };
-    let dir = workspace.join("Sites");
-    let sit = dir.join(format!("{sitio}.SIT"));
-    if !sit.is_file() {
-        return Err(crate::args::no_encontrado(
-            "Sitio",
-            sitio,
-            &[],
-            &dir.to_string_lossy(),
-        ));
-    }
-    Ok(Some(sit))
+    nuevo.prj = super::sitio::insertar_sitio(&nuevo.prj, sit)?;
+    nuevo.var = super::sitio::insertar_sitio_en_variante(&nuevo.var, sit)?;
+    Ok(aviso_meteo_de_plantilla(&nuevo.prj))
 }
 
 pub(crate) fn crear_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
     let plantilla = req_str(args, &["plantilla"], "existing project to base on")?;
     let nombre = nombre_del_nuevo_proyecto(args)?;
-    let variante = args
-        .get("variante")
-        .and_then(|v| v.as_str())
-        .unwrap_or("VC0")
-        .to_uppercase();
+    let variante = variante_pedida(args);
 
     let alcance = Alcance::de_args(args);
     let src_prj = resolver_plantilla(&workspace, plantilla, alcance)?;
@@ -153,26 +122,30 @@ pub(crate) fn crear_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
 
     let prj_src = fs::read(&src_prj).map_err(|e| Error::io("Read PRJ", e))?;
     let var_src = fs::read(&src_var).map_err(|e| Error::io("Read variant", e))?;
-    let nuevo = personalizar(args, &prj_src, &var_src)?;
+    let mut nuevo = personalizar(args, &prj_src, &var_src)?;
     let sit = sit_pedido(&workspace, args)?;
-
+    // The site goes into the project before the pair is written: a site that cannot be
+    // linked leaves nothing behind, and it lands in this call's workspace and folder.
+    let aviso_meteo = vincular_sitio_pedido(&mut nuevo, sit.as_deref())?;
     let historial_id = escribir_par(
         &workspace,
         &[(new_prj.clone(), nuevo.prj), (new_var.clone(), nuevo.var)],
     )?;
-    if let Some(sit) = &sit {
-        crate::easy_mode::proyecto::vincular_sitio(paths, nombre, &sit.to_string_lossy())?;
-    }
 
-    Ok(json!({
+    let mut respuesta = json!({
         "project": nombre,
         "project_file": new_prj.to_string_lossy(),
         "variant_file": new_var.to_string_lossy(),
         "based_on": src_stem,
         "sitio": sit.as_ref().map(|p| p.to_string_lossy().to_string()),
+        "variant_site_updated": sit.is_some(),
         "applied": nuevo.applied,
         "historial_id": historial_id,
-    }))
+    });
+    if let Some(aviso) = aviso_meteo {
+        respuesta["warning"] = json!(aviso);
+    }
+    Ok(respuesta)
 }
 
 /// Move each path into the recycle bin; returns (moved paths, failure messages).
@@ -223,7 +196,7 @@ pub(crate) fn eliminar_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
                 .parent()
                 .ok_or_else(|| Error::Invalid("No parent directory".into()))?;
             std::iter::once(prj.clone())
-                .chain(variant_files(parent, &stem))
+                .chain(variant_files(parent, &stem)?)
                 .collect()
         }
     };
@@ -252,7 +225,7 @@ pub(crate) fn renombrar_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
         .to_path_buf();
 
     let mut pares: Vec<(PathBuf, PathBuf)> = vec![(prj, parent.join(format!("{nuevo}.PRJ")))];
-    for v in variant_files(&parent, &stem) {
+    for v in variant_files(&parent, &stem)? {
         if let Some(ext) = v.extension().and_then(|s| s.to_str()) {
             let destino = parent.join(format!("{nuevo}.{ext}"));
             pares.push((v.clone(), destino));
@@ -266,5 +239,32 @@ pub(crate) fn renombrar_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     }
 
     let renombrados = renombrar_todo(&pares)?;
-    Ok(json!({ "renamed": renombrados }))
+    let mut respuesta = json!({ "renamed": renombrados });
+    // The rename already happened: a comment that cannot be updated is reported, not fatal.
+    if let Err(e) = actualizar_comentario(&pares[0].1, &stem, nuevo) {
+        respuesta["aviso"] = json!(format!(
+            "The project was renamed but its Comment still says '{stem}': {e}"
+        ));
+    }
+    Ok(respuesta)
 }
+
+/// The PRJ's `Comment` follows the new name when it was the old one: PVsyst lists the
+/// project by it, so a renamed project kept announcing its old name.
+fn actualizar_comentario(prj: &Path, anterior: &str, nuevo: &str) -> Result<()> {
+    let bytes =
+        fs::read(prj).map_err(|e| Error::io(format!("Cannot read {}", prj.display()), e))?;
+    let texto = String::from_utf8_lossy(&bytes);
+    let raiz = crate::format::object::parse_first(&texto)
+        .ok_or_else(|| Error::Format("El PRJ no contiene un PVObject".into()))?;
+    if raiz.field("Comment") != Some(anterior) {
+        return Ok(());
+    }
+    let cambios = [("Comment".to_string(), Some(nuevo.to_string()))];
+    let (nuevos, _) = edit::edit_fields(&bytes, &raiz.obj_type, &cambios)?;
+    crate::history::escribir_atomico(prj, &nuevos)
+}
+
+#[cfg(test)]
+#[path = "../../../tests/unit/projects/lifecycle/creacion.rs"]
+mod tests;

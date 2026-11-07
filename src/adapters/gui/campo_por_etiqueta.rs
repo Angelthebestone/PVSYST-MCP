@@ -20,7 +20,7 @@ fn hwnd_de_texto(texto: &str) -> Result<Hwnd> {
     texto
         .strip_prefix("0x")
         .and_then(|h| Hwnd::from_str_radix(h, 16).ok())
-        .ok_or_else(|| Error::Gui(format!("Identificador de ventana no válido: '{texto}'")))
+        .ok_or_else(|| Error::Gui(format!("Invalid window identifier: '{texto}'")))
 }
 
 fn campos_de(ficha: &Value) -> Result<Vec<CampoEtiquetado>> {
@@ -58,27 +58,58 @@ fn poner_valor(f: &Formulario, c: &CampoEtiquetado, valor: &str) -> Result<()> {
         if ffi::elegir_item_por_clase(c.hwnd, &c.clase, valor)? {
             return Ok(());
         }
-        return Err(Error::Invalid(format!("La lista no ofrece '{valor}'")));
+        return Err(Error::Invalid(format!("The list offers no '{valor}'")));
     }
     if CLASES_OPCION.contains(&clase) {
         let marcado = esta_marcado(c.hwnd).ok_or_else(|| {
-            Error::Gui("PVsyst no respondió en 3 s al consultar estado de casilla".into())
+            Error::Gui("PVsyst did not answer in 3 s when reading the check box state".into())
         })?;
         if marcado != valor_logico(valor)? {
             clic_por_mensajes(c.hwnd)?;
         }
         return Ok(());
     }
-    Err(Error::Gui(format!("No sé poner valores en un {clase}")))
+    Err(Error::Gui(format!("Cannot set values on a {clase}")))
+}
+
+/// The keys `rellenar` accepts for the open form, or how to find them. A label
+/// that is not text (a bitmap, an icon) leaves `campo` with nothing to match,
+/// and `rellenar` works by stable key instead of by OCR.
+fn sugerencia_de_relleno(vista: &Value) -> String {
+    let claves: Vec<&str> = vista["campos"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|c| c["clave"].as_str())
+        .collect();
+    let Some(entidad) = vista["entidad"].as_str().filter(|_| !claves.is_empty()) else {
+        return "Use gui_actuar accion:rellenar with the keys of gui_observar que:vista (que:esquema lists the entities)".into();
+    };
+    format!(
+        "Use gui_actuar accion:rellenar with entidad '{entidad}' and keys: {}",
+        claves.join(", ")
+    )
+}
+
+/// The not-found error plus the way that works when the label is not text.
+fn error_sin_etiqueta(motivo: &str, vista: &Value) -> Error {
+    Error::NotFound(format!("{motivo}. {}", sugerencia_de_relleno(vista)))
 }
 
 /// Sets the field labelled `etiqueta` of the target form to `valor`.
 pub(crate) fn campo(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
-    let etiqueta = req_str(args, &["etiqueta"], "rótulo del campo")?;
-    let valor = req_str(args, &["valor"], "valor a poner")?;
+    let etiqueta = req_str(args, &["etiqueta"], "label of the field")?;
+    let valor = req_str(args, &["valor"], "value to set")?;
     let ficha = ocr::formulario(paths, args)?;
     let campos = campos_de(&ficha)?;
-    let elegido = campo_por_etiqueta(&campos, etiqueta)?;
+    let elegido = match campo_por_etiqueta(&campos, etiqueta) {
+        Ok(elegido) => elegido,
+        Err(Error::NotFound(motivo)) => {
+            let vista = crate::vista_agente::vista(paths, args).unwrap_or(Value::Null);
+            return Err(error_sin_etiqueta(&motivo, &vista));
+        }
+        Err(error) => return Err(error),
+    };
     let ventana_str = ficha
         .get("ventana")
         .and_then(Value::as_str)

@@ -23,7 +23,7 @@ pub(crate) fn todas() -> impl Iterator<Item = &'static Ventana> {
     GRUPOS.iter().flat_map(|g| g.iter())
 }
 
-/// The registration of `clase`, if any. O(n) over 82 entries.
+/// The registration of `clase`, if any. O(n) over 85 entries.
 pub(crate) fn de_clase(clase: &str) -> Option<&'static Ventana> {
     todas().find(|v| v.clase == clase)
 }

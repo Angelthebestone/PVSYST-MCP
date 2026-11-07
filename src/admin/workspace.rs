@@ -128,10 +128,9 @@ pub(crate) fn exportar_workspace(paths: &Paths, args: &Value) -> Result<Value> {
         fs::create_dir_all(parent)
             .map_err(|e| Error::io(format!("Cannot create {}", parent.display()), e))?;
     }
-    let names: Vec<std::ffi::OsString> = fs::read_dir(&workspace)
-        .map_err(|e| Error::io(format!("Cannot list {}", workspace.display()), e))?
-        .flatten()
-        .map(|e| e.file_name())
+    let names: Vec<std::ffi::OsString> = crate::workspace::entradas_de(&workspace)?
+        .iter()
+        .filter_map(|p| p.file_name().map(std::ffi::OsStr::to_os_string))
         .collect();
     zip_into(&destino, &workspace, &names)?;
     let size = fs::metadata(&destino)

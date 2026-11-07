@@ -5,6 +5,7 @@ use super::dominio::{validar_puntos, Horizonte, PuntoHorizonte};
 use crate::args::{missing, req_str, workspace_of};
 use crate::config::{data_ro, Alcance, Paths};
 use crate::error::{Error, Result};
+use crate::workspace::{primer_existente_en_bases, primer_existente_en_workspace};
 use serde_json::{json, Value};
 use std::fs;
 use std::path::PathBuf;
@@ -63,36 +64,23 @@ pub(crate) fn escribir_horizonte(paths: &Paths, args: &Value) -> Result<Value> {
 
 fn resolver_archivo_horizonte(paths: &Paths, args: &Value, nombre: &str) -> Result<PathBuf> {
     let ws = workspace_of(paths, args);
-    let alcance = Alcance::de_args(args);
-
     let candidatas = [
         nombre.to_string(),
         format!("Shadings/{nombre}"),
         format!("Shadings/{nombre}.HOR"),
         format!("{nombre}.HOR"),
     ];
-    for c in &candidatas {
-        if let Ok(p) = crate::workspace::resolver_ruta(&ws, c, alcance) {
-            if p.is_file() {
-                return Ok(p);
-            }
-        }
+    if let Some(p) = primer_existente_en_workspace(&ws, &candidatas, Alcance::de_args(args))? {
+        return Ok(p);
     }
-
-    let ro_base = data_ro().join("PVsyst8.1_Data").join("Shadings");
-    let ro_candidatas = [
-        ro_base.join(nombre),
-        ro_base.join(format!("{nombre}.HOR")),
-        data_ro().join("Shadings").join(nombre),
+    let ro = data_ro();
+    let bases = [
+        ro.join("PVsyst8.1_Data").join("Shadings"),
+        ro.join("Shadings"),
     ];
-    for p in &ro_candidatas {
-        if p.is_file() {
-            return Ok(p.clone());
-        }
-    }
-    Err(Error::NotFound(format!(
-        "Archivo de horizonte '{nombre}' no encontrado"
-    )))
+    let nombres = [nombre.to_string(), format!("{nombre}.HOR")];
+    primer_existente_en_bases(&bases, &nombres)
+        .ok_or_else(|| Error::NotFound(format!("Archivo de horizonte '{nombre}' no encontrado")))
 }
 
 fn resolver_destino_escritura(paths: &Paths, args: &Value, nombre: &str) -> Result<PathBuf> {

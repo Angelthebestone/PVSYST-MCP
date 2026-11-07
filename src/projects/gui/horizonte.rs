@@ -1,10 +1,10 @@
 //! Horizon import by PVsyst itself: its horizon window downloads the PVGIS
 //! profile for the project site and computes the diffuse and albedo factors.
 
-use super::{objeto, ProyectoEnPvsyst};
-use crate::adapters::gui::sesion_pvsyst::Sesion;
+use super::{abrir_sesion, objeto, ProyectoEnPvsyst};
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::format::object::PvNode;
 use serde_json::{json, Value};
 use std::time::{Duration, Instant};
 
@@ -13,11 +13,11 @@ use crate::adapters::gui::rotulos::Idioma;
 
 const ROTULOS: RotulosHorizonte = rotulos_horizonte(Idioma::Es);
 /// PVGIS answers in a few seconds; allow for slow networks.
-const ESPERA_DESCARGA: Duration = Duration::from_secs(90);
+pub(crate) const ESPERA_DESCARGA: Duration = Duration::from_secs(90);
 
 /// Imports the PVGIS horizon of the project site into `variante`.
 pub(crate) fn importar_pvgis(paths: &Paths, proyecto: &str, variante: &str) -> Result<Value> {
-    let sesion = Sesion::abrir(paths)?;
+    let sesion = abrir_sesion(paths)?;
     sesion.ejecutar(|s| {
         let p = ProyectoEnPvsyst::abrir(s, paths, proyecto, variante)?;
         p.ventana.pulsar(ROTULOS.horizonte)?;
@@ -39,18 +39,39 @@ pub(crate) fn importar_pvgis(paths: &Paths, proyecto: &str, variante: &str) -> R
         horizonte.pulsar(ROTULOS.ok)?;
         s.aceptar_mensajes();
         let raiz = p.guardar_variante()?;
-        let h = objeto(&raiz, "pvHorizon")
-            .ok_or_else(|| Error::Format("PVsyst no guardó el horizonte".into()))?;
-        let campo = |k: &str| h.field(k);
-        Ok(json!({
-            "origen": "pvsyst",
-            "fuente": "PVGIS (importación de PVsyst)",
-            "comentario": campo("Comment"),
-            "FHHDiffus": campo("FHHDiffus"),
-            "FHPDiffus": campo("FHPDiffus"),
-            "FHPAlbedo": campo("FHPAlbedo"),
-            "puntos": h.find_deep("NPtsEff"),
-            "avisos_pvsyst": s.mensajes(),
-        }))
+        respuesta(&raiz, &s.mensajes())
     })
 }
+
+/// Shading factors PVsyst computes from an imported horizon.
+const FACTORES: [&str; 3] = ["FHHDiffus", "FHPDiffus", "FHPAlbedo"];
+
+/// The horizon as saved; a variant without points or without any factor means PVsyst
+/// did not import it, which is an error rather than a reply full of `null`.
+fn respuesta(raiz: &PvNode, avisos: &[String]) -> Result<Value> {
+    let h = objeto(raiz, "pvHorizon")
+        .ok_or_else(|| Error::Format("PVsyst no guardó el horizonte".into()))?;
+    let puntos = h.find_deep("NPtsEff");
+    let sin_factores = FACTORES.iter().all(|k| h.field(k).is_none());
+    if puntos.is_none() || sin_factores {
+        return Err(Error::Gui(
+            "PVsyst guardó la variante sin el horizonte importado (sin puntos o sin factores)"
+                .into(),
+        ));
+    }
+    let mut salida = json!({
+        "origen": "pvsyst",
+        "fuente": "PVGIS (importación de PVsyst)",
+        "comentario": h.field("Comment"),
+        "puntos": puntos,
+        "avisos_pvsyst": avisos,
+    });
+    for k in FACTORES {
+        salida[k] = json!(h.field(k));
+    }
+    Ok(salida)
+}
+
+#[cfg(test)]
+#[path = "../../../tests/unit/projects/gui/horizonte.rs"]
+mod tests;

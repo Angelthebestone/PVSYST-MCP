@@ -8,9 +8,9 @@ use serde_json::Value;
 
 pub(crate) const TOOL_SITIO: Herramienta = Herramienta {
     nombre: "sitio",
-    descripcion: "Sitios y meteo: crear (coordenadas o CSV), convertir, geometria solar, horizonte y TMY de PVGIS. / EN: Sites and weather: create (coordinates or CSV), convert, solar geometry, PVGIS horizon and TMY.",
+    descripcion: crate::idioma::Texto { es: "Sitios y meteo: crear (coordenadas o CSV), convertir, geometria solar, horizonte y TMY de PVGIS.", en: "Sites and weather: create (coordinates or CSV), convert, solar geometry, PVGIS horizon and TMY." },
     anotaciones: Anotaciones {
-        titulo: "Sitio / Site",
+        titulo: crate::idioma::Texto { es: "Sitio", en: "Site" },
         es_solo_lectura: false,
         es_destructiva: true,
         es_idempotente: false,
@@ -52,6 +52,7 @@ pub(crate) const TOOL_SITIO: Herramienta = Herramienta {
         ("puntos", TipoDato::Array),
         ("variables", TipoDato::Array),
         ("valores", TipoDato::ArrayOrObject),
+        ("confirmar", TipoDato::Boolean),
     ],
     requeridos: &[],
     discriminador: Some(Discriminador {
@@ -74,6 +75,7 @@ pub(crate) const TOOL_SITIO: Herramienta = Herramienta {
         ("escribir_horizonte", &["archivo", "puntos"]),
         ("escribir_serie", &["archivo", "variables", "valores"]),
     ],
+    consumidos_por_accion: &[],
     sinonimos: SINONIMOS_SITIO,
     ejecutar: Ejecutor::Simple(ejecutar_sitio),
 };
@@ -126,18 +128,18 @@ fn ejecutar_sitio(paths: &Paths, args: &Value) -> Result<Value> {
                 "coordenadas" => sites::crear_sitio_coordenadas(paths, args),
                 "csv" => sites::crear_sitio(paths, args),
                 otro => Err(Error::Invalid(format!(
-                    "Origen '{otro}' no válido: usa coordenadas o csv"
+                    "Origin '{otro}' not valid: use coordinates or csv"
                 ))),
             }
         }
         "convertir_meteo" => sites::convertir_meteo(paths, args),
-        "geometria_solar" => sites::solar::geometria_solar(paths, args),
+        "geometria_solar" => sites::solar::geometria_solar(args),
         "horizonte_pvgis" => sites::pvgis::horizonte(paths, args),
         "meteo_pvgis" => sites::pvgis::meteo_pvgis(paths, args),
         "escribir_horizonte" => crate::horizonte_archivo::escribir_horizonte(paths, args),
         "escribir_serie" => crate::serie_horaria::escribir_serie(paths, args),
         _ => Err(Error::Invalid(format!(
-            "Valor '{valor}' no soportado para sitio"
+            "Value '{valor}' not supported for sitio"
         ))),
     }
 }

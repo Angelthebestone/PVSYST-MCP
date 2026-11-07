@@ -24,7 +24,16 @@ pub(crate) fn importar_workspace(paths: &Paths, args: &Value) -> Result<Value> {
     }
     let dest_str = req_str(args, &["destino"], "folder to extract into")?;
     let destino = resolver_ruta(&workspace, dest_str, Alcance::de_args(args))?;
-    let no_vacia = destino.read_dir().is_ok_and(|mut d| d.next().is_some());
+    let no_vacia = match destino.read_dir() {
+        Ok(mut d) => d.next().is_some(),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
+        Err(e) => {
+            return Err(Error::io(
+                format!("No se pudo leer el destino {}", destino.display()),
+                e,
+            ))
+        }
+    };
     if no_vacia && !flag(args, &["sobrescribir"]) {
         return Err(Error::Invalid(format!(
             "La carpeta destino no está vacía: {} (pasa sobrescribir:true)",
@@ -100,11 +109,7 @@ fn recolectar(
     directorios: &mut Vec<PathBuf>,
     archivos: &mut Vec<PathBuf>,
 ) -> Result<()> {
-    let mut entradas: Vec<PathBuf> = fs::read_dir(dir)
-        .map_err(|e| Error::io(format!("No se pudo listar {}", dir.display()), e))?
-        .flatten()
-        .map(|e| e.path())
-        .collect();
+    let mut entradas = crate::workspace::entradas_de(dir)?;
     entradas.sort();
     for p in entradas {
         if p.is_dir() {

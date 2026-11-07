@@ -4,9 +4,8 @@
 //! the evaluation page in the report (`-rp:p50p90`).
 
 use super::rotulos::{rotulos_p50, RotulosP50};
-use super::ProyectoEnPvsyst;
+use super::{abrir_sesion, ProyectoEnPvsyst};
 use crate::adapters::gui::rotulos::Idioma;
-use crate::adapters::gui::sesion_pvsyst::Sesion;
 use crate::adapters::uia;
 use crate::config::Paths;
 use crate::error::{Error, Result};
@@ -28,9 +27,47 @@ const CAMPOS: [&str; 10] = [
     "PxxMainResults",
 ];
 
+/// What the call would do and what it would cost, without opening PVsyst. The
+/// window itself spends no trial execution; the report that reads it back does.
+pub(crate) fn plan(paths: &Paths, proyecto: &str, variante: &str) -> Value {
+    let variante = variante.to_ascii_uppercase();
+    let archivo = crate::projects::lifecycle::variantes::ruta_variante(
+        &paths.projects_dir(),
+        proyecto,
+        &variante,
+    );
+    json!({
+        "accion": "p50_p90",
+        "dry_run": true,
+        "proyecto": proyecto,
+        "variante": variante,
+        "variant_file": archivo.as_ref().map(|p| p.to_string_lossy().to_string()).ok(),
+        "variant_file_exists": archivo.is_ok_and(|p| p.is_file()),
+        "requiere_gui": true,
+        "plan": [
+            crate::idioma::Texto {
+                es: "abrir el proyecto en PVsyst y activar la evaluación P50/P90 (ventana Gestión de energía)",
+                en: "open the project in PVsyst and enable the P50-P90 evaluation (Energy management window)",
+            }
+            .en_idioma(paths.idioma),
+            crate::idioma::Texto {
+                es: "guardar la variante desde PVsyst",
+                en: "save the variant from PVsyst",
+            }
+            .en_idioma(paths.idioma),
+        ],
+        "costo_estimado": crate::adapters::ledger::costo_estimado(&paths.workspace, 0),
+        "siguiente_paso": crate::idioma::Texto {
+            es: "repite sin dry_run y después simula con paginas_reporte incluyendo 'p50p90'",
+            en: "repeat without dry_run and then simulate with paginas_reporte including 'p50p90'",
+        }
+        .en_idioma(paths.idioma),
+    })
+}
+
 /// Adds the P50-P90 evaluation to `variante` as PVsyst defines it.
 pub(crate) fn configurar(paths: &Paths, proyecto: &str, variante: &str) -> Result<Value> {
-    let sesion = Sesion::abrir(paths)?;
+    let sesion = abrir_sesion(paths)?;
     sesion.ejecutar(|s| {
         let p = ProyectoEnPvsyst::abrir(s, paths, proyecto, variante)?;
         p.ventana.pulsar(ROTULOS.gestion_energia)?;

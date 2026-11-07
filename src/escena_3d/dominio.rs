@@ -26,6 +26,15 @@ impl TipoArchivoEscena {
         }
     }
 
+    /// Root class PVsyst writes for this file category.
+    pub(crate) fn clase_raiz(&self) -> &'static str {
+        match self {
+            Self::Shd => "pvShading",
+            Self::Bld => "pvShdBuilding",
+            Self::Sho => "pvShdObjects",
+        }
+    }
+
     /// Returns standard uppercase extension string representation.
     pub(crate) fn as_str(&self) -> &'static str {
         match self {
@@ -67,6 +76,15 @@ impl TipoFormaElemental {
         }
     }
 
+    /// Shape named by the text form (`ObjetElemType=oeParallelepipede`); only the demonstrated
+    /// ones are known, the rest keep their `oe…` name in `GeometriaElemental::tipo_pvsyst`.
+    pub(crate) fn de_texto(tipo: &str) -> Self {
+        match tipo {
+            "oeParallelepipede" => Self::Parallelepipedo,
+            _ => Self::Desconocida(0),
+        }
+    }
+
     pub(crate) fn nombre(&self) -> &'static str {
         match self {
             Self::Parallelepipedo => "Parallélépipède",
@@ -82,6 +100,8 @@ impl TipoFormaElemental {
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct GeometriaElemental {
     pub(crate) forma: TipoFormaElemental,
+    /// PVsyst's own name of the shape (`oeParallelepipede`), only in the text form.
+    pub(crate) tipo_pvsyst: Option<String>,
     pub(crate) dimensiones: Vec<f64>,
 }
 

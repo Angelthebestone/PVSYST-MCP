@@ -68,6 +68,8 @@ pub(crate) struct PasoSimulacionSalida {
     pub(crate) sitio_proyecto_detalle: Option<Value>,
     /// Warnings PVsyst logged during the run (`avisos_pvsyst` of `simular`).
     pub(crate) avisos_pvsyst: Vec<String>,
+    /// Why the run could not start, when PVsyst's output names a known cause.
+    pub(crate) detalle_error: Option<String>,
 }
 
 /// Key performance indicators extracted from simulation outputs.
@@ -78,7 +80,6 @@ pub(crate) struct KpisSalida {
     pub(crate) energia_producida_kwh: Option<f64>,
     pub(crate) produccion_especifica_kwh_kwp: Option<f64>,
     pub(crate) pr_pct: Option<f64>,
-    pub(crate) kwp: Option<f64>,
 }
 
 /// Complete typed state of an end-to-end execution run.
@@ -125,6 +126,7 @@ impl Corrida {
                 "ok": sim.sim_ok,
                 "csv": sim.csv_path,
                 "pdf": sim.pdf_path,
+                "detail": sim.detalle_error,
             }));
             if sim.sim_ok {
                 pasos.push(json!({

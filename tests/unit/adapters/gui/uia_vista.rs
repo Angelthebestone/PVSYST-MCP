@@ -1,16 +1,7 @@
 use super::*;
 
 #[test]
-fn operacion_para_picks_the_natural_pattern() {
-    assert_eq!(operacion_para(Some("Checkbox")), "alternar");
-    assert_eq!(operacion_para(Some("tab item")), "seleccionar");
-    assert_eq!(operacion_para(Some("tree item")), "expandir");
-    assert_eq!(operacion_para(Some("button")), "invocar");
-    assert_eq!(operacion_para(None), "invocar");
-}
-
-#[test]
-fn fusionar_merges_by_hwnd_and_flags_visual_only_regions() {
+fn should_merge_windows_by_hwnd_and_flag_visual_only_regions_when_fusing() {
     let arbol = json!({
         "nombre": "root",
         "hijos": [

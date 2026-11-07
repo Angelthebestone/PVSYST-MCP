@@ -7,6 +7,8 @@ pub(crate) enum Problema {
     NoEsObjeto,
     #[error("falta 'tipo' (texto)")]
     FaltaTipo,
+    #[error("'nombre' debe ser un texto de 1 a 64 caracteres sin saltos")]
+    NombreInvalido,
     #[error("tipo '{tipo}' desconocido: usa {validos:?}")]
     TipoDesconocido {
         tipo: String,
@@ -29,6 +31,4 @@ pub(crate) enum Problema {
         tipo: &'static str,
         validas: Vec<&'static str>,
     },
-    #[error("'radio_tronco' debe ser menor que 'radio_copa'")]
-    TroncoMayorQueCopa,
 }

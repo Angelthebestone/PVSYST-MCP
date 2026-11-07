@@ -145,7 +145,8 @@ pub(super) fn campos_de(salida: &Value) -> (Vec<Campo>, Option<Recorte>) {
     let todos: Vec<Campo> = escalares(mapa, "")
         .into_iter()
         .map(|(clave, valor)| Campo {
-            unidad: unidad_de(&clave),
+            // A text has no unit: `frente_a` names a variant, it is not amperes.
+            unidad: unidad_de(&clave).filter(|_| valor.is_number()),
             clave,
             valor,
             editable: false,

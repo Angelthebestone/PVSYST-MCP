@@ -11,4 +11,9 @@ pub(super) const VENTANAS: &[Ventana] = &[
     basica("TElementaryObjectForm"),
     basica("TGroundObjectForm"),
     basica("TThinObjectsForm"),
+    basica("TImportResultForm"),
+    basica("TTrackerFieldForm"),
+    basica("TShedFieldForm"),
+    basica("TRectFieldForm"),
+    basica("TPolyFieldForm"),
 ];

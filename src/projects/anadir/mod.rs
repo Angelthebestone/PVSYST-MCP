@@ -3,6 +3,7 @@
 
 pub(crate) mod baterias;
 pub(crate) mod catalogo;
+mod elementos;
 pub(crate) mod horizonte;
 pub(crate) mod objetos;
 
@@ -28,10 +29,9 @@ pub(crate) fn escribir_con_historial(
 
 /// Variant file `<proyecto stem>.<variante>` next to its PRJ.
 pub(crate) fn ruta_variante(prj: &Path, variante: &str) -> Result<PathBuf> {
-    let stem = prj.file_stem().and_then(|s| s.to_str()).ok_or_else(|| {
-        Error::Invalid(format!("Nombre de proyecto no válido: {}", prj.display()))
-    })?;
-    let destino = prj.with_file_name(format!("{stem}.{variante}"));
+    let stem = crate::projects::lifecycle::variantes::stem_de(prj)?;
+    let parent = prj.parent().unwrap_or_else(|| Path::new(""));
+    let destino = crate::projects::lifecycle::variantes::ruta_variante(parent, &stem, variante)?;
     if destino.is_file() {
         Ok(destino)
     } else {
