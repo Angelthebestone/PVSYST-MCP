@@ -113,8 +113,8 @@ static DESCRIPCIONES_SIN_APROXIMACIONES: &[(&str, Texto)] = &[
     (
         "simular",
         Texto {
-            es: "Simulacion: ejecutar (con filas/parametros opcionales), preparar entrada y estado.",
-            en: "Simulation: run (optional rows/parameters), prepare input and status.",
+            es: "Simulacion: ejecutar (con filas/parametros opcionales), preparar entrada y estado. dry_run muestra la linea de comando y las ejecuciones de prueba que gastaria (costo_estimado) sin ejecutar.",
+            en: "Simulation: run (optional rows/parameters), prepare input and status. dry_run shows the command line and the trial executions the run would spend (costo_estimado) without running it.",
         },
     ),
     (
@@ -127,8 +127,8 @@ static DESCRIPCIONES_SIN_APROXIMACIONES: &[(&str, Texto)] = &[
     (
         "resultados",
         Texto {
-            es: "Resultados: KPIs, CSV, perdidas, mensual, comparacion, P50/P90, carbono, economia y entregable.",
-            en: "Results: KPIs, CSV, losses, monthly, comparison, P50/P90, carbon, economics and deliverable.",
+            es: "Resultados: KPIs, CSV, perdidas, mensual, comparacion, P50/P90, carbono, economia y entregable. que:resumen devuelve KPIs, la tabla mensual y las perdidas principales en una sola llamada.",
+            en: "Results: KPIs, CSV, losses, monthly, comparison, P50/P90, carbon, economics and deliverable. que:resumen returns the KPIs, the monthly table and the main losses in one call.",
         },
     ),
 ];

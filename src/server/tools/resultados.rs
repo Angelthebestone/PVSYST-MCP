@@ -12,7 +12,7 @@ use serde_json::{json, Value};
 
 pub(crate) const TOOL_RESULTADOS: Herramienta = Herramienta {
     nombre: "resultados",
-    descripcion: crate::idioma::Texto { es: "Resultados: KPIs, resumen, CSV, perdidas, mensual, comparacion, medido_vs_simulado, P50/P90, carbono, economia y entregable.", en: "Results: KPIs, summary, CSV, losses, monthly, comparison, measured vs simulated, P50/P90, carbon, economics and deliverable." },
+    descripcion: crate::idioma::Texto { es: "Resultados: KPIs, resumen, CSV, perdidas, mensual, comparacion, medido_vs_simulado, P50/P90, carbono, economia y entregable. que:resumen devuelve KPIs, la tabla mensual y las perdidas principales en una sola llamada.", en: "Results: KPIs, summary, CSV, losses, monthly, comparison, measured vs simulated, P50/P90, carbon, economics and deliverable. que:resumen returns the KPIs, the monthly table and the main losses in one call." },
     anotaciones: Anotaciones {
         titulo: crate::idioma::Texto { es: "Resultados", en: "Results" },
         es_solo_lectura: false,

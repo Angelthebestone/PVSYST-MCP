@@ -10,7 +10,7 @@ use serde_json::{Map, Value};
 
 pub(crate) const TOOL_SIMULAR: Herramienta = Herramienta {
     nombre: "simular",
-    descripcion: crate::idioma::Texto { es: "Simulacion: ejecutar (con filas/parametros opcionales), preparar entrada, estado, preestimar y barrido.", en: "Simulation: run (optional rows/parameters), prepare input, status, pre-estimate and sweep." },
+    descripcion: crate::idioma::Texto { es: "Simulacion: ejecutar (con filas/parametros opcionales), preparar entrada, estado, preestimar y barrido. dry_run muestra la linea de comando y las ejecuciones de prueba que gastaria (costo_estimado) sin ejecutar. preestimar y barrido son aproximaciones del MCP: necesitan PVSYST_MCP_APROXIMACIONES=1.", en: "Simulation: run (optional rows/parameters), prepare input, status, pre-estimate and sweep. dry_run shows the command line and the trial executions the run would spend (costo_estimado) without running it. preestimar and barrido are MCP approximations: they need PVSYST_MCP_APROXIMACIONES=1." },
     anotaciones: Anotaciones {
         titulo: crate::idioma::Texto { es: "Simular", en: "Simulate" },
         es_solo_lectura: false,

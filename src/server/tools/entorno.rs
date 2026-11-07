@@ -83,7 +83,7 @@ const SINONIMOS_ENTORNO: Sinonimos = Sinonimos {
 
 pub(crate) const TOOL_DISENAR_SISTEMA: Herramienta = Herramienta {
     nombre: "disenar_sistema",
-    descripcion: crate::idioma::Texto { es: "E2E en una llamada: coordenadas + kWp (red o aislado) -> sitio -> proyecto -> dimensionado -> simulacion -> KPIs.", en: "End-to-end in one call: coordinates + kWp (grid or stand-alone) -> site -> project -> sizing -> simulation -> KPIs." },
+    descripcion: crate::idioma::Texto { es: "E2E en una llamada: coordenadas + kWp (red o aislado) -> sitio -> proyecto -> dimensionado -> simulacion -> KPIs. El modulo es 'modulo' si se pasa, si no el de la plantilla, si no el primer .PAN disponible. Un proyecto que dejo una llamada anterior con los mismos parametros se reutiliza en vez de rehacerse. synthetic_weather necesita Meteonorm: sin el, la llamada se rechaza antes de gastar una ejecucion de prueba.", en: "End-to-end in one call: coordinates + kWp (grid or stand-alone) -> site -> project -> sizing -> simulation -> KPIs. The module is 'modulo' when given, else the template's, else the first .PAN available. A project an earlier call left behind with the same parameters is reused instead of rebuilt. synthetic_weather needs Meteonorm: without it the call is refused before spending a trial execution." },
     anotaciones: Anotaciones {
         titulo: crate::idioma::Texto { es: "Diseñar sistema", en: "Design system" },
         es_solo_lectura: false,
