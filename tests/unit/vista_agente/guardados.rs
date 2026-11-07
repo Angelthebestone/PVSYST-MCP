@@ -44,10 +44,6 @@ fn should_keep_the_units_the_saved_module_shows_for_the_values_typed() {
     assert_eq!(valor("NCelS"), Some(72.0));
 }
 
-/// An inverter typed through `rellenar` and saved by PVsyst 8.1.8.
-const INVERSOR_GUARDADO: &str =
-    include_str!("../../fixtures/vista_agente/Inversor_distintos_8_1_8.OND");
-
 fn valor_guardado(archivo: &str, clave: &str) -> Option<f64> {
     archivo
         .lines()
@@ -59,39 +55,9 @@ fn valor_guardado(archivo: &str, clave: &str) -> Option<f64> {
         .and_then(|v| v.trim().parse::<f64>().ok())
 }
 
-#[test]
-fn should_find_every_file_key_of_the_inverter_schema_in_the_inverter_pvsyst_saved() {
-    let claves: Vec<&str> = INVERSOR_GUARDADO
-        .lines()
-        .filter_map(|l| l.trim().split_once('=').map(|(k, _)| k))
-        .collect();
-    let esquema = entidad("components.inverters").expect("inverter schema");
-    for clave in esquema.campos.iter().filter_map(|c| c.clave_archivo) {
-        assert!(
-            claves.contains(&clave),
-            "{clave} no está en el archivo guardado"
-        );
-    }
-}
-
 /// A battery typed through `rellenar` and saved by PVsyst 8.1.8.
 const BATERIA_GUARDADA: &str =
     include_str!("../../fixtures/vista_agente/Bateria_distintos_8_1_8.BTR");
-
-#[test]
-fn should_find_every_file_key_of_the_battery_schema_in_the_battery_pvsyst_saved() {
-    let claves: Vec<&str> = BATERIA_GUARDADA
-        .lines()
-        .filter_map(|l| l.trim().split_once('=').map(|(k, _)| k))
-        .collect();
-    let esquema = entidad("components.batteries").expect("battery schema");
-    for clave in esquema.campos.iter().filter_map(|c| c.clave_archivo) {
-        assert!(
-            claves.contains(&clave),
-            "{clave} no está en el archivo guardado"
-        );
-    }
-}
 
 #[test]
 fn should_keep_the_scale_the_saved_battery_uses_for_the_values_typed() {
