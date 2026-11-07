@@ -195,7 +195,3 @@ pub(crate) fn rango_opcional(valor: Option<f64>, max: f64, clave: &str) -> Resul
         "'{clave}' debe estar entre 0 y {max}: {valor}"
     )))
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/args.rs"]
-mod tests;

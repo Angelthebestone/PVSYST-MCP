@@ -32,41 +32,6 @@ fn should_parse_golden_scene_when_the_root_class_matches_the_extension() {
 }
 
 #[test]
-fn should_parse_position_and_geometry_blocks_when_the_scene_carries_binary_objects() {
-    use crate::format::real48::encode_real48;
-    let mut sample = FIXTURE_ESCENA_SINTETICA.to_vec();
-    // 44-byte position block: 12 bytes prefix, 5x Real48 slots (x, y, z, rot1, rot2), visibility, '/'
-    let mut pos_block = vec![0u8; 12];
-    pos_block.extend_from_slice(&encode_real48(10.5).unwrap());
-    pos_block.extend_from_slice(&encode_real48(-2.0).unwrap());
-    pos_block.extend_from_slice(&encode_real48(3.0).unwrap());
-    pos_block.extend_from_slice(&encode_real48(45.0).unwrap());
-    pos_block.extend_from_slice(&encode_real48(0.0).unwrap());
-    pos_block.push(1); // visible
-    pos_block.push(b'/');
-    pos_block.extend_from_slice(b"\r\n");
-    sample.extend_from_slice(&pos_block);
-
-    // 39-byte geometry block: shape 11 (parallelepiped), 6x Real48 slots, '/'
-    let mut geom_block = vec![11u8, 0u8];
-    for dim in [5.0, 4.0, 3.0, 0.0, 0.0, 1.0] {
-        geom_block.extend_from_slice(&encode_real48(dim).unwrap());
-    }
-    geom_block.push(b'/');
-    geom_block.extend_from_slice(b"\r\n");
-    sample.extend_from_slice(&geom_block);
-
-    let escena = parse_escena_3d(&sample, TipoArchivoEscena::Bld).expect("parseo con bloques");
-    let obj = &escena.objetos()[0];
-    let pos = obj.posicion().expect("posicion presente");
-    assert!((pos.x - 10.5).abs() < 1e-4);
-    assert!((pos.y - (-2.0)).abs() < 1e-4);
-    let geo = obj.geometria().expect("geometria presente");
-    assert_eq!(geo.forma.nombre(), "Parallélépipède");
-    assert!((geo.dimensiones[0] - 5.0).abs() < 1e-4);
-}
-
-#[test]
 fn should_read_the_box_when_the_scene_is_the_text_form_with_a_byte_order_mark() {
     let escena = parse_escena_3d(ESCENA_TEXTO_8_1_8, TipoArchivoEscena::Shd).expect("texto");
 

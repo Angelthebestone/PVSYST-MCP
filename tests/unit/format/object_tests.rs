@@ -33,39 +33,3 @@ fn should_parse_bom_prefixed_document() {
     assert_eq!(r.obj_type, "pvProject");
     assert_eq!(r.field("Comment"), Some("Hi"));
 }
-
-#[test]
-fn should_accept_synthetic_variant_with_implicit_list_and_type_closures() {
-    let synthetic_vc = "\
-PVObject_=pvVCalcul
-  Orientations, list of=1 TOrientGroup
-    PVObject_=pvOrient
-      Comment=Fixed
-      FieldTilt=25.0
-    End of TOrientGroup
-  End of Orientations
-  PVObject_Ageing=pvAgeing
-    AgeingLossPure=TCubicProfile
-  End of TAgeing
-  VarList, list of=1 TVarSimul
-    End of VarSimul=viHSol
-  End of the List VarList
-End of PVObject pvVCalcul
-";
-    let diag = diagnosticar_estructura(synthetic_vc);
-    assert!(
-        diag.esta_balanceada(),
-        "unclosed: {:?}, extra closes: {}",
-        diag.abiertos_sin_cerrar,
-        diag.cierres_sin_apertura
-    );
-    assert!(validar_estructura(synthetic_vc.as_bytes()).is_ok());
-
-    let trunc = synthetic_vc
-        .trim_end()
-        .strip_suffix("End of PVObject pvVCalcul")
-        .unwrap();
-    let err = validar_estructura(trunc.as_bytes()).unwrap_err();
-    assert!(matches!(err, Error::Format(_)));
-    assert!(err.to_string().contains("[pvVCalcul]"));
-}

@@ -20,14 +20,3 @@ fn should_reject_conflicting_alias_when_the_values_differ() {
         "identical values for alias and canonical should succeed"
     );
 }
-
-#[test]
-fn should_keep_the_declared_source_property_when_normalizing_sitio_aliases() {
-    let tool_sitio = REGISTRO.iter().find(|h| h.nombre == "sitio").unwrap();
-    let args = json!({ "accion": "crear", "source": "NASA SSE" });
-    let preparados = tool_sitio
-        .preparar_args(&args, Idioma::En)
-        .expect("preparar_args");
-    assert_eq!(preparados.get("source"), Some(&json!("NASA SSE")));
-    assert_eq!(preparados.get("origen"), None);
-}

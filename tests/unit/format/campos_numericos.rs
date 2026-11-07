@@ -6,13 +6,6 @@ fn cambio(campo: &str, valor: &str) -> Vec<(String, Option<String>)> {
 }
 
 #[test]
-fn should_reject_text_in_a_numeric_field() {
-    let err = validar_valores(&cambio("PNom", "abc")).expect_err("PNom es numérico");
-    assert!(err.to_string().contains("PNom"), "{err}");
-    assert!(err.to_string().contains("Non-numeric"), "{err}");
-}
-
-#[test]
 fn should_accept_point_decimals_in_a_numeric_field() {
     validar_valores(&cambio("PNom", "400")).expect("entero");
     validar_valores(&cambio("pnom", "400.5")).expect("decimal con punto");

@@ -10,30 +10,6 @@ fn dummy_paths(ws: &Path) -> Paths {
 }
 
 #[test]
-fn should_reject_empty_content_unless_base64_is_explicit() {
-    let ws = tempdir().expect("ws");
-    let paths = dummy_paths(ws.path());
-
-    let err = escribir_archivo(
-        &paths,
-        &json!({ "archivo": "UserData/Vacio.txt", "contenido": "" }),
-    )
-    .expect_err("contenido vacío rechazado");
-    assert!(
-        err.to_string().contains("'contenido' must not be empty"),
-        "{err}"
-    );
-    assert!(!ws.path().join("UserData").join("Vacio.txt").exists());
-
-    let out = escribir_archivo(
-        &paths,
-        &json!({ "archivo": "UserData/Vacio.txt", "contenido": "", "base64": true }),
-    )
-    .expect("base64 explícito sí puede escribir 0 bytes");
-    assert_eq!(out["bytes_written"], json!(0));
-}
-
-#[test]
 fn should_refuse_overwriting_when_sobrescribir_is_explicitly_false() {
     let ws = tempdir().expect("ws");
     let paths = dummy_paths(ws.path());

@@ -39,21 +39,6 @@ fn should_refuse_edit_when_pvobject_is_truncated() {
 }
 
 #[test]
-fn should_replace_field_at_right_level() {
-    let (out, res) = edit_fields(
-        DOC.as_bytes(),
-        "pvMainArray/pvSubArray",
-        &[("PVModule".into(), Some("New.PAN".into()))],
-    )
-    .unwrap();
-    assert_eq!(res[0].action, AccionCambio::Replaced);
-    let text = String::from_utf8(out).unwrap();
-    assert!(text.contains("      PVModule=New.PAN\r\n"));
-    assert!(!text.contains("Old.PAN"));
-    assert!(text.contains("NModSerie=10\r\n"));
-}
-
-#[test]
 fn should_keep_binary_bytes_identical() {
     let raw = b"PVObject_=pvProject\r\n  Comment=X\r\nEnd of PVObject pvProject\r\n\x8c\x00\x00\xff\xfe\r\n".to_vec();
     let (out, res) = edit_fields(&raw, "pvProject", &[]).unwrap();

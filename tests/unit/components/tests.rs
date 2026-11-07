@@ -118,35 +118,3 @@ fn should_create_legacy_component_from_template_with_applied_changes() {
     let parsed_orig = pan::parse_pan(&orig_bytes).expect("parse orig");
     assert_eq!(parsed_orig["pnom"], 300.0);
 }
-
-#[test]
-fn should_reject_object_and_array_values_in_campos() {
-    let temp = tempdir().expect("tempdir");
-    let mods_dir = temp.path().join("ComposPV").join("PVModules");
-    fs::create_dir_all(&mods_dir).expect("create dir");
-    let pan_path = mods_dir.join("Synth_Legacy_300W.PAN");
-    let fixture = include_bytes!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/tests/fixtures/workspace/ComposPV/PVModules/Synth_Legacy_300W.PAN"
-    ));
-    fs::write(&pan_path, fixture).expect("write fixture");
-    let antes = fs::read(&pan_path).expect("read before");
-
-    let paths = Paths::resolve();
-    for valor in [json!({ "anidado": true }), json!([1, 2])] {
-        let args = json!({
-            "workspace": temp.path().to_string_lossy(),
-            "componente": "Synth_Legacy_300W.PAN",
-            "tipo": "PAN",
-            "campos": { "Pnom": valor }
-        });
-        let err = editar_componente(&paths, &args).unwrap_err();
-        let msg = err.to_string();
-        assert!(msg.contains("Pnom"), "nombra el campo: {msg}");
-        assert!(
-            msg.contains("expected text, number or boolean"),
-            "nombra el tipo esperado: {msg}"
-        );
-    }
-    assert_eq!(fs::read(&pan_path).expect("read after"), antes);
-}

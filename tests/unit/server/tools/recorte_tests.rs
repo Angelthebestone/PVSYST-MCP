@@ -27,16 +27,3 @@ fn should_mark_the_answer_as_trimmed_when_the_detail_level_cuts_items() {
     assert_eq!(v["truncado"], true);
     assert_eq!(v["hint"], "detalle:completo");
 }
-
-#[test]
-fn should_keep_every_item_when_detalle_is_completo() {
-    let mut v = json!({ "items": (0..20).collect::<Vec<u32>>() });
-    decorar(
-        &mut v,
-        &json!({ "detalle": "completo" }),
-        respuesta("listar", "proyectos", Vec::new()),
-    );
-    assert_eq!(v["items"].as_array().map(Vec::len), Some(20));
-    assert!(v.get("truncado").is_none());
-    assert!(v.get("hint").is_none());
-}

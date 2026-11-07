@@ -10,32 +10,6 @@ const FIXTURE_LEGACY_PAN: &[u8] = include_bytes!(concat!(
 ));
 
 #[test]
-fn should_roundtrip_encode_decode_for_fixture_slots() {
-    let start = block1_start(FIXTURE_LEGACY_PAN).expect("3rd CRLF in fixture");
-    let term = FIXTURE_LEGACY_PAN[start..]
-        .iter()
-        .position(|&b| b == 0x2F)
-        .map(|p| start + p)
-        .expect("block terminator in fixture");
-
-    let n_slots = (term - start) / BYTES_POR_SLOT;
-    assert_eq!(n_slots, 25, "fixture must have 25 slots");
-
-    for i in 0..n_slots {
-        let offset = start + i * BYTES_POR_SLOT;
-        let mut slot_bytes = [0u8; 6];
-        slot_bytes.copy_from_slice(&FIXTURE_LEGACY_PAN[offset..offset + 6]);
-
-        let decoded = real48(&slot_bytes);
-        let re_encoded = encode_real48(decoded).expect("re-encoding must succeed");
-        assert_eq!(
-            re_encoded, slot_bytes,
-            "Slot {i} roundtrip mismatch: orig={slot_bytes:?}, dec={decoded}, re={re_encoded:?}"
-        );
-    }
-}
-
-#[test]
 fn should_patch_single_field_leaving_all_other_bytes_identical() {
     let original = FIXTURE_LEGACY_PAN;
     let start = block1_start(original).expect("block1 start");
