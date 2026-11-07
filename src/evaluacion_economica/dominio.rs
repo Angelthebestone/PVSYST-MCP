@@ -6,7 +6,9 @@ use serde_json::{json, Value};
 
 const MAX_VIDA_ANIOS: u32 = 100;
 const MAX_TASA: f64 = 1.0;
-const MAX_TARIFA_KWH: f64 = 100.0;
+/// A sale tariff is in the project's currency, so no currency range applies: this is
+/// only a sanity bound, far above any real tariff per kWh.
+const MAX_TARIFA_KWH: f64 = 1_000_000.0;
 const LONGITUD_CODIGO_MONEDA: usize = 3;
 const DECIMALES_TASA: usize = 4;
 const DECIMALES_TARIFA: usize = 5;
