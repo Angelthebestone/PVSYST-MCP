@@ -3,6 +3,7 @@
 
 use super::conduccion::formularios;
 use super::ffi::Hwnd;
+use super::modal;
 use super::ventanas::{class_of, text_of};
 use serde_json::{json, Value};
 use std::time::Duration;
@@ -21,14 +22,26 @@ pub(crate) struct VentanaViva {
 
 /// The visible forms of `pid` right now.
 pub(crate) fn instantanea(pid: u32) -> Vec<VentanaViva> {
-    formularios(pid)
+    let mut vivas: Vec<VentanaViva> = formularios(pid)
         .into_iter()
         .map(|v| VentanaViva {
             h: v,
             clase: class_of(v),
             titulo: text_of(v),
         })
-        .collect()
+        .collect();
+    // A modal embedded as a child window is not in the top-level list, and it is
+    // exactly the form that can block the next call.
+    if let Some(h) = modal::modal_de(&[pid]) {
+        if !vivas.iter().any(|v| v.h == h) {
+            vivas.push(VentanaViva {
+                h,
+                clase: class_of(h),
+                titulo: text_of(h),
+            });
+        }
+    }
+    vivas
 }
 
 /// Forms the close made visible again: a bare `closed:true` would hide them.
