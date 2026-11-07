@@ -136,7 +136,7 @@ fn comprobar_proyecto_libre(args: &Value) -> Result<()> {
         return Ok(());
     }
     Err(Error::Gui(
-        "'proyecto' no se puede abrir: PVsyst ya está en ejecución. Ciérrelo (gui_actuar accion:cerrar_todo) y repita lanzar con proyecto".into(),
+        "'proyecto' cannot be opened: PVsyst is already running. Close it (gui_actuar accion:cerrar_todo) and repeat lanzar with proyecto".into(),
     ))
 }
 

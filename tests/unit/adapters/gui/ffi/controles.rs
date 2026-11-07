@@ -43,8 +43,8 @@ fn should_refuse_a_tab_index_past_the_last_page_naming_the_count() {
     let err = exigir_indice_pagina(9, 3, "Formulario")
         .unwrap_err()
         .to_string();
-    assert!(err.contains("'indice' 9 fuera de rango"), "{err}");
-    assert!(err.contains("tiene 3 pestañas (0 a 2)"), "{err}");
+    assert!(err.contains("'indice' 9 out of range"), "{err}");
+    assert!(err.contains("has 3 tab pages (0 to 2)"), "{err}");
 }
 
 #[test]

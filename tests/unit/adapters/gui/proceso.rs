@@ -5,7 +5,7 @@ fn should_refuse_proyecto_when_pvsyst_is_already_running() {
     let err = comprobar_proyecto_libre(&json!({"proyecto": "x.PRJ"}))
         .unwrap_err()
         .to_string();
-    assert!(err.contains("ya está en ejecución"), "{err}");
+    assert!(err.contains("already running"), "{err}");
     assert!(err.contains("cerrar_todo"), "{err}");
 }
 

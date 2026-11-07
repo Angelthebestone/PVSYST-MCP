@@ -214,17 +214,17 @@ fn should_read_the_fields_of_a_complete_window_like_a_basic_one() {
 }
 
 #[test]
-fn should_not_link_the_transposition_window_to_a_function_that_opens_another_one() {
+fn should_link_each_window_to_the_function_that_opens_it() {
     let transposicion = ventana_listada("TTranspositionForm");
-    assert_eq!(transposicion["abierta_con"], serde_json::json!([]));
+    assert_eq!(
+        transposicion["abierta_con"],
+        serde_json::json!(["herramientas.factor_transposicion"])
+    );
     let conjuntos = ventana_listada("TArrayCharactForm");
-    let funciones = conjuntos["abierta_con"]
-        .as_array()
-        .cloned()
-        .unwrap_or_default();
-    assert!(funciones
-        .iter()
-        .any(|c| c == "herramientas.factor_transposicion"));
+    assert_eq!(
+        conjuntos["abierta_con"],
+        serde_json::json!(["herramientas.comportamiento_electrico"])
+    );
 }
 
 #[test]

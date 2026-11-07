@@ -41,7 +41,7 @@ fn resolver_foco(logrado: bool, destino: Destino, h: ffi::Hwnd) -> Result<bool> 
     if destino == Destino::Aislado {
         tracing::warn!(
             control = h,
-            "el control no tomó el foco en el escritorio aislado: se envían las teclas igualmente"
+            "the control did not take the focus on the isolated desktop: the keys are sent anyway"
         );
         return Ok(false);
     }
@@ -93,10 +93,10 @@ pub(crate) fn teclas(args: &Value) -> Result<Value> {
     ffi::traer_al_frente(raiz);
     std::thread::sleep(FOCO);
     exigir_primer_plano(raiz)?;
+    let foco = raiz != h && dar_foco_al_control(h)?;
     let foco_actual = ffi::foco_del_hilo(ffi::hilo_de(raiz));
     let raiz_del_foco = (foco_actual != 0).then(|| ffi::get_ancestor(foco_actual, ffi::GA_ROOT));
     exigir_foco_en_la_ventana(foco_actual, raiz, raiz_del_foco)?;
-    let foco = raiz != h && dar_foco_al_control(h)?;
     ffi::pulsar_combinacion(vk, &mods);
     Ok(json!({
         "sent": combo,

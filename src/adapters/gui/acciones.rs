@@ -198,8 +198,8 @@ struct VentanaViva {
     titulo: String,
 }
 
-fn ventanas_vivas(h: Hwnd) -> Vec<VentanaViva> {
-    formularios(pid_of(h))
+fn ventanas_vivas(pid: u32) -> Vec<VentanaViva> {
+    formularios(pid)
         .into_iter()
         .map(|v| VentanaViva {
             h: v,
@@ -258,7 +258,10 @@ pub(crate) fn invocar(args: &Value) -> Result<Value> {
         modal::exigir_habilitada(h, modal::PARA_ACTUAR)?;
     }
     let cerrar = action == "cerrar";
-    let antes = cerrar.then(|| ventanas_vivas(h));
+    // The pid must be read while the window still exists: a destroyed HWND
+    // reports pid 0 and the re-observation would see nothing.
+    let pid = cerrar.then(|| pid_of(h));
+    let antes = pid.map(ventanas_vivas);
     ffi::traer_al_frente(ffi::get_ancestor(h, GA_ROOT));
     ejecutar_accion(h, action, args)?;
 
@@ -266,8 +269,8 @@ pub(crate) fn invocar(args: &Value) -> Result<Value> {
     if cerrar {
         exigir_cerrada(h)?;
         std::thread::sleep(ESPERA_REAPARICION);
-        if let Some(antes) = antes {
-            reabiertas = formas_reabiertas(&antes, &ventanas_vivas(h), h);
+        if let (Some(antes), Some(pid)) = (antes, pid) {
+            reabiertas = formas_reabiertas(&antes, &ventanas_vivas(pid), h);
         }
     }
     let mut window = window_json(h);

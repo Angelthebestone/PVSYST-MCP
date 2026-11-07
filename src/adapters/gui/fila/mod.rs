@@ -158,6 +158,9 @@ fn control_de(args: &Value) -> Result<Hwnd> {
     let Some(clase) = args.get("clase").and_then(Value::as_str) else {
         return Ok(h);
     };
+    if class_of(h) == clase {
+        return Ok(h);
+    }
     let hijos: Vec<(Hwnd, String)> = ffi::enum_children(h)
         .into_iter()
         .filter(|c| visible(*c))

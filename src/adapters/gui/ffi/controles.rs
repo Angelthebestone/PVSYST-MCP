@@ -134,7 +134,7 @@ pub(crate) fn exigir_indice_pagina(indice: usize, total: usize, titulo: &str) ->
         return Ok(());
     }
     Err(Error::Invalid(format!(
-        "'indice' {indice} fuera de rango: '{titulo}' tiene {total} pestañas (0 a {})",
+        "'indice' {indice} out of range: '{titulo}' has {total} tab pages (0 to {})",
         total.saturating_sub(1)
     )))
 }

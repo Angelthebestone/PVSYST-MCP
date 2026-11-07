@@ -153,6 +153,12 @@ fn marcar_espera(window: &mut Value, espera: &Espera<'_>) {
     }
 }
 
+fn respuesta_de(h: Hwnd, espera: &Espera<'_>) -> Value {
+    let mut window = window_json(h);
+    marcar_espera(&mut window, espera);
+    window
+}
+
 pub(crate) fn esperar_ventana(args: &Value, params: &EsperarParams) -> Result<Value> {
     if params.clase.is_none() && params.titulo.is_none() {
         return Err(Error::Gui(
@@ -178,19 +184,22 @@ pub(crate) fn esperar_ventana(args: &Value, params: &EsperarParams) -> Result<Va
         || esperar_evento(criterio.clone(), ESPERA_REINTENTO_MS),
     );
     match resultado {
-        Hallazgo::ATiempo(h) => Ok(window_json(h)),
-        Hallazgo::Tarde(h) => {
-            let mut window = window_json(h);
-            marcar_espera(
-                &mut window,
-                &Espera {
-                    tarde: true,
-                    timeout_ms: params.timeout_ms,
-                    etiqueta: &etiqueta,
-                },
-            );
-            Ok(window)
-        }
+        Hallazgo::ATiempo(h) => Ok(respuesta_de(
+            h,
+            &Espera {
+                tarde: false,
+                timeout_ms: params.timeout_ms,
+                etiqueta: &etiqueta,
+            },
+        )),
+        Hallazgo::Tarde(h) => Ok(respuesta_de(
+            h,
+            &Espera {
+                tarde: true,
+                timeout_ms: params.timeout_ms,
+                etiqueta: &etiqueta,
+            },
+        )),
         Hallazgo::Nada => Err(Error::Gui(format!(
             "timeout waiting for {etiqueta}: it did not appear in {} ms nor in the {ESPERA_REINTENTO_MS} ms recheck",
             params.timeout_ms
