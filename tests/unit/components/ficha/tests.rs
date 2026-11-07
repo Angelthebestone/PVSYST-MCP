@@ -52,3 +52,12 @@ fn should_require_the_grid_voltage_and_write_it_when_creating_an_inverter_from_a
     let error = pvsyst::validar(&pvsyst::INVERSOR, &en_vatios).expect_err("kW fuera de rango");
     assert!(error.to_string().contains("PNomConv"), "error={error}");
 }
+
+#[test]
+fn should_refuse_text_in_a_numeric_datasheet_field_when_creating_from_a_ficha() {
+    let mut datos = ficha_ond();
+    datos.insert("PNomConv".into(), json!("abc"));
+
+    let error = pvsyst::validar(&pvsyst::INVERSOR, &datos).expect_err("PNomConv no numérico");
+    assert!(error.to_string().contains("PNomConv"), "error={error}");
+}

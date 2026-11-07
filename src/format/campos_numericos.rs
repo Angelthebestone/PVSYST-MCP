@@ -32,8 +32,12 @@ const CAMPOS_NUMERICOS: &[&str] = &[
     "muPmpp",
     "muPmpReq",
     "Gamma",
+    "muGamma",
     "Gref",
     "Tref",
+    "NCelS",
+    "RShunt",
+    "RSerie",
     // Variant and system fields written by the project use cases.
     "NModSerie",
     "NStringCh",
@@ -82,7 +86,7 @@ fn es_numero(valor: &str) -> bool {
 }
 
 /// Rejects a non-numeric value for a known numeric field.
-pub(super) fn validar_valores(cambios: &[(String, Option<String>)]) -> Result<()> {
+pub(crate) fn validar_valores(cambios: &[(String, Option<String>)]) -> Result<()> {
     for (campo, valor) in cambios {
         let Some(valor) = valor else {
             continue;

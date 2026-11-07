@@ -202,8 +202,19 @@ fn avisos_de_unidades(t: &Tipo, datos: &Map<String, Value>) -> Vec<String> {
         .collect()
 }
 
+/// Text in a field PVsyst reads as a number would be typed into its window and
+/// saved as a component no simulation can use.
+fn validar_numericos(datos: &Map<String, Value>) -> Result<()> {
+    let cambios: Vec<(String, Option<String>)> = datos
+        .iter()
+        .map(|(clave, valor)| (clave.clone(), Some(crate::format::value_text(valor))))
+        .collect();
+    crate::format::campos_numericos::validar_valores(&cambios)
+}
+
 pub(super) fn validar(t: &Tipo, datos: &Map<String, Value>) -> Result<()> {
     validar_potencias_kw(t, datos)?;
+    validar_numericos(datos)?;
     let faltan: Vec<&str> = t
         .obligatorias
         .iter()
