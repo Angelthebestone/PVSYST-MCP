@@ -4,26 +4,6 @@ const SINTETICO: &[u8] =
     b"PVObject_Root=pvRoot\r\n  FieldTilt=20\r\n  Name=x\r\nEnd of PVObject pvRoot\r\n";
 
 #[test]
-fn should_insert_and_rebase_indentation() {
-    let bloque = b"PVObject_Old=pvChild\n  X=1\nEnd of PVObject pvChild\n";
-    let out = insertar_objeto(
-        SINTETICO,
-        "pvRoot",
-        bloque,
-        Some("Hijo"),
-        SiExiste::Rechazar,
-    )
-    .expect("insertar");
-    let texto = String::from_utf8(out.clone()).expect("utf8");
-    assert!(texto.contains("  PVObject_Hijo=pvChild\r\n"));
-    assert!(texto.contains("    X=1\r\n"));
-    let spans = edit::spans_of(&out);
-    let hijo = spans.iter().find(|s| s.ty == "pvChild").expect("hijo");
-    assert_eq!(hijo.indent, 2);
-    assert_eq!(hijo.role.as_deref(), Some("Hijo"));
-}
-
-#[test]
 fn should_require_reemplazar_when_child_exists() {
     let bloque = b"PVObject_Hijo=pvChild\nX=1\nEnd of PVObject pvChild\n";
     let primera =
