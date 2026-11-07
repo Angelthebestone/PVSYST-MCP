@@ -178,3 +178,40 @@ fn diseno(extra: &serde_json::Value) -> DisenoParametros {
     }
     DisenoParametros::parse(&args).expect("parámetros")
 }
+
+#[test]
+fn should_skip_modules_without_electrical_data_when_substituting_the_template_module() {
+    // Given: a template whose module is missing, and two candidates, the first one
+    // alphabetically without Vmpp
+    let (ws, paths) = workspace_con_plantilla();
+    let modulos = ws.path().join("ComposPV").join("PVModules");
+    std::fs::create_dir_all(&modulos).unwrap();
+    std::fs::write(
+        modulos.join("A_Sin_Vmpp.PAN"),
+        "PVObject_=pvModule\n  PNom=300\n  Voc=44.5\n  Isc=9.0\nEnd of PVObject pvModule\n",
+    )
+    .unwrap();
+    std::fs::copy(
+        concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/workspace/ComposPV/PVModules/Synth_400W.PAN"
+        ),
+        modulos.join("B_Con_Datos.PAN"),
+    )
+    .unwrap();
+    let params = diseno(&json!({ "modulo": null }));
+    proyecto::ejecutar_paso_proyecto(&paths, &params).expect("proyecto");
+
+    // When
+    let paso = ejecutar_paso_dimensionado(&paths, &params).expect("dimensionado");
+
+    // Then: the module that can be sized is the substitute, and it is the one reported
+    let aviso = paso
+        .avisos
+        .iter()
+        .find(|a| a.contains("no existe"))
+        .unwrap_or_else(|| panic!("sin aviso de sustitución: {:?}", paso.avisos));
+    assert!(aviso.contains("B_Con_Datos.PAN"), "aviso={aviso}");
+    assert!(!aviso.contains("A_Sin_Vmpp.PAN"), "aviso={aviso}");
+    assert_eq!(paso.kwp_realizado, Some(8.0));
+}

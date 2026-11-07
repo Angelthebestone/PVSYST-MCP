@@ -154,8 +154,10 @@ fn leer_modulo(
     }
 }
 
-/// The template's module is missing: size with the first module available in the
-/// workspace or DataRO (stand-alone designs keep their own sizing path).
+/// The template's module is missing: size with the first module of the workspace or
+/// DataRO that has the electrical figures sizing needs (stand-alone designs keep
+/// their own sizing path). A module without them cannot be sized, so it is skipped
+/// instead of being taken just because it sorts first.
 fn sustituir_modulo(
     paths: &Paths,
     params: &DisenoParametros,
@@ -168,16 +170,20 @@ fn sustituir_modulo(
         });
     }
     let ws = crate::args::workspace_of(paths, &Value::Null);
-    let nombre = pan::primer_modulo_disponible(&ws).ok_or_else(|| {
-        Error::Invalid(format!(
-            "El módulo '{faltante}' de la plantilla no existe y no hay ningún .PAN en el workspace ni en DataRO: pasa 'modulo'"
-        ))
-    })?;
-    let val = pan::leer_modulo(paths, &json!({ "modulo": nombre }))?;
-    Ok(ModuloResuelto {
-        datos: DatosModulo::de_lectura(&val),
-        sustituto: Some(nombre),
-    })
+    for nombre in pan::modulos_disponibles(&ws) {
+        let Ok(val) = pan::leer_modulo(paths, &json!({ "modulo": nombre })) else {
+            continue;
+        };
+        if let Some(datos) = DatosModulo::de_lectura(&val) {
+            return Ok(ModuloResuelto {
+                datos: Some(datos),
+                sustituto: Some(nombre),
+            });
+        }
+    }
+    Err(Error::Invalid(format!(
+        "El módulo '{faltante}' de la plantilla no existe y ningún .PAN del workspace ni de DataRO tiene Pnom, Voc y Vmpp: pasa 'modulo'"
+    )))
 }
 
 struct ResolucionDiseno {
@@ -238,7 +244,7 @@ pub(crate) fn ejecutar_paso_dimensionado(
     let mut disp = determinar_disposicion(paths, &resolucion)?;
     if let Some(nombre) = &modulo.sustituto {
         disp.avisos.push(format!(
-            "El módulo de la plantilla no existe: se usa '{nombre}' (primer .PAN disponible en el workspace o DataRO)"
+            "El módulo de la plantilla no existe: se usa '{nombre}' (primer .PAN del workspace o DataRO con Pnom, Voc y Vmpp)"
         ));
     }
     let da = argumentos_dimensionado(params, &modulo, &disp)?;
