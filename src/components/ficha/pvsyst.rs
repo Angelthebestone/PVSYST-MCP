@@ -10,6 +10,7 @@ use crate::adapters::gui::ventanas::class_of;
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::object;
+use crate::idioma::Texto;
 use crate::vista_agente::clave_para_archivo;
 use serde_json::{json, Map, Value};
 use std::path::{Path, PathBuf};
@@ -59,7 +60,20 @@ pub(super) struct Tipo {
     extension: &'static str,
     obligatorias: &'static [&'static str],
     leidas: &'static [&'static str],
+    /// Datasheet keys PVsyst reads in kW, so a value in W would be written as MW.
+    potencias_kw: &'static [&'static str],
 }
+
+/// Largest CA power the inverter window accepts, in kW.
+const MAX_POTENCIA_CA_KW: f64 = 10_000.0;
+/// Above this the value is more likely a wattage typed into a kW field.
+const POTENCIA_CA_SOSPECHOSA_KW: f64 = 1_000.0;
+
+/// A power that looks like watts in a kW field: written, but the caller is told.
+const POTENCIA_EN_KW: Texto = Texto {
+    es: "'{campo}' se escribe en kW: {valor} son {mw} MW. Si la ficha venía en W, divídela entre 1000",
+    en: "'{campo}' is written in kW: {valor} means {mw} MW. If the datasheet was in W, divide it by 1000",
+};
 
 const MODULO: Tipo = Tipo {
     boton_base: "Módulos PV",
@@ -82,9 +96,10 @@ const MODULO: Tipo = Tipo {
         "PNom", "Isc", "Voc", "Imp", "Vmp", "NCelS", "RShunt", "RSerie", "Gamma", "muGamma",
         "Technol",
     ],
+    potencias_kw: &[],
 };
 
-const INVERSOR: Tipo = Tipo {
+pub(super) const INVERSOR: Tipo = Tipo {
     boton_base: "Inversor de red",
     formulario: "TGridInverterForm",
     entidad: "components.inverters",
@@ -94,6 +109,7 @@ const INVERSOR: Tipo = Tipo {
         "Model",
         "Manufacturer",
         "PNomConv",
+        "VOutConv",
         "VMppMin",
         "VMPPMax",
         "VAbsMax",
@@ -105,6 +121,7 @@ const INVERSOR: Tipo = Tipo {
     leidas: &[
         "PNomConv",
         "PMaxOUT",
+        "VOutConv",
         "VMppMin",
         "VMPPMax",
         "VAbsMax",
@@ -113,6 +130,7 @@ const INVERSOR: Tipo = Tipo {
         "EfficEuro",
         "MonoTri",
     ],
+    potencias_kw: &["PNomConv", "PMaxOUT"],
 };
 
 /// Grid phases as the file names them (`MonoTri`) and the schema option each one chooses.
@@ -147,7 +165,45 @@ fn texto(datos: &Map<String, Value>, clave: &str) -> Option<String> {
     })
 }
 
-fn validar(t: &Tipo, datos: &Map<String, Value>) -> Result<()> {
+/// A CA power outside the window's range, or not a number, is refused before it is typed.
+fn validar_potencias_kw(t: &Tipo, datos: &Map<String, Value>) -> Result<()> {
+    for clave in t.potencias_kw {
+        let Some(valor) = datos.get(*clave) else {
+            continue;
+        };
+        let kw = crate::components::buscar::numero(valor)
+            .filter(|n| *n > 0.0 && *n <= MAX_POTENCIA_CA_KW);
+        if kw.is_none() {
+            return Err(Error::Invalid(format!(
+                "'{clave}' debe ser un número de kW entre 0 y {MAX_POTENCIA_CA_KW}: {valor}"
+            )));
+        }
+    }
+    Ok(())
+}
+
+/// Datasheet powers that are probably watts in a kW field, so the caller can check.
+fn avisos_de_unidades(t: &Tipo, datos: &Map<String, Value>) -> Vec<String> {
+    t.potencias_kw
+        .iter()
+        .filter_map(|clave| {
+            let kw = crate::components::buscar::numero(datos.get(*clave)?)?;
+            (kw >= POTENCIA_CA_SOSPECHOSA_KW).then(|| {
+                POTENCIA_EN_KW.texto_con(
+                    crate::idioma::Idioma::de_entorno(),
+                    &[
+                        ("campo", clave),
+                        ("valor", &kw.to_string()),
+                        ("mw", &format!("{:.1}", kw / 1000.0)),
+                    ],
+                )
+            })
+        })
+        .collect()
+}
+
+pub(super) fn validar(t: &Tipo, datos: &Map<String, Value>) -> Result<()> {
+    validar_potencias_kw(t, datos)?;
     let faltan: Vec<&str> = t
         .obligatorias
         .iter()
@@ -295,6 +351,10 @@ fn leer_guardado(
         "valores_pvsyst": valores,
         "avisos_pvsyst": avisos,
     });
+    let avisos_ficha = avisos_de_unidades(t, enviados);
+    if !avisos_ficha.is_empty() {
+        salida["avisos_ficha"] = json!(avisos_ficha);
+    }
     if !diferencias.is_empty() {
         salida["completo"] = json!(false);
         salida["diferencias_con_la_ficha"] = Value::Array(diferencias);
