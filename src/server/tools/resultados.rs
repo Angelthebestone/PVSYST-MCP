@@ -60,6 +60,7 @@ pub(crate) const TOOL_RESULTADOS: Herramienta = Herramienta {
     requeridos_por_accion: &[
         ("medido_vs_simulado", &["proyecto"]),
     ],
+    consumidos_por_accion: &[],
     sinonimos: SINONIMOS_RESULTADOS,
     ejecutar: Ejecutor::Simple(ejecutar_resultados),
 };

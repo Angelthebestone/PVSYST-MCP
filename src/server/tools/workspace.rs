@@ -44,6 +44,7 @@ pub(crate) const TOOL_WORKSPACE: Herramienta = Herramienta {
         ],
     }),
     requeridos_por_accion: &[("restaurar", &["id"])],
+    consumidos_por_accion: &[],
     sinonimos: SINONIMOS_WORKSPACE,
     ejecutar: Ejecutor::Simple(ejecutar_workspace),
 };
@@ -95,6 +96,7 @@ pub(crate) const TOOL_ESCRIBIR_ARCHIVO: Herramienta = Herramienta {
     requeridos: &["archivo", "contenido"],
     discriminador: None,
     requeridos_por_accion: &[],
+    consumidos_por_accion: &[],
     sinonimos: SINONIMOS_ESCRIBIR_ARCHIVO,
     ejecutar: Ejecutor::Simple(ejecutar_escribir_archivo),
 };
@@ -130,6 +132,7 @@ pub(crate) const TOOL_LEER: Herramienta = Herramienta {
     requeridos: &["archivo"],
     discriminador: None,
     requeridos_por_accion: &[],
+    consumidos_por_accion: &[],
     sinonimos: SINONIMOS_LEER,
     ejecutar: Ejecutor::Simple(ejecutar_leer),
 };
@@ -185,6 +188,7 @@ pub(crate) const TOOL_EDITAR: Herramienta = Herramienta {
         ("rvt", &["operacion"]),
         ("plantilla_rvt", &["operacion"]),
     ],
+    consumidos_por_accion: &[],
     sinonimos: SINONIMOS_EDITAR,
     ejecutar: Ejecutor::Simple(ejecutar_editar),
 };
@@ -249,6 +253,7 @@ pub(crate) const TOOL_LISTAR: Herramienta = Herramienta {
         valores: &["proyectos", "componentes", "modulos", "archivos", "objetos"],
     }),
     requeridos_por_accion: &[("componentes", &["tipo"]), ("objetos", &["archivo"])],
+    consumidos_por_accion: &[],
     sinonimos: SINONIMOS_LISTAR,
     ejecutar: Ejecutor::Simple(ejecutar_listar),
 };

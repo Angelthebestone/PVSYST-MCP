@@ -31,6 +31,7 @@ pub(crate) const TOOL_PVSYST_CLI: Herramienta = Herramienta {
     requeridos: &["comando"],
     discriminador: None,
     requeridos_por_accion: &[],
+    consumidos_por_accion: &[],
     sinonimos: SINONIMOS_PVSYST_CLI,
     ejecutar: Ejecutor::Simple(ejecutar_cli),
 };
@@ -94,6 +95,7 @@ pub(crate) const TOOL_GUI_OBSERVAR: Herramienta = Herramienta {
         ],
     }),
     requeridos_por_accion: &[],
+    consumidos_por_accion: &[],
     sinonimos: SINONIMOS_GUI_OBSERVAR,
     ejecutar: Ejecutor::Simple(ejecutar_observar),
 };
@@ -197,6 +199,7 @@ pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
         ("escena_leer", &["escena"]),
         ("escena_importar", &["archivo", "escena"]),
     ],
+    consumidos_por_accion: &[],
     sinonimos: SINONIMOS_GUI_ACTUAR,
     ejecutar: Ejecutor::Simple(ejecutar_actuar),
 };

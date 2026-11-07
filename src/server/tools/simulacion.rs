@@ -78,6 +78,7 @@ pub(crate) const TOOL_SIMULAR: Herramienta = Herramienta {
         ("preestimar", &["latitud", "longitud", "kwp"]),
         ("barrido", &["latitud", "longitud", "kwp"]),
     ],
+    consumidos_por_accion: &[],
     sinonimos: SINONIMOS_SIMULAR,
     ejecutar: Ejecutor::Seguido(ejecutar_simular),
 };

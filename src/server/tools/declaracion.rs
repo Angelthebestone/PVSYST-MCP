@@ -142,6 +142,8 @@ pub(crate) struct Herramienta {
     pub(crate) requeridos: &'static [&'static str],
     pub(crate) discriminador: Option<Discriminador>,
     pub(crate) requeridos_por_accion: &'static [(&'static str, &'static [&'static str])],
+    /// Keys an action reads although the tool declares them for another action.
+    pub(crate) consumidos_por_accion: &'static [(&'static str, &'static [&'static str])],
     pub(crate) sinonimos: Sinonimos,
     pub(crate) ejecutar: Ejecutor,
 }
