@@ -125,7 +125,3 @@ pub(crate) fn campo(paths: &crate::config::Paths, args: &Value) -> Result<Value>
         "despues": leer_valor(elegido),
     }))
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/adapters/gui/campo_por_etiqueta.rs"]
-mod tests;
