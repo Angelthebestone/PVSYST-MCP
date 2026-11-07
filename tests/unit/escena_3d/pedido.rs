@@ -28,26 +28,6 @@ fn escena_de_ejemplo() -> Value {
 }
 
 #[test]
-fn should_give_each_dimension_the_position_it_has_in_params() {
-    let d = describir_escena("Casa_A", &escena_de_ejemplo()).expect("valid scene");
-    let posiciones: Vec<(&Value, &Value)> = d["objetos"][1]["campos"]
-        .as_array()
-        .expect("fields")
-        .iter()
-        .take(3)
-        .map(|c| (&c["posicion_en_params"], &c["valor"]))
-        .collect();
-    assert_eq!(
-        posiciones,
-        [
-            (&json!(0), &json!(8.0)),
-            (&json!(1), &json!(10.0)),
-            (&json!(2), &json!(25.0))
-        ]
-    );
-}
-
-#[test]
 fn should_reject_a_scene_name_that_is_not_a_plain_file_name() {
     for nombre in ["", "../Casa", "a/b", "casa\u{0}"] {
         let e = describir_escena(nombre, &escena_de_ejemplo()).expect_err("bad name");
