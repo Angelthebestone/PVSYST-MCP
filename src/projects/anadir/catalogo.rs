@@ -4,10 +4,12 @@ use crate::args::{self, opt_str, req_str};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::{edit, insert};
+use crate::idioma::{Idioma, Texto};
 use crate::projects::anadir::baterias::ajustar_sistema;
 use crate::projects::anadir::horizonte::neutralizar_horizonte;
 use crate::projects::anadir::objetos::{campos_de, padre_de, verificar_tipo};
 use crate::projects::anadir::{escribir_con_historial, ruta_variante};
+use crate::projects::tipo_sistema::TipoSistema;
 use crate::workspace::leer_bytes;
 use crate::workspace::Alcance;
 use serde_json::{json, Value};
@@ -19,7 +21,17 @@ pub(crate) struct Elemento {
     pub(crate) tipos: &'static [&'static str],
     pub(crate) complementos: &'static [&'static str],
     pub(crate) campos_sistema: &'static [(&'static str, &'static str)],
+    /// System type the element belongs to: PVsyst cannot use it in any other.
+    pub(crate) sistema: Option<TipoSistema>,
+    /// What the caller has to edit after inserting it, when the content is the demo's.
+    pub(crate) aviso: Option<Texto>,
 }
+
+/// The demo geometry of a field zone is not the project's.
+const ZONA_DE_DEMO: Texto = Texto {
+    es: "La geometría insertada es la de la demo (Zone #1 y sus módulos): edítala para que coincida con el proyecto",
+    en: "The inserted geometry is the demo's (Zone #1 and its modules): edit it to match the project",
+};
 
 pub(crate) const ELEMENTOS: &[Elemento] = &[
     Elemento {
@@ -38,6 +50,8 @@ pub(crate) const ELEMENTOS: &[Elemento] = &[
             ("NBattSerie", "1"),
             ("NBattParall", "2"),
         ],
+        sistema: None,
+        aviso: None,
     },
     Elemento {
         nombre: "carga",
@@ -45,6 +59,8 @@ pub(crate) const ELEMENTOS: &[Elemento] = &[
         tipos: &["pvLoad"],
         complementos: &[],
         campos_sistema: &[],
+        sistema: None,
+        aviso: None,
     },
     Elemento {
         nombre: "horizonte",
@@ -52,6 +68,8 @@ pub(crate) const ELEMENTOS: &[Elemento] = &[
         tipos: &["pvHorizon"],
         complementos: &[],
         campos_sistema: &[],
+        sistema: None,
+        aviso: None,
     },
     Elemento {
         nombre: "envejecimiento",
@@ -59,6 +77,8 @@ pub(crate) const ELEMENTOS: &[Elemento] = &[
         tipos: &["pvAgeing"],
         complementos: &[],
         campos_sistema: &[],
+        sistema: None,
+        aviso: None,
     },
     Elemento {
         nombre: "bifacial",
@@ -66,6 +86,8 @@ pub(crate) const ELEMENTOS: &[Elemento] = &[
         tipos: &["pvBiFacial", "pvBiFacialSheds"],
         complementos: &[],
         campos_sistema: &[],
+        sistema: None,
+        aviso: None,
     },
     Elemento {
         nombre: "carbono",
@@ -73,6 +95,8 @@ pub(crate) const ELEMENTOS: &[Elemento] = &[
         tipos: &["pvCarbonBalance"],
         complementos: &[],
         campos_sistema: &[],
+        sistema: None,
+        aviso: None,
     },
     Elemento {
         nombre: "domo",
@@ -80,6 +104,8 @@ pub(crate) const ELEMENTOS: &[Elemento] = &[
         tipos: &["pvDomeOrient"],
         complementos: &[],
         campos_sistema: &[],
+        sistema: None,
+        aviso: None,
     },
     Elemento {
         nombre: "zona_campo",
@@ -87,6 +113,8 @@ pub(crate) const ELEMENTOS: &[Elemento] = &[
         tipos: &["pvShdFieldZone"],
         complementos: &[],
         campos_sistema: &[],
+        sistema: None,
+        aviso: Some(ZONA_DE_DEMO),
     },
     Elemento {
         nombre: "bifacial_seguidor",
@@ -94,6 +122,8 @@ pub(crate) const ELEMENTOS: &[Elemento] = &[
         tipos: &["pvBiFacial", "pvBiFacialTrackers"],
         complementos: &[],
         campos_sistema: &[],
+        sistema: None,
+        aviso: None,
     },
     Elemento {
         nombre: "circuito_hidraulico",
@@ -104,6 +134,8 @@ pub(crate) const ELEMENTOS: &[Elemento] = &[
             ("SystemType", "Pumping"),
             ("PumpFile", "Generic_6kW_H60_160_FR10.PMP"),
         ],
+        sistema: Some(TipoSistema::Bombeo),
+        aviso: None,
     },
 ];
 
@@ -153,7 +185,10 @@ fn insertar_si_falta(
     Ok((nuevo, true))
 }
 
-fn insertar_elemento(nuevo: Vec<u8>, elem: &Elemento) -> Result<(Vec<u8>, Vec<Value>)> {
+fn insertar_elemento(
+    nuevo: Vec<u8>,
+    elem: &Elemento,
+) -> Result<(Vec<u8>, Vec<Value>, Vec<String>)> {
     let ruta = crate::config::proyectos_demo_ro().join(elem.demo);
     let fuente = leer_bytes(&ruta).map_err(|e| {
         Error::NotFound(format!(
@@ -164,8 +199,8 @@ fn insertar_elemento(nuevo: Vec<u8>, elem: &Elemento) -> Result<(Vec<u8>, Vec<Va
     })?;
     let spans_fuente = edit::spans_of(&fuente);
     elem.tipos.iter().try_fold(
-        (nuevo, Vec::<Value>::new()),
-        |(actual, insertados), tipo| {
+        (nuevo, Vec::<Value>::new(), Vec::<String>::new()),
+        |(actual, insertados, ya_presentes), tipo| {
             let si = edit::find_span(&spans_fuente, tipo).ok_or_else(|| {
                 Error::NotFound(format!("No se encuentra {tipo} en {}", elem.demo))
             })?;
@@ -179,10 +214,16 @@ fn insertar_elemento(nuevo: Vec<u8>, elem: &Elemento) -> Result<(Vec<u8>, Vec<Va
                 bloque
             };
             let (actual, insertado) = insertar_si_falta(actual, (tipo, &padre), &bloque)?;
-            // A type already in the variant was not inserted: it is not reported as such.
+            // A type already in the variant was not inserted: it is reported as present,
+            // so a call that changed nothing never looks like a call that did.
             let nuevo = insertado
                 .then(|| json!({"tipo": tipo, "padre": padre, "campos": campos_de(&bloque)}));
-            Ok((actual, insertados.into_iter().chain(nuevo).collect()))
+            let presente = (!insertado).then(|| tipo.to_string());
+            Ok((
+                actual,
+                insertados.into_iter().chain(nuevo).collect(),
+                ya_presentes.into_iter().chain(presente).collect(),
+            ))
         },
     )
 }
@@ -210,6 +251,8 @@ pub(crate) fn validar_elemento(args: &Value) -> Result<()> {
 pub(crate) struct ElementoAplicado {
     pub(crate) bytes: Vec<u8>,
     pub(crate) insertados: Vec<Value>,
+    /// Types the variant already had: nothing was inserted for them.
+    pub(crate) ya_presentes: Vec<String>,
 }
 
 /// Insert catalogue element `nombre` into `bytes`, with the complements `alcance` asks for.
@@ -219,12 +262,17 @@ pub(crate) fn aplicar_elemento(
     alcance: AlcanceElemento,
 ) -> Result<ElementoAplicado> {
     let catalogo = catalogo_de(nombre)?;
+    exigir_sistema(catalogo, &bytes)?;
     let pendientes = elementos_pendientes(catalogo, &bytes, alcance)?;
-    let (bytes, insertados) = pendientes.iter().try_fold(
-        (bytes, Vec::<Value>::new()),
-        |(actual, insertados), elem| {
-            let (nuevo, nuevos) = insertar_elemento(actual, elem)?;
-            Ok((nuevo, insertados.into_iter().chain(nuevos).collect()))
+    let (bytes, insertados, ya_presentes) = pendientes.iter().try_fold(
+        (bytes, Vec::<Value>::new(), Vec::<String>::new()),
+        |(actual, insertados, ya_presentes), elem| {
+            let (nuevo, nuevos, presentes) = insertar_elemento(actual, elem)?;
+            Ok((
+                nuevo,
+                insertados.into_iter().chain(nuevos).collect(),
+                ya_presentes.into_iter().chain(presentes).collect(),
+            ))
         },
     )?;
     let bytes = if catalogo.campos_sistema.is_empty() {
@@ -237,7 +285,43 @@ pub(crate) fn aplicar_elemento(
             .iter()
             .try_for_each(|tipo| verificar_tipo(&bytes, tipo))
     })?;
-    Ok(ElementoAplicado { bytes, insertados })
+    Ok(ElementoAplicado {
+        bytes,
+        insertados,
+        ya_presentes,
+    })
+}
+
+/// The element belongs to one system type: in another, PVsyst cannot use the object.
+fn exigir_sistema(catalogo: &Elemento, bytes: &[u8]) -> Result<()> {
+    let Some(esperado) = catalogo.sistema else {
+        return Ok(());
+    };
+    TipoSistema::exigir(bytes, esperado).map_err(|e| {
+        Error::Invalid(format!(
+            "El elemento '{}' solo aplica a proyectos de {:?}: {e}",
+            catalogo.nombre, esperado
+        ))
+    })
+}
+
+/// The variant already had the element: the call changed nothing.
+const YA_PRESENTE: Texto = Texto {
+    es: "La variante ya tiene {tipos}: no se insertó nada",
+    en: "The variant already has {tipos}: nothing was inserted",
+};
+
+/// What the caller has to know about this insertion.
+fn avisos_de(catalogo: &Elemento, aplicado: &ElementoAplicado) -> Vec<String> {
+    let idioma = Idioma::de_entorno();
+    let mut avisos = Vec::new();
+    if aplicado.insertados.is_empty() && !aplicado.ya_presentes.is_empty() {
+        avisos.push(YA_PRESENTE.texto_con(idioma, &[("tipos", &aplicado.ya_presentes.join(", "))]));
+    }
+    if let Some(texto) = catalogo.aviso {
+        avisos.push(texto.en_idioma(idioma).to_string());
+    }
+    avisos
 }
 
 /// `proyecto accion:anadir`: copies a catalogue element from a demo variant into target variant.
@@ -266,7 +350,7 @@ pub(crate) fn anadir(paths: &Paths, args: &Value) -> Result<Value> {
         &aplicado.bytes,
         &format!("anadir {elemento}"),
     )?;
-    Ok(json!({
+    let mut respuesta = json!({
         "ok": true,
         "proyecto": proyecto,
         "variante": variante,
@@ -274,10 +358,16 @@ pub(crate) fn anadir(paths: &Paths, args: &Value) -> Result<Value> {
         "elemento": elemento,
         "origen": catalogo.demo,
         "insertados": aplicado.insertados,
+        "ya_presentes": aplicado.ya_presentes,
         "neutralizado": neutralizado,
         "historial_id": id,
         "nota": "Edita los campos con editar accion:campos; luego proyecto accion:doctor"
-    }))
+    });
+    let avisos = avisos_de(catalogo, &aplicado);
+    if !avisos.is_empty() {
+        respuesta["avisos"] = json!(avisos);
+    }
+    Ok(respuesta)
 }
 
 #[cfg(test)]
