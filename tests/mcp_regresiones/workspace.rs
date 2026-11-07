@@ -90,6 +90,11 @@ fn should_not_touch_files_when_restaurar_asks_dry_run() {
     let data = tool_text(&resp);
     assert_eq!(data["simulado"], json!(true), "data={data}");
     assert_eq!(data["cambiarian"], json!(1), "data={data}");
+    let siguiente = &data["vista"]["siguiente"][0]["argumentos"];
+    assert!(
+        siguiente.get("dry_run").is_none(),
+        "el siguiente paso aplica de verdad: {siguiente}"
+    );
     assert_eq!(fs::read(&prj).expect("PRJ tras el ensayo"), tras_editar);
     assert_ne!(tras_editar, original, "el archivo sigue editado");
 }
