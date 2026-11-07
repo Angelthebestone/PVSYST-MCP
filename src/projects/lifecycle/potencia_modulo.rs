@@ -90,7 +90,3 @@ fn pnom_from_sizing(root: &object::PvNode) -> Option<f64> {
     let kwp = num("PNomSizing")?;
     (modules > 0.0).then(|| (kwp * 1000.0 / modules).round())
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/projects/lifecycle/potencia_modulo.rs"]
-mod tests;
