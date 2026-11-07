@@ -3,6 +3,9 @@
 use crate::args::{missing, opt_f64, rango_opcional};
 use crate::error::Result;
 use crate::format::edit::EdicionObjeto;
+use crate::format::object::{self, PvNode};
+use crate::idioma::{Idioma, Texto};
+use crate::perdidas::flags::{al_escribir_mismatch, FlagsMismatch};
 use serde_json::{json, Value};
 
 const MAX_SUCIEDAD_PCT: f64 = 50.0;
@@ -30,6 +33,34 @@ impl EntradaPerdidas {
             lid_pct: opt_f64(args, "lid_pct")?,
             mismatch_pct: opt_f64(args, "mismatch_pct")?,
         })
+    }
+}
+
+/// What the variant already holds for one `pvSubArray`; the edits must respect it.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct SubarrayActual {
+    /// `pvSubArray.Flags`, whose bits tell PVsyst to use its own default value.
+    pub(crate) flags: Option<String>,
+}
+
+/// Every `pvSubArray` of the variant, in document order.
+pub(crate) fn subarrays_de(bytes: &[u8]) -> Vec<SubarrayActual> {
+    let mut encontrados = Vec::new();
+    recorrer(
+        &object::parse(&String::from_utf8_lossy(bytes)),
+        &mut encontrados,
+    );
+    encontrados
+}
+
+fn recorrer(nodos: &[PvNode], encontrados: &mut Vec<SubarrayActual>) {
+    for nodo in nodos {
+        if nodo.obj_type.eq_ignore_ascii_case("pvSubArray") {
+            encontrados.push(SubarrayActual {
+                flags: nodo.field("Flags").map(str::to_string),
+            });
+        }
+        recorrer(&nodo.children, encontrados);
     }
 }
 
@@ -112,9 +143,21 @@ impl ParametrosPerdidas {
         })
     }
 
-    fn subarrays(&self, n_subarrays: usize) -> Vec<EdicionObjeto> {
-        (0..n_subarrays)
-            .filter_map(|i| {
+    /// The `Flags` change that makes PVsyst read `PMismMPP`: without it the value
+    /// is written and silently ignored.
+    fn mismatch_legible(&self, actual: &SubarrayActual) -> Option<(String, Option<String>)> {
+        self.mismatch_pct?;
+        match al_escribir_mismatch(actual.flags.as_deref()) {
+            FlagsMismatch::Limpiar(valor) => Some(("Flags".to_string(), Some(valor))),
+            FlagsMismatch::YaLimpio | FlagsMismatch::Desconocido => None,
+        }
+    }
+
+    fn subarrays(&self, subarrays: &[SubarrayActual]) -> Vec<EdicionObjeto> {
+        subarrays
+            .iter()
+            .enumerate()
+            .filter_map(|(i, actual)| {
                 let lid = self.lid_pct.map(|valor| {
                     (
                         "LIDLoss".to_string(),
@@ -127,8 +170,11 @@ impl ParametrosPerdidas {
                         Some(format!("{:.*}", DECIMALES_PORCENTAJE, valor)),
                     )
                 });
-                let cambios: Vec<(String, Option<String>)> =
-                    lid.into_iter().chain(mismatch).collect();
+                let cambios: Vec<(String, Option<String>)> = lid
+                    .into_iter()
+                    .chain(mismatch)
+                    .chain(self.mismatch_legible(actual))
+                    .collect();
                 (!cambios.is_empty()).then(|| EdicionObjeto {
                     selector: format!("pvSubArray[{i}]"),
                     cambios,
@@ -138,13 +184,45 @@ impl ParametrosPerdidas {
     }
 
     /// Object editions for the requested losses.
-    pub(crate) fn ediciones(&self, n_subarrays: usize) -> Vec<EdicionObjeto> {
+    pub(crate) fn ediciones(&self, subarrays: &[SubarrayActual]) -> Vec<EdicionObjeto> {
         self.main_array()
             .into_iter()
-            .chain(self.subarrays(n_subarrays))
+            .chain(self.subarrays(subarrays))
+            .collect()
+    }
+
+    /// Subarrays whose `Flags` could not be read, so `PMismMPP` may stay ignored.
+    pub(crate) fn avisos(&self, subarrays: &[SubarrayActual]) -> Vec<String> {
+        if self.mismatch_pct.is_none() {
+            return Vec::new();
+        }
+        subarrays
+            .iter()
+            .enumerate()
+            .filter(|(_, actual)| {
+                matches!(
+                    al_escribir_mismatch(actual.flags.as_deref()),
+                    FlagsMismatch::Desconocido
+                )
+            })
+            .map(|(i, actual)| {
+                FLAGS_ILEGIBLE.texto_con(
+                    Idioma::de_entorno(),
+                    &[
+                        ("i", &i.to_string()),
+                        ("flags", actual.flags.as_deref().unwrap_or("")),
+                    ],
+                )
+            })
             .collect()
     }
 }
+
+/// A `Flags` value this code cannot rewrite, so PVsyst may keep ignoring `PMismMPP`.
+const FLAGS_ILEGIBLE: Texto = Texto {
+    es: "pvSubArray[{i}].Flags='{flags}' no es un valor hexadecimal con $: PVsyst puede seguir ignorando PMismMPP",
+    en: "pvSubArray[{i}].Flags='{flags}' is not a $-hex value: PVsyst may still ignore PMismMPP",
+};
 
 /// PVsyst 8.1.7's newer soiling model, which this action deliberately refuses.
 pub(crate) fn usa_formato_nuevo_suciedad(texto: &str) -> bool {
