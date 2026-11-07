@@ -98,15 +98,11 @@ impl Herramienta {
     }
 
     /// Keys `accion` reads that the tool declares for its other actions only.
-    ///
-    /// The declaration is per tool, but a key such as `campos` belongs to
-    /// `componente crear`/`editar`; reporting it as ignored would contradict what
-    /// the action did.
     fn consumidos(&self, accion: &str) -> &'static [&'static str] {
-        match (self.nombre, accion) {
-            ("componente", "crear" | "editar") => &["campos"],
-            _ => &[],
-        }
+        self.consumidos_por_accion
+            .iter()
+            .find(|(acc, _)| *acc == accion)
+            .map_or(&[], |(_, claves)| *claves)
     }
 
     /// Every required key of `accion`: the tool-wide ones first, then the action's own.

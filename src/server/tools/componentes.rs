@@ -49,6 +49,7 @@ pub(crate) const TOOL_COMPONENTE: Herramienta = Herramienta {
         ("editar", &["componente"]),
         ("crear_desde_ficha", &["tipo", "nombre_nuevo", "datos"]),
     ],
+    consumidos_por_accion: &[("crear", &["campos"]), ("editar", &["campos"])],
     sinonimos: SINONIMOS_COMPONENTE,
     ejecutar: Ejecutor::Simple(ejecutar_componente),
 };

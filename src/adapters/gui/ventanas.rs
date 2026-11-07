@@ -231,14 +231,12 @@ pub(crate) fn ventanas(args: &Value) -> Result<Value> {
     if visible_only {
         out.retain(|w| w["visible"].as_bool().unwrap_or(false));
     }
-    let modal = modal::modal_de(&pids).map(window_json);
-    let resumen_modal = modal.clone();
-    modal::agregar_modal(&mut out, modal);
+    // The blocking modal is listed once, inside `windows`, marked `modal: true`.
+    modal::agregar_modal(&mut out, modal::modal_de(&pids).map(window_json));
     Ok(json!({
         "processes": pids,
         "count": out.len(),
         "windows": out,
-        "modal": resumen_modal,
     }))
 }
 

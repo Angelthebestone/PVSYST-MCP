@@ -55,6 +55,7 @@ pub(crate) const TOOL_ENTORNO: Herramienta = Herramienta {
         ],
     }),
     requeridos_por_accion: &[("preferencias_editar", &["seccion", "clave", "valor"])],
+    consumidos_por_accion: &[],
     sinonimos: SINONIMOS_ENTORNO,
     ejecutar: Ejecutor::Simple(ejecutar_entorno),
 };
@@ -127,6 +128,7 @@ pub(crate) const TOOL_DISENAR_SISTEMA: Herramienta = Herramienta {
     requeridos: &["latitud", "longitud", "kwp"],
     discriminador: None,
     requeridos_por_accion: &[],
+    consumidos_por_accion: &[],
     sinonimos: SINONIMOS_DISENAR_SISTEMA,
     ejecutar: Ejecutor::Simple(ejecutar_disenar_sistema),
 };

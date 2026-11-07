@@ -4,6 +4,7 @@ use super::parametros::DisenoParametros;
 use super::pasos::{PasoOrientacionSalida, PasoProyectoSalida};
 use crate::config::{self, Paths};
 use crate::error::{Error, Result};
+use crate::format::numero_texto;
 use crate::history;
 use crate::idioma::Texto;
 use crate::projects::lifecycle;
@@ -101,8 +102,14 @@ fn diferencias_con_lo_existente(paths: &Paths, params: &DisenoParametros) -> Opt
         campos_pedidos(params)
             .into_iter()
             .filter_map(|(campo, pedido)| {
-                let actual = raiz.find_deep(campo)?;
-                (actual.trim() != pedido.trim()).then(|| {
+                // An absent field is a difference, never a field to skip.
+                let actual = raiz.find_deep(campo).unwrap_or("<missing>");
+                // Numbers compare as numbers: PVsyst writes `24.000` for `24`.
+                let igual = match (numero_texto(actual), numero_texto(&pedido)) {
+                    (Some(a), Some(b)) => a == b,
+                    _ => actual.trim() == pedido.trim(),
+                };
+                (!igual).then(|| {
                     Texto {
                         es: "{campo} vale '{actual}', no '{pedido}'",
                         en: "{campo} is '{actual}', not '{pedido}'",

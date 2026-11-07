@@ -3,7 +3,7 @@
 use super::parametros::UbicacionParametros;
 use super::pasos::{OrigenSitioDiseno, PasoSitioSalida};
 use crate::config::Paths;
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::sites;
 use serde_json::{json, Map, Value};
 
@@ -67,4 +67,15 @@ pub(crate) fn ejecutar_paso_sitio(
         reutilizado: matches!(sitio, OrigenSitioDiseno::Reutilizado),
         ok,
     })
+}
+
+/// A site step that created nothing stops the run before a project is linked to it.
+pub(crate) fn exigir_sitio_creado(paso: &PasoSitioSalida) -> Result<()> {
+    if paso.ok && !paso.sit_file.is_empty() {
+        return Ok(());
+    }
+    Err(Error::Cli(format!(
+        "PVsystCLI no creó el sitio '{}': revisa el paso de sitio antes de crear el proyecto",
+        paso.site_name.as_deref().unwrap_or("?")
+    )))
 }

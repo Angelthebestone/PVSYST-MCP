@@ -14,6 +14,13 @@ const VALOR_NO_NUMERICO: Texto = Texto {
     en: "Non-numeric value '{valor}' for the numeric field '{campo}'",
 };
 
+/// Refusal of a decimal comma: PVsyst writes the point, and in some locales the
+/// comma is a thousands separator, so `1,234` would mean 1234 to the user.
+const VALOR_CON_COMA: Texto = Texto {
+    es: "Valor '{valor}' para el campo numérico '{campo}': PVsyst escribe el decimal con punto, no con coma",
+    en: "Value '{valor}' for the numeric field '{campo}': PVsyst writes the decimal point, not a comma",
+};
+
 /// Numeric field names, compared case-insensitively.
 const CAMPOS_NUMERICOS: &[&str] = &[
     // Module (.PAN) characteristics read by `components::pan`.
@@ -75,14 +82,10 @@ fn es_campo_numerico(campo: &str) -> bool {
         .any(|nombre| nombre.eq_ignore_ascii_case(campo))
 }
 
-/// PVsyst writes the decimal comma in some locales; both are numbers.
-/// `NaN` and `inf` parse as floats but PVsyst cannot read them.
+/// PVsyst writes numbers with a decimal point. `NaN` and `inf` parse as floats
+/// but PVsyst cannot read them, so they are not numbers here either.
 fn es_numero(valor: &str) -> bool {
-    valor
-        .trim()
-        .replace(',', ".")
-        .parse::<f64>()
-        .is_ok_and(f64::is_finite)
+    valor.trim().parse::<f64>().is_ok_and(f64::is_finite)
 }
 
 /// Rejects a non-numeric value for a known numeric field.
@@ -91,7 +94,16 @@ pub(crate) fn validar_valores(cambios: &[(String, Option<String>)]) -> Result<()
         let Some(valor) = valor else {
             continue;
         };
-        if es_campo_numerico(campo) && !es_numero(valor) {
+        if !es_campo_numerico(campo) {
+            continue;
+        }
+        if valor.contains(',') {
+            return Err(Error::Invalid(VALOR_CON_COMA.texto_con(
+                Idioma::de_entorno(),
+                &[("valor", valor), ("campo", campo)],
+            )));
+        }
+        if !es_numero(valor) {
             return Err(Error::Invalid(VALOR_NO_NUMERICO.texto_con(
                 Idioma::de_entorno(),
                 &[("valor", valor), ("campo", campo)],

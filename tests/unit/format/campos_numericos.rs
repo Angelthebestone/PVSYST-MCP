@@ -13,11 +13,17 @@ fn should_reject_text_in_a_numeric_field() {
 }
 
 #[test]
-fn should_accept_numbers_and_decimal_commas_in_a_numeric_field() {
+fn should_accept_point_decimals_in_a_numeric_field() {
     validar_valores(&cambio("PNom", "400")).expect("entero");
     validar_valores(&cambio("pnom", "400.5")).expect("decimal con punto");
-    validar_valores(&cambio("PNom", "400,5")).expect("decimal con coma");
     validar_valores(&cambio("PNom", "-1.5e2")).expect("notación científica");
+}
+
+#[test]
+fn should_reject_a_decimal_comma_when_writing_a_numeric_field() {
+    let err = validar_valores(&cambio("PNom", "1,234")).expect_err("PVsyst lee el punto");
+    assert!(err.to_string().contains("comma"), "{err}");
+    assert!(err.to_string().contains("PVsyst"), "{err}");
 }
 
 #[test]

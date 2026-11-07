@@ -29,16 +29,37 @@ const PASO_FALLIDO: Texto = Texto {
     en: "Step {n} failed after {aplicados} step(s) applied",
 };
 
-const ACCIONES_CONFIGURABLES: &[&str] = &[
-    "dimensionar",
-    "anadir",
-    "seguidor",
-    "limite_inyeccion",
-    "almacenamiento",
-    "perdidas",
-    "bombeo",
-    "economia",
-];
+/// Value validator of each action `configurar` may chain; `None` for the actions
+/// that do not only modify an existing variant.
+fn validador_de_paso(accion: &str) -> Option<fn(&Value) -> Result<()>> {
+    Some(match accion {
+        "dimensionar" => crate::projects::lifecycle::validar_dimensionado,
+        "anadir" => crate::projects::anadir::catalogo::validar_elemento,
+        "seguidor" => crate::seguidores::validar_parametros,
+        "limite_inyeccion" => crate::inyeccion::validar_parametros,
+        "almacenamiento" => crate::almacenamiento::validar_parametros,
+        "perdidas" => crate::perdidas::validar_parametros,
+        "bombeo" => crate::bombeo::validar_parametros,
+        "economia" => crate::evaluacion_economica::validar_parametros,
+        _ => return None,
+    })
+}
+
+/// Actions `configurar` may chain, taken from `proyecto`'s discriminator: an
+/// action renamed or removed there cannot leave a stale name here.
+fn acciones_configurables() -> Vec<&'static str> {
+    TOOL_PROYECTO
+        .discriminador
+        .as_ref()
+        .map(|d| {
+            d.valores
+                .iter()
+                .copied()
+                .filter(|accion| validador_de_paso(accion).is_some())
+                .collect()
+        })
+        .unwrap_or_default()
+}
 
 /// Step `paso` as a complete `proyecto` call: the parent's `proyecto`, `variante` and
 /// `workspace` fill whatever the step leaves out.
@@ -48,13 +69,11 @@ fn paso_completo(padre: &Value, paso: &Value, idioma: Idioma) -> Result<Value> {
         .cloned()
         .ok_or_else(|| Error::Invalid(PASO_OBJETO.texto_con(idioma, &[])))?;
     let accion = completo.get("accion").and_then(Value::as_str).unwrap_or("");
-    if !ACCIONES_CONFIGURABLES.contains(&accion) {
+    let validas = acciones_configurables();
+    if !validas.contains(&accion) {
         return Err(Error::Invalid(PASO_ACCION.texto_con(
             idioma,
-            &[
-                ("accion", accion),
-                ("validas", &ACCIONES_CONFIGURABLES.join(", ")),
-            ],
+            &[("accion", accion), ("validas", &validas.join(", "))],
         )));
     }
     for clave in ["proyecto", "variante", "workspace"] {
@@ -70,16 +89,9 @@ fn paso_completo(padre: &Value, paso: &Value, idioma: Idioma) -> Result<Value> {
 /// Each action owns its range checks; running them all up front makes
 /// `configurar` all-or-nothing for bad values, not just for bad structure.
 fn validar_valores_de_paso(accion: &str, args: &Value) -> Result<()> {
-    match accion {
-        "dimensionar" => crate::projects::lifecycle::validar_dimensionado(args),
-        "anadir" => crate::projects::anadir::catalogo::validar_elemento(args),
-        "seguidor" => crate::seguidores::validar_parametros(args),
-        "limite_inyeccion" => crate::inyeccion::validar_parametros(args),
-        "almacenamiento" => crate::almacenamiento::validar_parametros(args),
-        "perdidas" => crate::perdidas::validar_parametros(args),
-        "bombeo" => crate::bombeo::validar_parametros(args),
-        "economia" => crate::evaluacion_economica::validar_parametros(args),
-        _ => Ok(()),
+    match validador_de_paso(accion) {
+        Some(validar) => validar(args),
+        None => Ok(()),
     }
 }
 

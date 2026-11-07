@@ -1,6 +1,8 @@
 use super::dimensionado::{dimensionar_serie, ejecutar_paso_dimensionado};
 use super::parametros::DisenoParametros;
+use super::sitio_del_proyecto::SitioDelDiseno;
 use super::*;
+use crate::config::Paths;
 use serde_json::json;
 
 #[test]
@@ -85,7 +87,7 @@ fn should_replace_the_template_site_in_project_and_variant_when_linking_a_site()
     let paths = Paths::para_test(ws.path().to_path_buf());
     super::sitio_del_proyecto::vincular_sitio(
         &paths,
-        &super::SitioDelDiseno {
+        &SitioDelDiseno {
             nombre: "SYNTH_Plant",
             variante: "VC0",
             sit_file: &sit.to_string_lossy(),

@@ -19,8 +19,13 @@ const POLL_INTERVAL_MS: u64 = 250;
 const MAX_RONDAS_CIERRE: usize = 12;
 const ESPERA_RONDA: std::time::Duration = std::time::Duration::from_millis(300);
 
+/// Processes of the PVsyst executable currently running.
+pub(crate) fn pids_pvsyst() -> Vec<u32> {
+    pids_de_ejecutable("PVsyst.exe")
+}
+
 pub(crate) fn gui_running() -> bool {
-    !pids_de_ejecutable("PVsyst.exe").is_empty()
+    !pids_pvsyst().is_empty()
 }
 
 /// `gui_actuar accion:cerrar_todo`: closes every visible top window of the
@@ -40,26 +45,29 @@ fn otra_ronda(quedan: usize, rondas: usize) -> bool {
 }
 
 pub(crate) fn cerrar_todo(args: &Value) -> Result<Value> {
-    let pids = pids_de_ejecutable("PVsyst.exe");
+    let pids = pids_pvsyst();
     let mut con_cancelar = args.clone();
     if let Some(argumentos) = con_cancelar.as_object_mut() {
         argumentos.entry("cancelar").or_insert(json!(true));
     }
     let mut cerradas = 0;
     let mut rondas = 0;
-    loop {
-        let vivas = visibles_de(&pids);
-        if !otra_ronda(vivas.len(), rondas) {
-            break;
-        }
-        for h in &vivas {
+    let mut quedan = visibles_de(&pids);
+    while otra_ronda(quedan.len(), rondas) {
+        for h in &quedan {
             super::acciones::cerrar_ventana(*h, &con_cancelar)?;
             cerradas += 1;
         }
         rondas += 1;
         std::thread::sleep(ESPERA_RONDA);
+        let vivas = visibles_de(&pids);
+        // A round that closed no window will not close one in the next round either.
+        let cerro_alguna = quedan.iter().any(|h| !vivas.contains(h));
+        quedan = vivas;
+        if !cerro_alguna {
+            break;
+        }
     }
-    let quedan = visibles_de(&pids);
     Ok(json!({
         "accion": "cerrar_todo",
         "pids": pids,
@@ -145,10 +153,7 @@ fn comprobar_proyecto_libre(args: &Value) -> Result<()> {
 /// running instance instead of spawning another one.
 fn ya_abierta(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     comprobar_proyecto_libre(args)?;
-    let pid = pids_de_ejecutable("PVsyst.exe")
-        .first()
-        .copied()
-        .unwrap_or(0);
+    let pid = pids_pvsyst().first().copied().unwrap_or(0);
     cerrar_aviso_demo_si_pedido(pid, args);
     let windows = ventanas(&json!({ "visibles": true }))?;
     Ok(json!({

@@ -75,6 +75,7 @@ pub(crate) const TOOL_SITIO: Herramienta = Herramienta {
         ("escribir_horizonte", &["archivo", "puntos"]),
         ("escribir_serie", &["archivo", "variables", "valores"]),
     ],
+    consumidos_por_accion: &[],
     sinonimos: SINONIMOS_SITIO,
     ejecutar: Ejecutor::Simple(ejecutar_sitio),
 };

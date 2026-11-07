@@ -10,7 +10,7 @@ use super::span::{find_span_by_segs, indent_width, Lines};
 
 use super::object;
 use super::span::tstart;
-use super::value_text;
+use super::{sin_cambio, value_text};
 use crate::error::{Error, Result};
 use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Map, Value};
@@ -204,7 +204,7 @@ fn apply_field_change(
 ) -> Result<ChangeOutcome> {
     let found = find_field_line(doc, span, in_child, key);
     match (found, value) {
-        (Some((_, old)), Some(new)) if old.trim() == new.trim() => {
+        (Some((_, old)), Some(new)) if sin_cambio(&old, new) => {
             Ok(outcome(key, "sin_cambio", Some(old), Some(new)))
         }
         (Some((i, old)), Some(new)) => {

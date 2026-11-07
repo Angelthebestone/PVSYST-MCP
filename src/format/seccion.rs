@@ -5,6 +5,7 @@
 //! `PVObject_` blocks keep their own editors.
 
 use super::edit::{field_line, outcome, reject_line_breaks, ChangeOutcome, FinDeLinea};
+use super::sin_cambio;
 use super::span::{indent_width, tstart, Lines};
 use crate::error::{Error, Result};
 
@@ -95,7 +96,7 @@ fn aplicar_cambio(
         };
     };
     match cambio.valor {
-        Some(nuevo) if viejo.trim() == nuevo.trim() => Ok(outcome(
+        Some(nuevo) if sin_cambio(viejo, nuevo) => Ok(outcome(
             cambio.clave,
             "sin_cambio",
             Some(viejo.clone()),
