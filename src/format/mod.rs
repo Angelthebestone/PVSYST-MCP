@@ -59,6 +59,11 @@ pub(crate) fn decodificar_texto_flexible(b: &[u8]) -> String {
 
 use serde_json::Value;
 
+/// Whether `nuevo` is the value the field already holds, so its line stays untouched.
+pub(crate) fn sin_cambio(actual: &str, nuevo: &str) -> bool {
+    actual.trim() == nuevo.trim()
+}
+
 /// Render a JSON value as PVsyst field text: strings unquoted, the rest as JSON.
 pub(crate) fn value_text(v: &Value) -> String {
     match v {
