@@ -18,6 +18,9 @@ pub(crate) mod proyecto;
 mod serie_plantilla;
 mod simulacion;
 mod sitio;
+mod sitio_del_proyecto;
+
+pub(crate) use sitio_del_proyecto::SitioDelDiseno;
 
 #[cfg(test)]
 #[path = "../../tests/unit/easy_mode/tests.rs"]
@@ -186,9 +189,9 @@ fn correr_pasos(
     )?;
     exigir_sitio_creado(&paso_sitio)?;
     let paso_proyecto = proyecto::ejecutar_paso_proyecto(paths, params)?;
-    proyecto::vincular_sitio(
+    sitio_del_proyecto::vincular_sitio(
         paths,
-        &proyecto::SitioDelDiseno {
+        &SitioDelDiseno {
             nombre: &params.proyecto.nombre,
             variante: &params.variante,
             sit_file: &paso_sitio.sit_file,

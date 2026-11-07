@@ -83,9 +83,9 @@ fn should_replace_the_template_site_in_project_and_variant_when_linking_a_site()
     )
     .unwrap();
     let paths = Paths::para_test(ws.path().to_path_buf());
-    proyecto::vincular_sitio(
+    super::sitio_del_proyecto::vincular_sitio(
         &paths,
-        &proyecto::SitioDelDiseno {
+        &super::SitioDelDiseno {
             nombre: "SYNTH_Plant",
             variante: "VC0",
             sit_file: &sit.to_string_lossy(),

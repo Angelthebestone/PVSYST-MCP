@@ -2,7 +2,7 @@
 
 use super::parametros::DisenoParametros;
 use super::pasos::{EstadoSimulacion, KpisSalida, PasoSimulacionSalida};
-use super::proyecto::{sustituir_sitio, SitioDelDiseno};
+use super::sitio_del_proyecto::{sustituir_sitio, SitioDelDiseno};
 use crate::args::{opt_str, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 
 const SIMULATION_LOG_LEVEL: u32 = 3;
 /// Weather file named in a result CSV banner (`Weather data;<file>;...`).
-pub(crate) fn meteo_de_metadatos(texto: &str) -> Option<String> {
+pub(super) fn meteo_de_metadatos(texto: &str) -> Option<String> {
     texto.lines().find_map(|linea| {
         let mut campos = linea.split(';');
         if campos.next()?.trim() != "Weather data" {
