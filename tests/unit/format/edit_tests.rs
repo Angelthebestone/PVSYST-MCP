@@ -17,7 +17,7 @@ End of PVObject pvRoot\r\n";
         &[("NMod".into(), Some("99".into()))],
     )
     .expect("edit second instance");
-    assert_eq!(outcomes[0].action, "replaced");
+    assert_eq!(outcomes[0].action, AccionCambio::Replaced);
     assert_eq!(outcomes[0].old_value.as_deref(), Some("20"));
 
     let text = String::from_utf8(out).expect("utf8");
@@ -46,7 +46,7 @@ fn should_replace_field_at_right_level() {
         &[("PVModule".into(), Some("New.PAN".into()))],
     )
     .unwrap();
-    assert_eq!(res[0].action, "replaced");
+    assert_eq!(res[0].action, AccionCambio::Replaced);
     let text = String::from_utf8(out).unwrap();
     assert!(text.contains("      PVModule=New.PAN\r\n"));
     assert!(!text.contains("Old.PAN"));
@@ -69,6 +69,6 @@ fn should_report_sin_cambio_and_keep_the_bytes_when_the_value_is_already_set() {
         &[("NModSerie".into(), Some("10".into()))],
     )
     .expect("el valor ya era ese");
-    assert_eq!(outcomes[0].action, "sin_cambio");
+    assert_eq!(outcomes[0].action, AccionCambio::SinCambio);
     assert_eq!(out, DOC.as_bytes());
 }

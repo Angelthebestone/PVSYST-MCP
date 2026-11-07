@@ -3,6 +3,7 @@
 //! Works directly on raw bytes so untouched lines, including legacy binary blocks,
 //! remain strictly byte-identical.
 
+pub(crate) use super::accion::AccionCambio;
 pub(crate) use super::span::{find_span, spans_of, ObjSpan};
 
 use super::selector::parse_selector;
@@ -36,9 +37,7 @@ impl FinDeLinea {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ChangeOutcome {
     pub key: String,
-    /// `replaced`, `inserted`, `deleted`, `sin_cambio` (the field already held
-    /// that value, so its line is left untouched) or `not-found`.
-    pub action: String,
+    pub action: AccionCambio,
     pub old_value: Option<String>,
     pub new_value: Option<String>,
 }
@@ -53,7 +52,7 @@ pub(crate) struct EdicionObjeto {
 impl ChangeOutcome {
     pub(crate) fn to_json(&self) -> Value {
         json!({
-            "key": self.key, "action": self.action,
+            "key": self.key, "action": self.action.as_str(),
             "old": self.old_value, "new": self.new_value
         })
     }
@@ -97,13 +96,13 @@ fn tipo_json(v: &Value) -> &'static str {
 
 pub(super) fn outcome(
     key: &str,
-    action: &str,
+    action: AccionCambio,
     old: Option<String>,
     new: Option<&str>,
 ) -> ChangeOutcome {
     ChangeOutcome {
         key: key.to_string(),
-        action: action.to_string(),
+        action,
         old_value: old,
         new_value: new.map(str::to_string),
     }
@@ -205,20 +204,20 @@ fn apply_field_change(
     let found = find_field_line(doc, span, in_child, key);
     match (found, value) {
         (Some((_, old)), Some(new)) if sin_cambio(&old, new) => {
-            Ok(outcome(key, "sin_cambio", Some(old), Some(new)))
+            Ok(outcome(key, AccionCambio::SinCambio, Some(old), Some(new)))
         }
         (Some((i, old)), Some(new)) => {
             let fin = FinDeLinea::de(&doc.lines[i]);
             let indent = indent_width(&doc.lines[i]);
             doc.lines[i] = field_line(indent, key, new, fin);
-            Ok(outcome(key, "replaced", Some(old), Some(new)))
+            Ok(outcome(key, AccionCambio::Replaced, Some(old), Some(new)))
         }
         (Some((i, old)), None) => {
             doc.lines[i].clear();
             doc.newline[i] = false;
-            Ok(outcome(key, "deleted", Some(old), None))
+            Ok(outcome(key, AccionCambio::Deleted, Some(old), None))
         }
-        (None, Some(new)) => Ok(outcome(key, "inserted", None, Some(new))),
+        (None, Some(new)) => Ok(outcome(key, AccionCambio::Inserted, None, Some(new))),
         (None, None) => Err(Error::NotFound(format!("Campo '{key}' no existe"))),
     }
 }
@@ -257,7 +256,7 @@ pub(crate) fn edit_fields(
 
     for (key, value) in changes {
         let outcome = apply_field_change(&mut doc, &span, &in_child, key, value.as_deref())?;
-        if outcome.action == "inserted" {
+        if outcome.action == AccionCambio::Inserted {
             if let Some(v) = value.as_deref() {
                 inserts.push((key, v));
             }

@@ -17,7 +17,7 @@ fn should_replace_every_duplicate_line_when_field_repeats() {
     assert_eq!(texto.matches("DiscountRate=0.0300").count(), 2);
     assert!(!texto.contains("DiscountRate=0.0100"));
     assert_eq!(outcomes.len(), 1);
-    assert_eq!(outcomes[0].action, "replaced");
+    assert_eq!(outcomes[0].action, AccionCambio::Replaced);
     assert_eq!(outcomes[0].old_value.as_deref(), Some("0.0100"));
 }
 

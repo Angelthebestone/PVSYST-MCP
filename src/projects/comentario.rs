@@ -2,6 +2,7 @@
 //! comment rule shared by project creation and the doctor.
 
 use crate::error::Result;
+use crate::format::edit::AccionCambio;
 use crate::format::{edit, object};
 use serde_json::Value;
 
@@ -42,7 +43,7 @@ impl Comentario<'_> {
         let (nuevo, outcomes) = edit::edit_fields(bytes, objeto, &cambios)?;
         let aplicados = outcomes
             .iter()
-            .filter(|o| o.action != "sin_cambio")
+            .filter(|o| o.action != AccionCambio::SinCambio)
             .map(edit::ChangeOutcome::to_json)
             .collect();
         Ok((nuevo, aplicados))
