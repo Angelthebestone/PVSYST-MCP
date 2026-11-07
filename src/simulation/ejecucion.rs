@@ -5,6 +5,7 @@ use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::progreso::SeguimientoTarea;
 use serde_json::{json, Value};
+use std::io::Read;
 use std::path::Path;
 
 pub(crate) fn finalizar(plan: &Plan, out: &cli::CliOutput, contexto: &Value) -> Value {
@@ -78,9 +79,18 @@ fn agregar_advertencia(resultado: &mut Value, aviso: &str) {
     resultado["advertencias"] = Value::Array(advertencias);
 }
 
+/// Banner bytes read to find the weather file: PVsyst writes it in the first lines,
+/// and an hourly year is several MB.
+const BYTES_CABECERA_CSV: u64 = 8 * 1024;
+
 /// Weather file a result CSV was simulated with (`Weather data;<file>;`).
 fn meteo_del_csv(csv: &Path) -> Option<String> {
-    let bytes = std::fs::read(csv).ok()?;
+    let mut bytes = Vec::new();
+    std::fs::File::open(csv)
+        .ok()?
+        .take(BYTES_CABECERA_CSV)
+        .read_to_end(&mut bytes)
+        .ok()?;
     let texto = String::from_utf8_lossy(&bytes);
     for linea in texto.lines().take(40) {
         let mut campos = linea.split(';');
