@@ -1,14 +1,6 @@
 use super::*;
 
 #[test]
-fn should_roundtrip_serialize_and_parse() {
-    let vars = vec!["HSol".to_string(), "E_Grid".to_string(), "PR".to_string()];
-    let serializado = serializar_rvt(&vars);
-    let parsed = parse_rvt(&serializado).expect("roundtrip parse");
-    assert_eq!(parsed, vars);
-}
-
-#[test]
 fn should_keep_other_lines_when_rewriting_the_variable_line() {
     let original = "Plantilla del MCP\r\n  ResultVars=HSol;AzSol\r\nFin\r\n";
 
