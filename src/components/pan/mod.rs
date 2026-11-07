@@ -55,7 +55,8 @@ fn parse_text_module(text: &str) -> Result<Value> {
         "vendor": root.find_deep("Manufacturer").unwrap_or(""),
         "model": root.find_deep("Model").or_else(|| root.field("Model")).unwrap_or(""),
         "data_source": root.find_deep("DataSource").unwrap_or(""),
-        "technology": root.find_deep("Technology").unwrap_or(""),
+        // PVsyst's own `.PAN` files name it `Technol`; `Technology` is the fixture spelling.
+        "technology": alias(&root, &["Technol", "Technology"]).unwrap_or(""),
         "version": root.field("Version").unwrap_or(""),
         "pnom": pnom,
         "voc": voc,
