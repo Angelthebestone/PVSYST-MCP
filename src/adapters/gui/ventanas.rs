@@ -208,32 +208,6 @@ pub(crate) fn resolve(haystack: &[Hwnd], reference: &str) -> Option<Hwnd> {
 }
 
 /// Lists the top-level windows of the PVsyst process.
-/// The modal blocking the process, if any: a VCL modal can be a child window of
-/// the form it disables, and `EnumWindows` would not list it.
-fn modal_de(pids: &[u32]) -> Option<Hwnd> {
-    pids.iter()
-        .flat_map(|p| enum_windows_de(*p))
-        .filter(|h| visible(*h))
-        .find_map(modal::bloqueante_de)
-}
-
-/// Adds the blocking modal when the enumeration did not list it, without
-/// duplicating one that is already there.
-fn agregar_modal(out: &mut Vec<Value>, modal: Option<Value>) {
-    let Some(mut modal) = modal else {
-        return;
-    };
-    let hwnd = modal.get("hwnd").cloned().unwrap_or(Value::Null);
-    if out.iter().any(|w| w.get("hwnd") == Some(&hwnd)) {
-        return;
-    }
-    if let Some(mapa) = modal.as_object_mut() {
-        mapa.insert("modal".into(), json!(true));
-        mapa.insert("child".into(), json!(true));
-    }
-    out.push(modal);
-}
-
 pub(crate) fn ventanas(args: &Value) -> Result<Value> {
     let pids = target_pids(args)?;
     let compact = compact_default(args);
@@ -257,9 +231,9 @@ pub(crate) fn ventanas(args: &Value) -> Result<Value> {
     if visible_only {
         out.retain(|w| w["visible"].as_bool().unwrap_or(false));
     }
-    let modal = modal_de(&pids).map(window_json);
+    let modal = modal::modal_de(&pids).map(window_json);
     let resumen_modal = modal.clone();
-    agregar_modal(&mut out, modal);
+    modal::agregar_modal(&mut out, modal);
     Ok(json!({
         "processes": pids,
         "count": out.len(),
@@ -306,7 +280,3 @@ pub(crate) fn leer(args: &Value) -> Result<Value> {
         "text": text_of(h),
     }))
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/adapters/gui/ventanas.rs"]
-mod tests;

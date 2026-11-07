@@ -1,6 +1,7 @@
 //! Window actions: clicks, messages, physical inputs and desktop interactivity.
 
-use super::conduccion::{esperar_cierre, formularios};
+use super::cierre;
+use super::conduccion::esperar_cierre;
 use super::ffi::{self, Hwnd, BM_CLICK, GA_ROOT, SW_RESTORE, WM_CLOSE};
 use super::modal;
 use super::rotulos::{rotulos_acciones, Idioma, RotulosAcciones};
@@ -23,10 +24,6 @@ pub(crate) const CLASE_MENSAJE: &str = "TMessageForm";
 pub(crate) const CLASE_EXCEPCION: &str = "madExceptWndClass";
 /// Longest wait for a form to disappear after asking it to close.
 const ESPERA_CIERRE: Duration = Duration::from_secs(2);
-/// Time PVsyst takes to show the parent form again after an editor closes.
-const ESPERA_REAPARICION: Duration = Duration::from_millis(400);
-/// The home screen is always behind: it is not a form the close reopened.
-const INICIO: &str = "THomeForm";
 
 /// How a control is clicked through messages. Exactly one mechanism is used:
 /// a button handles both `BM_CLICK` and mouse messages, so sending both would
@@ -191,57 +188,6 @@ pub(crate) fn exigir_escritorio() -> Result<()> {
     }
 }
 
-/// A visible top-level window of the process, as seen before and after a close.
-struct VentanaViva {
-    h: Hwnd,
-    clase: String,
-    titulo: String,
-}
-
-fn ventanas_vivas(pid: u32) -> Vec<VentanaViva> {
-    formularios(pid)
-        .into_iter()
-        .map(|v| VentanaViva {
-            h: v,
-            clase: class_of(v),
-            titulo: text_of(v),
-        })
-        .collect()
-}
-
-/// Forms the close made visible again: an editor can reopen its parent selector
-/// as a modal, and a bare `closed:true` would hide it from the caller.
-fn formas_reabiertas(antes: &[VentanaViva], despues: &[VentanaViva], cerrada: Hwnd) -> Vec<Value> {
-    despues
-        .iter()
-        .filter(|v| v.h != cerrada && v.clase != INICIO && !antes.iter().any(|a| a.h == v.h))
-        .map(|v| {
-            json!({
-                "hwnd": format!("0x{:X}", v.h),
-                "class": v.clase,
-                "title": v.titulo,
-            })
-        })
-        .collect()
-}
-
-/// Names the reopened form and the `cerrar` that closes it, so the caller does
-/// not have to discover the class with another observation.
-fn aviso_de_reaparicion(reabiertas: &[Value]) -> Option<String> {
-    let primera = reabiertas.first()?;
-    let clase = primera["class"].as_str().unwrap_or_default();
-    let hwnd = primera["hwnd"].as_str().unwrap_or_default();
-    let resto = reabiertas.len().saturating_sub(1);
-    let extra = if resto == 0 {
-        String::new()
-    } else {
-        format!(" (and {resto} more)")
-    };
-    Some(format!(
-        "Closing reopened {clase}{extra}: close it too with gui_actuar accion:cerrar ventana:{hwnd}"
-    ))
-}
-
 pub(crate) fn invocar(args: &Value) -> Result<Value> {
     let scoped = ventanas_de(args)?;
     let reference = req_str(
@@ -261,16 +207,16 @@ pub(crate) fn invocar(args: &Value) -> Result<Value> {
     // The pid must be read while the window still exists: a destroyed HWND
     // reports pid 0 and the re-observation would see nothing.
     let pid = cerrar.then(|| pid_of(h));
-    let antes = pid.map(ventanas_vivas);
+    let antes = pid.map(cierre::instantanea);
     ffi::traer_al_frente(ffi::get_ancestor(h, GA_ROOT));
     ejecutar_accion(h, action, args)?;
 
     let mut reabiertas = Vec::new();
     if cerrar {
         exigir_cerrada(h)?;
-        std::thread::sleep(ESPERA_REAPARICION);
+        std::thread::sleep(cierre::ESPERA_REAPARICION);
         if let (Some(antes), Some(pid)) = (antes, pid) {
-            reabiertas = formas_reabiertas(&antes, &ventanas_vivas(pid), h);
+            reabiertas = cierre::reabiertas(&antes, &cierre::instantanea(pid), h);
         }
     }
     let mut window = window_json(h);
@@ -285,7 +231,7 @@ pub(crate) fn invocar(args: &Value) -> Result<Value> {
         "action": action,
         "window": window,
         "reabiertas": reabiertas,
-        "aviso": aviso_de_reaparicion(&reabiertas),
+        "aviso": cierre::aviso(&reabiertas),
     }))
 }
 

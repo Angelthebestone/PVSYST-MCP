@@ -4,8 +4,9 @@
 
 use super::conduccion::formularios;
 use super::ffi::{self, Hwnd, GA_ROOT};
-use super::ventanas::{class_of, pid_of};
+use super::ventanas::{class_of, enum_windows_de, pid_of, visible};
 use crate::error::{Error, Result};
+use serde_json::{json, Value};
 
 /// Hint completing "…before" for actions that click or type into a window.
 pub(crate) const PARA_ACTUAR: &str = "acting on it";
@@ -46,6 +47,32 @@ pub(crate) fn exigir_habilitada(ventana: Hwnd, para: &str) -> Result<()> {
         "{} is disabled: a modal dialog is open on top of it{sobre}. Close it (gui_actuar accion:cerrar) before {para}",
         class_of(raiz)
     )))
+}
+
+/// The modal blocking the process, if any: a VCL modal can be a child window of
+/// the form it disables, and `EnumWindows` would not list it.
+pub(crate) fn modal_de(pids: &[u32]) -> Option<Hwnd> {
+    pids.iter()
+        .flat_map(|p| enum_windows_de(*p))
+        .filter(|h| visible(*h))
+        .find_map(bloqueante_de)
+}
+
+/// Adds the blocking modal when the enumeration did not list it, without
+/// duplicating one that is already there.
+pub(crate) fn agregar_modal(out: &mut Vec<Value>, modal: Option<Value>) {
+    let Some(mut modal) = modal else {
+        return;
+    };
+    let hwnd = modal.get("hwnd").cloned().unwrap_or(Value::Null);
+    if out.iter().any(|w| w.get("hwnd") == Some(&hwnd)) {
+        return;
+    }
+    if let Some(mapa) = modal.as_object_mut() {
+        mapa.insert("modal".into(), json!(true));
+        mapa.insert("child".into(), json!(true));
+    }
+    out.push(modal);
 }
 
 #[cfg(test)]
