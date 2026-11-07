@@ -11,6 +11,7 @@ mod dimensionado;
 mod fallo_simulacion;
 mod lectura_argumentos;
 mod meteonorm;
+mod modulo_de_plantilla;
 mod parametros;
 mod pasos;
 pub(crate) mod proyecto;

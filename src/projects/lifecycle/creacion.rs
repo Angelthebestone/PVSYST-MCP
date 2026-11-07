@@ -13,6 +13,7 @@ use serde_json::{json, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use super::plantilla::{carpeta_de_salida, resolver_plantilla, sit_pedido, variante_pedida};
 use super::transacciones::{escribir_par, renombrar_todo};
 
 /// Variant bytes with the optional module / inverter / sizing overrides applied.
@@ -73,54 +74,6 @@ fn personalizar(args: &Value, prj_src: &[u8], var_src: &[u8]) -> Result<Personal
     Ok(Personalizado { prj, var, applied })
 }
 
-/// Resolves the base project: the workspace first, then the read-only DataRO demo projects.
-fn resolver_plantilla(workspace: &Path, plantilla: &str, alcance: Alcance) -> Result<PathBuf> {
-    match crate::projects::resolve_project_file_con_alcance(workspace, plantilla, alcance) {
-        Ok(p) => Ok(p),
-        Err(e) => plantilla_demo_ro(plantilla).ok_or(e),
-    }
-}
-
-/// A PVsyst demo project in DataRO named `plantilla`, with or without `.PRJ`.
-fn plantilla_demo_ro(plantilla: &str) -> Option<PathBuf> {
-    if !crate::workspace::es_relativa_simple(Path::new(plantilla)) {
-        return None;
-    }
-    let base = crate::config::proyectos_demo_ro();
-    [plantilla.to_string(), format!("{plantilla}.PRJ")]
-        .iter()
-        .map(|c| base.join(c))
-        .find(|p| p.is_file())
-}
-
-/// Output always goes to the workspace: a DataRO template is never written beside.
-fn carpeta_de_salida(workspace: &Path, src_prj: &Path, src_parent: &Path) -> PathBuf {
-    if src_prj.starts_with(workspace) {
-        src_parent.to_path_buf()
-    } else {
-        workspace.join("Projects")
-    }
-}
-
-/// The workspace `Sites/<sitio>.SIT` requested with `sitio`; a missing site is an error.
-fn sit_pedido(workspace: &Path, args: &Value) -> Result<Option<PathBuf>> {
-    let Some(sitio) = args.get("sitio").and_then(Value::as_str) else {
-        return Ok(None);
-    };
-    crate::workspace::validar_nombre(sitio)?;
-    let dir = workspace.join("Sites");
-    let sit = dir.join(format!("{sitio}.SIT"));
-    if !sit.is_file() {
-        return Err(crate::args::no_encontrado(
-            "Sitio",
-            sitio,
-            &[],
-            &dir.to_string_lossy(),
-        ));
-    }
-    Ok(Some(sit))
-}
-
 /// The site changed but the project still reads the template's weather file: the
 /// simulation would run the new location with the old weather (E116's symptom).
 fn aviso_meteo_de_plantilla(prj: &[u8]) -> Option<String> {
@@ -138,14 +91,6 @@ fn vincular_sitio_pedido(nuevo: &mut Personalizado, sit: Option<&Path>) -> Resul
     nuevo.prj = super::sitio::insertar_sitio(&nuevo.prj, sit)?;
     nuevo.var = super::sitio::insertar_sitio_en_variante(&nuevo.var, sit)?;
     Ok(aviso_meteo_de_plantilla(&nuevo.prj))
-}
-
-/// Variant the new project starts from: `variante`, `VC0` by default.
-fn variante_pedida(args: &Value) -> String {
-    args.get("variante")
-        .and_then(Value::as_str)
-        .unwrap_or("VC0")
-        .to_uppercase()
 }
 
 pub(crate) fn crear_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
