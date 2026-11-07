@@ -140,6 +140,13 @@ pub(crate) fn decorar(v: &mut Value, args: &Value, r: Respuesta<'_>) {
     };
     let total = lim.and_then(|l| total_principal(v, l));
     let truncado = lim.is_some_and(|l| recortar(v, l));
+    // A handler knows which of its own arguments the branch it took did not read.
+    let mut ignorados = r.ignorados;
+    if let Some(previos) = v.get("ignorados").and_then(Value::as_array) {
+        ignorados.extend(previos.iter().filter_map(Value::as_str).map(str::to_string));
+    }
+    ignorados.sort();
+    ignorados.dedup();
     let Some(obj) = v.as_object_mut() else {
         return;
     };
@@ -147,8 +154,8 @@ pub(crate) fn decorar(v: &mut Value, args: &Value, r: Respuesta<'_>) {
     if let Some(sig) = siguiente(r.herramienta, r.accion) {
         obj.insert("siguiente".to_string(), Value::from(sig));
     }
-    if !r.ignorados.is_empty() {
-        obj.insert("ignorados".to_string(), Value::from(r.ignorados));
+    if !ignorados.is_empty() {
+        obj.insert("ignorados".to_string(), Value::from(ignorados));
     }
     if truncado {
         obj.insert("truncado".to_string(), Value::Bool(true));
