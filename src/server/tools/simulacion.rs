@@ -4,6 +4,7 @@ use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, Sino
 use crate::args::{flag, missing, DRY_RUN};
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::idioma::Texto;
 use crate::progreso::SeguimientoTarea;
 use crate::simulation::{self, batch, preestimate};
 use serde_json::{Map, Value};
@@ -121,7 +122,7 @@ fn ejecutar_simular(
     let valor = TOOL_SIMULAR.accion(args);
     match valor {
         "ejecutar" => {
-            exigir_ensayo_sin_escritura(args)?;
+            exigir_ensayo_sin_escritura(paths, args)?;
             let (vivos, _) = preparar_entrada(paths, args)?;
             simulation::lanzar_simulacion_seguida(paths, &vivos, seguimiento)
         }
@@ -147,13 +148,18 @@ fn ejecutar_simular(
     }
 }
 
+const ENSAYO_SIN_ESCRITURA: Texto = Texto {
+    es: "dry_run no admite 'filas' ni 'parametros': prepararlos escribe archivos del workspace. Quita dry_run, o prepara antes con accion:preparar",
+    en: "dry_run does not take 'filas' or 'parametros': preparing them writes workspace files. Drop dry_run, or prepare first with accion:preparar",
+};
+
 /// `filas` and `parametros` are written to the workspace before the run starts, so
 /// a dry run that carried them would already have changed files.
-fn exigir_ensayo_sin_escritura(args: &Value) -> Result<()> {
+fn exigir_ensayo_sin_escritura(paths: &Paths, args: &Value) -> Result<()> {
     let escribe = args.get("filas").is_some() || args.get("parametros").is_some();
     if flag(args, &[DRY_RUN]) && escribe {
         return Err(Error::Invalid(
-            "dry_run no admite 'filas' ni 'parametros': prepararlos escribe archivos del workspace. Quita dry_run, o prepara antes con accion:preparar".into(),
+            ENSAYO_SIN_ESCRITURA.en_idioma(paths.idioma).to_string(),
         ));
     }
     Ok(())
