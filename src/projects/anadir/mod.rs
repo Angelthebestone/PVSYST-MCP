@@ -3,6 +3,7 @@
 
 pub(crate) mod baterias;
 pub(crate) mod catalogo;
+mod elementos;
 pub(crate) mod horizonte;
 pub(crate) mod objetos;
 
