@@ -13,6 +13,7 @@ use std::time::Instant;
 
 mod aproximadas;
 pub(crate) mod componentes;
+mod configurar;
 pub(crate) mod declaracion;
 pub(crate) mod entorno;
 pub(crate) mod nativos;
