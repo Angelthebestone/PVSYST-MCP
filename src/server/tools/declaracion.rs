@@ -1,12 +1,14 @@
 //! MCP tool declarations: schemas, property types and discriminator rules.
 //! Boundary validation lives in [`validacion`].
 
-use super::redaccion::{DESCRIPCION_WORKSPACE, PREFIJO_VALORES, SUFIJO_REQUERIDO};
+use super::redaccion::DESCRIPCION_WORKSPACE;
 use crate::config::Paths;
 use crate::error::Result;
 use crate::idioma::{Idioma, Texto};
 use crate::progreso::SeguimientoTarea;
 use serde_json::{json, Map, Value};
+
+mod anotador;
 
 /// JSON Schema types supported in tool property declarations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -199,63 +201,6 @@ impl Herramienta {
     }
 }
 
-impl Anotador<'_> {
-    fn propiedad(&self, prop_val: &mut Value, clave: &str) {
-        let h = self.herramienta;
-        let aliases = extraer_aliases(h.sinonimos.argumentos, clave);
-        if aliases.is_empty() {
-            return;
-        }
-        let Some(obj) = prop_val.as_object_mut() else {
-            return;
-        };
-        let alias_str = format!("(alias: {})", aliases.join(", "));
-        let mut desc = match obj.get("description").and_then(Value::as_str) {
-            Some(prev) => format!("{prev} {alias_str}"),
-            None => format!("{clave} {alias_str}"),
-        };
-        if h.requeridos.contains(&clave) {
-            desc.push_str(SUFIJO_REQUERIDO.en_idioma(self.idioma));
-        }
-        obj.insert("description".to_string(), json!(desc));
-    }
-
-    pub(crate) fn discriminador(&self, prop: &mut Value, disc: &Discriminador) {
-        let h = self.herramienta;
-        let Some(obj) = prop.as_object_mut() else {
-            return;
-        };
-        let valores_texto = obj
-            .get("enum")
-            .and_then(Value::as_array)
-            .into_iter()
-            .flatten()
-            .filter_map(Value::as_str)
-            .filter(|val| disc.valores.contains(val))
-            .map(|val| formatear_valor_con_aliases(val, &h.sinonimos))
-            .collect::<Vec<_>>()
-            .join(", ");
-
-        let arg_aliases = extraer_aliases(h.sinonimos.argumentos, disc.campo);
-
-        let valores = PREFIJO_VALORES.en_idioma(self.idioma);
-        let mut desc = if arg_aliases.is_empty() {
-            format!("{valores}{valores_texto}")
-        } else {
-            format!(
-                "{} (alias: {}). {valores}{valores_texto}",
-                disc.campo,
-                arg_aliases.join(", ")
-            )
-        };
-        if disc.defecto.is_none() && !arg_aliases.is_empty() {
-            desc.push_str(SUFIJO_REQUERIDO.en_idioma(self.idioma));
-        }
-        obj.insert("description".to_string(), json!(desc));
-        h.anotar_requeridos_por_accion(prop, self.idioma);
-    }
-}
-
 /// Produces a copy of `args` with the given key/value set.
 pub(crate) fn con(args: &Value, clave: &str, valor: Value) -> Value {
     let mut copia = match args {
@@ -294,15 +239,6 @@ fn construir_prop_discriminador(disc: &Discriminador, sinonimos: &Sinonimos) -> 
         obj.insert("default".to_string(), json!(defecto));
     }
     prop
-}
-
-fn formatear_valor_con_aliases(val: &str, sinonimos: &Sinonimos) -> String {
-    let aliases = extraer_aliases(sinonimos.valores, val);
-    if aliases.is_empty() {
-        val.to_string()
-    } else {
-        format!("{val} (alias: {})", aliases.join(", "))
-    }
 }
 
 pub(crate) fn extraer_aliases<'a>(tabla: &[(&'a str, &'a str)], canonico: &str) -> Vec<&'a str> {
