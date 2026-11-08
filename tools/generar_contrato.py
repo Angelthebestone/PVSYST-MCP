@@ -28,6 +28,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from typing import Any, cast
 
 RAIZ = Path(__file__).resolve().parent.parent
 MANIFIESTO = RAIZ / "mcpb" / "manifest.json"
@@ -37,27 +38,35 @@ FIN = "<!-- alias:fin -->"
 SIN_VALORES = "—"
 PROTOCOLO = "2025-06-18"
 
+Peticion = tuple[str, dict[str, Any]]
+TablaSinonimos = dict[str, dict[str, dict[str, str]]]
 
-def _peticion(ident: int, metodo: str, params: dict) -> str:
+
+def _peticion(ident: int, metodo: str, params: dict[str, Any]) -> str:
     return json.dumps(
         {"jsonrpc": "2.0", "id": ident, "method": metodo, "params": params}
     )
 
 
-def _responder(proceso: subprocess.Popen, ident: int) -> dict:
+def _responder(proceso: subprocess.Popen[str], ident: int) -> dict[str, Any]:
     """Reads lines until the answer to `ident` arrives."""
+    salida = proceso.stdout
+    if salida is None:
+        raise SystemExit("el servidor no tiene stdout")
     while True:
-        linea = proceso.stdout.readline()
+        linea = salida.readline()
         if not linea:
             raise SystemExit(f"el servidor cerró sin responder a la petición {ident}")
-        mensaje = json.loads(linea)
+        mensaje: dict[str, Any] = json.loads(linea)
         if mensaje.get("id") == ident:
             if "error" in mensaje:
                 raise SystemExit(f"error del servidor: {mensaje['error']}")
-            return mensaje["result"]
+            return cast(dict[str, Any], mensaje["result"])
 
 
-def _consultar(exe: Path, aproximaciones: bool, peticiones: list) -> list:
+def _consultar(
+    exe: Path, aproximaciones: bool, peticiones: list[Peticion]
+) -> list[dict[str, Any]]:
     entorno = dict(os.environ)
     entorno["PVSYST_MCP_IDIOMA"] = "en"
     entorno["PVSYST_MCP_LOG"] = "error"
@@ -75,19 +84,22 @@ def _consultar(exe: Path, aproximaciones: bool, peticiones: list) -> list:
             encoding="utf-8",
             env=entorno,
         )
+        entrada = proceso.stdin
+        if entrada is None:
+            raise SystemExit("el servidor no tiene stdin")
         try:
-            respuestas = []
+            respuestas: list[dict[str, Any]] = []
             for ident, (metodo, params) in enumerate(peticiones, start=1):
-                proceso.stdin.write(_peticion(ident, metodo, params) + "\n")
-                proceso.stdin.flush()
+                entrada.write(_peticion(ident, metodo, params) + "\n")
+                entrada.flush()
                 respuestas.append(_responder(proceso, ident))
             return respuestas
         finally:
-            proceso.stdin.close()
+            entrada.close()
             proceso.wait(timeout=30)
 
 
-def herramientas(exe: Path) -> list:
+def herramientas(exe: Path) -> list[dict[str, str]]:
     """`tools/list` as a client sees it by default: English, no approximations."""
     initialize, listado = _consultar(
         exe,
@@ -98,10 +110,13 @@ def herramientas(exe: Path) -> list:
         ],
     )
     del initialize
-    return [{"name": t["name"], "description": t["description"]} for t in listado["tools"]]
+    return [
+        {"name": str(t["name"]), "description": str(t["description"])}
+        for t in listado["tools"]
+    ]
 
 
-def sinonimos(exe: Path) -> dict:
+def sinonimos(exe: Path) -> TablaSinonimos:
     """The synonym table, with approximations on so no alias is filtered out."""
     _, recurso = _consultar(
         exe,
@@ -111,18 +126,21 @@ def sinonimos(exe: Path) -> dict:
             ("resources/read", {"uri": "pvsyst://cobertura"}),
         ],
     )
-    return json.loads(recurso["contents"][0]["text"])["sinonimos"]
+    tabla = json.loads(recurso["contents"][0]["text"])["sinonimos"]
+    return cast(TablaSinonimos, tabla)
 
 
-def _pares(pares: dict) -> str:
+def _pares(pares: dict[str, str]) -> str:
     """Declaration order, so an unchanged registry leaves the README as it is."""
     if not pares:
         return SIN_VALORES
     return ", ".join(f"`{alias}` → `{canonico}`" for alias, canonico in pares.items())
 
 
-def tabla_alias(orden: list, tabla: dict) -> str:
-    filas = ["| Herramienta / Tool | Argumentos (alias → canónico) | Valores (alias → canónico) |"]
+def tabla_alias(orden: list[str], tabla: TablaSinonimos) -> str:
+    filas = [
+        "| Herramienta / Tool | Argumentos (alias → canónico) | Valores (alias → canónico) |"
+    ]
     filas.append("|---|---|---|")
     for nombre in orden:
         datos = tabla.get(nombre, {})
@@ -133,7 +151,9 @@ def tabla_alias(orden: list, tabla: dict) -> str:
     return "\n".join(filas)
 
 
-def manifest_actualizado(manifest: dict, tools: list, tabla: dict) -> str:
+def manifest_actualizado(
+    manifest: dict[str, Any], tools: list[dict[str, str]], tabla: TablaSinonimos
+) -> str:
     manifest["_meta"]["pvsyst-mcp"]["tool_aliases"] = {
         nombre: tabla[nombre] for nombre in sorted(tabla)
     }
@@ -152,12 +172,17 @@ def leeme_actualizado(texto: str, tabla_md: str) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--exe", type=Path, default=None, help="servidor compilado")
-    parser.add_argument("--check", action="store_true", help="no escribe; falla si difiere")
+    parser.add_argument(
+        "--check", action="store_true", help="no escribe; falla si difiere"
+    )
     args = parser.parse_args()
 
-    exe = args.exe or Path(
-        os.environ.get("CARGO_TARGET_DIR", RAIZ / "target")
-    ) / "debug" / "pvsyst-mcp.exe"
+    exe = (
+        args.exe
+        or Path(os.environ.get("CARGO_TARGET_DIR", RAIZ / "target"))
+        / "debug"
+        / "pvsyst-mcp.exe"
+    )
     if not exe.is_file():
         raise SystemExit(f"no está {exe}: compila antes (cargo build) o pasa --exe")
 
@@ -165,7 +190,7 @@ def main() -> int:
     tabla = sinonimos(exe)
     orden = [t["name"] for t in tools]
 
-    salidas = {}
+    salidas: dict[Path, str] = {}
     salidas[MANIFIESTO] = manifest_actualizado(
         json.loads(MANIFIESTO.read_text(encoding="utf-8")), tools, tabla
     )
@@ -173,7 +198,7 @@ def main() -> int:
     for leeme in LEEMES:
         salidas[leeme] = leeme_actualizado(leeme.read_text(encoding="utf-8"), tabla_md)
 
-    desfasados = []
+    desfasados: list[Path] = []
     for ruta, contenido in salidas.items():
         actual = ruta.read_text(encoding="utf-8")
         if actual == contenido:
