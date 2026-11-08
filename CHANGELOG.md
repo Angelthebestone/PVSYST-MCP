@@ -86,6 +86,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `escena_importar`: if «Importar resultado» does not close after «OK» or «Cancelar» (or the click fails), the form is dropped with
     «Cancelar» and, failing that, closed, and the error says whether it is gone. `componente crear` retries the focus of a save dialog
     once and logs when it still is not there. Not measured with PVsyst.
+- Review of the PR (ultrareview #2), each finding checked against the code first:
+  - `disenar_sistema` refuses a stand-alone design without `n_mod_serie` and `n_strings` in the preflight, instead of failing in the
+    sizing step after the site and the project already exist.
+  - A reused project reports whether the call compared anything: `proyecto_reutilizado:true` with `proyecto_comparable:false` means the
+    call asked for no module, inverter or string layout. `proyecto_comparable` is `null` when the project was created.
+  - `gui_actuar accion:cerrar_todo` counts each window once, when it is confirmed gone, instead of counting every attempt of every round.
+  - `simular ejecutar` no longer lists `variables`/`unidades` in `ignorados` when `filas`/`parametros` make the handler read them. The
+    ignored-keys table is per key, with the argument that makes it read, and a test fails when it drifts from the tool declarations.
+  - `subarrays_de` reads the `pvSubArray` spans instead of building a second full tree, and `aviso_meteo_distinta` reads the PRJ line by
+    line until `MeteoFileName` instead of loading and parsing the whole file for one value.
 - **`disenar_sistema` sizing no longer loops over billions of candidates** when a database file carries an absurd voltage (a tiny `Voc`, a
   huge or non-finite `VAbsMax`): the series search stops at 1000 modules and a non-finite voltage finds no layout.
 - **`http_get` (PVGIS, uncertainty lookups) refuses a body over 64 MiB** and stops reading it instead of buffering whatever the server sends.

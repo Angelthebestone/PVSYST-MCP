@@ -87,7 +87,7 @@ impl Herramienta {
             return Vec::new();
         };
         let consumidos = self.consumidos(accion);
-        let no_leidos = no_leidos(self.nombre, accion);
+        let no_leidos = no_leidos(self.nombre, accion, args);
         mapa.keys()
             .filter(|clave| {
                 no_leidos.contains(&clave.as_str())
@@ -139,30 +139,109 @@ impl Herramienta {
     }
 }
 
+/// One declared key an action does not read, and the argument that makes the
+/// handler read it anyway. `leido_si: None` means no argument makes it read.
+pub(super) struct NoLeido {
+    pub(super) herramienta: &'static str,
+    pub(super) accion: &'static str,
+    pub(super) clave: &'static str,
+    pub(super) leido_si: Option<&'static str>,
+}
+
 /// Declared keys an action does not read. The schema is per tool, so a key that
 /// belongs to another action of the same tool reaches the handler and is dropped;
 /// naming it in `ignorados` is the only way the caller learns it was not applied.
 /// Only the gaps measured against the handlers are listed: an action not named
-/// here reads every key it declares.
-const NO_LEIDOS: [(&str, &str, &[&str]); 6] = [
-    ("proyecto", "dimensionar", &["n_serie", "n_paralelo"]),
-    ("resultados", "csv", &["internet"]),
-    ("proyecto", "perdidas", &["perdida_separada", "comentario"]),
-    ("simular", "ejecutar", &["variables", "unidades"]),
-    ("workspace", "historial", &["proyecto", "ruta"]),
-    (
-        "sitio",
-        "convertir_meteo",
-        &["output_sit_file", "sit_file", "weather_data_file"],
-    ),
+/// here reads every key it declares, and an entry is removed as soon as its
+/// handler starts reading the key. `leido_si` covers the conditional reads.
+pub(super) const NO_LEIDOS: &[NoLeido] = &[
+    NoLeido {
+        herramienta: "proyecto",
+        accion: "dimensionar",
+        clave: "n_serie",
+        leido_si: None,
+    },
+    NoLeido {
+        herramienta: "proyecto",
+        accion: "dimensionar",
+        clave: "n_paralelo",
+        leido_si: None,
+    },
+    NoLeido {
+        herramienta: "resultados",
+        accion: "csv",
+        clave: "internet",
+        leido_si: None,
+    },
+    NoLeido {
+        herramienta: "proyecto",
+        accion: "perdidas",
+        clave: "perdida_separada",
+        leido_si: None,
+    },
+    NoLeido {
+        herramienta: "proyecto",
+        accion: "perdidas",
+        clave: "comentario",
+        leido_si: None,
+    },
+    // `ejecutar` builds a batch when `filas` is present and a parameter file when
+    // `parametros` is: those keys are read then, and ignored otherwise.
+    NoLeido {
+        herramienta: "simular",
+        accion: "ejecutar",
+        clave: "variables",
+        leido_si: Some("filas"),
+    },
+    NoLeido {
+        herramienta: "simular",
+        accion: "ejecutar",
+        clave: "unidades",
+        leido_si: Some("parametros"),
+    },
+    NoLeido {
+        herramienta: "workspace",
+        accion: "historial",
+        clave: "proyecto",
+        leido_si: None,
+    },
+    NoLeido {
+        herramienta: "workspace",
+        accion: "historial",
+        clave: "ruta",
+        leido_si: None,
+    },
+    NoLeido {
+        herramienta: "sitio",
+        accion: "convertir_meteo",
+        clave: "output_sit_file",
+        leido_si: None,
+    },
+    NoLeido {
+        herramienta: "sitio",
+        accion: "convertir_meteo",
+        clave: "sit_file",
+        leido_si: None,
+    },
+    NoLeido {
+        herramienta: "sitio",
+        accion: "convertir_meteo",
+        clave: "weather_data_file",
+        leido_si: None,
+    },
 ];
 
-/// Declared keys `accion` of `herramienta` does not read.
-fn no_leidos(herramienta: &str, accion: &str) -> &'static [&'static str] {
+/// Declared keys `accion` of `herramienta` does not read for these `args`.
+fn no_leidos(herramienta: &str, accion: &str, args: &Value) -> Vec<&'static str> {
     NO_LEIDOS
         .iter()
-        .find(|(tool, accion_leida, _)| *tool == herramienta && *accion_leida == accion)
-        .map_or(&[], |(_, _, claves)| *claves)
+        .filter(|n| n.herramienta == herramienta && n.accion == accion)
+        .filter(|n| {
+            n.leido_si
+                .is_none_or(|clave| args.get(clave).is_none_or(Value::is_null))
+        })
+        .map(|n| n.clave)
+        .collect()
 }
 
 fn esta_vacio_o_nulo(args: &Value, clave: &str) -> bool {

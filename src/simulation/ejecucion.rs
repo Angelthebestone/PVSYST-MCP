@@ -115,13 +115,11 @@ fn meteo_del_csv(csv: &Path) -> Option<String> {
 fn aviso_meteo_distinta(plan: &Plan, proyecto: &str) -> Option<String> {
     let csv = plan.ocf.as_deref().map(Path::new)?;
     let del_resultado = meteo_del_csv(csv)?;
-    let prj = std::fs::read(
-        plan.workspace
-            .join("Projects")
-            .join(format!("{proyecto}.PRJ")),
-    )
-    .ok()?;
-    let del_proyecto = crate::projects::lifecycle::sitio::meteo_del_proyecto(&prj)?;
+    let prj = plan
+        .workspace
+        .join("Projects")
+        .join(format!("{proyecto}.PRJ"));
+    let del_proyecto = crate::projects::lifecycle::sitio::meteo_del_proyecto_en(&prj)?;
     let nombre = |ruta: &str| {
         Path::new(ruta)
             .file_name()

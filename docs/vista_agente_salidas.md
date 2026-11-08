@@ -45,7 +45,7 @@ Cambios respecto a la propuesta del handoff, con motivo:
 | Tool | Claves habituales hoy |
 |---|---|
 | `entorno` | `entorno{…, cli_exists, gui_exists, workspace}`, `preflight{checks}`; licencia: `license`, `exit_code`, `success`. |
-| `disenar_sistema` | `ok`, `proyecto`, `variante`, `kwp_objetivo`, `kwp_realizado`, `pasos[]`, `errores[]`, `avisos[]`, `kpis`; sin confirmar: `requiere_confirmacion`, `ejecuciones_estimadas`, `restantes`, `mensaje`. |
+| `disenar_sistema` | `ok`, `proyecto`, `variante`, `kwp_objetivo`, `kwp_realizado`, `proyecto_reutilizado`, `proyecto_comparable`, `pasos[]`, `errores[]`, `avisos[]`, `kpis`; sin confirmar: `requiere_confirmacion`, `ejecuciones_estimadas`, `restantes`, `mensaje`. |
 | `listar` | `count`, `projects[]` / `archivos[]` / `objetos[]`, `advertencias[]`. |
 | `leer` | `file`, `size_bytes`, `summary{…}`, `hint`. |
 | `proyecto` | `project`, `variant`, `avisos[]`, `detail{applied[]|edits[]}`. |

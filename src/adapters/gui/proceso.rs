@@ -44,23 +44,35 @@ fn otra_ronda(quedan: usize, rondas: usize) -> bool {
     quedan > 0 && rondas < MAX_RONDAS_CIERRE
 }
 
+/// Adds the handles of `quedan` that the round confirmed gone, once each.
+fn anotar_cerradas(quedan: &[ffi::Hwnd], vivas: &[ffi::Hwnd], cerradas: &mut Vec<ffi::Hwnd>) {
+    for h in quedan {
+        if vivas.contains(h) || cerradas.contains(h) {
+            continue;
+        }
+        cerradas.push(*h);
+    }
+}
+
 pub(crate) fn cerrar_todo(args: &Value) -> Result<Value> {
     let pids = pids_pvsyst();
     let mut con_cancelar = args.clone();
     if let Some(argumentos) = con_cancelar.as_object_mut() {
         argumentos.entry("cancelar").or_insert(json!(true));
     }
-    let mut cerradas = 0;
+    // A window that survives a round is retried in the next one: count each handle
+    // once, when it is confirmed gone, instead of counting the attempts.
+    let mut cerradas: Vec<ffi::Hwnd> = Vec::new();
     let mut rondas = 0;
     let mut quedan = visibles_de(&pids);
     while otra_ronda(quedan.len(), rondas) {
         for h in &quedan {
             super::acciones::cerrar_ventana(*h, &con_cancelar)?;
-            cerradas += 1;
         }
         rondas += 1;
         std::thread::sleep(ESPERA_RONDA);
         let vivas = visibles_de(&pids);
+        anotar_cerradas(&quedan, &vivas, &mut cerradas);
         // A round that closed no window will not close one in the next round either.
         let cerro_alguna = quedan.iter().any(|h| !vivas.contains(h));
         quedan = vivas;
@@ -71,7 +83,7 @@ pub(crate) fn cerrar_todo(args: &Value) -> Result<Value> {
     Ok(json!({
         "accion": "cerrar_todo",
         "pids": pids,
-        "cerradas": cerradas,
+        "cerradas": cerradas.len(),
         "rondas": rondas,
         "quedan": quedan.iter().map(|h| window_json(*h)).collect::<Vec<_>>(),
     }))

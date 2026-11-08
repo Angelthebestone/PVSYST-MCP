@@ -84,6 +84,10 @@ fn es_campo_numerico(campo: &str) -> bool {
 
 /// PVsyst writes numbers with a decimal point. `NaN` and `inf` parse as floats
 /// but PVsyst cannot read them, so they are not numbers here either.
+///
+/// The write path is strict on purpose: a comma is refused before this check, while
+/// `format::numero_texto` accepts it for tolerant comparisons. Do not "fix" one side
+/// without the other.
 fn es_numero(valor: &str) -> bool {
     valor.trim().parse::<f64>().is_ok_and(f64::is_finite)
 }

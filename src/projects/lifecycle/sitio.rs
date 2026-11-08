@@ -64,10 +64,41 @@ fn rol_del_sitio(var: &[u8]) -> Option<&'static str> {
 
 /// `MeteoFileName` of the project, the weather file a simulation reads unless told otherwise.
 pub(crate) fn meteo_del_proyecto(prj: &[u8]) -> Option<String> {
-    let texto = String::from_utf8_lossy(prj);
-    let root = crate::format::object::parse_first(&texto)?;
-    root.find_deep("MeteoFileName")
+    String::from_utf8_lossy(prj)
+        .lines()
+        .find_map(|linea| meteo_de_linea(linea.trim()))
+}
+
+/// [`meteo_del_proyecto`] for a PRJ on disk: reads line by line and stops at the
+/// field, which PVsyst writes near the top, instead of loading and parsing the
+/// whole file for one value.
+pub(crate) fn meteo_del_proyecto_en(ruta: &Path) -> Option<String> {
+    use std::io::BufRead;
+    let archivo = std::fs::File::open(ruta).ok()?;
+    let mut lector = std::io::BufReader::new(archivo);
+    let mut linea = Vec::new();
+    loop {
+        linea.clear();
+        lector.read_until(b'\n', &mut linea).ok()?;
+        if linea.is_empty() {
+            return None;
+        }
+        let texto = String::from_utf8_lossy(&linea);
+        if let Some(meteo) = meteo_de_linea(texto.trim()) {
+            return Some(meteo);
+        }
+    }
+}
+
+/// The `MeteoFileName` a PRJ line holds, if any.
+fn meteo_de_linea(linea: &str) -> Option<String> {
+    linea
+        .strip_prefix("MeteoFileName=")
         .map(str::trim)
         .filter(|m| !m.is_empty())
         .map(str::to_string)
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/projects/lifecycle/sitio.rs"]
+mod tests;

@@ -3,7 +3,7 @@
 use crate::args::{missing, opt_f64, rango_opcional};
 use crate::error::Result;
 use crate::format::edit::EdicionObjeto;
-use crate::format::object::{self, PvNode};
+use crate::format::span::{parse_spans, Lines, ObjSpan};
 use crate::idioma::{Idioma, Texto};
 use crate::perdidas::flags::{al_escribir_mismatch, FlagsMismatch};
 use serde_json::{json, Value};
@@ -43,25 +43,39 @@ pub(crate) struct SubarrayActual {
     pub(crate) flags: Option<String>,
 }
 
-/// Every `pvSubArray` of the variant, in document order.
+/// Every `pvSubArray` of the variant, in document order. The span parser already
+/// splits the document for the edits, so this does not build a second full tree.
 pub(crate) fn subarrays_de(bytes: &[u8]) -> Vec<SubarrayActual> {
-    let mut encontrados = Vec::new();
-    recorrer(
-        &object::parse(&String::from_utf8_lossy(bytes)),
-        &mut encontrados,
-    );
-    encontrados
+    let lines = Lines::split(bytes);
+    let spans = parse_spans(&lines);
+    spans
+        .iter()
+        .filter(|span| span.ty.eq_ignore_ascii_case("pvSubArray"))
+        .map(|span| SubarrayActual {
+            flags: flags_de(&lines, &spans, span),
+        })
+        .collect()
 }
 
-fn recorrer(nodos: &[PvNode], encontrados: &mut Vec<SubarrayActual>) {
-    for nodo in nodos {
-        if nodo.obj_type.eq_ignore_ascii_case("pvSubArray") {
-            encontrados.push(SubarrayActual {
-                flags: nodo.field("Flags").map(str::to_string),
-            });
-        }
-        recorrer(&nodo.children, encontrados);
-    }
+/// `Flags` of the subarray itself: a line inside a nested object belongs to that
+/// object, not to the subarray.
+fn flags_de(lines: &Lines, spans: &[ObjSpan], span: &ObjSpan) -> Option<String> {
+    let hijos: Vec<(usize, usize)> = spans
+        .iter()
+        .filter(|s| s.open > span.open && s.open < span.close)
+        .map(|s| (s.open, s.close))
+        .collect();
+    (span.open + 1..span.close)
+        .filter(|i| {
+            !hijos
+                .iter()
+                .any(|(open, close)| (*open..=*close).contains(i))
+        })
+        .find_map(|i| {
+            let texto = lines.text(i);
+            let (clave, valor) = texto.trim_start().split_once('=')?;
+            (clave.trim() == "Flags").then(|| valor.trim().to_string())
+        })
 }
 
 /// Validated loss percentages.

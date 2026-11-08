@@ -387,7 +387,7 @@
       "name": "entorno"
     },
     {
-      "description": "End-to-end in one call: coordinates + kWp (grid or stand-alone) -> site -> project -> sizing -> simulation -> KPIs. The module is 'modulo' when given, else the template's, else the first .PAN available. A project an earlier call left behind with the same parameters is reused instead of rebuilt. synthetic_weather needs Meteonorm: without it the call is refused before spending a trial execution.",
+      "description": "End-to-end in one call: coordinates + kWp (grid or stand-alone) -> site -> project -> sizing -> simulation -> KPIs. The module is 'modulo' when given, else the template's, else the first .PAN available. A project an earlier call left behind with the same parameters is reused instead of rebuilt: proyecto_reutilizado:true with proyecto_comparable:false means the call asked for no module, inverter or string layout, so there was nothing to compare. synthetic_weather needs Meteonorm: without it the call is refused before spending a trial execution.",
       "name": "disenar_sistema"
     },
     {

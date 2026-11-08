@@ -130,6 +130,10 @@ fn diferencias_con_lo_existente(paths: &Paths, params: &DisenoParametros) -> Opt
 
 /// A project that already exists with the requested parameters: the run
 /// continues from the step that failed instead of demanding a rebuild.
+///
+/// `comparable` says whether the call asked for anything the existing variant could
+/// be compared against. Without it, `reutilizado:true` alone cannot tell "verified
+/// identical" from "nothing to compare".
 fn reutilizar(paths: &Paths, params: &DisenoParametros) -> PasoProyectoSalida {
     let prj = paths
         .workspace
@@ -142,6 +146,7 @@ fn reutilizar(paths: &Paths, params: &DisenoParametros) -> PasoProyectoSalida {
             "project": params.proyecto.nombre,
             "project_file": prj.to_string_lossy(),
             "reutilizado": true,
+            "comparable": !campos_pedidos(params).is_empty(),
         }),
     }
 }

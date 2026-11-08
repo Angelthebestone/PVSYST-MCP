@@ -24,6 +24,10 @@ pub(crate) fn decodificar_latin1(b: &[u8]) -> String {
 
 /// A number written by PVsyst or a user: trimmed, decimal comma accepted. `NaN` and
 /// infinities are refused, so no reading or comparison is built on them.
+///
+/// Reading is tolerant with the decimal comma on purpose (`24,5` compares equal to
+/// `24.5`); writing is strict and refuses it (`campos_numericos::validar_valores`),
+/// because PVsyst writes the point. Do not "fix" one side without the other.
 pub(crate) fn numero_texto(texto: &str) -> Option<f64> {
     texto
         .trim()

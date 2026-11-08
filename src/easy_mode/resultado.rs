@@ -7,22 +7,48 @@ use serde_json::{json, Value};
 /// Warning when the realised kWp is more than 5 % away from the target.
 const MAX_DEVIATION_PCT: f64 = 5.0;
 
-/// The whole design run as the caller sees it.
-pub(super) fn serializar_resultado(params: &DisenoParametros, c: &Corrida) -> Value {
-    let pasos_json = c.a_pasos_json();
-    let kpis_error_str = c.simulacion.as_ref().and_then(|s| s.kpis_error.as_deref());
-    let errores = errores_de(&pasos_json, kpis_error_str);
-    let mut avisos = avisos_de(&pasos_json);
-    let kwp_realizado_val = c
-        .dimensionado
-        .kwp_realizado
-        .map_or(Value::Null, |k| json!(k));
-    if let Some(a) = aviso_desviacion(params.dimensionado.kwp, &kwp_realizado_val) {
+/// Errors and warnings of the run: the steps', the realised-kWp deviation and
+/// PVsyst's own warnings.
+fn estado_de(
+    params: &DisenoParametros,
+    c: &Corrida,
+    pasos: &[Value],
+    kwp_realizado: &Value,
+) -> (Vec<String>, Vec<String>) {
+    let kpis_error = c.simulacion.as_ref().and_then(|s| s.kpis_error.as_deref());
+    let errores = errores_de(pasos, kpis_error);
+    let mut avisos = avisos_de(pasos);
+    if let Some(a) = aviso_desviacion(params.dimensionado.kwp, kwp_realizado) {
         avisos.push(a);
     }
     if let Some(s) = &c.simulacion {
         avisos.extend(s.avisos_pvsyst.iter().cloned());
     }
+    (errores, avisos)
+}
+
+/// `(project, reused, comparable)` as the project step reports them. `comparable`
+/// is `None` on a fresh project: only a reused one has a comparison.
+fn proyecto_de(c: &Corrida) -> (Value, bool, Option<bool>) {
+    let raw = &c.proyecto.raw_response;
+    (
+        raw.get("project").cloned().unwrap_or(Value::Null),
+        raw.get("reutilizado")
+            .and_then(Value::as_bool)
+            .unwrap_or(false),
+        raw.get("comparable").and_then(Value::as_bool),
+    )
+}
+
+/// The whole design run as the caller sees it.
+pub(super) fn serializar_resultado(params: &DisenoParametros, c: &Corrida) -> Value {
+    let pasos_json = c.a_pasos_json();
+    let kwp_realizado_val = c
+        .dimensionado
+        .kwp_realizado
+        .map_or(Value::Null, |k| json!(k));
+    let (errores, avisos) = estado_de(params, c, &pasos_json, &kwp_realizado_val);
+    let (proyecto_creado, proyecto_reutilizado, proyecto_comparable) = proyecto_de(c);
 
     let site_info = json!({
         "name": c.sitio.site_name,
@@ -53,7 +79,9 @@ pub(super) fn serializar_resultado(params: &DisenoParametros, c: &Corrida) -> Va
         "kwp_realizado": kwp_realizado_val,
         "site": site_info,
         "orientacion": { "tilt_deg": c.orientacion.tilt, "azimut_deg": c.orientacion.azimut },
-        "proyecto_creado": c.proyecto.raw_response.get("project"),
+        "proyecto_creado": proyecto_creado,
+        "proyecto_reutilizado": proyecto_reutilizado,
+        "proyecto_comparable": proyecto_comparable,
         "simulacion": sim_info,
         "kpis": kpis_val,
         "pasos": pasos_json,

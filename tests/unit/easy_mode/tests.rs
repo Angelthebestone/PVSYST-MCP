@@ -113,9 +113,52 @@ fn should_resume_the_design_when_the_project_exists_with_the_same_parameters() {
     // When: the same design is retried after a failed step
     let segundo = proyecto::ejecutar_paso_proyecto(&paths, &params).expect("reintento");
 
-    // Then: it continues instead of demanding a rebuild
+    // Then: it continues instead of demanding a rebuild, and says it compared the layout
     assert_eq!(segundo.raw_response["reutilizado"], json!(true));
+    assert_eq!(segundo.raw_response["comparable"], json!(true));
     assert_eq!(segundo.nombre, "Diseno");
+}
+
+#[test]
+fn should_report_a_reused_project_as_not_comparable_when_the_call_asks_for_no_layout() {
+    // Given: a project created from the template with no module, inverter or layout
+    let (_ws, paths) = workspace_con_plantilla();
+    let params = DisenoParametros::parse(&json!({
+        "latitud": 10.0,
+        "longitud": -70.0,
+        "kwp": 8.0,
+        "plantilla": "SYNTH_Plant",
+        "nombre": "Diseno",
+        "simular": false,
+    }))
+    .expect("parámetros");
+    proyecto::ejecutar_paso_proyecto(&paths, &params).expect("primer proyecto");
+
+    // When: the same call is retried
+    let segundo = proyecto::ejecutar_paso_proyecto(&paths, &params).expect("reintento");
+
+    // Then: it is reused, and the answer says there was nothing to compare
+    assert_eq!(segundo.raw_response["reutilizado"], json!(true));
+    assert_eq!(segundo.raw_response["comparable"], json!(false));
+}
+
+#[test]
+fn should_refuse_a_standalone_design_without_the_string_layout_before_any_work() {
+    // Given: an isolated design with neither n_mod_serie nor n_strings
+    let params = diseno(&json!({
+        "tipo_sistema": "aislado",
+        "n_mod_serie": null,
+        "n_strings": null,
+    }));
+
+    // When: the preflight runs
+    let err = super::diseno::exigir_dimensionado_sin_gui(&params).expect_err("sin disposición");
+
+    // Then: it names both keys and the way out instead of failing after the site exists
+    let msg = err.to_string();
+    assert!(msg.contains("n_mod_serie"), "msg={msg}");
+    assert!(msg.contains("n_strings"), "msg={msg}");
+    assert!(msg.contains("aproximacion"), "msg={msg}");
 }
 
 #[test]

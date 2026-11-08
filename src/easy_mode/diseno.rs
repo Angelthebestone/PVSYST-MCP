@@ -1,7 +1,7 @@
 //! The one-call design run: preflight checks, the plan, the steps and the undo.
 
 use super::dimensionado::APROXIMACION_DISENO_AUTOMATICO;
-use super::parametros::{DisenoParametros, TipoDiseno};
+use super::parametros::DisenoParametros;
 use super::pasos::{Corrida, Fases, OrigenSitioDiseno};
 use super::resultado::{desviacion_pct, serializar_resultado};
 use super::sitio_del_proyecto::{self, SitioDelDiseno};
@@ -69,15 +69,17 @@ pub(crate) fn disenar_sistema(paths: &Paths, args: &Value) -> Result<Value> {
 }
 
 /// A grid design without both `n_mod_serie` and `n_strings` would be sized by PVsyst's GUI on the
-/// real workspace, which failed on every trial: reject it before any work starts.
-fn exigir_dimensionado_sin_gui(params: &DisenoParametros) -> Result<()> {
+/// real workspace, which failed on every trial: reject it before any work starts. A stand-alone
+/// design without both would only fail later, in the sizing step, after the site and the project
+/// exist, so it is refused here too instead of leaving half the work behind.
+pub(super) fn exigir_dimensionado_sin_gui(params: &DisenoParametros) -> Result<()> {
     let d = &params.dimensionado;
     let completo = d.n_mod_serie.is_some() && d.n_strings.is_some();
-    if completo || d.via_aproximacion || params.tipo_sistema == TipoDiseno::Aislado {
+    if completo || d.via_aproximacion {
         return Ok(());
     }
     Err(Error::Invalid(
-        "Sin 'n_mod_serie' y 'n_strings' el dimensionado lo haría la GUI de PVsyst (no fiable): pasa ambos o usa via:'aproximacion'".into(),
+        "Sin 'n_mod_serie' y 'n_strings' el dimensionado no es fiable (red: lo haría la GUI de PVsyst; aislado: no hay pre-dimensionado): pasa ambos o usa via:'aproximacion'".into(),
     ))
 }
 

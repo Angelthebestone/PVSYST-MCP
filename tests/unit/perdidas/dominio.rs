@@ -75,3 +75,13 @@ fn should_clear_the_mismatch_default_bit_when_mismatch_pct_is_set() {
     );
     assert!(p.avisos(&subarrays).is_empty());
 }
+
+#[test]
+fn should_ignore_a_flags_field_of_a_nested_object() {
+    let variante = "PVObject_=pvVCalcul\n  PVObject_Sub=pvSubArray\n    PVObject_Inner=pvCircuit\n      Flags=NESTED\n    End of PVObject pvCircuit\n  End of PVObject pvSubArray\nEnd of PVObject pvVCalcul\n";
+
+    let subarrays = subarrays_de(variante.as_bytes());
+
+    assert_eq!(subarrays.len(), 1);
+    assert_eq!(subarrays[0].flags, None);
+}
