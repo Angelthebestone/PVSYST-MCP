@@ -18,6 +18,8 @@ docs/convencion_nombres.md
 .claude/
 .env
 .mcp.json
+.pi/
+.vibe/
 CLAUDE.md
 .commandcode/
 # npm packaging: the binary and the license copies are staged at publish time by
