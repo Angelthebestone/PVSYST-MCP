@@ -18,12 +18,7 @@ const FOCO: Duration = Duration::from_millis(80);
 /// reach another application; on the isolated desktop only PVsyst's own windows can
 /// receive them, so a focus that did not move is reported (`false`) and the keys go on.
 fn dar_foco_al_control(h: ffi::Hwnd) -> Result<bool> {
-    let destino = if escritorio::es_aislado() {
-        Destino::Aislado
-    } else {
-        Destino::Usuario
-    };
-    resolver_foco(ffi::dar_foco(h), destino, h)
+    resolver_foco(ffi::dar_foco(h), destino_actual(), h)
 }
 
 /// The desktop the keys are sent on.
@@ -93,18 +88,46 @@ pub(crate) fn teclas(args: &Value) -> Result<Value> {
     ffi::traer_al_frente(raiz);
     std::thread::sleep(FOCO);
     exigir_primer_plano(raiz)?;
-    let foco = raiz != h && dar_foco_al_control(h)?;
+    let objetivo = if raiz == h {
+        Objetivo::Ventana
+    } else {
+        Objetivo::Control
+    };
+    let foco = objetivo == Objetivo::Control && dar_foco_al_control(h)?;
     let foco_actual = ffi::foco_del_hilo(ffi::hilo_de(raiz));
     let raiz_del_foco = (foco_actual != 0).then(|| ffi::get_ancestor(foco_actual, ffi::GA_ROOT));
     exigir_foco_en_la_ventana(foco_actual, raiz, raiz_del_foco)?;
+    exigir_algun_foco(foco_actual, destino_actual(), raiz)?;
     ffi::pulsar_combinacion(vk, &mods);
     Ok(json!({
         "sent": combo,
         "hwnd": format!("0x{:X}", h),
-        "foco": foco,
-        "aviso": aviso_de_foco(foco, if raiz == h { Objetivo::Ventana } else { Objetivo::Control }),
+        // For a window target: whether a control inside it holds the focus the keys go to.
+        "foco": foco || (objetivo == Objetivo::Ventana && foco_actual != 0),
+        "control_con_foco": (foco_actual != 0).then(|| format!("0x{foco_actual:X}")),
+        "aviso": aviso_de_foco(foco || foco_actual != 0, objetivo),
         "via": if escritorio::es_aislado() { "mensajes" } else { "keybd_event" },
     }))
+}
+
+fn destino_actual() -> Destino {
+    if escritorio::es_aislado() {
+        Destino::Aislado
+    } else {
+        Destino::Usuario
+    }
+}
+
+/// On the desktop of the user a window with no control holding the focus has nowhere
+/// to deliver the keys: they would be sent and silently lost (BUG-23). The isolated
+/// desktop posts messages to the window itself.
+fn exigir_algun_foco(foco_actual: ffi::Hwnd, destino: Destino, raiz: ffi::Hwnd) -> Result<()> {
+    if foco_actual != 0 || destino == Destino::Aislado {
+        return Ok(());
+    }
+    Err(Error::Gui(format!(
+        "No control of 0x{raiz:X} holds the keyboard focus: the keys would be lost. Give it to one with accion:clic_fisico on the control, or target the control"
+    )))
 }
 
 /// A target disabled by a modal dialog would receive nothing: the keys would go
