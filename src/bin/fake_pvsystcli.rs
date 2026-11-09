@@ -54,7 +54,7 @@ fn main() -> ExitCode {
             copy_outputs(dir, &args);
             write_simulation_log();
         }
-        "create-site" => touch_output(&args, "-osf:"),
+        "create-site" => escribir_sit(&args, "-osf:"),
         _ => {}
     }
     ExitCode::SUCCESS
@@ -124,10 +124,12 @@ fn write_simulation_log() {
     let _ = fs::write(log_path, log_content);
 }
 
-/// Create an empty file at the value of `flag` (e.g. the `-osf:` output).
-fn touch_output(args: &[String], flag: &str) {
+/// Write the `.SIT` PVsyst would create at the value of `-osf:`, with the site
+/// object the project and the variant take from it.
+fn escribir_sit(args: &[String], flag: &str) {
     if let Some(target) = option(args, flag) {
-        let _ = fs::write(target, b"");
+        let sitio = "PVObject_=pvSite\r\n  Comment=Synthetic site;Nowhere;\r\n  Version=8.1.0\r\n  Latitude=10.0000\r\n  Longitude=-70.0000\r\n  Altitude=100\r\n  TimeZone=-5.0\r\nEnd of PVObject pvSite\r\n";
+        let _ = fs::write(target, sitio);
     }
 }
 

@@ -53,6 +53,28 @@ fn texto_de(salida: &Value) -> String {
     partes.join("\n")
 }
 
+/// Why the run failed, in the caller's words: the known cause with its way out,
+/// else the last lines PVsyst printed (its output ends with the failure).
+pub(crate) fn detalle(salida: &Value, idioma: Idioma) -> Option<String> {
+    explicar(salida, idioma).or_else(|| ultimas_lineas(salida))
+}
+
+/// Lines of the output a failure detail keeps: enough for the message, not the
+/// whole run log.
+const MAX_LINEAS_DETALLE: usize = 8;
+
+fn ultimas_lineas(salida: &Value) -> Option<String> {
+    let texto = texto_de(salida);
+    let lineas: Vec<&str> = texto
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty())
+        .collect();
+    let desde = lineas.len().saturating_sub(MAX_LINEAS_DETALLE);
+    let ultimas = lineas.get(desde..)?;
+    (!ultimas.is_empty()).then(|| ultimas.join(" | "))
+}
+
 /// The known failure in a `simular` result, as `causa — alternativa`.
 pub(crate) fn explicar(salida: &Value, idioma: Idioma) -> Option<String> {
     let texto = texto_de(salida);

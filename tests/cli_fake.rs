@@ -24,3 +24,6 @@ mod resultados;
 
 #[path = "cli_fake/entorno.rs"]
 mod entorno;
+
+#[path = "cli_fake/diseno.rs"]
+mod diseno;
