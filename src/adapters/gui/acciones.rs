@@ -134,21 +134,71 @@ fn desplazamiento(args: &Value) -> Result<Option<(i32, i32)>> {
     }
 }
 
-pub(crate) fn clic_fisico_en_control(h: Hwnd, desplazamiento: Option<(i32, i32)>) -> Result<()> {
+/// Where on the target a physical click goes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum PuntoPedido {
+    Centro,
+    /// px at 96 DPI from the top-left corner of the control (`dx`, `dy`).
+    EnControl(i32, i32),
+    /// A screen point (`objetivo:{x,y}`), such as the `punto` `clic_texto` answers.
+    EnPantalla(i32, i32),
+}
+
+/// The point the request asks for: `objetivo` or `dx`/`dy`, never both.
+fn punto_pedido(args: &Value) -> Result<PuntoPedido> {
+    let Some(objetivo) = args.get("objetivo") else {
+        return Ok(
+            desplazamiento(args)?.map_or(PuntoPedido::Centro, |(dx, dy)| {
+                PuntoPedido::EnControl(dx, dy)
+            }),
+        );
+    };
+    if desplazamiento(args)?.is_some() {
+        return Err(Error::Invalid(
+            "'objetivo' y 'dx'/'dy' son dos formas de elegir el punto: pasa solo una".into(),
+        ));
+    }
+    let coordenada = |clave: &str| {
+        objetivo
+            .get(clave)
+            .and_then(Value::as_i64)
+            .and_then(|v| i32::try_from(v).ok())
+            .ok_or_else(|| {
+                Error::Invalid(format!(
+                    "'objetivo' de clic_fisico es {{x, y}} en pixeles de pantalla; falta o no es entero '{clave}'"
+                ))
+            })
+    };
+    Ok(PuntoPedido::EnPantalla(coordenada("x")?, coordenada("y")?))
+}
+
+/// Screen point a physical click on window `r` goes to. A requested screen point
+/// must lie on the window: the desktop is shared.
+fn punto_de_clic_fisico(r: ffi::Rect, dpi: u32, pedido: PuntoPedido) -> Result<(i32, i32)> {
+    match pedido {
+        PuntoPedido::Centro => Ok(((r.left + r.right) / 2, (r.top + r.bottom) / 2)),
+        PuntoPedido::EnControl(dx, dy) => Ok((
+            r.left + ffi::escalar_a_dpi(dx, dpi),
+            r.top + ffi::escalar_a_dpi(dy, dpi),
+        )),
+        PuntoPedido::EnPantalla(x, y)
+            if (r.left..r.right).contains(&x) && (r.top..r.bottom).contains(&y) =>
+        {
+            Ok((x, y))
+        }
+        PuntoPedido::EnPantalla(x, y) => Err(Error::Invalid(format!(
+            "El punto de pantalla ({x}, {y}) no está sobre la ventana ({}, {})-({}, {}): el escritorio es compartido y no se pulsa fuera de ella",
+            r.left, r.top, r.right, r.bottom
+        ))),
+    }
+}
+
+pub(crate) fn clic_fisico_en_control(h: Hwnd, pedido: PuntoPedido) -> Result<()> {
     let r = rect_of(h);
     if r.right <= r.left {
         return Err(Error::Gui(format!("Control 0x{h:X} has no rectangle")));
     }
-    let (x, y) = match desplazamiento {
-        Some((dx, dy)) => {
-            let dpi = ffi::dpi_de(h);
-            (
-                r.left + ffi::escalar_a_dpi(dx, dpi),
-                r.top + ffi::escalar_a_dpi(dy, dpi),
-            )
-        }
-        None => ((r.left + r.right) / 2, (r.top + r.bottom) / 2),
-    };
+    let (x, y) = punto_de_clic_fisico(r, ffi::dpi_de(h), pedido)?;
     ffi::clic_fisico_en(x, y);
     Ok(())
 }
@@ -166,7 +216,7 @@ fn ejecutar_accion(h: Hwnd, action: &str, args: &Value) -> Result<()> {
             ffi::traer_al_frente(h);
         }
         "mensaje" => enviar_mensaje(h, args)?,
-        "clic_fisico" => clic_fisico_en_control(h, desplazamiento(args)?)?,
+        "clic_fisico" => clic_fisico_en_control(h, punto_pedido(args)?)?,
         other => {
             return Err(Error::Invalid(format!(
                 "Unknown accion '{other}' (click|clic_fisico|cerrar|activar|mensaje)"
@@ -188,7 +238,31 @@ pub(crate) fn exigir_escritorio() -> Result<()> {
     }
 }
 
+/// `texto` and `id` name no control for these actions: they are for `clic_texto`
+/// and `menu`. Accepting them silently clicked the window instead (GUI-06).
+fn exigir_sin_texto_ni_id(args: &Value) -> Result<()> {
+    for clave in ["texto", "id"] {
+        if args.get(clave).is_some() {
+            return Err(Error::Invalid(format!(
+                "'{clave}' no selecciona el control en click/clic_fisico/cerrar/activar/mensaje: nómbralo con 'ventana' (hwnd, clase o título) o pulsa texto visible con accion:clic_texto"
+            )));
+        }
+    }
+    Ok(())
+}
+
+/// A disabled control swallows the click without a trace (GUI-07).
+fn exigir_control_habilitado(habilitada: bool, clase: &str, texto: &str) -> Result<()> {
+    if habilitada {
+        return Ok(());
+    }
+    Err(Error::Gui(format!(
+        "El control {clase} '{texto}' está deshabilitado: el clic no haría nada. Habilita lo que lo condiciona (gui_observar que:vista) y repite"
+    )))
+}
+
 pub(crate) fn invocar(args: &Value) -> Result<Value> {
+    exigir_sin_texto_ni_id(args)?;
     let scoped = ventanas_de(args)?;
     let reference = req_str(
         args,
@@ -202,6 +276,9 @@ pub(crate) fn invocar(args: &Value) -> Result<Value> {
     let h = resolve(&scoped, reference).ok_or_else(|| no_encontrado(reference, action))?;
     if !matches!(action, "activar" | "mensaje") {
         modal::exigir_habilitada(h, modal::PARA_ACTUAR)?;
+    }
+    if matches!(action, "click" | "clic_fisico") {
+        exigir_control_habilitado(ffi::estado_ventana(h).habilitada, &class_of(h), &text_of(h))?;
     }
     let cerrar = action == "cerrar";
     // The pid must be read while the window still exists: a destroyed HWND
@@ -250,8 +327,42 @@ fn exigir_cerrada(h: Hwnd) -> Result<()> {
     if esperar_cierre(h, ESPERA_CIERRE) {
         return Ok(());
     }
-    Err(Error::Gui(format!(
-        "{} is still open after asking it to close: it may have opened a confirmation (gui_observar que:ventanas)",
-        class_of(h)
+    let confirmacion = modal::modal_de(&[pid_of(h)]).filter(|m| class_of(*m) == CLASE_MENSAJE);
+    Err(Error::Gui(sigue_abierta(
+        &class_of(h),
+        confirmacion.map(|m| (m, botones_de(m))),
     )))
 }
+
+/// Visible buttons of `h` as `(hwnd, caption)`.
+fn botones_de(h: Hwnd) -> Vec<(Hwnd, String)> {
+    ffi::enum_children(h)
+        .into_iter()
+        .filter(|c| visible(*c))
+        .map(|c| (c, class_of(c), text_of(c)))
+        .filter(|(_, clase, _)| clase.contains("Btn") || clase.contains("Button"))
+        .map(|(c, _, texto)| (c, texto))
+        .collect()
+}
+
+/// Why a close failed: it opened a confirmation (named, with the buttons that
+/// answer it) or it is unknown (GUI-14).
+fn sigue_abierta(clase: &str, confirmacion: Option<(Hwnd, Vec<(Hwnd, String)>)>) -> String {
+    let Some((mensaje, botones)) = confirmacion else {
+        return format!(
+            "{clase} is still open after asking it to close: it may have opened a confirmation (gui_observar que:ventanas)"
+        );
+    };
+    let botones: Vec<String> = botones
+        .iter()
+        .map(|(b, texto)| format!("'{texto}' (0x{b:X})"))
+        .collect();
+    format!(
+        "{clase} is still open: it asked for a confirmation in {CLASE_MENSAJE} 0x{mensaje:X}. Answer it with gui_actuar accion:click ventana:<hwnd> on one of its buttons: {}",
+        botones.join(", ")
+    )
+}
+
+#[cfg(test)]
+#[path = "../../../tests/unit/adapters/gui/acciones.rs"]
+mod tests;
