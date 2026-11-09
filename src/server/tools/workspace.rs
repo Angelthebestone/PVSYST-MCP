@@ -72,8 +72,8 @@ const SINONIMOS_WORKSPACE: Sinonimos = Sinonimos {
 pub(crate) const TOOL_ESCRIBIR_ARCHIVO: Herramienta = Herramienta {
     nombre: "escribir_archivo",
     descripcion: crate::idioma::Texto {
-        es: "Escribe un archivo dentro del workspace (con historial).",
-        en: "Writes a file inside the workspace (with history).",
+        es: "Escribe un archivo dentro del workspace (con historial). Un archivo existente solo se reemplaza con 'sobrescribir': true.",
+        en: "Writes a file inside the workspace (with history). An existing file is only replaced with 'sobrescribir': true.",
     },
     anotaciones: Anotaciones {
         titulo: crate::idioma::Texto {

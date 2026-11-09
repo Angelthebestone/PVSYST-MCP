@@ -29,3 +29,6 @@ mod plantillas;
 
 #[path = "mcp_regresiones/exportar.rs"]
 mod exportar;
+
+#[path = "mcp_regresiones/escritura.rs"]
+mod escritura;

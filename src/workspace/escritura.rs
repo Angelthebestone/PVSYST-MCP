@@ -17,10 +17,10 @@ const CONTENIDO_VACIO: Texto = Texto {
     en: "'contenido' must not be empty: a 0-byte file has nothing to verify. Pass 'base64': true if the empty content is deliberate.",
 };
 
-/// Overwriting is this tool's default; an explicit `sobrescribir: false` vetoes it.
+/// An existing file is only replaced when the caller asks for it with `sobrescribir: true`:
+/// the argument means what it says, and a repeated call cannot lose a file by accident.
 fn exigir_sobrescritura(path: &Path, args: &Value) -> Result<()> {
-    let pide = args.get("sobrescribir").and_then(Value::as_bool);
-    if pide != Some(false) || !path.exists() {
+    if !path.exists() || flag(args, &["sobrescribir"]) {
         return Ok(());
     }
     Err(Error::Invalid(SOBRESCRITURA_RECHAZADA.texto_con(
@@ -29,10 +29,10 @@ fn exigir_sobrescritura(path: &Path, args: &Value) -> Result<()> {
     )))
 }
 
-/// Refusal of an overwrite vetoed by the caller.
+/// Refusal of an overwrite the caller did not ask for.
 const SOBRESCRITURA_RECHAZADA: Texto = Texto {
-    es: "'{archivo}' ya existe y se pidió 'sobrescribir': false: no se escribió nada",
-    en: "'{archivo}' already exists and 'sobrescribir': false was requested: nothing was written",
+    es: "'{archivo}' ya existe: pasa 'sobrescribir': true para reemplazarlo (el historial guarda una copia de la versión anterior)",
+    en: "'{archivo}' already exists: pass 'sobrescribir': true to replace it (the history keeps a copy of the previous version)",
 };
 
 pub(crate) fn escribir_archivo(paths: &Paths, args: &Value) -> Result<Value> {
