@@ -4,6 +4,7 @@ use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, Sino
 use crate::adapters::{cli, gui};
 use crate::config::Paths;
 use crate::error::Result;
+use crate::progreso::SeguimientoTarea;
 use serde_json::Value;
 
 pub(crate) const TOOL_PVSYST_CLI: Herramienta = Herramienta {
@@ -34,7 +35,7 @@ pub(crate) const TOOL_PVSYST_CLI: Herramienta = Herramienta {
     requeridos_por_accion: &[],
     consumidos_por_accion: &[],
     sinonimos: SINONIMOS_PVSYST_CLI,
-    ejecutar: Ejecutor::Simple(ejecutar_cli),
+    ejecutar: Ejecutor::Seguido(ejecutar_cli),
 };
 
 const SINONIMOS_PVSYST_CLI: Sinonimos = Sinonimos {
@@ -237,8 +238,8 @@ const SINONIMOS_GUI_ACTUAR: Sinonimos = Sinonimos {
     ],
 };
 
-fn ejecutar_cli(paths: &Paths, args: &Value) -> Result<Value> {
-    cli::ejecutar(paths, args)
+fn ejecutar_cli(paths: &Paths, args: &Value, seguimiento: &SeguimientoTarea<'_>) -> Result<Value> {
+    cli::ejecutar(paths, args, seguimiento)
 }
 
 fn ejecutar_observar(paths: &Paths, args: &Value) -> Result<Value> {

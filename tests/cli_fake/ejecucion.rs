@@ -106,6 +106,40 @@ fn should_answer_later_requests_when_a_simulation_is_cancelled() {
     );
 }
 
+/// A cancelled passthrough must kill its child and free the single worker, like
+/// `simular` does; otherwise the next request waits for the whole command.
+#[test]
+fn should_answer_later_requests_when_a_passthrough_is_cancelled() {
+    let ws = workspace();
+    let mut env = fake_env();
+    env.push(("FAKE_PVSYST_SLEEP_MS", "5000"));
+    let mut client = Client::start_env(Some(&ws_str(ws.path())), &env);
+    client.initialize();
+    let inicio = std::time::Instant::now();
+
+    client.send(&json!({
+        "jsonrpc": "2.0", "id": 7, "method": "tools/call",
+        "params": { "name": "pvsyst_cli", "arguments": { "comando": "help" } }
+    }));
+    client.send(&json!({
+        "jsonrpc": "2.0",
+        "method": "notifications/cancelled",
+        "params": { "requestId": 7 }
+    }));
+    client.send(&json!({ "jsonrpc": "2.0", "id": 8, "method": "ping" }));
+
+    let despues_de_cancelar = client.recv();
+    assert_eq!(despues_de_cancelar["id"], json!(8), "{despues_de_cancelar}");
+    client.send(&json!({ "jsonrpc": "2.0", "id": 9, "method": "ping" }));
+    let siguiente = client.recv();
+    assert_eq!(siguiente["id"], json!(9), "{siguiente}");
+    assert!(
+        inicio.elapsed() < Duration::from_secs(4),
+        "cancellation took {:?}",
+        inicio.elapsed()
+    );
+}
+
 #[test]
 fn should_truncate_huge_output_and_complete_process() {
     let ws = workspace();

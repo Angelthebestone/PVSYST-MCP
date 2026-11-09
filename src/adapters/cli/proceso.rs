@@ -146,7 +146,7 @@ fn esperar_proceso(child: &mut Child, espera: &EsperaProceso<'_>) -> Result<(Opt
     loop {
         if espera.seguimiento.esta_cancelado() {
             terminar(child);
-            return Err(Error::Cli("Simulación cancelada por el cliente".into()));
+            return Err(Error::Cli("Comando cancelado por el cliente".into()));
         }
         match child.try_wait() {
             Ok(Some(status)) => return Ok((status.code(), false)),
@@ -311,8 +311,13 @@ fn detalle_completo(args: &Value) -> bool {
     args.get("detalle").and_then(Value::as_str) == Some("completo")
 }
 
-/// Ejecuta cualquier comando con argumentos en crudo (passthrough de `pvsyst_cli`).
-pub(crate) fn ejecutar(paths: &Paths, args: &Value) -> Result<Value> {
+/// Ejecuta cualquier comando con argumentos en crudo (passthrough de `pvsyst_cli`),
+/// atendiendo la cancelación del cliente como cualquier otra ejecución larga.
+pub(crate) fn ejecutar(
+    paths: &Paths,
+    args: &Value,
+    seguimiento: &SeguimientoTarea<'_>,
+) -> Result<Value> {
     let comando = comando_de(args)?;
     rechazar_comando_de_licencia(comando)?;
 
@@ -325,7 +330,12 @@ pub(crate) fn ejecutar(paths: &Paths, args: &Value) -> Result<Value> {
         return Ok(json!({ "dry_run": true, "command_line": command_line }));
     }
     requerir_cli(paths)?;
-    let out = run(paths, &cli_args, timeout_de_comando(args, comando)?)?;
+    let out = run_seguido(&ParametrosEjecucion {
+        paths,
+        cli_args: &cli_args,
+        timeout: timeout_de_comando(args, comando)?,
+        seguimiento,
+    })?;
     let mut respuesta = output_json(&out, comando, &json!({ "command": comando }));
     if detalle_completo(args) {
         respuesta["stdout"] = json!(out.stdout);
