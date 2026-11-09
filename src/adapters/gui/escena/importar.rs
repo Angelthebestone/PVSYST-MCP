@@ -31,9 +31,10 @@ const ESPERA_CIERRE: Duration = Duration::from_secs(60);
 /// Time «Cancelar» or the window close gets to take effect after a failed close.
 const ESPERA_LIBERACION: Duration = Duration::from_secs(5);
 
-/// The mesh file the request names, checked before PVsyst is touched.
-pub(super) fn malla_valida(texto: &str) -> Result<PathBuf> {
-    let ruta = PathBuf::from(texto);
+/// The mesh file the request names, checked before PVsyst is touched. A relative
+/// name is looked up in the workspace, like every other path the tools take.
+pub(super) fn malla_valida(workspace: &Path, texto: &str) -> Result<PathBuf> {
+    let ruta = workspace.join(texto);
     let extension = ruta
         .extension()
         .and_then(|e| e.to_str())
