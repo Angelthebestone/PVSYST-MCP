@@ -14,13 +14,14 @@ pub(crate) type Fuente = (&'static str, &'static [&'static str]);
 
 /// A suggested call. `fijos` are always sent; every `tomar` value must be found
 /// in the request or the answer, otherwise the step is not offered: a step never
-/// carries a placeholder.
+/// carries a placeholder. `si_esta` values are added only when they are found.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Paso {
     pub(crate) tool: &'static str,
     pub(crate) motivo: &'static str,
     pub(crate) fijos: &'static [(&'static str, &'static str)],
     pub(crate) tomar: &'static [Fuente],
+    pub(crate) si_esta: &'static [Fuente],
 }
 
 pub(super) const fn paso(tool: &'static str, motivo: &'static str) -> Paso {
@@ -29,6 +30,7 @@ pub(super) const fn paso(tool: &'static str, motivo: &'static str) -> Paso {
         motivo,
         fijos: &[],
         tomar: &[],
+        si_esta: &[],
     }
 }
 
@@ -39,6 +41,11 @@ impl Paso {
 
     pub(super) const fn tomando(self, tomar: &'static [Fuente]) -> Self {
         Paso { tomar, ..self }
+    }
+
+    /// Values the step takes only when the request or the answer carries them.
+    pub(super) const fn tomando_si_esta(self, si_esta: &'static [Fuente]) -> Self {
+        Paso { si_esta, ..self }
     }
 }
 
@@ -118,6 +125,15 @@ pub(super) const REVISAR: Paso = paso("proyecto", "Revisar que el proyecto es co
 pub(super) const SIMULAR: Paso = paso("simular", "Simular el proyecto")
     .con(&[("accion", "ejecutar")])
     .tomando(DE_PROYECTO);
+/// The batch files `simular preparar` wrote, when it wrote them.
+pub(super) const BATCH_PARAMS: Fuente = ("batch_params_file", &["batch_params_file"]);
+pub(super) const BATCH_RVT: Fuente = ("batch_rvt_file", &["batch_rvt_file"]);
+/// Running the batch a `preparar` call left ready: without its files the run
+/// would be a plain simulation and the batch would be lost.
+pub(super) const SIMULAR_BATCH: Paso = paso("simular", "Ejecutar el lote preparado")
+    .con(&[("accion", "ejecutar")])
+    .tomando(DE_PROYECTO)
+    .tomando_si_esta(&[BATCH_PARAMS, BATCH_RVT]);
 pub(super) const VER_KPIS: Paso = paso("resultados", "Ver los indicadores de la simulación")
     .con(&[("que", "kpis")])
     .tomando(DE_PROYECTO);

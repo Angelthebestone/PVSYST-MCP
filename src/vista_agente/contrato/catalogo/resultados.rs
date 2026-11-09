@@ -1,8 +1,8 @@
 //! `simular` and `resultados`.
 
 use super::{
-    entrada, paso, Entrada, Paso, DE_PROYECTO, P50_P90, SIMULAR, VER_KPIS, VER_PERDIDAS,
-    VER_PROYECTOS,
+    entrada, paso, Entrada, Paso, DE_PROYECTO, P50_P90, SIMULAR, SIMULAR_BATCH, VER_KPIS,
+    VER_PERDIDAS, VER_PROYECTOS,
 };
 
 const VER_ESTADO: Paso = paso(
@@ -30,7 +30,7 @@ pub(super) const ENTRADAS: &[Entrada] = &[
         "preparar",
         "Simulación preparada sin ejecutarla.",
     )
-    .luego(&[SIMULAR, VER_ESTADO, VER_PROYECTOS]),
+    .luego(&[SIMULAR_BATCH, VER_ESTADO, VER_PROYECTOS]),
     entrada(
         "simular",
         "estado",

@@ -209,6 +209,12 @@ fn argumentos_de(paso: &Paso, ctx: &Contexto<'_>, salida: &Value) -> Option<Valu
         .iter()
         .filter_map(|clave| Some(((*clave).to_string(), ctx.args.get(clave)?.clone())));
     argumentos.extend(heredados);
+    for (destino, candidatos) in paso.si_esta {
+        if let Some(texto) = texto_de(ctx.args, candidatos).or_else(|| texto_de(salida, candidatos))
+        {
+            argumentos.insert((*destino).to_string(), Value::from(texto));
+        }
+    }
     Some(Value::Object(argumentos))
 }
 
