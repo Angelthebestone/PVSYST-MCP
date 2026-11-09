@@ -5,6 +5,7 @@
 
 pub(crate) mod dimensionado;
 pub(crate) mod horizonte;
+pub(crate) mod lanzar;
 pub(crate) mod p50;
 mod relleno;
 pub(crate) mod rotulos;
