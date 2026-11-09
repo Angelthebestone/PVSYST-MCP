@@ -28,6 +28,7 @@ pub(crate) mod menu_por_posicion;
 pub(crate) mod modal;
 pub(crate) mod ocr;
 pub(crate) mod png;
+pub(crate) mod posicion;
 pub(crate) mod proceso;
 pub(crate) mod recuperacion;
 pub(crate) mod registro_pvsyst;

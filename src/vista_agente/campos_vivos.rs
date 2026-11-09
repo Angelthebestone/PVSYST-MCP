@@ -4,6 +4,7 @@
 use super::dominio::{Ancla, CampoEsquema, Entidad, TOLERANCIA_ANCLA_PX};
 use crate::adapters::gui::ffi::{self, Hwnd};
 use crate::adapters::gui::ocr::esta_marcado;
+use crate::adapters::gui::posicion::posicion_de_diseno;
 use crate::adapters::gui::ventanas::{hijos_visibles_con_clase, rect_of};
 use serde_json::{json, Value};
 
@@ -53,19 +54,15 @@ pub(crate) fn valor_de(c: Hwnd, clase: &str) -> String {
 pub(crate) fn campos_vivos(h: Hwnd) -> Vec<CampoVivo> {
     let escala = ffi::escala_de_captura(h);
     let origen = rect_of(h);
-    let a_logico = |v: i32| (f64::from(v) / escala).round() as i32;
     hijos_visibles_con_clase(h)
         .filter(|(_, clase)| es_campo(clase))
         .map(|(c, clase)| {
-            let r = rect_of(c);
+            let (x, y) = posicion_de_diseno(origen, rect_of(c), escala);
             CampoVivo {
                 hwnd: c,
                 texto: valor_de(c, &clase),
                 habilitado: ffi::estado_ventana(c).habilitada,
-                posicion: Ancla {
-                    x: a_logico(r.left - origen.left),
-                    y: a_logico(r.top - origen.top),
-                },
+                posicion: Ancla { x, y },
                 clase,
             }
         })

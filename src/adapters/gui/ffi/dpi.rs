@@ -1,6 +1,5 @@
-//! DPI awareness, monitor scaling and client coordinates.
+//! DPI awareness and monitor scaling.
 
-use super::puntos::Punto;
 use super::ventanas::es_ventana;
 use super::Hwnd;
 
@@ -17,7 +16,6 @@ const DPI_AWARENESS_UNAWARE: i32 = 0;
 
 #[link(name = "user32")]
 extern "system" {
-    fn ClientToScreen(h: Hwnd, p: *mut Punto) -> i32;
     fn GetDpiForWindow(h: Hwnd) -> u32;
     fn GetWindowDpiAwarenessContext(h: Hwnd) -> isize;
     fn GetAwarenessFromDpiAwarenessContext(contexto: isize) -> i32;
@@ -28,20 +26,6 @@ extern "system" {
 #[link(name = "shcore")]
 extern "system" {
     fn GetDpiForMonitor(monitor: isize, tipo: u32, x: *mut u32, y: *mut u32) -> i32;
-}
-
-/// Screen position of the client-area origin of `h`.
-pub(crate) fn origen_cliente(h: Hwnd) -> (i32, i32) {
-    if !es_ventana(h) {
-        return (0, 0);
-    }
-    let mut p = Punto::default();
-    // SAFETY: `p` es una estructura local en la pila con el layout exacto de POINT;
-    // la API `ClientToScreen` únicamente escribe las coordenadas (x, y) en ella.
-    unsafe {
-        ClientToScreen(h, &mut p);
-    }
-    (p.x, p.y)
 }
 
 /// Whether `h` belongs to a DPI-unaware process: Windows virtualises its
