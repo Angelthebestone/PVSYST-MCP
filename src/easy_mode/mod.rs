@@ -10,6 +10,7 @@ mod diagnostico;
 mod dimensionado;
 mod diseno;
 mod fallo_simulacion;
+mod foto_proyecto;
 mod lectura_argumentos;
 mod meteonorm;
 mod modulo_de_plantilla;
