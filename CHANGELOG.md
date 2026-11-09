@@ -104,6 +104,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   argument means what it says; the refusal names the alternative and the history keeps the previous version.
 - **`editar campos` no longer invents fields**: a key the object does not have is refused (the usual cause is a typo) unless
   the call asks for it with `nuevo: true`; the same policy applies to the `ediciones` form of a variant.
+- **`componente crear` copies the template when the call asks for no `cambios`** (the description already said "from a
+  template"), and the schema declares `campos`, the spelling the handler already accepted: a test fails when an action
+  consumes a key its tool does not declare.
 
 ### Changed
 - The six `proyecto` actions that edit a variant (storage, pumping, injection limit, losses, economics, tracker) build their answer with one

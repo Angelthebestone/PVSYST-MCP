@@ -90,3 +90,24 @@ fn should_not_report_a_batch_key_as_ignored_when_the_argument_that_reads_it_is_p
         "sin 'filas' el handler no lee 'variables'"
     );
 }
+
+#[test]
+fn should_declare_every_key_a_tool_consumes_for_another_action() {
+    for h in REGISTRO {
+        for (accion, claves) in h.consumidos_por_accion {
+            let acciones: &[&str] = h.discriminador.as_ref().map_or(&[], |d| d.valores);
+            assert!(
+                acciones.contains(accion),
+                "{}: acción desconocida '{accion}'",
+                h.nombre
+            );
+            for clave in *claves {
+                assert!(
+                    h.declara(clave),
+                    "{} {accion}: '{clave}' se consume pero el esquema no la declara",
+                    h.nombre
+                );
+            }
+        }
+    }
+}

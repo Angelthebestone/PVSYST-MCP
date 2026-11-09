@@ -21,6 +21,7 @@ pub(crate) const TOOL_COMPONENTE: Herramienta = Herramienta {
         ("nombre_nuevo", TipoDato::String),
         ("plantilla", TipoDato::String),
         ("cambios", TipoDato::Object),
+        ("campos", TipoDato::Object),
         ("tipo", TipoDato::String),
         ("componente", TipoDato::String),
         ("origen", TipoDato::String),
@@ -45,11 +46,11 @@ pub(crate) const TOOL_COMPONENTE: Herramienta = Herramienta {
         ],
     }),
     requeridos_por_accion: &[
-        ("crear", &["nombre_nuevo", "plantilla", "cambios"]),
+        ("crear", &["nombre_nuevo", "plantilla"]),
         ("editar", &["componente"]),
         ("crear_desde_ficha", &["tipo", "nombre_nuevo", "datos"]),
     ],
-    consumidos_por_accion: &[("crear", &["campos"]), ("editar", &["campos"])],
+    consumidos_por_accion: &[],
     sinonimos: SINONIMOS_COMPONENTE,
     ejecutar: Ejecutor::Simple(ejecutar_componente),
 };

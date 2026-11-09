@@ -35,3 +35,6 @@ mod escritura;
 
 #[path = "mcp_regresiones/edicion_campos.rs"]
 mod edicion_campos;
+
+#[path = "mcp_regresiones/componentes.rs"]
+mod componentes;
