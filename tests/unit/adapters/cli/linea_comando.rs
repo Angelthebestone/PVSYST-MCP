@@ -55,6 +55,16 @@ fn should_refuse_a_timeout_outside_the_declared_range() {
     );
 }
 
+/// A folder is not an executable: accepting one turned the spawn failure into an
+/// `io` error that did not name `PVSYST_CLI`.
+#[test]
+fn should_not_accept_a_directory_as_the_cli() {
+    let dir = tempfile::tempdir().expect("carpeta temporal");
+    let mut paths = Paths::para_test(dir.path().to_path_buf());
+    paths.cli_exe = dir.path().to_path_buf();
+    assert!(!cli_available(&paths));
+}
+
 /// The licence key and the customer id never come back in the answer.
 #[test]
 fn should_redact_the_licence_key_and_the_customer_id() {

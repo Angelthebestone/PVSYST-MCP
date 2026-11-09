@@ -70,6 +70,22 @@ fn should_refuse_a_command_name_with_spaces_or_controls() {
     }
 }
 
+/// A relative output path must land in the workspace, not in the directory the
+/// server was started from.
+#[test]
+fn should_resolve_a_relative_output_path_against_the_workspace() {
+    let ws = workspace();
+    let mut client = Client::start_env(Some(&ws_str(ws.path())), &fake_env());
+    client.initialize();
+    let v = tool_text(&client.call(
+        2,
+        "pvsyst_cli",
+        json!({ "comando": "run-simulation", "opciones": ["-ocf:rel.csv"] }),
+    ));
+    assert_eq!(v["success"], json!(true), "{v}");
+    assert!(ws.path().join("rel.csv").is_file(), "{v}");
+}
+
 /// The server promises it never activates or deactivates the licence, so the
 /// passthrough refuses those commands and points at the action that returns the
 /// command for the user to run with their own key.

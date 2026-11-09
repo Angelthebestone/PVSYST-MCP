@@ -88,16 +88,17 @@ fn citar(arg: &str) -> String {
 /// Localiza un comando en el PATH del sistema o verifica su ruta directa.
 pub(crate) fn which(cmd: &str) -> Option<PathBuf> {
     if cmd.contains('\\') || cmd.contains('/') {
-        return PathBuf::from(cmd).exists().then(|| PathBuf::from(cmd));
+        let ruta = PathBuf::from(cmd);
+        return ruta.is_file().then_some(ruta);
     }
     let path = std::env::var_os("PATH")?;
     for dir in std::env::split_paths(&path) {
         let cand = dir.join(cmd);
-        if cand.exists() {
+        if cand.is_file() {
             return Some(cand);
         }
         let with_exe = dir.join(format!("{cmd}.exe"));
-        if with_exe.exists() {
+        if with_exe.is_file() {
             return Some(with_exe);
         }
     }
@@ -106,7 +107,7 @@ pub(crate) fn which(cmd: &str) -> Option<PathBuf> {
 
 /// Comprueba si el ejecutable de PVsystCLI está disponible en disco o PATH.
 pub(crate) fn cli_available(paths: &Paths) -> bool {
-    paths.cli_exe.exists() || which(&paths.cli_exe.to_string_lossy()).is_some()
+    paths.cli_exe.is_file() || which(&paths.cli_exe.to_string_lossy()).is_some()
 }
 
 /// Tiempo de espera de `comando`: `run-simulation` usa el de simulación y el resto

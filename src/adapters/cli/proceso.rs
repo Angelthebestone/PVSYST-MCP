@@ -70,17 +70,22 @@ pub(crate) fn run_seguido(params: &ParametrosEjecucion<'_>) -> Result<CliOutput>
 pub(crate) fn run_inner(params: &ParametrosEjecucion<'_>, out_sink: &Sink) -> Result<CliOutput> {
     requerir_cli(params.paths)?;
     let inicio = std::time::SystemTime::now();
-    let mut child = Command::new(&params.paths.cli_exe)
+    let mut orden = Command::new(&params.paths.cli_exe);
+    orden
         .args(params.cli_args)
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|e| {
-            Error::io(
-                format!("Failed to launch {}", params.paths.cli_exe.display()),
-                e,
-            )
-        })?;
+        .stderr(Stdio::piped());
+    // A relative output path (`-ocf:rel.csv`) belongs to the workspace, not to the
+    // working directory the server happened to be started from.
+    if params.paths.workspace.is_dir() {
+        orden.current_dir(&params.paths.workspace);
+    }
+    let mut child = orden.spawn().map_err(|e| {
+        Error::Cli(format!(
+            "Failed to launch {}: {e}. Set PVSYST_CLI.",
+            params.paths.cli_exe.display()
+        ))
+    })?;
 
     let err_sink = crear_sink();
     let reader_out = super::captura::drain(child.stdout.take(), Arc::clone(out_sink), "stdout");
