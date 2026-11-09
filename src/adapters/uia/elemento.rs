@@ -1,9 +1,11 @@
 //! UIA element search, pattern invocation and geometry.
 
 use super::com;
+use super::limite::con_limite;
 use super::{rol_de, Sesion};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
+use std::time::Duration;
 use windows::Win32::UI::Accessibility::IUIAutomationElement;
 
 /// Visit cap for name searches, keeping `invocar` bounded on very large trees.
@@ -68,8 +70,42 @@ fn buscar(sesion: &Sesion, criterio: &CriterioBusqueda) -> Result<IUIAutomationE
     })
 }
 
-/// Finds an element under `hwnd` by name and/or role and applies `accion`.
+/// Longest the caller waits for a pattern call. PVsyst answers some of them by
+/// opening a modal form, and the call does not return until that form closes.
+const ESPERA_OPERACION: Duration = Duration::from_secs(10);
+
+/// Finds an element under `hwnd` by name and/or role and applies `accion`. If
+/// the call does not return in [`ESPERA_OPERACION`] the answer says so (the
+/// action was sent; the form it opened is still running) instead of blocking.
 pub(crate) fn invocar(
+    hwnd: isize,
+    nombre: Option<&str>,
+    rol: Option<&str>,
+    accion: &str,
+    valor: Option<&str>,
+) -> Result<Value> {
+    let (n, r, a, v) = (
+        nombre.map(str::to_owned),
+        rol.map(str::to_owned),
+        accion.to_owned(),
+        valor.map(str::to_owned),
+    );
+    let tarea = move || invocar_sin_limite(hwnd, n.as_deref(), r.as_deref(), &a, v.as_deref());
+    match con_limite(ESPERA_OPERACION, tarea)? {
+        Some(resultado) => resultado,
+        None => Ok(json!({
+            "operacion": accion,
+            "nombre": nombre,
+            "retorno": false,
+            "error": format!(
+                "UIA '{accion}' no volvió en {} s: PVsyst probablemente abrió un formulario modal que sigue abierto; comprueba con gui_observar que:ventanas",
+                ESPERA_OPERACION.as_secs()
+            ),
+        })),
+    }
+}
+
+fn invocar_sin_limite(
     hwnd: isize,
     nombre: Option<&str>,
     rol: Option<&str>,
