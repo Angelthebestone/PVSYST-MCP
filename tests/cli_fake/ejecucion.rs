@@ -140,6 +140,37 @@ fn should_answer_later_requests_when_a_passthrough_is_cancelled() {
     );
 }
 
+/// A simulation spends a trial execution whichever tool asks for it: the rehearsal
+/// says what it costs and the run records it in the ledger.
+#[test]
+fn should_report_the_trial_cost_of_a_passthrough_simulation() {
+    let ws = workspace();
+    let mut client = Client::start_env(Some(&ws_str(ws.path())), &fake_env());
+    client.initialize();
+    let ensayo = tool_text(&client.call(
+        2,
+        "pvsyst_cli",
+        json!({ "comando": "run-simulation", "dry_run": true }),
+    ));
+    assert_eq!(
+        ensayo["costo_estimado"]["ejecuciones"],
+        json!(1),
+        "{ensayo}"
+    );
+
+    let real = tool_text(&client.call(3, "pvsyst_cli", json!({ "comando": "run-simulation" })));
+    assert_eq!(real["costo"]["ejecuciones"], json!(1), "{real}");
+    assert_eq!(real["costo"]["restantes"], json!(221), "{real}");
+    assert!(
+        ws.path()
+            .join("UserData")
+            .join("mcp_cache")
+            .join("ledger.json")
+            .is_file(),
+        "{real}"
+    );
+}
+
 #[test]
 fn should_truncate_huge_output_and_complete_process() {
     let ws = workspace();

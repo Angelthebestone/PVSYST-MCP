@@ -344,9 +344,18 @@ pub(crate) fn ejecutar(
     }
 
     let dry_run = dry_run_de(args)?;
-    let command_line = display_command_line(&paths.cli_exe.to_string_lossy(), &cli_args);
+    // A simulation spends a trial execution whether it is asked for here or through
+    // `simular`: the rehearsal says what it costs and the run records it.
+    let es_simulacion = comando.eq_ignore_ascii_case("run-simulation");
     if dry_run {
-        return Ok(json!({ "dry_run": true, "command_line": command_line }));
+        let mut ensayo = json!({
+            "dry_run": true,
+            "command_line": display_command_line(&paths.cli_exe.to_string_lossy(), &cli_args),
+        });
+        if es_simulacion {
+            ensayo["costo_estimado"] = crate::adapters::ledger::costo_estimado(&paths.workspace, 1);
+        }
+        return Ok(ensayo);
     }
     requerir_cli(paths)?;
     let out = run_seguido(&ParametrosEjecucion {
@@ -356,6 +365,9 @@ pub(crate) fn ejecutar(
         seguimiento,
     })?;
     let mut respuesta = output_json(&out, comando, &json!({ "command": comando }));
+    if es_simulacion {
+        respuesta["costo"] = crate::adapters::ledger::registrar(&paths.workspace, &out.stdout, 1);
+    }
     if detalle_completo(args) {
         respuesta["stdout"] = json!(out.stdout);
         respuesta["stdout_tail_truncado"] = json!(false);

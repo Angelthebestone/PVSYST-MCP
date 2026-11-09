@@ -56,14 +56,38 @@ pub(crate) fn parsear_banner(stdout: &str) -> Option<(Option<u64>, u64)> {
     Some((numero_tras(linea, "remaining days:"), restantes))
 }
 
+/// Remaining executions that can be trusted: the counter PVsystCLI prints was
+/// measured jumping between two states (133/134 and 249/250) without a licence
+/// change, so a count above the stored one is only accepted when the licence
+/// renewed (more days). Otherwise the stored, lower count stands.
+fn restantes_creibles(previo: Option<&Estado>, nuevo: u64, dias: Option<u64>) -> u64 {
+    let Some(previo) = previo.filter(|p| p.modo == "trial") else {
+        return nuevo;
+    };
+    let Some(anteriores) = previo.restantes else {
+        return nuevo;
+    };
+    let renovada = matches!((dias, previo.dias), (Some(hoy), Some(antes)) if hoy > antes);
+    if renovada || nuevo <= anteriores {
+        nuevo
+    } else {
+        anteriores
+    }
+}
+
 /// Record the counters printed by one CLI run and return the `costo` object for the response.
 /// The banner is printed before the run is charged, so the remaining count is `printed - used`.
 pub(crate) fn registrar(workspace: &Path, stdout: &str, ejecuciones_usadas: u32) -> Value {
+    let previo = estado(workspace);
     let estado = match parsear_banner(stdout) {
         Some((dias, impresas)) => Estado {
             modo: "trial".to_owned(),
             dias,
-            restantes: Some(impresas.saturating_sub(u64::from(ejecuciones_usadas))),
+            restantes: Some(restantes_creibles(
+                previo.as_ref(),
+                impresas.saturating_sub(u64::from(ejecuciones_usadas)),
+                dias,
+            )),
         },
         None => Estado {
             modo: "licencia".to_owned(),
