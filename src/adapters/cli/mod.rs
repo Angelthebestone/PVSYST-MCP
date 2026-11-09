@@ -9,6 +9,8 @@
 
 pub(crate) mod captura;
 pub(crate) mod clasificacion;
+pub(crate) mod crash;
+pub(crate) mod entrada;
 pub(crate) mod linea_comando;
 pub(crate) mod proceso;
 mod salida_json;

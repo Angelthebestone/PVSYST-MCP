@@ -199,6 +199,14 @@ pub(super) const NO_LEIDOS: &[NoLeido] = &[
         clave: "unidades",
         leido_si: Some("parametros"),
     },
+    // `pvsyst_cli` has no action: `via` is validated by the approximation gate and
+    // never changes what the passthrough runs.
+    NoLeido {
+        herramienta: "pvsyst_cli",
+        accion: "",
+        clave: "via",
+        leido_si: None,
+    },
     NoLeido {
         herramienta: "workspace",
         accion: "historial",

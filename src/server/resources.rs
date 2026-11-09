@@ -140,7 +140,7 @@ fn mapa_de_cobertura() -> Value {
             { "area": "Shadings/horizon (.HOR/.SHD/.BLD/.SHO)", "tools": ["leer", "editar", "escribir_archivo"] },
             { "area": "Losses, IAM, thermal, quality", "tools": ["editar campos", "editar"] },
             { "area": "Models/templates (.LOD/.SPL/.SFI/.RVT)", "tools": ["leer", "editar", "escribir_archivo"] },
-            { "area": "Simulation (single, batch, synthetic, param override)", "tools": ["simular ejecutar", "pvsyst_cli"] },
+            { "area": "Simulation (single, batch, synthetic, param override)", "tools": ["simular ejecutar", "pvsyst_cli"], "notes": "pvsyst_cli run-simulation is the raw passthrough: it records the trial cost in the ledger but uses neither the simulation cache nor the confirmation gate." },
             { "area": "Comparison with measured data (variants CMx)", "tools": ["leer", "editar", "gui_actuar"], "notes": "PVsystCLI cannot simulate CMx variants (verified: 'Simulation cannot be run: the orientation is not defined'); run them from the GUI." },
             { "area": "Batch / parametric runs", "tools": ["simular preparar", "simular ejecutar"], "notes": "filas -> batch CSV (-bpf); every row is one PVsyst run." },
             { "area": "Advanced/hidden parameter override", "tools": ["simular preparar", "simular ejecutar"], "notes": "parametros -> Param_Modif.dat (-ipf)." },

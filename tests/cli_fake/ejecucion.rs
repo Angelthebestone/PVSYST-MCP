@@ -106,6 +106,77 @@ fn should_answer_later_requests_when_a_simulation_is_cancelled() {
     );
 }
 
+/// A cancelled passthrough must kill its child and free the single worker, like
+/// `simular` does; otherwise the next request waits for the whole command.
+#[test]
+fn should_answer_later_requests_when_a_passthrough_is_cancelled() {
+    let ws = workspace();
+    let mut env = fake_env();
+    env.push(("FAKE_PVSYST_SLEEP_MS", "5000"));
+    let mut client = Client::start_env(Some(&ws_str(ws.path())), &env);
+    client.initialize();
+    let inicio = std::time::Instant::now();
+
+    client.send(&json!({
+        "jsonrpc": "2.0", "id": 7, "method": "tools/call",
+        "params": { "name": "pvsyst_cli", "arguments": { "comando": "help" } }
+    }));
+    client.send(&json!({
+        "jsonrpc": "2.0",
+        "method": "notifications/cancelled",
+        "params": { "requestId": 7 }
+    }));
+    client.send(&json!({ "jsonrpc": "2.0", "id": 8, "method": "ping" }));
+
+    let despues_de_cancelar = client.recv();
+    assert_eq!(despues_de_cancelar["id"], json!(8), "{despues_de_cancelar}");
+    client.send(&json!({ "jsonrpc": "2.0", "id": 9, "method": "ping" }));
+    let siguiente = client.recv();
+    assert_eq!(siguiente["id"], json!(9), "{siguiente}");
+    assert!(
+        inicio.elapsed() < Duration::from_secs(4),
+        "cancellation took {:?}",
+        inicio.elapsed()
+    );
+}
+
+/// A simulation spends a trial execution whichever tool asks for it: the rehearsal
+/// says what it costs and the run records it in the ledger.
+#[test]
+fn should_report_the_trial_cost_of_a_passthrough_simulation() {
+    let ws = workspace();
+    let mut client = Client::start_env(Some(&ws_str(ws.path())), &fake_env());
+    client.initialize();
+    let ensayo = tool_text(&client.call(
+        2,
+        "pvsyst_cli",
+        json!({ "comando": "run-simulation", "dry_run": true }),
+    ));
+    assert_eq!(
+        ensayo["costo_estimado"]["ejecuciones"],
+        json!(1),
+        "{ensayo}"
+    );
+    // Cold workspace: the budget is read from `lic-info` (223 in the fixture).
+    assert_eq!(
+        ensayo["costo_estimado"]["restantes"],
+        json!(223),
+        "{ensayo}"
+    );
+
+    let real = tool_text(&client.call(3, "pvsyst_cli", json!({ "comando": "run-simulation" })));
+    assert_eq!(real["costo"]["ejecuciones"], json!(1), "{real}");
+    assert_eq!(real["costo"]["restantes"], json!(221), "{real}");
+    assert!(
+        ws.path()
+            .join("UserData")
+            .join("mcp_cache")
+            .join("ledger.json")
+            .is_file(),
+        "{real}"
+    );
+}
+
 #[test]
 fn should_truncate_huge_output_and_complete_process() {
     let ws = workspace();
@@ -115,6 +186,53 @@ fn should_truncate_huge_output_and_complete_process() {
     assert_eq!(v["timed_out"], json!(false));
     assert_eq!(v["stdout_truncado"], json!(true));
     assert_eq!(v["exit_code"], json!(0));
+}
+
+/// `help run-simulation` prints 65 lines; the answer keeps the last 60 and says so,
+/// and `detalle:completo` returns the whole stdout.
+#[test]
+fn should_flag_a_cut_help_tail_and_return_the_whole_stdout_on_request() {
+    let ws = workspace();
+    let mut client = Client::start_env(Some(&ws_str(ws.path())), &fake_env());
+    client.initialize();
+    let args = json!({ "comando": "help", "opciones": ["run-simulation"] });
+    let corto = tool_text(&client.call(2, "pvsyst_cli", args.clone()));
+    assert_eq!(corto["stdout_tail_truncado"], json!(true), "{corto}");
+    assert!(
+        !corto["stdout_tail"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("Usage: pvsystcli run-simulation"),
+        "{corto}"
+    );
+
+    let mut completo = args;
+    completo["detalle"] = json!("completo");
+    let largo = tool_text(&client.call(3, "pvsyst_cli", completo));
+    assert_eq!(largo["stdout_tail_truncado"], json!(true), "{largo}");
+    assert!(
+        largo["stdout"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("Usage: pvsystcli run-simulation"),
+        "{largo}"
+    );
+}
+
+/// The license banner is noise for a run, but `help` lists `lic-activate`.
+#[test]
+fn should_keep_the_command_list_of_help() {
+    let ws = workspace();
+    let mut client = Client::start_env(Some(&ws_str(ws.path())), &fake_env());
+    client.initialize();
+    let v = tool_text(&client.call(2, "pvsyst_cli", json!({ "comando": "help" })));
+    assert!(
+        v["stdout_tail"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("lic-activate"),
+        "{v}"
+    );
 }
 
 #[test]

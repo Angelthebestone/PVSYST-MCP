@@ -113,7 +113,9 @@ pub(crate) fn texto_sink(sink: &Sink) -> Result<String> {
     let guard = sink
         .lock()
         .map_err(|_| Error::Cli("Mutex de captura de salida envenenado".to_string()))?;
-    Ok(String::from_utf8_lossy(&guard.bytes).into_owned())
+    // PVsystCLI writes in the console code page: decoding a non-UTF-8 byte as
+    // U+FFFD would stop an accented error marker ("Acceso denegado") from matching.
+    Ok(crate::format::decodificar_texto_flexible(&guard.bytes))
 }
 
 /// Consulta si el flujo alcanzó el límite de bytes y fue truncado.

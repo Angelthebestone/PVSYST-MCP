@@ -123,7 +123,7 @@ ejecutó la acción real (la mayoría escribe o gasta ejecuciones de prueba).
 | `entorno` | `preferencias` | Preferencias de PVsyst leídas. | `entorno accion=diagnostico` | en vivo: ok |
 | `entorno` | `preferencias_editar` | Preferencia de PVsyst modificada. | `entorno accion=preferencias` | en vivo: error `not_found` |
 | `disenar_sistema` | `—` | Sistema diseñado de extremo a extremo: sitio, proyecto, dimensionado y simulación. | `? `; `? `; `entorno accion=diagnostico` | unitaria (catálogo + validación) |
-| `pvsyst_cli` | `—` | Comando de PVsystCLI ejecutado. | `entorno accion=diagnostico` | en vivo: ok |
+| `pvsyst_cli` | `—` | Comando de PVsystCLI ejecutado. | `entorno accion=diagnostico` | en vivo: ok (`help`/`version`; el resto, con el CLI falso) |
 | `gui_observar` | `ventanas` | Ventanas de PVsyst listadas. | `gui_observar que=esquema`; `gui_observar que=funciones` | en vivo: error `gui` |
 | `gui_observar` | `controles` | Controles de la ventana listados. | `gui_observar que=esquema`; `gui_observar que=ventanas` | unitaria (catálogo + validación) |
 | `gui_observar` | `leer` | Texto de la ventana leído. | `gui_observar que=esquema`; `gui_observar que=ventanas` | unitaria (catálogo + validación) |

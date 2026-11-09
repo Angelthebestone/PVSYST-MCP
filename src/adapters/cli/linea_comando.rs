@@ -21,35 +21,84 @@ const TIMEOUT_MINIMO_S: u64 = 1;
 /// Límite superior permitido para el parámetro de tiempo de espera (1 hora).
 const TIMEOUT_MAXIMO_S: u64 = 3600;
 
-/// Genera una cadena legible representando la línea de comando ejecutada.
+/// Opciones cuyo valor es un secreto: no se devuelven nunca en la respuesta.
+const OPCIONES_SECRETAS: [&str; 4] = ["-k", "--key", "-c", "--customer-id"];
+
+/// Genera una cadena legible representando la línea de comando ejecutada. Es la
+/// única salida de un `dry_run`, así que debe poder copiarse tal cual: el
+/// ejecutable y los argumentos se citan y se escapan, y los secretos se tachan.
 pub(crate) fn display_command_line(exe: &str, args: &[String]) -> String {
-    let mut s = exe.to_string();
+    let mut s = citar(exe);
     for a in args {
         s.push(' ');
-        if a.contains(' ') {
-            s.push('"');
-            s.push_str(a);
-            s.push('"');
-        } else {
-            s.push_str(a);
+        s.push_str(&citar(&redactar(a)));
+    }
+    s
+}
+
+/// Tacha el valor de una opción secreta (`-k:<clave>`, `-c:<id>`).
+fn redactar(arg: &str) -> String {
+    let Some((nombre, _)) = arg.split_once(':') else {
+        return arg.to_string();
+    };
+    if OPCIONES_SECRETAS
+        .iter()
+        .any(|s| nombre.eq_ignore_ascii_case(s))
+    {
+        return format!("{nombre}:<REDACTADO>");
+    }
+    arg.to_string()
+}
+
+/// Cita y escapa un argumento con las reglas de `CommandLineToArgvW`: una comilla
+/// interior lleva delante un número impar de barras y las barras finales se
+/// duplican para que no escapen la comilla de cierre.
+fn citar(arg: &str) -> String {
+    if !arg.is_empty() && !arg.contains([' ', '\t', '"']) && !arg.ends_with('\\') {
+        return arg.to_string();
+    }
+    let mut s = String::from("\"");
+    let mut barras = 0_usize;
+    for c in arg.chars() {
+        match c {
+            '\\' => {
+                barras += 1;
+                s.push('\\');
+            }
+            '"' => {
+                for _ in 0..=barras {
+                    s.push('\\');
+                }
+                s.push('"');
+                barras = 0;
+            }
+            otro => {
+                barras = 0;
+                s.push(otro);
+            }
         }
     }
+    for _ in 0..barras {
+        s.push('\\');
+    }
+    s.push('"');
     s
 }
 
 /// Localiza un comando en el PATH del sistema o verifica su ruta directa.
 pub(crate) fn which(cmd: &str) -> Option<PathBuf> {
     if cmd.contains('\\') || cmd.contains('/') {
-        return PathBuf::from(cmd).exists().then(|| PathBuf::from(cmd));
+        let ruta = PathBuf::from(cmd);
+        return ruta.is_file().then_some(ruta);
     }
     let path = std::env::var_os("PATH")?;
     for dir in std::env::split_paths(&path) {
         let cand = dir.join(cmd);
-        if cand.exists() {
+        if cand.is_file() {
             return Some(cand);
         }
         let with_exe = dir.join(format!("{cmd}.exe"));
-        if with_exe.exists() {
+        if with_exe.is_file() {
             return Some(with_exe);
         }
     }
@@ -58,7 +107,36 @@ pub(crate) fn which(cmd: &str) -> Option<PathBuf> {
 
 /// Comprueba si el ejecutable de PVsystCLI está disponible en disco o PATH.
 pub(crate) fn cli_available(paths: &Paths) -> bool {
-    paths.cli_exe.exists() || which(&paths.cli_exe.to_string_lossy()).is_some()
+    paths.cli_exe.is_file() || which(&paths.cli_exe.to_string_lossy()).is_some()
+}
+
+/// Tiempo de espera de `comando`: `run-simulation` usa el de simulación y el resto
+/// el corto. Un valor fuera de [1, 3600] s es un error, no un acotado silencioso.
+pub(crate) fn timeout_de_comando(args: &Value, comando: &str) -> Result<Duration> {
+    let defecto_s = if comando.eq_ignore_ascii_case("run-simulation") {
+        TIMEOUT_SIMULACION_S
+    } else {
+        TIMEOUT_DEFECTO_S
+    };
+    let Some(valor) = args.get("timeout_s") else {
+        return Ok(Duration::from_secs(defecto_s));
+    };
+    let segundos = valor.as_i64().ok_or_else(|| {
+        Error::Invalid(format!(
+            "'timeout_s' debe ser un entero entre {TIMEOUT_MINIMO_S} y {TIMEOUT_MAXIMO_S} (recibido {valor})"
+        ))
+    })?;
+    if !(i64::try_from(TIMEOUT_MINIMO_S).unwrap_or(i64::MAX)
+        ..=i64::try_from(TIMEOUT_MAXIMO_S).unwrap_or(i64::MAX))
+        .contains(&segundos)
+    {
+        return Err(Error::Invalid(format!(
+            "'timeout_s' debe estar entre {TIMEOUT_MINIMO_S} y {TIMEOUT_MAXIMO_S} segundos (recibido {segundos})"
+        )));
+    }
+    Ok(Duration::from_secs(
+        u64::try_from(segundos).unwrap_or(defecto_s),
+    ))
 }
 
 /// Extrae y normaliza el límite de tiempo solicitado en `args`, acotado a [1, 3600] s.

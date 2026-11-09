@@ -30,7 +30,8 @@ fn should_keep_the_ignored_keys_table_in_sync_with_the_tool_declarations() {
                     entrada.herramienta
                 )
             });
-        let acciones: &[&str] = h.discriminador.as_ref().map_or(&[], |d| d.valores);
+        // A tool without a discriminator has a single, unnamed action.
+        let acciones: &[&str] = h.discriminador.as_ref().map_or(&[""], |d| d.valores);
         assert!(
             acciones.contains(&entrada.accion),
             "{}: acción desconocida '{}'",

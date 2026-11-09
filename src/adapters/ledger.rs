@@ -56,20 +56,99 @@ pub(crate) fn parsear_banner(stdout: &str) -> Option<(Option<u64>, u64)> {
     Some((numero_tras(linea, "remaining days:"), restantes))
 }
 
+/// Remaining executions that can be trusted: the counter PVsystCLI prints was
+/// measured jumping between two states (133/134 and 249/250) without a licence
+/// change, so a count above the stored one is only accepted when the licence
+/// renewed (more days). Otherwise the stored, lower count stands.
+fn restantes_creibles(previo: Option<&Estado>, nuevo: u64, dias: Option<u64>) -> u64 {
+    let Some(previo) = previo.filter(|p| p.modo == "trial") else {
+        return nuevo;
+    };
+    let Some(anteriores) = previo.restantes else {
+        return nuevo;
+    };
+    let renovada = matches!((dias, previo.dias), (Some(hoy), Some(antes)) if hoy > antes);
+    if renovada || nuevo <= anteriores {
+        nuevo
+    } else {
+        anteriores
+    }
+}
+
+/// Licence state as `lic-info` prints it (`Status: TRIAL`, `Remaining days: N`,
+/// `Remaining executions: N`). A licensed install prints `Status:` without the
+/// trial counters. Measured on 8.1.8 (rev. 49527).
+///
+/// It is a separate shape from the run banner: feeding `lic-info` to
+/// [`registrar`] would find no banner and store `modo:"licencia"`, wiping a good
+/// ledger.
+pub(crate) fn parsear_lic_info(stdout: &str) -> Option<Estado> {
+    let estado = stdout
+        .lines()
+        .find_map(|l| l.trim().strip_prefix("Status:"))?
+        .trim();
+    let modo = if estado.eq_ignore_ascii_case("TRIAL") {
+        "trial"
+    } else {
+        "licencia"
+    };
+    Some(Estado {
+        modo: modo.to_owned(),
+        dias: stdout
+            .lines()
+            .find_map(|l| numero_tras(l, "Remaining days:")),
+        restantes: stdout
+            .lines()
+            .find_map(|l| numero_tras(l, "Remaining executions:")),
+    })
+}
+
+/// Stores the licence state a `lic-info` run printed, so the budget follows every
+/// licence read and not only the runs that spend it.
+pub(crate) fn registrar_lic_info(workspace: &Path, stdout: &str) -> Option<Estado> {
+    let estado = parsear_lic_info(stdout)?;
+    if let Err(e) = guardar(workspace, &estado) {
+        tracing::warn!(error = %e, "no se pudo guardar el ledger leído de lic-info");
+    }
+    Some(estado)
+}
+
+/// Reads the licence state with `lic-info`, which only inspects the licence (no
+/// trial execution), and stores it. Used when the ledger is cold, so the budget is
+/// known before the first run.
+fn refrescar_desde_lic_info(workspace: &Path) -> Option<Estado> {
+    let mut paths = crate::config::Paths::resolve();
+    paths.workspace = workspace.to_path_buf();
+    let out = super::cli::run(
+        &paths,
+        &["lic-info".to_string()],
+        super::cli::timeout_de(&json!({}), super::cli::TIMEOUT_DEFECTO_S),
+    )
+    .ok()?;
+    registrar_lic_info(workspace, &out.stdout)
+}
+
 /// Record the counters printed by one CLI run and return the `costo` object for the response.
 /// The banner is printed before the run is charged, so the remaining count is `printed - used`.
 pub(crate) fn registrar(workspace: &Path, stdout: &str, ejecuciones_usadas: u32) -> Value {
+    let previo = estado(workspace);
     let estado = match parsear_banner(stdout) {
         Some((dias, impresas)) => Estado {
             modo: "trial".to_owned(),
             dias,
-            restantes: Some(impresas.saturating_sub(u64::from(ejecuciones_usadas))),
+            restantes: Some(restantes_creibles(
+                previo.as_ref(),
+                impresas.saturating_sub(u64::from(ejecuciones_usadas)),
+                dias,
+            )),
         },
-        None => Estado {
+        // A run that prints no TRIAL banner says nothing about the licence: only
+        // `lic-info` can. Keep what the ledger knows instead of wiping it.
+        None => previo.unwrap_or(Estado {
             modo: "licencia".to_owned(),
             dias: None,
             restantes: None,
-        },
+        }),
     };
     let mut costo = json!({"ejecuciones": ejecuciones_usadas, "restantes": estado.restantes});
     if let Err(e) = guardar(workspace, &estado) {
@@ -81,7 +160,12 @@ pub(crate) fn registrar(workspace: &Path, stdout: &str, ejecuciones_usadas: u32)
 /// Trial cost a real run would charge: estimated executions and what the licence
 /// has left. Every dry run reports it so the caller decides without a rehearsal.
 pub(crate) fn costo_estimado(workspace: &Path, ejecuciones: u32) -> Value {
-    let restantes = estado(workspace).and_then(|e| e.restantes);
+    // A cold ledger knows nothing: `lic-info` is a read, so it can fill it in
+    // before the first run instead of answering `restantes:null`.
+    let restantes = match estado(workspace) {
+        Some(e) => e.restantes,
+        None => refrescar_desde_lic_info(workspace).and_then(|e| e.restantes),
+    };
     json!({ "ejecuciones": ejecuciones, "restantes": restantes })
 }
 
