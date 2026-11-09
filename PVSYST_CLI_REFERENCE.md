@@ -1,14 +1,19 @@
-# PVsystCLI 8.1.7 — exact command-line reference (extracted)
+# PVsystCLI 8.1.8 — exact command-line reference (extracted)
 
 Source of truth: the installed binary's own `help` output (black‑box, no decompilation), the shipped
-docs under `C:\Program Files\PVsyst8.1.7\help-cli\`, and the shipped example scripts under
-`C:\Program Files\PVsyst8.1.7\DataRO\PVsyst8.1_Data\CLI\Ressources\Examples\`.
+docs under `C:\Program Files\PVsyst8.1.8\help-cli\`, and the shipped example scripts under
+`C:\Program Files\PVsyst8.1.8\DataRO\PVsyst8.1_Data\CLI\Ressources\Examples\`.
 All commands below were executed and verified on this machine.
+
+Version check (2026-11-09): `PVsystCLI.exe version` → `PVsystCLI 8.1.8 (rev. 49527)`, and
+`PVsystCLI.exe help run-simulation` is reproduced byte for byte by
+`tests/fixtures/cli/help-run-simulation.txt`. The extraction below was made on 8.1.7; the command
+list, the option grammar and the exit-code behaviour are unchanged in 8.1.8.
 
 ## 1. Binary and base syntax
 
-* Executable: `C:\Program Files\PVsyst8.1.7\PVsystCLI.exe`
-* Also on PATH (User PATH) as `pvsystcli` → `where pvsystcli` = `C:\Program Files\PVsyst8.1.7\PVsystCLI.exe`.
+* Executable: `C:\Program Files\PVsyst8.1.8\PVsystCLI.exe`
+* Also on PATH (User PATH) as `pvsystcli` → `where pvsystcli` = `C:\Program Files\PVsyst8.1.8\PVsystCLI.exe`.
 * Base syntax (from `help-cli\reference\index.html`):
 
 ```
@@ -38,7 +43,7 @@ run-simulation   Run a simulation for the given project and variant, and output 
 version          Show PVsystCLI version and check for available updates
 ```
 
-`version` output on this machine: `PVsystCLI 8.1.7 (rev. 49382)`.
+`version` output on this machine: `PVsystCLI 8.1.8 (rev. 49527)`.
 
 ## 2. `run-simulation` (the simulation entry point)
 

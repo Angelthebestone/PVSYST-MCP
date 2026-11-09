@@ -77,7 +77,7 @@ observed on PVsyst 8.1.7 (`docs/gui_mapa.json`).
 | Models / templates | `.LOD`, `.SPL`, `.SFI`, `.RVT` | `leer`, `escribir_archivo`; `.RVT` variable list: `editar accion:rvt` |
 | Batch/parametric runs | `.CSV` + `.RVT` | `simular` (`preparar`, `ejecutar` with `filas`) |
 | Param override | `Param_Modif.dat` | `simular` (`preparar` with `parametros`) |
-| Simulation | engine | `simular`, `pvsyst_cli run-simulation` |
+| Simulation | engine | `simular` (cache, ledger, `costo_estimado` y confirmación); `pvsyst_cli run-simulation` es el passthrough: informa `costo` y `costo_estimado`, pero no usa la caché ni la confirmación |
 | Results CSV / report PDF | `.CSV`, `.PDF` | `resultados` (`csv`, `perdidas`, `mensual`, `entregable`), `resultados p50_p90` (reads PVsyst's report) |
 | P50/P90 set-up | PVsyst window | `proyecto p50_p90` (PVsyst's energy-management window) |
 | Licensing / logs / version / help | CLI | `entorno` (`licencia*`, `exportar_logs`, `logs_cli`), `pvsyst_cli` |

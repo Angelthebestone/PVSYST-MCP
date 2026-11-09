@@ -31,6 +31,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Contract, size measurements and the tool × action matrix: `docs/vista_agente_salidas.md`.
 
 ### Fixed
+- QA of `pvsyst_cli` and the CLI adapter (`docs/INFORME_REVISION_PVSYST_CLI_2026-11-07.md`,
+  `docs/INFORME_PRUEBAS_MCP_2026-11-07.md`), each finding reproduced first:
+  - **No false confirmation**: an explicit CLI error (`Error: Invalid command syntax`, `Unknown command`,
+    `Unknown command line option`) is an `error` even for `help`/`version`/`lic-info`, whose exit code is always 0;
+    command names are case-insensitive (`VERSION`, `Help`); `export-logs` to a missing folder and
+    `convert-meteo` with an unreadable date are errors, not `ambiguo`.
+  - **A crash is an error**: a run whose worker thread dies exits 0 and prints only the license banner; the
+    exception PVsystCLI logs (`EPrivilege`) is read and reported as `crash:<mensaje>` instead of `ambiguo`.
+  - **The passthrough stays out of the licence and off the key**: `lic-activate`, `lic-deactivate` and
+    `lic-sync` are refused (the `entorno` action that returns the command is named instead), and the
+    displayed command line redacts `-k`/`--key`/`-c`/`--customer-id`, quotes the executable and escapes
+    quotes, tabs and trailing backslashes.
+  - **Rehearsals that cannot run for real**: `dry_run:null` is refused instead of read as `false`; the
+    command name is trimmed and refused when blank or carrying spaces; `opciones` refuses blank or repeated
+    items and non-scalar values, and its object form accepts `-w`-style keys, valueless `true` flags and
+    omits `false`/`null`.
+  - **Output no longer mutilated**: `help` keeps the lines that mention `lic-activate`, a `%` line of a
+    command that is not a simulation is kept, the answer says when the 60-line tail was cut
+    (`stdout_tail_truncado`) and `detalle:completo` returns the whole stdout.
+  - **Timeouts, cancellation and paths**: `run-simulation` defaults to 900 s (120 s for the rest) and a
+    `timeout_s` outside 1–3600 is an error instead of a silent clamp; `pvsyst_cli` honours
+    `notifications/cancelled` and frees the single worker; a relative output path resolves against the
+    workspace; `PVSYST_CLI` must be a file and a launch failure names it.
+  - **Trial budget**: `pvsyst_cli run-simulation` reports `costo_estimado` in a rehearsal and records
+    `costo` in the ledger, and the ledger no longer trusts a counter that goes back up (it was measured
+    jumping between 133/134 and 249/250 without a licence change).
+  - `log_level` is passed as `-ll:<n>`; `via` is listed in `ignorados`; the tool declares
+  `openWorldHint:true` (`version` checks for updates); the wait loop no longer copies the whole stdout when
+  nobody listens for progress, finished background jobs are bounded, and a non-UTF-8 console byte is decoded
+  as its code-page character instead of U+FFFD.
 - Review of the PR (Haiku review, `docs/REVISION_HAIKU_HALLAZGOS.md`), each finding reproduced first:
   - **Confinement**: project names that are not plain relative paths (`\Users\x`, `C:x`), RVT templates, `simular`
     `output_csv`/`report_pdf`, `sitio crear` `weather_data_file`/`cmd_options_file`/`output_sit_file`, horizon and series lookups and
