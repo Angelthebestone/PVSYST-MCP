@@ -51,6 +51,9 @@ const DESC_OPCIONES_CLI: Texto = Texto {
 /// The GUI-specific annotations only apply to the GUI tools: other tools may reuse
 /// the same property names (`texto`) with a different meaning.
 pub(crate) fn anotar_restricciones(an: &Anotador, prop_val: &mut Value, clave: &str) {
+    if reemplazar_esquema_opciones(an, prop_val, clave) {
+        return;
+    }
     let Some(obj) = prop_val.as_object_mut() else {
         return;
     };
@@ -62,6 +65,9 @@ pub(crate) fn anotar_restricciones(an: &Anotador, prop_val: &mut Value, clave: &
     }
     if anotar_estructuras(obj, clave) {
         return;
+    }
+    if let Some(texto) = descripcion_de_ejecucion(an, clave) {
+        obj.insert("description".to_string(), json!(texto));
     }
     let idioma = an.idioma;
     match clave {
@@ -87,33 +93,38 @@ pub(crate) fn anotar_restricciones(an: &Anotador, prop_val: &mut Value, clave: &
                 json!(DESC_BATERIAS.en_idioma(idioma)),
             );
         }
-        "timeout_s" => {
-            obj.insert(
-                "description".to_string(),
-                json!(DESC_TIMEOUT.en_idioma(idioma)),
-            );
-        }
-        "dry_run" => {
-            obj.insert(
-                "description".to_string(),
-                json!(DESC_DRY_RUN.en_idioma(idioma)),
-            );
-        }
-        "opciones" if an.herramienta.nombre == "pvsyst_cli" => {
-            *prop_val = json!({
-                "anyOf": [
-                    { "type": "array", "items": { "type": "string" }, "minItems": 1 },
-                    {
-                        "type": "object",
-                        "additionalProperties": { "type": ["string", "number", "boolean", "null"] }
-                    }
-                ],
-                "description": DESC_OPCIONES_CLI.en_idioma(idioma),
-            });
-        }
         _ if an.herramienta.nombre.starts_with("gui_") => anotar_gui(obj, clave, idioma),
         _ => {}
     }
+}
+
+/// Description of the properties the tools that run PVsystCLI share.
+fn descripcion_de_ejecucion(an: &Anotador, clave: &str) -> Option<String> {
+    let texto = match clave {
+        "timeout_s" => DESC_TIMEOUT,
+        "dry_run" => DESC_DRY_RUN,
+        _ => return None,
+    };
+    Some(texto.en_idioma(an.idioma).to_string())
+}
+
+/// The passthrough's `opciones` is the only free object of the schema: it declares
+/// the scalar values it accepts instead of accepting anything.
+fn reemplazar_esquema_opciones(an: &Anotador, prop_val: &mut Value, clave: &str) -> bool {
+    if clave != "opciones" || an.herramienta.nombre != "pvsyst_cli" {
+        return false;
+    }
+    *prop_val = json!({
+        "anyOf": [
+            { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+            {
+                "type": "object",
+                "additionalProperties": { "type": ["string", "number", "boolean", "null"] }
+            }
+        ],
+        "description": DESC_OPCIONES_CLI.en_idioma(an.idioma),
+    });
+    true
 }
 
 fn anotar_estructuras(obj: &mut serde_json::Map<String, Value>, clave: &str) -> bool {

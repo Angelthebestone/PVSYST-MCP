@@ -46,7 +46,7 @@ pub(crate) fn crash_en_directorio(dir: &Path, desde: SystemTime) -> Option<Strin
             (modificado >= umbral).then_some((modificado, ruta))
         })
         .collect();
-    archivos.sort_by(|a, b| a.0.cmp(&b.0));
+    archivos.sort_by_key(|(modificado, _)| *modificado);
     archivos.iter().find_map(|(_, ruta)| crash_en_archivo(ruta))
 }
 
