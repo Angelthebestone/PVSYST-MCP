@@ -25,7 +25,8 @@ fn should_write_the_horizon_under_shadings_by_file_name() {
     let out = tool_text(&resp);
     let archivo = out["archivo"].as_str().unwrap_or_default();
     assert!(
-        archivo.ends_with("Shadings/QA_Horizonte.HOR") || archivo.ends_with(r"Shadings\QA_Horizonte.HOR"),
+        archivo.ends_with("Shadings/QA_Horizonte.HOR")
+            || archivo.ends_with(r"Shadings\QA_Horizonte.HOR"),
         "el .HOR queda en Shadings con su nombre: {archivo}"
     );
     assert!(

@@ -104,11 +104,7 @@ fn resolver_destino_escritura(paths: &Paths, args: &Value, nombre: &str) -> Resu
     } else {
         format!("{archivo}.HOR")
     };
-    crate::workspace::resolver_ruta(
-        &ws,
-        &format!("{CARPETA_HORIZONTES}/{con_ext}"),
-        alcance,
-    )
+    crate::workspace::resolver_ruta(&ws, &format!("{CARPETA_HORIZONTES}/{con_ext}"), alcance)
 }
 
 fn parsear_puntos_json(arr: &[Value]) -> Result<Vec<PuntoHorizonte>> {

@@ -16,11 +16,7 @@ fn should_name_the_projects_that_exist_when_leer_misses_one() {
     let ws = synthetic_workspace();
     let mut c = servidor(&ws);
 
-    let msg = error_text(&c.call(
-        10,
-        "leer",
-        json!({ "archivo": "Projects/NO_EXISTE.PRJ" }),
-    ));
+    let msg = error_text(&c.call(10, "leer", json!({ "archivo": "Projects/NO_EXISTE.PRJ" })));
 
     assert!(
         !msg.contains("no hay ninguno"),
@@ -91,11 +87,7 @@ fn should_point_the_leer_hint_at_detalle_completo() {
     let ws = synthetic_workspace();
     let mut c = servidor(&ws);
 
-    let leido = c.call(
-        14,
-        "leer",
-        json!({ "archivo": "Projects/SYNTH_Plant.VC0" }),
-    );
+    let leido = c.call(14, "leer", json!({ "archivo": "Projects/SYNTH_Plant.VC0" }));
     let data = tool_text(&leido);
     let hint = data["hint"].as_str().unwrap_or_default();
     assert!(

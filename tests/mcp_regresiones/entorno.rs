@@ -12,7 +12,8 @@ fn local_app_data_con_ini() -> tempfile::TempDir {
     let admin = local.path().join("PVsyst").join("8.1").join("Admin");
     fs::create_dir_all(&admin).expect("carpeta Admin");
     // More sections than `vista` reads as values: the reported symptom is an empty list.
-    let texto = "[Preferences]\r\nIdioma=Español\r\n[General]\r\nPuerto=80\r\n[Web]\r\nPuerto=8080\r\n\
+    let texto =
+        "[Preferences]\r\nIdioma=Español\r\n[General]\r\nPuerto=80\r\n[Web]\r\nPuerto=8080\r\n\
                  [A]\r\nK=1\r\n[B]\r\nK=1\r\n[C]\r\nK=1\r\n[D]\r\nK=1\r\n[E]\r\nK=1\r\n\
                  [F]\r\nK=1\r\n[G]\r\nK=1\r\n[H]\r\nK=1\r\n[I]\r\nK=1\r\n";
     let mut bytes = vec![0xFF, 0xFE];

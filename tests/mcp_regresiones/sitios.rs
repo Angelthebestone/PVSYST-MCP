@@ -18,10 +18,7 @@ fn should_report_the_expected_sit_when_creating_a_site_from_csv() {
     let fixtures = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/cli");
     let mut c = Client::start_env(
         Some(&ws_str),
-        &[
-            ("PVSYST_CLI", fake),
-            ("FAKE_PVSYST_FIXTURES", fixtures),
-        ],
+        &[("PVSYST_CLI", fake), ("FAKE_PVSYST_FIXTURES", fixtures)],
     );
     c.initialize();
 
