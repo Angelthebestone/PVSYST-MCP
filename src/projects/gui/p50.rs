@@ -5,6 +5,8 @@
 
 use super::rotulos::{rotulos_p50, RotulosP50};
 use super::{abrir_sesion, ProyectoEnPvsyst};
+use crate::adapters::gui::conduccion::Formulario;
+use crate::adapters::gui::ocr::esta_marcado;
 use crate::adapters::gui::rotulos::Idioma;
 use crate::adapters::uia;
 use crate::config::Paths;
@@ -65,6 +67,16 @@ pub(crate) fn plan(paths: &Paths, proyecto: &str, variante: &str) -> Value {
     })
 }
 
+/// The evaluation is stored only once «Activo» is ticked; ticking it again would switch it off.
+fn activar_evaluacion(energia: &Formulario) -> Result<()> {
+    if esta_marcado(energia.hijo(ROTULOS.activo)?) == Some(true) {
+        return Ok(());
+    }
+    energia.elegir(ROTULOS.activo)?;
+    std::thread::sleep(std::time::Duration::from_millis(500));
+    Ok(())
+}
+
 /// Adds the P50-P90 evaluation to `variante` as PVsyst defines it.
 pub(crate) fn configurar(paths: &Paths, proyecto: &str, variante: &str) -> Result<Value> {
     let sesion = abrir_sesion(paths)?;
@@ -74,6 +86,7 @@ pub(crate) fn configurar(paths: &Paths, proyecto: &str, variante: &str) -> Resul
         let energia = s.esperar(ROTULOS.formulario_energia)?;
         uia::invocar(energia.h, Some(ROTULOS.pestana), Some("tab item"), "seleccionar", None)?;
         std::thread::sleep(std::time::Duration::from_millis(800));
+        activar_evaluacion(&energia)?;
         energia.pulsar(ROTULOS.ok)?;
         s.aceptar_mensajes();
         let raiz = p.guardar_variante()?;
