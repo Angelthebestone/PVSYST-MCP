@@ -50,6 +50,9 @@ pub(crate) fn disenar_sistema(paths: &Paths, args: &Value) -> Result<Value> {
         crear_sitio: !reusable,
         simular: params.simulacion.simular,
     };
+    if crate::args::flag(args, &[crate::args::DRY_RUN]) {
+        exigir_modulo_del_diseno(paths, &params)?;
+    }
     if let Some(aviso) = aviso_previo(paths, args, &params, &fases) {
         return Ok(aviso);
     }
@@ -66,6 +69,15 @@ pub(crate) fn disenar_sistema(paths: &Paths, args: &Value) -> Result<Value> {
         aproximaciones::marcar(&mut res, &APROXIMACION_DISENO_AUTOMATICO, paths.idioma);
     }
     Ok(res)
+}
+
+/// A dry run answers before anything exists, so a module it could not read must
+/// fail here instead of after the site and the project have been created.
+fn exigir_modulo_del_diseno(paths: &Paths, params: &DisenoParametros) -> Result<()> {
+    let Some(modulo) = params.dimensionado.modulo.as_deref() else {
+        return Ok(());
+    };
+    crate::components::pan::leer_modulo(paths, &json!({ "modulo": modulo })).map(|_| ())
 }
 
 /// A grid design without both `n_mod_serie` and `n_strings` would be sized by PVsyst's GUI on the

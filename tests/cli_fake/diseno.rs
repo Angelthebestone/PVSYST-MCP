@@ -225,3 +225,37 @@ fn should_report_a_reused_project_as_not_comparable_when_the_call_asks_for_no_la
     assert_eq!(segundo["proyecto_reutilizado"], json!(true), "{segundo}");
     assert_eq!(segundo["proyecto_comparable"], json!(false), "{segundo}");
 }
+
+#[test]
+fn should_refuse_a_missing_module_before_planning_a_dry_run() {
+    // Given: a design whose module is not in any database
+    let ws = synthetic_workspace();
+    let data_ro = data_ro();
+    let mut client = Client::start_env(
+        Some(&ws.path().to_string_lossy()),
+        &[("PVSYST_DATARO", &data_ro.path().to_string_lossy())],
+    );
+    client.initialize();
+
+    // When: it is asked for the plan only
+    let resp = client.call(
+        2,
+        "disenar_sistema",
+        json!({ "latitud": 10.0, "longitud": -70.0, "kwp": 8.0,
+                "plantilla": "SYNTH_Plant", "nombre": "Diseno",
+                "modulo": "NoExiste_400", "n_mod_serie": 10, "n_strings": 2,
+                "dry_run": true }),
+    );
+
+    // Then: the module is named and nothing was created for a run that cannot work
+    let msg = error_text(&resp);
+    assert!(msg.contains("NoExiste_400"), "msg={msg}");
+    assert!(
+        !ws.path().join("Sites").exists(),
+        "the dry run created a site"
+    );
+    assert!(
+        !ws.path().join("Projects").join("Diseno.PRJ").exists(),
+        "the dry run created a project"
+    );
+}
