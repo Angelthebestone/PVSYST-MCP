@@ -50,3 +50,6 @@ mod entorno;
 
 #[path = "mcp_regresiones/mensajes.rs"]
 mod mensajes;
+
+#[path = "mcp_regresiones/exportar_importar.rs"]
+mod exportar_importar;

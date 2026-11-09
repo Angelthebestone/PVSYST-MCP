@@ -118,6 +118,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Spanish that the project exists and names `sobrescribir`, `resultados comparar` says how many variants the
   call asked for, and `editar insertar_objeto` names `desde.archivo` instead of the top-level `archivo`.
 - The `leer` hint points at the parameter that exists (`detalle:"completo"`), not at `completo:true`.
+- **`workspace exportar` no longer archives its own temporary**: a `destino` inside the exported tree put
+  `<zip>.mcp_tmp_<pid>.zip` (0 bytes) in the archive; both the destination and its temporary are excluded, and
+  `workspace importar` names the workspace a relative `zip` was resolved against when it finds nothing.
 
 ### Changed
 - The six `proyecto` actions that edit a variant (storage, pumping, injection limit, losses, economics, tracker) build their answer with one
