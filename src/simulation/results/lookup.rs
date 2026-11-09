@@ -82,22 +82,6 @@ fn leer_cabecera(path: &Path) -> Result<String> {
     Ok(String::from_utf8_lossy(&bytes).into_owned())
 }
 
-pub(crate) fn variant_kwp(workspace: &Path, metadata: &Value) -> Option<f64> {
-    let line = metadata
-        .as_array()?
-        .iter()
-        .filter_map(Value::as_str)
-        .find(|l| l.starts_with("Simulation variant;"))?;
-    let file = line.split(';').nth(1)?.trim();
-    let text = std::fs::read_to_string(workspace.join("Projects").join(file)).ok()?;
-    let root = crate::format::object::parse_first(&text)?;
-    root.find_deep("PNomSizing")?
-        .trim()
-        .parse::<f64>()
-        .ok()
-        .filter(|k| *k > 0.0)
-}
-
 pub(super) fn csv_explicito(workspace: &Path, f: &str, alcance: Alcance) -> Result<PathBuf> {
     let p = resolver_ruta(workspace, f, alcance)?;
     if p.exists() {

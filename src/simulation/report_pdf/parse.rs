@@ -183,6 +183,25 @@ pub(crate) fn mensual(tokens: &[String]) -> Result<Value> {
 /// pages asked for) and in reports of other tools, so the message names both.
 const SIN_RESULTADOS: &str = "El informe no trae el bloque de resultados (Produced Energy): es un informe parcial (pide las páginas de resultados con simular paginas_reporte) o no lo generó una simulación";
 
+/// Array nominal power (kWp) as the report prints it in its `System information`
+/// box (`Pnom total`), else the one implied by the produced energy and the
+/// specific production. `PNomSizing` in the variant is the sizing power, not the
+/// array's, so it is never used here.
+pub(crate) fn potencia_kwp(
+    tokens: &[String],
+    energia_kwh: f64,
+    especifica: Option<f64>,
+) -> Option<f64> {
+    let positiva = |k: f64| (k > 0.0).then_some(crate::format::redondear(k, 2));
+    valor_de_etiqueta(tokens, "Pnom total")
+        .and_then(positiva)
+        .or_else(|| {
+            especifica
+                .filter(|s| *s > 0.0)
+                .and_then(|s| positiva(energia_kwh / s))
+        })
+}
+
 /// Headline results: produced energy (required), specific production and PR.
 pub(crate) fn resumen(tokens: &[String]) -> Result<Value> {
     let energia = valor_de_etiqueta(tokens, "Produced Energy")

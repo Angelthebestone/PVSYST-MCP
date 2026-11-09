@@ -3,7 +3,7 @@
 mod lookup;
 mod parse;
 
-pub(crate) use lookup::{resultado_de, variant_kwp};
+pub(crate) use lookup::resultado_de;
 
 use crate::args::{flag, workspace_of};
 use crate::config::Paths;

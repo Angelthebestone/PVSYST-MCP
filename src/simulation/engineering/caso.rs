@@ -96,6 +96,19 @@ fn variante_del_archivo(csv: &Path) -> String {
         .map_or_else(|| "VC0".to_string(), |(_, v)| v.to_string())
 }
 
+/// Array power of the case: the caller's `kwp`, else the one the report prints.
+fn kwp_de(args: &Value, tokens: &[String], resumen: &Value) -> Option<f64> {
+    args.get("kwp")
+        .and_then(|v| v.as_f64().or_else(|| v.as_str()?.trim().parse().ok()))
+        .or_else(|| {
+            report_pdf::potencia_kwp(
+                tokens,
+                resumen["energia_anual_kwh"].as_f64().unwrap_or_default(),
+                resumen["produccion_especifica_kwh_kwp"].as_f64(),
+            )
+        })
+}
+
 pub(crate) fn caso(paths: &Paths, args: &Value) -> Result<Caso> {
     let workspace = workspace_of(paths, args);
     let archivo = opt_str(args, &["archivo"]);
@@ -129,13 +142,7 @@ pub(crate) fn caso(paths: &Paths, args: &Value) -> Result<Caso> {
         .unwrap_or_default();
     let prj = leer_sitio(&workspace, &proyecto).map_err(|e| e.to_string());
     let variante = variante_pedida.map_or_else(|| variante_del_archivo(&csv), str::to_string);
-    let kwp = args
-        .get("kwp")
-        .and_then(|v| v.as_f64().or_else(|| v.as_str()?.trim().parse().ok()))
-        .or_else(|| {
-            let metadata = json!(csv_texto.lines().take(40).collect::<Vec<_>>());
-            crate::simulation::results::variant_kwp(&workspace, &metadata)
-        });
+    let kwp = kwp_de(args, &tokens, &resumen);
     Ok(Caso {
         workspace,
         proyecto,
