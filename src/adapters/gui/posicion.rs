@@ -26,8 +26,7 @@ fn fuera_de(punto: i32, desde: i32, hasta: i32) -> i32 {
 /// published by `vista`, or else the nearest one within [`TOLERANCIA_PX`]:
 /// neighbouring fields are closer together than the tolerance. O(candidatos).
 pub(crate) fn control_en(
-    ventana: Rect,
-    escala: f64,
+    (ventana, escala): (Rect, f64),
     (x, y): (i32, i32),
     candidatos: impl IntoIterator<Item = (Hwnd, Rect)>,
 ) -> Option<Hwnd> {

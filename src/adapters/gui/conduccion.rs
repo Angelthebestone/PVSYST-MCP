@@ -134,8 +134,7 @@ impl Formulario {
             .filter(|c| class_of(*c) == campo.clase)
             .map(|c| (c, rect_of(c)));
         posicion::control_en(
-            rect_of(self.h),
-            ffi::escala_de_captura(self.h),
+            (rect_of(self.h), ffi::escala_de_captura(self.h)),
             (campo.x, campo.y),
             candidatos,
         )

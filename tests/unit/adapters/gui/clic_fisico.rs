@@ -1,7 +1,7 @@
 use super::*;
 use serde_json::json;
 
-fn ventana(left: i32, top: i32, right: i32, bottom: i32) -> ffi::Rect {
+fn ventana([left, top, right, bottom]: [i32; 4]) -> ffi::Rect {
     ffi::Rect {
         left,
         top,
@@ -15,7 +15,7 @@ fn ventana(left: i32, top: i32, right: i32, bottom: i32) -> ffi::Rect {
 fn should_click_the_screen_point_the_request_names_when_it_is_on_the_window() {
     let punto = punto_pedido(&json!({ "objetivo": { "x": 919, "y": 565 } })).expect("a point");
 
-    let destino = punto_de_clic_fisico(ventana(0, 0, 1920, 1080), 96, punto);
+    let destino = punto_de_clic_fisico(ventana([0, 0, 1920, 1080]), 96, punto);
 
     assert_eq!(destino.expect("on the window"), (919, 565));
 }
@@ -24,7 +24,7 @@ fn should_click_the_screen_point_the_request_names_when_it_is_on_the_window() {
 fn should_refuse_a_point_outside_the_window_on_the_shared_desktop() {
     let punto = punto_pedido(&json!({ "objetivo": { "x": 3000, "y": 10 } })).expect("a point");
 
-    let error = punto_de_clic_fisico(ventana(0, 0, 800, 600), 96, punto).expect_err("outside");
+    let error = punto_de_clic_fisico(ventana([0, 0, 800, 600]), 96, punto).expect_err("outside");
 
     assert!(error.to_string().contains("3000"), "{error}");
 }

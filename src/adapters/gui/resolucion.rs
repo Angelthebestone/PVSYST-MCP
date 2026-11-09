@@ -25,14 +25,18 @@ impl Candidato {
     }
 
     fn coincide(&self, referencia: &str, exacta: bool) -> bool {
-        let nombres = [self.titulo.to_lowercase(), self.clase.to_lowercase()];
-        nombres.iter().any(|n| {
-            if exacta {
-                n == referencia
-            } else {
-                n.contains(referencia)
-            }
-        })
+        [&self.titulo, &self.clase]
+            .iter()
+            .any(|n| nombra(&n.to_lowercase(), referencia, exacta))
+    }
+}
+
+/// Whether the name `n` is the reference (`exacta`) or holds it.
+fn nombra(n: &str, referencia: &str, exacta: bool) -> bool {
+    if exacta {
+        n == referencia
+    } else {
+        n.contains(referencia)
     }
 }
 
@@ -43,18 +47,29 @@ impl Candidato {
 pub(crate) fn elegir(candidatos: &[Candidato], referencia: &str) -> Option<Hwnd> {
     let referencia = referencia.to_lowercase();
     let mut oculto: Option<Hwnd> = None;
-    for exacta in [true, false] {
-        for es_hijo in [false, true] {
-            let mut coinciden = candidatos
-                .iter()
-                .filter(|c| c.es_hijo == es_hijo && c.coincide(&referencia, exacta));
-            if let Some(visible) = coinciden.clone().find(|c| c.visible) {
-                return Some(visible.h);
-            }
-            oculto = oculto.or(coinciden.next().map(|c| c.h));
+    // A whole name beats part of one; a top-level window beats a control of the same quality.
+    for (exacta, es_hijo) in [(true, false), (true, true), (false, false), (false, true)] {
+        let (visible, primero) = coincidentes(candidatos, (&referencia, exacta), es_hijo);
+        if visible.is_some() {
+            return visible;
         }
+        oculto = oculto.or(primero);
     }
     oculto
+}
+
+/// The first visible candidate and the first of any visibility, of the top-level
+/// windows or of the controls (`es_hijo`), whose name matches the reference.
+fn coincidentes(
+    candidatos: &[Candidato],
+    (referencia, exacta): (&str, bool),
+    es_hijo: bool,
+) -> (Option<Hwnd>, Option<Hwnd>) {
+    let mut coinciden = candidatos
+        .iter()
+        .filter(|c| c.es_hijo == es_hijo && c.coincide(referencia, exacta));
+    let visible = coinciden.clone().find(|c| c.visible).map(|c| c.h);
+    (visible, coinciden.next().map(|c| c.h))
 }
 
 /// Resolve a window reference: `0xHEX`, else class/title among the target
