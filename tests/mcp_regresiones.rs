@@ -41,3 +41,6 @@ mod componentes;
 
 #[path = "mcp_regresiones/horizonte.rs"]
 mod horizonte;
+
+#[path = "mcp_regresiones/sitios.rs"]
+mod sitios;

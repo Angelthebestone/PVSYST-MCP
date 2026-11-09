@@ -33,7 +33,7 @@ fn escribir_csv_mensual(csv_path: &Path, clim: &nasa::Climatology) -> Result<()>
 }
 
 /// `output_sit_file`, else `<workspace>/Sites/<name>.SIT`.
-fn ruta_sit(ws: &Path, args: &Value, name: &str) -> Result<String> {
+pub(super) fn ruta_sit(ws: &Path, args: &Value, name: &str) -> Result<String> {
     if let Some(v) = args.get("output_sit_file").and_then(|v| v.as_str()) {
         let alcance = crate::workspace::Alcance::de_args(args);
         let p = crate::workspace::resolver_ruta(ws, v, alcance)?;

@@ -109,6 +109,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   consumes a key its tool does not declare.
 - **`sitio escribir_horizonte` writes the `.HOR` in `Shadings/` under its own name**: a path in `archivo`
   (`Sites/X.HOR`) no longer creates a folder inside `Shadings`, which is not where PVsyst looks for a horizon.
+- **`sitio crear` from a CSV reports the `.SIT` it expects** (`output_sit_file`, else `Sites/<name>.SIT`) instead of
+  `expected_sit:null`; both origins now use the same rule.
 
 ### Changed
 - The six `proyecto` actions that edit a variant (storage, pumping, injection limit, losses, economics, tracker) build their answer with one
