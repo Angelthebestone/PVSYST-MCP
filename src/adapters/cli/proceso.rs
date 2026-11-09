@@ -5,7 +5,7 @@
 
 use super::captura::{crear_sink, es_truncado, esperar_lector, texto_sink, Sink};
 use super::clasificacion::es_comando_informativo;
-use super::linea_comando::{display_command_line, requerir_cli, timeout_de, TIMEOUT_DEFECTO_S};
+use super::linea_comando::{display_command_line, requerir_cli, timeout_de_comando};
 use super::salida_json::output_json;
 use crate::args::{req_str, DRY_RUN};
 use crate::config::Paths;
@@ -325,7 +325,7 @@ pub(crate) fn ejecutar(paths: &Paths, args: &Value) -> Result<Value> {
         return Ok(json!({ "dry_run": true, "command_line": command_line }));
     }
     requerir_cli(paths)?;
-    let out = run(paths, &cli_args, timeout_de(args, TIMEOUT_DEFECTO_S))?;
+    let out = run(paths, &cli_args, timeout_de_comando(args, comando)?)?;
     let mut respuesta = output_json(&out, comando, &json!({ "command": comando }));
     if detalle_completo(args) {
         respuesta["stdout"] = json!(out.stdout);

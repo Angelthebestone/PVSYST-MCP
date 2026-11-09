@@ -11,6 +11,7 @@ const LIMITES_ENTEROS: &[(&str, i64, Option<i64>)] = &[
     ("lineas", 1, Some(500)),
     ("n_baterias_serie", 1, None),
     ("n_baterias_paralelo", 1, None),
+    ("timeout_s", 1, Some(3600)),
 ];
 
 /// Bounds `(mínimo, máximo)` declared for the integer property `clave`, if any.
@@ -32,6 +33,18 @@ const DESC_VIA: Texto = Texto {
 const DESC_BATERIAS: Texto = Texto {
     es: "Solo aplica a tipo_sistema:aislado.",
     en: "Only applies to tipo_sistema:aislado.",
+};
+const DESC_TIMEOUT: Texto = Texto {
+    es: "Segundos antes de matar el proceso (1–3600). Por defecto 120, y 900 en run-simulation.",
+    en: "Seconds before the process is killed (1–3600). Defaults to 120, and 900 for run-simulation.",
+};
+const DESC_DRY_RUN: Texto = Texto {
+    es: "true: ensayo, no ejecuta nada y devuelve lo que haría. null no se acepta: ejecutaría de verdad.",
+    en: "true: rehearsal, runs nothing and returns what it would do. null is refused: it would run for real.",
+};
+const DESC_OPCIONES_CLI: Texto = Texto {
+    es: "Argumentos de PVsystCLI. Lista: cada elemento tal cual (`-w:C:/ws`). Objeto: `--nombre:valor`, en orden alfabético; una clave que empieza por `-` se usa tal cual, `true` es un flag sin valor y `false`/`null` omiten la opción.",
+    en: "PVsystCLI arguments. List: each item as written (`-w:C:/ws`). Object: `--name:value`, in alphabetical order; a key starting with `-` is used as written, `true` is a flag with no value and `false`/`null` leave the option out.",
 };
 
 /// Annotates known domain constraints on specific tool properties in the MCP schema.
@@ -73,6 +86,30 @@ pub(crate) fn anotar_restricciones(an: &Anotador, prop_val: &mut Value, clave: &
                 "description".to_string(),
                 json!(DESC_BATERIAS.en_idioma(idioma)),
             );
+        }
+        "timeout_s" => {
+            obj.insert(
+                "description".to_string(),
+                json!(DESC_TIMEOUT.en_idioma(idioma)),
+            );
+        }
+        "dry_run" => {
+            obj.insert(
+                "description".to_string(),
+                json!(DESC_DRY_RUN.en_idioma(idioma)),
+            );
+        }
+        "opciones" if an.herramienta.nombre == "pvsyst_cli" => {
+            *prop_val = json!({
+                "anyOf": [
+                    { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+                    {
+                        "type": "object",
+                        "additionalProperties": { "type": ["string", "number", "boolean", "null"] }
+                    }
+                ],
+                "description": DESC_OPCIONES_CLI.en_idioma(idioma),
+            });
         }
         _ if an.herramienta.nombre.starts_with("gui_") => anotar_gui(obj, clave, idioma),
         _ => {}

@@ -1,4 +1,5 @@
 use super::*;
+use serde_json::json;
 
 #[test]
 fn should_quote_arguments_containing_spaces() {
@@ -24,6 +25,34 @@ fn should_escape_quotes_tabs_and_trailing_backslashes() {
     ];
     let cmd = display_command_line("p.exe", &args);
     assert_eq!(cmd, r#"p.exe "-p:a\"b" "-rpf:C:/a	b.pdf" "-w:C:/my ws\\""#);
+}
+
+/// A real simulation can take longer than two minutes: its default is the
+/// simulation one, and the others keep the short default.
+#[test]
+fn should_use_the_simulation_default_for_run_simulation() {
+    let sin_timeout = json!({});
+    assert_eq!(
+        timeout_de_comando(&sin_timeout, "run-simulation").expect("defecto"),
+        Duration::from_secs(TIMEOUT_SIMULACION_S)
+    );
+    assert_eq!(
+        timeout_de_comando(&sin_timeout, "help").expect("defecto"),
+        Duration::from_secs(TIMEOUT_DEFECTO_S)
+    );
+}
+
+/// A value the CLI cannot honour is an error, not a silent clamp.
+#[test]
+fn should_refuse_a_timeout_outside_the_declared_range() {
+    for valor in [json!(0), json!(-1), json!(3601)] {
+        let res = timeout_de_comando(&json!({ "timeout_s": valor }), "help");
+        assert!(matches!(res, Err(Error::Invalid(_))), "{valor}");
+    }
+    assert_eq!(
+        timeout_de_comando(&json!({ "timeout_s": 42 }), "help").expect("válido"),
+        Duration::from_secs(42)
+    );
 }
 
 /// The licence key and the customer id never come back in the answer.

@@ -109,6 +109,35 @@ pub(crate) fn cli_available(paths: &Paths) -> bool {
     paths.cli_exe.exists() || which(&paths.cli_exe.to_string_lossy()).is_some()
 }
 
+/// Tiempo de espera de `comando`: `run-simulation` usa el de simulación y el resto
+/// el corto. Un valor fuera de [1, 3600] s es un error, no un acotado silencioso.
+pub(crate) fn timeout_de_comando(args: &Value, comando: &str) -> Result<Duration> {
+    let defecto_s = if comando.eq_ignore_ascii_case("run-simulation") {
+        TIMEOUT_SIMULACION_S
+    } else {
+        TIMEOUT_DEFECTO_S
+    };
+    let Some(valor) = args.get("timeout_s") else {
+        return Ok(Duration::from_secs(defecto_s));
+    };
+    let segundos = valor.as_i64().ok_or_else(|| {
+        Error::Invalid(format!(
+            "'timeout_s' debe ser un entero entre {TIMEOUT_MINIMO_S} y {TIMEOUT_MAXIMO_S} (recibido {valor})"
+        ))
+    })?;
+    if !(i64::try_from(TIMEOUT_MINIMO_S).unwrap_or(i64::MAX)
+        ..=i64::try_from(TIMEOUT_MAXIMO_S).unwrap_or(i64::MAX))
+        .contains(&segundos)
+    {
+        return Err(Error::Invalid(format!(
+            "'timeout_s' debe estar entre {TIMEOUT_MINIMO_S} y {TIMEOUT_MAXIMO_S} segundos (recibido {segundos})"
+        )));
+    }
+    Ok(Duration::from_secs(
+        u64::try_from(segundos).unwrap_or(defecto_s),
+    ))
+}
+
 /// Extrae y normaliza el límite de tiempo solicitado en `args`, acotado a [1, 3600] s.
 pub(crate) fn timeout_de(args: &Value, defecto_s: u64) -> Duration {
     let s = args

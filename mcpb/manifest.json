@@ -431,7 +431,7 @@
       "name": "workspace"
     },
     {
-      "description": "Passthrough to any PVsystCLI command. Its arguments go in 'opciones'; any other key is listed in ignorados and not passed.",
+      "description": "Passthrough to any PVsystCLI command. Its arguments go in 'opciones'; any other key is listed in ignorados and not passed. It does not confine paths (a relative path resolves against the workspace) and it never touches the licence: lic-activate, lic-deactivate and lic-sync are refused.",
       "name": "pvsyst_cli"
     },
     {
