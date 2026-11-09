@@ -101,6 +101,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`http_get` (PVGIS, uncertainty lookups) refuses a body over 64 MiB** and stops reading it instead of buffering whatever the server sends.
 - A `tools/call` that arrives as a notification and fails is logged; a failed rollback of `disenar_sistema` is logged instead of ignored.
 
+- QA of the MCP (`docs/INFORME_PRUEBAS_MCP_2026-11-07.md`), each bug reproduced first:
+  - `resultados perdidas/mensual/entregable` take the array kWp from the report's own `Pnom total` (else from the produced energy and
+    the specific production) instead of the variant's `PNomSizing`, so the deliverable's specific production matches PVsyst (BUG-01).
+  - `disenar_sistema` reports PVsyst's own words in `pasos[simulacion].detail` when the run fails for a cause the MCP does not know
+    by name (BUG-04).
+  - `modulo` is accepted with or without the `.PAN` extension (BUG-07), and a dry run refuses a module no database holds before the
+    site and the project exist.
+  - The refusal for a design without `n_mod_serie`/`n_strings` names `via:'aproximacion'` only when the schema offers it, and the
+    environment variable that enables it otherwise (BUG-08); `proyecto_reutilizado:true` with `proyecto_comparable:false` is reachable
+    through the tool (BUG-06).
+  - `sitio crear dry_run` reports `costo_estimado`, the trial executions the real call would spend (BUG-20).
+  - `simular preparar` suggests running the batch it prepared, carrying `batch_params_file`/`batch_rvt_file` (BUG-22).
+
 ### Changed
 - The six `proyecto` actions that edit a variant (storage, pumping, injection limit, losses, economics, tracker) build their answer with one
   function (`respuesta_de_edicion`); the identical range check of losses and economics lives in `args::rango_opcional`.
