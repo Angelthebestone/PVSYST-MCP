@@ -8,7 +8,11 @@ use crate::error::{Error, Result};
 use crate::workspace::{primer_existente_en_bases, primer_existente_en_workspace};
 use serde_json::{json, Value};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+/// Folder PVsyst reads horizons from: a `.HOR` lives there, whatever folder the
+/// caller wrote in the name.
+const CARPETA_HORIZONTES: &str = "Shadings";
 
 /// Reads and decodes a `.HOR` file, returning its structured horizon representation.
 pub(crate) fn leer_horizonte(paths: &Paths, args: &Value) -> Result<Value> {
@@ -66,8 +70,8 @@ fn resolver_archivo_horizonte(paths: &Paths, args: &Value, nombre: &str) -> Resu
     let ws = workspace_of(paths, args);
     let candidatas = [
         nombre.to_string(),
-        format!("Shadings/{nombre}"),
-        format!("Shadings/{nombre}.HOR"),
+        format!("{CARPETA_HORIZONTES}/{nombre}"),
+        format!("{CARPETA_HORIZONTES}/{nombre}.HOR"),
         format!("{nombre}.HOR"),
     ];
     if let Some(p) = primer_existente_en_workspace(&ws, &candidatas, Alcance::de_args(args))? {
@@ -83,20 +87,28 @@ fn resolver_archivo_horizonte(paths: &Paths, args: &Value, nombre: &str) -> Resu
         .ok_or_else(|| Error::NotFound(format!("Archivo de horizonte '{nombre}' no encontrado")))
 }
 
+/// Destination of a written horizon: `<workspace>/Shadings/<name>.HOR`.
+///
+/// Only the file name of `nombre` is used: `Sites/X.HOR` used to create a folder
+/// `Shadings/Sites`, which is not where PVsyst looks for a horizon.
 fn resolver_destino_escritura(paths: &Paths, args: &Value, nombre: &str) -> Result<PathBuf> {
     let ws = workspace_of(paths, args);
     let alcance = Alcance::de_args(args);
-    let con_ext = if nombre.to_ascii_uppercase().ends_with(".HOR") {
-        nombre.to_string()
+    let archivo = Path::new(nombre)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or_else(|| Error::Invalid(format!("'archivo' debe nombrar un archivo: '{nombre}'")))?;
+    crate::workspace::validar_nombre(archivo)?;
+    let con_ext = if archivo.to_ascii_uppercase().ends_with(".HOR") {
+        archivo.to_string()
     } else {
-        format!("{nombre}.HOR")
+        format!("{archivo}.HOR")
     };
-    let relativa = if con_ext.starts_with("Shadings/") || con_ext.starts_with("Shadings\\") {
-        con_ext
-    } else {
-        format!("Shadings/{con_ext}")
-    };
-    crate::workspace::resolver_ruta(&ws, &relativa, alcance)
+    crate::workspace::resolver_ruta(
+        &ws,
+        &format!("{CARPETA_HORIZONTES}/{con_ext}"),
+        alcance,
+    )
 }
 
 fn parsear_puntos_json(arr: &[Value]) -> Result<Vec<PuntoHorizonte>> {

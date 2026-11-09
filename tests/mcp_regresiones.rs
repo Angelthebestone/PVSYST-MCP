@@ -38,3 +38,6 @@ mod edicion_campos;
 
 #[path = "mcp_regresiones/componentes.rs"]
 mod componentes;
+
+#[path = "mcp_regresiones/horizonte.rs"]
+mod horizonte;

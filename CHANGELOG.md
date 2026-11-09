@@ -107,6 +107,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`componente crear` copies the template when the call asks for no `cambios`** (the description already said "from a
   template"), and the schema declares `campos`, the spelling the handler already accepted: a test fails when an action
   consumes a key its tool does not declare.
+- **`sitio escribir_horizonte` writes the `.HOR` in `Shadings/` under its own name**: a path in `archivo`
+  (`Sites/X.HOR`) no longer creates a folder inside `Shadings`, which is not where PVsyst looks for a horizon.
 
 ### Changed
 - The six `proyecto` actions that edit a variant (storage, pumping, injection limit, losses, economics, tracker) build their answer with one
