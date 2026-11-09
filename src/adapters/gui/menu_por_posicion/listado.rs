@@ -23,7 +23,7 @@ fn item_con_funcion(clase: &str, (menu, posicion): (usize, usize), item: &ItemMe
         TipoItem::Comando(id) => Some(id),
         TipoItem::Separador | TipoItem::Submenu => None,
     };
-    let conocida = crate::gui_catalogo::funcion_de_menu(clase, (menu, posicion), id);
+    let conocida = crate::adapters::gui::catalogo::funcion_de_menu(clase, (menu, posicion), id);
     if let (Some((clave, etiqueta)), Some(mapa)) = (conocida, json.as_object_mut()) {
         mapa.insert("funcion".into(), Value::from(clave));
         mapa.insert("etiqueta".into(), Value::from(etiqueta));

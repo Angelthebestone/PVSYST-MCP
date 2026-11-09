@@ -81,7 +81,7 @@ fn esperar_titulo(f: &Formulario, prj: &str) -> Result<()> {
 /// Runs a catalogued command of the project window (its menu entry, found by position).
 fn ejecutar(proyecto: &Formulario, funcion: &str) -> Result<()> {
     crate::adapters::gui::ffi::traer_al_frente(proyecto.h);
-    crate::gui_catalogo::abrir(&json!({ "funcion": funcion })).map(|_| ())
+    crate::adapters::gui::catalogo::abrir(&json!({ "funcion": funcion })).map(|_| ())
 }
 
 fn cargar(sesion: &Sesion, proyecto: &Formulario, prj: &str) -> Result<()> {

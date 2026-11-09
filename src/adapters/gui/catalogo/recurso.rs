@@ -6,7 +6,7 @@ use serde_json::{json, Value};
 use std::sync::OnceLock;
 
 /// Windows seen while walking the interface: classes, titles, tabs and controls.
-const MAPA_DE_VENTANAS: &str = include_str!("../../docs/gui_mapa.json");
+const MAPA_DE_VENTANAS: &str = include_str!("../../../../docs/gui_mapa.json");
 
 /// The window map, parsed once; `Null` if the embedded file is not valid JSON.
 pub(crate) fn mapa_de_ventanas() -> &'static Value {

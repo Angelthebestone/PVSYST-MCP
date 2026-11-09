@@ -96,8 +96,13 @@ fn error_sin_etiqueta(motivo: &str, vista: &Value) -> Error {
     Error::NotFound(format!("{motivo}. {}", sugerencia_de_relleno(vista)))
 }
 
-/// Sets the field labelled `etiqueta` of the target form to `valor`.
-pub(crate) fn campo(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
+/// Sets the field labelled `etiqueta` of the target form to `valor`. When no
+/// label matches, `vista_de` reads the window so the error can suggest `rellenar`.
+pub(crate) fn campo(
+    paths: &crate::config::Paths,
+    args: &Value,
+    vista_de: fn(&crate::config::Paths, &Value) -> Result<Value>,
+) -> Result<Value> {
     let etiqueta = req_str(args, &["etiqueta"], "label of the field")?;
     let valor = req_str(args, &["valor"], "value to set")?;
     let ficha = ocr::formulario(paths, args)?;
@@ -105,7 +110,7 @@ pub(crate) fn campo(paths: &crate::config::Paths, args: &Value) -> Result<Value>
     let elegido = match campo_por_etiqueta(&campos, etiqueta) {
         Ok(elegido) => elegido,
         Err(Error::NotFound(motivo)) => {
-            let vista = crate::vista_agente::vista(paths, args).unwrap_or(Value::Null);
+            let vista = vista_de(paths, args).unwrap_or(Value::Null);
             return Err(error_sin_etiqueta(&motivo, &vista));
         }
         Err(error) => return Err(error),

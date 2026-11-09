@@ -3,7 +3,7 @@
 //! loaded (`proyecto.nuevo_*` then Carga, or a recent project); observed live
 //! on the PVsyst demo projects.
 
-use crate::gui_catalogo::dominio::Funcion;
+use crate::adapters::gui::catalogo::dominio::Funcion;
 
 const HOST: &str = "TProjectForm";
 

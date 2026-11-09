@@ -3,7 +3,7 @@
 //! page (`en_pagina`). Observed live on PVsyst 8.1.7 with a demo project; the
 //! ones that opened nothing say why in `nota`.
 
-use crate::gui_catalogo::dominio::Funcion;
+use crate::adapters::gui::catalogo::dominio::Funcion;
 
 pub(super) const FUNCIONES: &[Funcion] = &[
     Funcion::boton("variante.orientacion.detalles_y_grafico", "TOrientationForm", "Detalles y gráfico")

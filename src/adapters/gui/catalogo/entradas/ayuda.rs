@@ -2,7 +2,7 @@
 //! popups of PVsyst 8.1.7; labels are Spanish descriptions of what each item
 //! showed). The tutorials submenu holds the PDF guides.
 
-use crate::gui_catalogo::dominio::{Efecto, Funcion};
+use crate::adapters::gui::catalogo::dominio::{Efecto, Funcion};
 
 pub(super) const FUNCIONES: &[Funcion] = &[
     Funcion::menu(

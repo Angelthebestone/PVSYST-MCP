@@ -41,5 +41,5 @@ pub(crate) fn funcion_de_menu(
 }
 
 #[cfg(test)]
-#[path = "../../tests/unit/gui_catalogo/mod.rs"]
+#[path = "../../../../tests/unit/adapters/gui/catalogo/mod.rs"]
 mod tests;

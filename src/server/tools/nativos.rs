@@ -5,6 +5,7 @@ use crate::adapters::{cli, gui};
 use crate::config::Paths;
 use crate::error::Result;
 use crate::projects::gui::lanzar;
+use crate::vista_agente;
 use serde_json::Value;
 
 pub(crate) const TOOL_PVSYST_CLI: Herramienta = Herramienta {
@@ -241,8 +242,14 @@ fn ejecutar_cli(paths: &Paths, args: &Value) -> Result<Value> {
     cli::ejecutar(paths, args)
 }
 
+// The agent view is a feature built on the GUI adapter, so its routes are
+// resolved here and the adapter never depends on it.
 fn ejecutar_observar(paths: &Paths, args: &Value) -> Result<Value> {
-    gui::observar(paths, args)
+    match args.get("que").and_then(Value::as_str) {
+        Some("vista") => vista_agente::vista(paths, args),
+        Some("esquema") => vista_agente::listar_esquemas(args),
+        _ => gui::observar(paths, args),
+    }
 }
 
 fn ejecutar_actuar(paths: &Paths, args: &Value) -> Result<Value> {
@@ -250,5 +257,10 @@ fn ejecutar_actuar(paths: &Paths, args: &Value) -> Result<Value> {
     if lanzar::pide_proyecto(args) {
         return lanzar::lanzar_con_proyecto(paths, args);
     }
-    gui::actuar(paths, args)
+    match args.get("accion").and_then(Value::as_str) {
+        Some("rellenar") => vista_agente::rellenar(paths, args),
+        Some("campo") => gui::campo_por_etiqueta::campo(paths, args, vista_agente::vista),
+        Some("secuencia") => gui::secuencia::secuencia(paths, args, ejecutar_actuar),
+        _ => gui::actuar(paths, args),
+    }
 }

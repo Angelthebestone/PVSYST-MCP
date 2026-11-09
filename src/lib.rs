@@ -75,7 +75,6 @@ mod evaluacion_economica;
     reason = "deuda medida; pendiente del paso 2 de la limpieza"
 )]
 mod format;
-mod gui_catalogo;
 #[expect(
     clippy::excessive_nesting,
     clippy::indexing_slicing,

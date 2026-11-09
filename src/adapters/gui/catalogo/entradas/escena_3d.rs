@@ -5,7 +5,7 @@
 //! transformations) change the scene in memory and are described in
 //! `docs/gui_mapa.json` under `menus`. Observed live on PVsyst 8.1.7.
 
-use crate::gui_catalogo::dominio::{Efecto, Funcion};
+use crate::adapters::gui::catalogo::dominio::{Efecto, Funcion};
 
 const EDITOR: &str = "TPerspectiveForm";
 const ABRE_EL_EDITOR: &str = "variante.sombreados_cercanos.construccion_perspectiva";

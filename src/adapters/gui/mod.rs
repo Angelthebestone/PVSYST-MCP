@@ -13,6 +13,7 @@ pub(crate) mod acciones;
 pub(crate) mod campo_por_etiqueta;
 pub(crate) mod campos;
 pub(crate) mod captura;
+pub(crate) mod catalogo;
 pub(crate) mod causa_pvsyst;
 pub(crate) mod cierre;
 pub(crate) mod clic_fisico;
@@ -68,10 +69,8 @@ pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Val
         "uia" => uia_vista::observar_uia(paths, args),
         "arbol" => uia_vista::observar_arbol(paths, args),
         "formulario" => ocr::formulario(paths, args),
-        "funciones" => Ok(crate::gui_catalogo::listar(args)),
+        "funciones" => Ok(catalogo::listar(args)),
         "menus" => menu_por_posicion::listar(ventanas::hwnd_de(args, "ventana")?),
-        "vista" => crate::vista_agente::vista(paths, args),
-        "esquema" => crate::vista_agente::listar_esquemas(args),
         "mensajes" => {
             let limite = args
                 .get("lineas")
@@ -137,10 +136,8 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         }
         "teclas" => teclado::teclas(args),
         "fila" => fila::fila(args),
-        "funcion" => crate::gui_catalogo::abrir(args),
-        "menu" => crate::gui_catalogo::menu(args),
-        "campo" => campo_por_etiqueta::campo(paths, args),
-        "rellenar" => crate::vista_agente::rellenar(paths, args),
+        "funcion" => catalogo::abrir(args),
+        "menu" => catalogo::menu(args),
         "escena" if flag(args, &["simular"]) => crate::escena_3d::pedir_escena(args),
         "escena" => escena::crear(paths, args),
         "escena_leer" => escena::leer(paths, args),
@@ -151,7 +148,6 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         "esperar_cierre" => campos::esperar_cierre_accion(args),
         "lanzar" => proceso::lanzar(paths, args),
         "cerrar_todo" => proceso::cerrar_todo(args),
-        "secuencia" => secuencia::secuencia(paths, args),
         "reiniciar" => recuperacion::reiniciar(paths, args),
         "uia_invocar" => uia_paso::uia_invocar(args),
         "esperar" => esperas::esperar(args),

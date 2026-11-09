@@ -32,9 +32,14 @@ fn paso_valido(i: usize, paso: &Value) -> Result<()> {
     }
 }
 
-/// Runs the steps in order; the first failure ends the sequence with an error
-/// naming the step, and nothing after it runs.
-pub(crate) fn secuencia(paths: &Paths, args: &Value) -> Result<Value> {
+/// Runs the steps in order through `actuar`, the same router a single
+/// `gui_actuar` call goes through; the first failure ends the sequence with an
+/// error naming the step, and nothing after it runs.
+pub(crate) fn secuencia(
+    paths: &Paths,
+    args: &Value,
+    actuar: fn(&Paths, &Value) -> Result<Value>,
+) -> Result<Value> {
     let pasos = pasos_de(args)?;
     let mut resultados = Vec::with_capacity(pasos.len());
     for (i, paso) in pasos.iter().enumerate() {
@@ -42,7 +47,7 @@ pub(crate) fn secuencia(paths: &Paths, args: &Value) -> Result<Value> {
             .get("accion")
             .and_then(Value::as_str)
             .unwrap_or_default();
-        let res = super::actuar(paths, paso).map_err(|e| {
+        let res = actuar(paths, paso).map_err(|e| {
             Error::Gui(format!("secuencia detenida en el paso {i} ({accion}): {e}"))
         })?;
         resultados.push(res);

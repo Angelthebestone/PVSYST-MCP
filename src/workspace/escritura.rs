@@ -35,13 +35,19 @@ const SOBRESCRITURA_RECHAZADA: Texto = Texto {
     en: "'{archivo}' already exists: pass 'sobrescribir': true to replace it (the history keeps a copy of the previous version)",
 };
 
-pub(crate) fn escribir_archivo(paths: &Paths, args: &Value) -> Result<Value> {
+/// Writes `archivo` in the workspace. `validar_mef` checks a `.MEF` round trip;
+/// the weather feature owns that format, so the caller passes it in.
+pub(crate) fn escribir_archivo(
+    paths: &Paths,
+    args: &Value,
+    validar_mef: fn(&[u8]) -> Result<()>,
+) -> Result<Value> {
     let workspace = workspace_of(paths, args);
     let p = req_str(args, &["archivo"], "")?;
     let path = resolver_ruta(&workspace, p, Alcance::de_args(args))?;
     let bytes = extraer_bytes_acotados(args)?;
 
-    validar_formato_pvsyst(&path, &bytes)?;
+    validar_formato_pvsyst(&path, &bytes, validar_mef)?;
 
     exigir_sobrescritura(&path, args)?;
     if let Some(parent) = path.parent() {
@@ -91,7 +97,11 @@ fn extraer_bytes_acotados(args: &Value) -> Result<Vec<u8>> {
     Ok(bytes)
 }
 
-fn validar_formato_pvsyst(path: &Path, bytes: &[u8]) -> Result<()> {
+fn validar_formato_pvsyst(
+    path: &Path,
+    bytes: &[u8],
+    validar_mef: fn(&[u8]) -> Result<()>,
+) -> Result<()> {
     let file_name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
     // One rule for every written name: ':' (alternate streams), trailing dot or space,
     // control characters and device names (`CON`, `CONIN$`...).
@@ -111,7 +121,7 @@ fn validar_formato_pvsyst(path: &Path, bytes: &[u8]) -> Result<()> {
         "SHD" | "BLD" | "SHO" => Err(Error::Invalid(
             "escena 3D: solo lectura; el formato de las mallas no está demostrado, créala con la GUI de PVsyst (Construcción / Perspectiva)".into(),
         )),
-        "MEF" => crate::meteo_mef::validar_mef(bytes),
+        "MEF" => validar_mef(bytes),
         _ => Ok(()),
     }
 }

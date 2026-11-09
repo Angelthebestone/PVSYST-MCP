@@ -96,7 +96,7 @@ pub(super) fn abrir_resultado(ruta: &Path) -> Result<Formulario> {
     let editor = ventana("TPerspectiveForm")?;
     let pid = pid_of(editor);
     let (menu, item, sub) = ENTRADA_IMPORTAR;
-    let abierto = crate::gui_catalogo::menu(&json!({
+    let abierto = crate::adapters::gui::catalogo::menu(&json!({
         "ventana": format!("0x{editor:X}"),
         "menu": menu, "item": item, "subitem": sub,
     }))

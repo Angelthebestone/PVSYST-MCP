@@ -5,7 +5,7 @@
 //! Invoke them while no other dialog is open: with a modal dialog up PVsyst
 //! raised an internal exception, and the catalogue refuses to.
 
-use crate::gui_catalogo::dominio::{Efecto, Funcion};
+use crate::adapters::gui::catalogo::dominio::{Efecto, Funcion};
 
 const VENTANA: &str = "TProjectForm";
 

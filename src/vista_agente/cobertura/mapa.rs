@@ -1,6 +1,6 @@
 //! What the observed window map says about each window class.
 
-use crate::gui_catalogo::mapa_de_ventanas;
+use crate::adapters::gui::catalogo::mapa_de_ventanas;
 use serde_json::Value;
 use std::collections::{BTreeMap, HashMap};
 use std::sync::OnceLock;

@@ -3,7 +3,7 @@
 //! editor of Preferencias. Observed live on PVsyst 8.1.7; entries that opened
 //! nothing say why in `nota`.
 
-use crate::gui_catalogo::dominio::Funcion;
+use crate::adapters::gui::catalogo::dominio::Funcion;
 
 pub(super) const FUNCIONES: &[Funcion] = &[
     Funcion::boton(

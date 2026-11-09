@@ -45,7 +45,7 @@ pub(super) fn abrir(funcion: &str) -> Result<Value> {
         ffi::traer_al_frente(editor);
         std::thread::sleep(PAUSA);
     }
-    crate::gui_catalogo::abrir(&json!({ "funcion": funcion }))
+    crate::adapters::gui::catalogo::abrir(&json!({ "funcion": funcion }))
 }
 
 /// The open window of class `clase`.

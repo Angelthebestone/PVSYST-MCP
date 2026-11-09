@@ -20,6 +20,7 @@ fn should_replace_an_existing_file_only_when_sobrescribir_is_true() {
     let err = escribir_archivo(
         &paths,
         &json!({ "archivo": "UserData/Nota.txt", "contenido": "nuevo" }),
+        crate::meteo_mef::validar_mef,
     )
     .expect_err("sin 'sobrescribir' un archivo existente no se toca");
     assert!(err.to_string().contains("already exists"), "{err}");
@@ -28,6 +29,7 @@ fn should_replace_an_existing_file_only_when_sobrescribir_is_true() {
     escribir_archivo(
         &paths,
         &json!({ "archivo": "UserData/Nota.txt", "contenido": "nuevo", "sobrescribir": true }),
+        crate::meteo_mef::validar_mef,
     )
     .expect("sobrescribir:true reemplaza");
     assert_eq!(fs::read_to_string(&destino).expect("leer"), "nuevo");
@@ -39,7 +41,7 @@ fn should_record_history_when_creating_a_new_file() {
     let paths = dummy_paths(ws.path());
     let args = json!({ "archivo": "UserData/Nota.txt", "contenido": "primera version" });
 
-    let out = escribir_archivo(&paths, &args).expect("creación");
+    let out = escribir_archivo(&paths, &args, crate::meteo_mef::validar_mef).expect("creación");
 
     let id = out["historial_id"]
         .as_str()

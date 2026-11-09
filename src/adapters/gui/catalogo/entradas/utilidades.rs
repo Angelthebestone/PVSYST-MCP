@@ -1,7 +1,7 @@
 //! Windows opened from the start page's Utilidades: Herramientas, Bases de
 //! datos and Datos medidos. Each button needs its parent window open first.
 
-use crate::gui_catalogo::dominio::Funcion;
+use crate::adapters::gui::catalogo::dominio::Funcion;
 
 const HERRAMIENTAS: &str = "TToolsForm";
 const BASES: &str = "TDatabaseForm";

@@ -44,7 +44,7 @@ pub(super) fn ejecutar_workspace(paths: &Paths, args: &Value) -> Result<Value> {
 }
 
 pub(super) fn ejecutar_escribir_archivo(paths: &Paths, args: &Value) -> Result<Value> {
-    crate::workspace::escribir_archivo(paths, args)
+    crate::workspace::escribir_archivo(paths, args, crate::meteo_mef::validar_mef)
 }
 
 /// Declared `leer` keys the chosen branch does not read, so the answer names them

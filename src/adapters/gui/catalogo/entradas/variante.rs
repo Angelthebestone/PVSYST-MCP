@@ -2,7 +2,7 @@
 //! simulation variant. They need a project open (`proyecto.cargar`, or a
 //! recent project through `gui_actuar accion:menu`).
 
-use crate::gui_catalogo::dominio::{Efecto, Funcion};
+use crate::adapters::gui::catalogo::dominio::{Efecto, Funcion};
 
 const PROYECTO: &str = "TProjectForm";
 

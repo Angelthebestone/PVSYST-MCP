@@ -58,7 +58,7 @@ pub(crate) fn read(uri: &str, aproximaciones: bool, idioma: Idioma) -> Result<Va
         "pvsyst://cli" => ("text/markdown", CLI.to_string()),
         "pvsyst://gui" => (
             "application/json",
-            crate::gui_catalogo::como_recurso().to_string(),
+            crate::adapters::gui::catalogo::como_recurso().to_string(),
         ),
         _ => {
             return Err(Error::NotFound(

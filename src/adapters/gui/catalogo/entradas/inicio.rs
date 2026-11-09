@@ -5,7 +5,7 @@
 //! and projects, which follow the user's history) are reachable with
 //! `gui_actuar accion:menu`.
 
-use crate::gui_catalogo::dominio::{Efecto, Funcion, VENTANA_INICIO};
+use crate::adapters::gui::catalogo::dominio::{Efecto, Funcion, VENTANA_INICIO};
 
 const DISENO: &str = "TDimensForm";
 const PROYECTO: &str = "TProjectForm";
