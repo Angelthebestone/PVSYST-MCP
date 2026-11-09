@@ -22,6 +22,9 @@ mod ejecucion;
 #[path = "cli_fake/encadenado.rs"]
 mod encadenado;
 
+#[path = "cli_fake/entrada.rs"]
+mod entrada;
+
 #[path = "cli_fake/resultados.rs"]
 mod resultados;
 
