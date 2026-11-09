@@ -141,7 +141,7 @@ fn texto_sin_entidad(clases: &[String]) -> String {
         return "ninguna ventana de PVsyst abierta; esquemas con gui_observar que:esquema".into();
     }
     format!(
-        "{} no tiene esquema de campos; lo abierto se lee con gui_observar que:controles, y los esquemas existentes se listan con que:esquema",
+        "ninguna de las ventanas abiertas ({}) tiene esquema de campos; se leen con gui_observar que:controles, y los esquemas existentes se listan con que:esquema",
         clases.join(", ")
     )
 }
