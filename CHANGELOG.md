@@ -100,6 +100,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   huge or non-finite `VAbsMax`): the series search stops at 1000 modules and a non-finite voltage finds no layout.
 - **`http_get` (PVGIS, uncertainty lookups) refuses a body over 64 MiB** and stops reading it instead of buffering whatever the server sends.
 - A `tools/call` that arrives as a notification and fails is logged; a failed rollback of `disenar_sistema` is logged instead of ignored.
+- **GUI tools, QA round of 2026-11-08** (GUI-01..15, BUG-03/05/16/17/23/24):
+  `escribir`/`seleccionar` read `campo{x,y}` in the coordinates `vista` publishes (from the window corner, not the client area), so a
+  key like `edit_75_121` hits the field it names; `uia_invocar` waits at most 10 s for a pattern call and answers `retorno:false` instead of
+  blocking the server when PVsyst opens a modal; `esperar_cierre` with `cerrado:false` and a `clic_texto` without OCR match are `parcial`;
+  `click` refuses `texto`/`id` and disabled controls, resolves a whole title or class before a part of one, and `cerrar` names the
+  confirmation it left open; `clic_fisico` honours `objetivo:{x,y}` (a screen point on the window); `leer` returns the value of an edit;
+  `teclas` refuses to send when no control of the window holds the focus; `escena_importar` resolves a relative mesh in the workspace; the
+  modal error names the dialog, not the UAC overlay; `menus` lists the bar without the system menu and names catalogued entries;
+  `controles` `count` is the number returned; `vista` names the open windows that have no schema; `lanzar proyecto` loads the project
+  through PVsyst's own window (PVsyst 8.1.8 ignores a project on its command line); `proyecto p50_p90` and `dimensionar` wait for
+  PVsyst to finish writing the variant instead of reading it half written.
 
 - QA of the MCP (`docs/INFORME_PRUEBAS_MCP_2026-11-07.md`), each bug reproduced first:
   - `resultados perdidas/mensual/entregable` take the array kWp from the report's own `Pnom total` (else from the produced energy and

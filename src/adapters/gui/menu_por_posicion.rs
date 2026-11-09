@@ -6,15 +6,16 @@
 //! opened, and that takes the keyboard: VCL ignores posted `WM_KEY*` messages
 //! on the private desktop.
 
+mod listado;
 mod submenu;
 
+pub(crate) use listado::listar;
 pub(crate) use submenu::id_en_submenu;
 
 use super::escritorio;
 use super::ffi::{self, Hwnd, ItemMenu, TipoItem};
 use super::ventanas::{class_of, enum_windows_de, pid_of, visible};
 use crate::error::{Error, Result};
-use serde_json::{json, Value};
 use std::time::{Duration, Instant};
 
 const CLASE_POPUP: &str = "#32768";
@@ -223,15 +224,6 @@ fn id_de_comando(item: &ItemMenu, donde: &str) -> Result<u16> {
     }
 }
 
-fn item_json(posicion: usize, item: &ItemMenu) -> Value {
-    let (tipo, id) = match item.tipo {
-        TipoItem::Comando(id) => ("comando", Some(id)),
-        TipoItem::Separador => ("separador", None),
-        TipoItem::Submenu => ("submenu", None),
-    };
-    json!({ "posicion": posicion, "tipo": tipo, "id": id, "deshabilitado": item.deshabilitado })
-}
-
 fn es_menu_de_sistema(items: &[ItemMenu]) -> bool {
     matches!(items.first(), Some(ItemMenu { tipo: TipoItem::Comando(id), .. }) if *id >= PRIMER_ID_DE_SISTEMA)
 }
@@ -263,32 +255,4 @@ pub(crate) fn contar_menus(ventana: Hwnd) -> Result<usize> {
         Fin::Fallo(motivo) => Err(Error::Gui(format!("No se pudo contar los menús: {motivo}"))),
         Fin::Limite => Err(Error::Gui(format!("Más de {MAX_MENUS} menús"))),
     }
-}
-
-/// Every top-level menu of `ventana` with its entries, up to the point the
-/// scan wraps around to the first one. Submenus are listed but not entered.
-pub(crate) fn listar(ventana: Hwnd) -> Result<Value> {
-    let (menus, fin) = leer_barra(ventana)?;
-    let listado: Vec<Value> = menus
-        .iter()
-        .enumerate()
-        .map(|(i, items)| {
-            json!({
-                "menu": i,
-                "sistema": es_menu_de_sistema(items),
-                "items": items.iter().enumerate().map(|(p, it)| item_json(p, it)).collect::<Vec<_>>(),
-            })
-        })
-        .collect();
-    let (completo, error) = match fin {
-        Fin::Sistema => (true, None),
-        Fin::Fallo(motivo) => (false, Some(motivo)),
-        Fin::Limite => (false, Some(format!("más de {MAX_MENUS} menús"))),
-    };
-    Ok(json!({
-        "ventana": format!("0x{ventana:X}"),
-        "menus": listado,
-        "completo": completo,
-        "error": error,
-    }))
 }

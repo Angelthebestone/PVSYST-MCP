@@ -2,6 +2,7 @@
 
 use super::ffi::{self, enum_children, enum_windows, pids_de_ejecutable, Hwnd, Rect};
 use super::modal;
+pub(crate) use super::resolucion::resolve;
 use crate::args::{flag, req_str};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
@@ -159,54 +160,6 @@ pub(crate) fn hwnd_de(args: &Value, campo: &str) -> Result<Hwnd> {
         .ok_or_else(|| Error::NotFound(format!("Window '{reference}' not found")))
 }
 
-fn matches(win: &Value, needle: &str) -> bool {
-    let n = needle.to_lowercase();
-    win["title"]
-        .as_str()
-        .unwrap_or("")
-        .to_lowercase()
-        .contains(&n)
-        || win["class"]
-            .as_str()
-            .unwrap_or("")
-            .to_lowercase()
-            .contains(&n)
-}
-
-/// Resolve a window reference: `0xHEX`, else class/title substring among the
-/// target process' top windows, then among all controls.
-pub(crate) fn resolve(haystack: &[Hwnd], reference: &str) -> Option<Hwnd> {
-    let hex_val = reference
-        .strip_prefix("0x")
-        .or_else(|| reference.strip_prefix("0X"))
-        .and_then(|hex| isize::from_str_radix(hex, 16).ok());
-    if let Some(v) = hex_val {
-        if ffi::es_ventana(v) {
-            return Some(v);
-        }
-    }
-    let mut fallback: Option<Hwnd> = None;
-    for &h in haystack {
-        if !matches(&window_json(h), reference) {
-            continue;
-        }
-        if visible(h) {
-            return Some(h);
-        }
-        fallback.get_or_insert(h);
-    }
-    for c in haystack.iter().flat_map(|&h| enum_children(h)) {
-        if !matches(&window_json(c), reference) {
-            continue;
-        }
-        if visible(c) {
-            return Some(c);
-        }
-        fallback.get_or_insert(c);
-    }
-    fallback
-}
-
 /// Lists the top-level windows of the PVsyst process.
 pub(crate) fn ventanas(args: &Value) -> Result<Value> {
     let pids = target_pids(args)?;
@@ -272,9 +225,11 @@ pub(crate) fn controles(args: &Value) -> Result<Value> {
 
 pub(crate) fn leer(args: &Value) -> Result<Value> {
     let h = hwnd_de(args, "ventana")?;
+    // `GetWindowText` answers a control of another process with its name
+    // («CommentEdit»); `WM_GETTEXT` returns what the control shows (GUI-10).
     Ok(json!({
         "hwnd": format!("0x{:X}", h),
         "class": class_of(h),
-        "text": text_of(h),
+        "text": ffi::texto_control(h),
     }))
 }

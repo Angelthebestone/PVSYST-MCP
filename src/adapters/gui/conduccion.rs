@@ -3,10 +3,11 @@
 //! the message boxes PVsyst raises. Everything the form computes and saves is
 //! done by PVsyst itself.
 //!
-//! Positions are client coordinates measured at 96 DPI on PVsyst 8.1.7 and are
-//! scaled to the window's DPI.
+//! Positions are px at 96 DPI from the corner of the window rectangle, the same
+//! ones `gui_observar que:vista` publishes (see [`super::posicion`]).
 
 use super::ffi::{self, Hwnd};
+use super::posicion;
 use super::sondeo::{esperar_mientras, sondear_hasta};
 use super::ventanas::{class_of, enum_windows_de, pid_of, rect_of, text_of, visible};
 use crate::error::{Error, Result};
@@ -15,8 +16,6 @@ use std::time::Duration;
 const SONDEO: Duration = Duration::from_millis(200);
 /// Lets the VCL form react (recalculate, open the next form) after an input.
 const PAUSA_ACCION: Duration = Duration::from_millis(400);
-/// How far (px at 96 DPI) a measured position may be from a control's edge.
-const TOLERANCIA_PX: i32 = 6;
 /// Default time a form gets to appear.
 pub(crate) const ESPERA_FORMULARIO: Duration = Duration::from_secs(15);
 
@@ -127,26 +126,27 @@ impl Formulario {
         Ok(())
     }
 
-    /// The control of `campo.clase` at the measured position.
+    /// The control of `campo.clase` at the position `vista` publishes: px at 96
+    /// DPI from the corner of the window rectangle, not of its client area.
     pub(crate) fn control(&self, campo: Campo) -> Result<Hwnd> {
-        let (ox, oy) = ffi::origen_cliente(self.h);
-        let (x, y) = (ox + self.escalar(campo.x), oy + self.escalar(campo.y));
-        let tol = self.escalar(TOLERANCIA_PX);
-        self.hijos_visibles()
+        let candidatos = self
+            .hijos_visibles()
             .filter(|c| class_of(*c) == campo.clase)
-            .find(|c| {
-                let r = rect_of(*c);
-                r.left - tol <= x && x <= r.right + tol && r.top - tol <= y && y <= r.bottom + tol
-            })
-            .ok_or_else(|| {
-                Error::Gui(format!(
-                    "No {} at ({}, {}) of '{}': did the PVsyst version change?",
-                    campo.clase,
-                    campo.x,
-                    campo.y,
-                    self.titulo()
-                ))
-            })
+            .map(|c| (c, rect_of(c)));
+        posicion::control_en(
+            (rect_of(self.h), ffi::escala_de_captura(self.h)),
+            (campo.x, campo.y),
+            candidatos,
+        )
+        .ok_or_else(|| {
+            Error::Gui(format!(
+                "No {} at ({}, {}) of '{}': did the PVsyst version change?",
+                campo.clase,
+                campo.x,
+                campo.y,
+                self.titulo()
+            ))
+        })
     }
 
     /// Clicks control `c` of this form with the mouse (check boxes and options).

@@ -49,6 +49,7 @@ pub(crate) struct RotulosP50 {
     pub(crate) gestion_energia: &'static str,
     pub(crate) formulario_energia: &'static str,
     pub(crate) pestana: &'static str,
+    pub(crate) activo: &'static str,
     pub(crate) ok: &'static str,
 }
 
@@ -58,6 +59,7 @@ pub(crate) const fn rotulos_p50(idioma: Idioma) -> RotulosP50 {
             gestion_energia: "Gestión de la energía",
             formulario_energia: "TSystemeAddForm",
             pestana: "Estimación P50 - P90",
+            activo: "Activo",
             ok: "OK",
         },
     }

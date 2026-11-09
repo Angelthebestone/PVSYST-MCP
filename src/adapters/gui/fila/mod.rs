@@ -11,8 +11,9 @@ mod error;
 mod geometria;
 mod registro;
 
-use super::acciones::{clic_fisico_en_control, exigir_escritorio};
+use super::acciones::exigir_escritorio;
 use super::captura::{rgb_de_control, ImagenRgb};
+use super::clic_fisico::{clic_fisico_en_control, PuntoPedido};
 use super::conduccion::formularios;
 use super::escritorio;
 use super::ffi::{self, Hwnd, GA_ROOT};
@@ -208,7 +209,7 @@ pub(crate) fn fila(args: &Value) -> Result<Value> {
         .map_err(ErrorFila::a_error)?;
     let ventanas_antes = ventanas_del_proceso(h);
     exigir_foco(h)?;
-    clic_fisico_en_control(h, Some((x, dy)))?;
+    clic_fisico_en_control(h, PuntoPedido::EnControl(x, dy))?;
     std::thread::sleep(REPINTADO);
     let pedido = Pedido { h, geom, indice };
     exigir_sin_activacion(&pedido, &ventanas_antes)?;

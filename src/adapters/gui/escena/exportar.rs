@@ -53,7 +53,9 @@ pub(super) fn guardar_temporal(paths: &Paths, nombre: &str) -> Result<PathBuf> {
         // Description above, file name below.
         let campo_nombre = hijo_n(dialogo.h, "TEdit", 1)?;
         ffi::traer_al_frente(dialogo.h);
-        ffi::teclear_en(campo_nombre, &nombre_de(&ruta))?;
+        let nombre = nombre_de(&ruta);
+        ffi::teclear_en(campo_nombre, &nombre)?;
+        exigir_nombre_escrito(&nombre, &ffi::texto_control(campo_nombre))?;
         dialogo.pulsar("Guardar")
     })?;
     let cerrado = esperar_cierre(dialogo.h, ESPERA_GUARDADO);
@@ -67,6 +69,17 @@ pub(super) fn guardar_temporal(paths: &Paths, nombre: &str) -> Result<PathBuf> {
         )));
     }
     Ok(ruta)
+}
+
+/// «Guardar» with a name that did not reach the field saves under another one (or not
+/// at all) and PVsyst says nothing: the field is read back first (GUI-03).
+fn exigir_nombre_escrito(esperado: &str, leido: &str) -> Result<()> {
+    if leido == esperado {
+        return Ok(());
+    }
+    Err(Error::Gui(format!(
+        "The file name did not reach the save dialog: it holds '{leido}', not '{esperado}'. PVsyst probably does not have the foreground; bring it to the front with gui_actuar accion:activar and retry"
+    )))
 }
 
 /// Moves the temporary export over the requested name, replacing a previous

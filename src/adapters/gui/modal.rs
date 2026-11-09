@@ -2,11 +2,15 @@
 //! input sent to a disabled window without reporting anything, so an action on
 //! such a window looks successful and does nothing. Actions refuse those targets.
 
+use super::acciones::CLASE_EXCEPCION;
 use super::conduccion::formularios;
 use super::ffi::{self, Hwnd, GA_ROOT};
 use super::ventanas::{class_of, enum_windows_de, pid_of, visible};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
+
+/// Class of the standard Windows dialogs (file open/save).
+const CLASE_DIALOGO_WINDOWS: &str = "#32770";
 
 /// Hint completing "…before" for actions that click or type into a window.
 pub(crate) const PARA_ACTUAR: &str = "acting on it";
@@ -15,6 +19,14 @@ pub(crate) const PARA_ACTUAR: &str = "acting on it";
 /// does not list it, so the blocker is looked for among the children first.
 fn es_modal_hijo(clase: &str, estado: ffi::EstadoVentana) -> bool {
     estado.visible && estado.habilitada && clase.ends_with("Form")
+}
+
+/// Whether a top-level window of this class can be a dialog that blocks a form:
+/// a VCL form, the madExcept crash box or a standard Windows dialog. The overlays
+/// Windows adds to the process (`UAC_InputIndicatorOverlayWnd`) are enabled and
+/// visible but block nothing (GUI-13).
+fn puede_bloquear(clase: &str) -> bool {
+    clase.ends_with("Form") || clase == CLASE_EXCEPCION || clase == CLASE_DIALOGO_WINDOWS
 }
 
 /// The dialog blocking `raiz`: an enabled child form when the modal is embedded,
@@ -27,9 +39,9 @@ pub(crate) fn bloqueante_de(raiz: Hwnd) -> Option<Hwnd> {
         .into_iter()
         .find(|c| es_modal_hijo(&class_of(*c), ffi::estado_ventana(*c)));
     hijo.or_else(|| {
-        formularios(pid_of(raiz))
-            .into_iter()
-            .find(|h| *h != raiz && ffi::estado_ventana(*h).habilitada)
+        formularios(pid_of(raiz)).into_iter().find(|h| {
+            *h != raiz && ffi::estado_ventana(*h).habilitada && puede_bloquear(&class_of(*h))
+        })
     })
 }
 

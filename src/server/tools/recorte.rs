@@ -1,7 +1,7 @@
 //! Result trimming by detail level and next-step recommendations for callers.
 
 use crate::vista_agente::contrato::catalogo;
-use serde_json::Value;
+use serde_json::{Map, Value};
 
 /// Accepted detail levels; `resumen` is the default.
 pub(crate) const DETALLES: &[&str] = &["resumen", "normal", "completo"];
@@ -59,6 +59,7 @@ pub(crate) fn recortar(v: &mut Value, lim: (usize, usize)) -> bool {
                 recortado |= recortar_campo_objeto(k, hijo, &mut ctx);
             }
             recortado |= !totales.is_empty();
+            ajustar_count(mapa, &totales, max_arr);
             // A `<clave>_total` the answer already carries is the domain's count: keep it.
             for (k, total) in totales {
                 mapa.entry(k).or_insert(Value::from(total));
@@ -81,6 +82,17 @@ pub(crate) fn recortar(v: &mut Value, lim: (usize, usize)) -> bool {
 /// Suggested next step after a successful call, as a short hint for the caller.
 pub(crate) fn siguiente(tool: &str, valor: &str) -> Option<&'static str> {
     catalogo::buscar(tool, valor)?.pista
+}
+
+/// A `count` that counted the list now cut says how many are left, not how many there were.
+fn ajustar_count(mapa: &mut Map<String, Value>, totales: &[(String, usize)], max_arr: usize) {
+    let contado = mapa.get("count").and_then(Value::as_u64);
+    if totales
+        .iter()
+        .any(|(_, t)| u64::try_from(*t).ok() == contado)
+    {
+        mapa.insert("count".into(), Value::from(max_arr));
+    }
 }
 
 struct ContextoRecorte<'a> {

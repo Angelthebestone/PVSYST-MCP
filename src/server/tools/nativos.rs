@@ -4,6 +4,7 @@ use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, Sino
 use crate::adapters::{cli, gui};
 use crate::config::Paths;
 use crate::error::Result;
+use crate::projects::gui::lanzar;
 use serde_json::Value;
 
 pub(crate) const TOOL_PVSYST_CLI: Herramienta = Herramienta {
@@ -245,5 +246,9 @@ fn ejecutar_observar(paths: &Paths, args: &Value) -> Result<Value> {
 }
 
 fn ejecutar_actuar(paths: &Paths, args: &Value) -> Result<Value> {
+    // PVsyst ignores a project on its command line: opening it is a project step.
+    if lanzar::pide_proyecto(args) {
+        return lanzar::lanzar_con_proyecto(paths, args);
+    }
     gui::actuar(paths, args)
 }

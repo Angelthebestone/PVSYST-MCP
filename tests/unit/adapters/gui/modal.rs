@@ -1,8 +1,17 @@
 //! The listing side of the modal rule: the blocking modal must be in the answer
 //! even when it is a child window the enumeration does not return.
 
-use super::agregar_modal;
+use super::{agregar_modal, puede_bloquear};
 use serde_json::json;
+
+/// GUI-13: the error named the UAC overlay instead of the dialog on top.
+#[test]
+fn should_not_take_a_windows_overlay_for_the_dialog_that_blocks() {
+    assert!(!puede_bloquear("UAC_InputIndicatorOverlayWnd"));
+    for dialogo in ["TToolsForm", "TMessageForm", "madExceptWndClass", "#32770"] {
+        assert!(puede_bloquear(dialogo), "{dialogo}");
+    }
+}
 
 #[test]
 fn should_list_the_blocking_modal_when_the_enumeration_missed_it() {

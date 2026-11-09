@@ -1,17 +1,14 @@
 //! Window actions: clicks, messages, physical inputs and desktop interactivity.
 
 use super::cierre;
-use super::conduccion::esperar_cierre;
+use super::clic_fisico::{clic_fisico_en_control, desplazamiento, punto_pedido};
 use super::ffi::{self, Hwnd, BM_CLICK, GA_ROOT, SW_RESTORE, WM_CLOSE};
 use super::modal;
 use super::rotulos::{rotulos_acciones, Idioma, RotulosAcciones};
-use super::ventanas::{
-    class_of, pid_of, rect_of, resolve, text_of, ventanas_de, visible, window_json,
-};
-use crate::args::{opt_i32, opt_u32, req_str};
+use super::ventanas::{class_of, pid_of, resolve, text_of, ventanas_de, visible, window_json};
+use crate::args::{opt_u32, req_str};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
-use std::time::Duration;
 
 /// Window classes (Win32 and VCL) that implement `BM_CLICK`.
 const CLASES_BOTON: &[&str] = &["Button", "TButton", "TBitBtn", "TCheckBox", "TRadioButton"];
@@ -22,8 +19,6 @@ const ROTULOS: RotulosAcciones = rotulos_acciones(Idioma::Es);
 pub(crate) const CLASE_MENSAJE: &str = "TMessageForm";
 /// Class of the madExcept crash dialog.
 pub(crate) const CLASE_EXCEPCION: &str = "madExceptWndClass";
-/// Longest wait for a form to disappear after asking it to close.
-const ESPERA_CIERRE: Duration = Duration::from_secs(2);
 
 /// How a control is clicked through messages. Exactly one mechanism is used:
 /// a button handles both `BM_CLICK` and mouse messages, so sending both would
@@ -122,37 +117,6 @@ pub(crate) fn cerrar_ventana(h: Hwnd, args: &Value) -> Result<()> {
     Ok(())
 }
 
-/// `dx`/`dy` of the request: a point of the control in px at 96 DPI from its
-/// top-left corner. Both or neither: half a point has no meaning.
-fn desplazamiento(args: &Value) -> Result<Option<(i32, i32)>> {
-    match (opt_i32(args, "dx")?, opt_i32(args, "dy")?) {
-        (Some(dx), Some(dy)) => Ok(Some((dx, dy))),
-        (None, None) => Ok(None),
-        _ => Err(Error::Invalid(
-            "'dx' and 'dy' go together (integers, px at 96 DPI from the control corner)".into(),
-        )),
-    }
-}
-
-pub(crate) fn clic_fisico_en_control(h: Hwnd, desplazamiento: Option<(i32, i32)>) -> Result<()> {
-    let r = rect_of(h);
-    if r.right <= r.left {
-        return Err(Error::Gui(format!("Control 0x{h:X} has no rectangle")));
-    }
-    let (x, y) = match desplazamiento {
-        Some((dx, dy)) => {
-            let dpi = ffi::dpi_de(h);
-            (
-                r.left + ffi::escalar_a_dpi(dx, dpi),
-                r.top + ffi::escalar_a_dpi(dy, dpi),
-            )
-        }
-        None => ((r.left + r.right) / 2, (r.top + r.bottom) / 2),
-    };
-    ffi::clic_fisico_en(x, y);
-    Ok(())
-}
-
 fn ejecutar_accion(h: Hwnd, action: &str, args: &Value) -> Result<()> {
     match action {
         "click" => match desplazamiento(args)? {
@@ -166,7 +130,7 @@ fn ejecutar_accion(h: Hwnd, action: &str, args: &Value) -> Result<()> {
             ffi::traer_al_frente(h);
         }
         "mensaje" => enviar_mensaje(h, args)?,
-        "clic_fisico" => clic_fisico_en_control(h, desplazamiento(args)?)?,
+        "clic_fisico" => clic_fisico_en_control(h, punto_pedido(args)?)?,
         other => {
             return Err(Error::Invalid(format!(
                 "Unknown accion '{other}' (click|clic_fisico|cerrar|activar|mensaje)"
@@ -188,7 +152,31 @@ pub(crate) fn exigir_escritorio() -> Result<()> {
     }
 }
 
+/// `texto` and `id` name no control for these actions: they are for `clic_texto`
+/// and `menu`. Accepting them silently clicked the window instead (GUI-06).
+fn exigir_sin_texto_ni_id(args: &Value) -> Result<()> {
+    for clave in ["texto", "id"] {
+        if args.get(clave).is_some() {
+            return Err(Error::Invalid(format!(
+                "'{clave}' no selecciona el control en click/clic_fisico/cerrar/activar/mensaje: nómbralo con 'ventana' (hwnd, clase o título) o pulsa texto visible con accion:clic_texto"
+            )));
+        }
+    }
+    Ok(())
+}
+
+/// A disabled control swallows the click without a trace (GUI-07).
+fn exigir_control_habilitado(habilitada: bool, clase: &str, texto: &str) -> Result<()> {
+    if habilitada {
+        return Ok(());
+    }
+    Err(Error::Gui(format!(
+        "El control {clase} '{texto}' está deshabilitado: el clic no haría nada. Habilita lo que lo condiciona (gui_observar que:vista) y repite"
+    )))
+}
+
 pub(crate) fn invocar(args: &Value) -> Result<Value> {
+    exigir_sin_texto_ni_id(args)?;
     let scoped = ventanas_de(args)?;
     let reference = req_str(
         args,
@@ -203,6 +191,9 @@ pub(crate) fn invocar(args: &Value) -> Result<Value> {
     if !matches!(action, "activar" | "mensaje") {
         modal::exigir_habilitada(h, modal::PARA_ACTUAR)?;
     }
+    if matches!(action, "click" | "clic_fisico") {
+        exigir_control_habilitado(ffi::estado_ventana(h).habilitada, &class_of(h), &text_of(h))?;
+    }
     let cerrar = action == "cerrar";
     // The pid must be read while the window still exists: a destroyed HWND
     // reports pid 0 and the re-observation would see nothing.
@@ -213,7 +204,7 @@ pub(crate) fn invocar(args: &Value) -> Result<Value> {
 
     let mut reabiertas = Vec::new();
     if cerrar {
-        exigir_cerrada(h)?;
+        cierre::exigir_cerrada(h)?;
         std::thread::sleep(cierre::ESPERA_REAPARICION);
         if let (Some(antes), Some(pid)) = (antes, pid) {
             reabiertas = cierre::reabiertas(&antes, &cierre::instantanea(pid), h);
@@ -244,14 +235,6 @@ fn no_encontrado(referencia: &str, accion: &str) -> Error {
     Error::Gui(format!("Control '{referencia}' not found"))
 }
 
-/// A close that left the window open (it asked for a confirmation, or a modal
-/// intercepted it) is a failure the caller must see.
-fn exigir_cerrada(h: Hwnd) -> Result<()> {
-    if esperar_cierre(h, ESPERA_CIERRE) {
-        return Ok(());
-    }
-    Err(Error::Gui(format!(
-        "{} is still open after asking it to close: it may have opened a confirmation (gui_observar que:ventanas)",
-        class_of(h)
-    )))
-}
+#[cfg(test)]
+#[path = "../../../tests/unit/adapters/gui/acciones.rs"]
+mod tests;

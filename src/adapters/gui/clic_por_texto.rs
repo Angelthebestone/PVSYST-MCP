@@ -46,8 +46,27 @@ pub(crate) fn clic_texto(args: &Value) -> Result<Value> {
     if let (Some(aviso), Some(obj)) = (aviso, resultado.as_object_mut()) {
         obj.insert("advertencias".into(), json!([aviso]));
     }
+    marcar_sin_ocr(&mut resultado, texto, coincidencias);
     Ok(resultado)
 }
+
+/// A click without an OCR match went to the UIA element of that name: it
+/// happened, but nothing confirms it hit the text the caller read, so the answer
+/// carries `error` and `vista` reports it as partial instead of "ok" (BUG-03).
+fn marcar_sin_ocr(resultado: &mut Value, texto: &str, coincidencias: usize) {
+    if let (0, Some(obj)) = (coincidencias, resultado.as_object_mut()) {
+        obj.insert(
+            "error".into(),
+            json!(format!(
+                "El OCR no encontró '{texto}' (coincidencias:0): se pulsó el elemento UIA de ese nombre; comprueba el efecto con gui_observar que:ventanas"
+            )),
+        );
+    }
+}
+
+#[cfg(test)]
+#[path = "../../../tests/unit/adapters/gui/clic_por_texto.rs"]
+mod tests;
 
 /// Screen point to click for `texto`: the OCR box chosen by `indice`, or, when
 /// OCR does not draw the text (VCL buttons sometimes lack pixels), the centre
@@ -60,10 +79,18 @@ fn punto_de_clic(h: Hwnd, texto: &str, indice: Option<usize>) -> Result<((i32, i
             ((caja.left + caja.right) / 2, (caja.top + caja.bottom) / 2),
             cajas.len(),
         )),
-        Err(ocr) => crate::adapters::uia::centro(h, Some(texto), None)
+        Err(ocr) if recurre_a_uia(&ocr) => crate::adapters::uia::centro(h, Some(texto), None)
             .map(|punto| (punto, cajas.len()))
             .map_err(|_| ocr),
+        Err(ocr) => Err(ocr),
     }
+}
+
+/// UIA stands in only when OCR drew no match at all. A match refused for its
+/// `indice` (out of range) or for being ambiguous is the caller's mistake: a UIA
+/// click there would press something the caller did not choose (GUI-09).
+fn recurre_a_uia(ocr: &Error) -> bool {
+    matches!(ocr, Error::NotFound(_))
 }
 
 /// Tab selected in `control` when it is a page control, which a click may switch.

@@ -20,6 +20,28 @@ fn should_treat_an_already_closed_window_as_a_trivial_success() {
         .contains("already closed"));
 }
 
+/// BUG-03: `cerrado:false` used to carry `vista.estado:"ok"` and the summary
+/// "Cierre de la ventana esperado".
+#[test]
+fn should_report_a_wait_that_timed_out_as_partial() {
+    use crate::vista_agente::contrato::{construir, Contexto};
+
+    let salida = respuesta_de_espera(0, false, 2000);
+    let args = json!({});
+    let vista = construir(
+        &Contexto {
+            tool: "gui_actuar",
+            accion: "esperar_cierre",
+            args: &args,
+        },
+        &salida,
+    );
+
+    let error = vista.error.expect("a window left open is not a plain ok");
+    assert_eq!(error.codigo, "fallo_parcial");
+    assert!(error.motivo.contains("sigue abierta"), "{}", error.motivo);
+}
+
 #[test]
 fn should_not_mask_an_error_that_is_not_a_missing_window() {
     let args = json!({"ventana": "x", "proceso": "PVsyst.exe"});

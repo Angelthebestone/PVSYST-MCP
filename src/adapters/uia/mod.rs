@@ -5,6 +5,7 @@
 pub(crate) mod arbol;
 pub(crate) mod com;
 pub(crate) mod elemento;
+pub(crate) mod limite;
 
 pub(crate) use arbol::{arbol, invalidar as invalidar_cache};
 pub(crate) use elemento::{centro, invocar, posicion_pestana};

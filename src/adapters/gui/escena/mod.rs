@@ -113,11 +113,14 @@ fn exportar_y_leer(paths: &Paths, nombre: &str) -> Result<(Value, std::path::Pat
 /// «Cancelar» once PVsyst has read the file. PVsyst converts the mesh: the MCP never does.
 pub(crate) fn importar(paths: &Paths, args: &Value) -> Result<Value> {
     exigir_escritorio()?;
-    let ruta = importar::malla_valida(req_str(
-        args,
-        &["archivo"],
-        "ruta de la malla (3DS, DAE, PVC, PVC2, PVZ2), fuera de Program Files",
-    )?)?;
+    let ruta = importar::malla_valida(
+        &paths.workspace,
+        req_str(
+            args,
+            &["archivo"],
+            "ruta de la malla (3DS, DAE, PVC, PVC2, PVZ2), fuera de Program Files",
+        )?,
+    )?;
     let nombre = nombre_valido(req_str(
         args,
         &["escena"],
