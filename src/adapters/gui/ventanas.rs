@@ -159,22 +159,61 @@ pub(crate) fn hwnd_de(args: &Value, campo: &str) -> Result<Hwnd> {
         .ok_or_else(|| Error::NotFound(format!("Window '{reference}' not found")))
 }
 
-fn matches(win: &Value, needle: &str) -> bool {
-    let n = needle.to_lowercase();
-    win["title"]
-        .as_str()
-        .unwrap_or("")
-        .to_lowercase()
-        .contains(&n)
-        || win["class"]
-            .as_str()
-            .unwrap_or("")
-            .to_lowercase()
-            .contains(&n)
+/// A window or control a reference may name.
+pub(crate) struct Candidato {
+    h: Hwnd,
+    titulo: String,
+    clase: String,
+    visible: bool,
+    es_hijo: bool,
 }
 
-/// Resolve a window reference: `0xHEX`, else class/title substring among the
-/// target process' top windows, then among all controls.
+impl Candidato {
+    fn de(h: Hwnd, es_hijo: bool) -> Self {
+        Self {
+            h,
+            titulo: text_of(h),
+            clase: class_of(h),
+            visible: visible(h),
+            es_hijo,
+        }
+    }
+
+    fn coincide(&self, referencia: &str, exacta: bool) -> bool {
+        let nombres = [self.titulo.to_lowercase(), self.clase.to_lowercase()];
+        nombres.iter().any(|n| {
+            if exacta {
+                n == referencia
+            } else {
+                n.contains(referencia)
+            }
+        })
+    }
+}
+
+/// The candidate a reference names. A whole title or class beats a part of one
+/// (the button «No» is not the form whose title says «cerca**no**s»), and a
+/// top-level window beats a control of the same quality; a visible one beats a
+/// hidden one only within the same quality, and a hidden one is the last resort.
+pub(crate) fn elegir(candidatos: &[Candidato], referencia: &str) -> Option<Hwnd> {
+    let referencia = referencia.to_lowercase();
+    let mut oculto: Option<Hwnd> = None;
+    for exacta in [true, false] {
+        for es_hijo in [false, true] {
+            let mut coinciden = candidatos
+                .iter()
+                .filter(|c| c.es_hijo == es_hijo && c.coincide(&referencia, exacta));
+            if let Some(visible) = coinciden.clone().find(|c| c.visible) {
+                return Some(visible.h);
+            }
+            oculto = oculto.or(coinciden.next().map(|c| c.h));
+        }
+    }
+    oculto
+}
+
+/// Resolve a window reference: `0xHEX`, else class/title among the target
+/// process' top windows and their controls (see [`elegir`]).
 pub(crate) fn resolve(haystack: &[Hwnd], reference: &str) -> Option<Hwnd> {
     let hex_val = reference
         .strip_prefix("0x")
@@ -185,26 +224,17 @@ pub(crate) fn resolve(haystack: &[Hwnd], reference: &str) -> Option<Hwnd> {
             return Some(v);
         }
     }
-    let mut fallback: Option<Hwnd> = None;
-    for &h in haystack {
-        if !matches(&window_json(h), reference) {
-            continue;
-        }
-        if visible(h) {
-            return Some(h);
-        }
-        fallback.get_or_insert(h);
-    }
-    for c in haystack.iter().flat_map(|&h| enum_children(h)) {
-        if !matches(&window_json(c), reference) {
-            continue;
-        }
-        if visible(c) {
-            return Some(c);
-        }
-        fallback.get_or_insert(c);
-    }
-    fallback
+    let candidatos: Vec<Candidato> = haystack
+        .iter()
+        .map(|&h| Candidato::de(h, false))
+        .chain(
+            haystack
+                .iter()
+                .flat_map(|&h| enum_children(h))
+                .map(|c| Candidato::de(c, true)),
+        )
+        .collect();
+    elegir(&candidatos, reference)
 }
 
 /// Lists the top-level windows of the PVsyst process.
@@ -272,9 +302,15 @@ pub(crate) fn controles(args: &Value) -> Result<Value> {
 
 pub(crate) fn leer(args: &Value) -> Result<Value> {
     let h = hwnd_de(args, "ventana")?;
+    // `GetWindowText` answers a control of another process with its name
+    // («CommentEdit»); `WM_GETTEXT` returns what the control shows (GUI-10).
     Ok(json!({
         "hwnd": format!("0x{:X}", h),
         "class": class_of(h),
-        "text": text_of(h),
+        "text": ffi::texto_control(h),
     }))
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/adapters/gui/ventanas.rs"]
+mod tests;
