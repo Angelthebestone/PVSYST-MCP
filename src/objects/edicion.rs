@@ -3,6 +3,7 @@
 use crate::args::{missing, req_str, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::format::accion::AccionCambio;
 use crate::format::edit;
 use crate::format::object;
 use crate::history;
@@ -87,6 +88,31 @@ fn verificar_legacy(
     Ok(verified)
 }
 
+/// A key the object does not have would be inserted as a new line, and the usual
+/// cause is a typo (`FieldTitl` for `FieldTilt`): refuse it unless the caller asks
+/// for a new field with `nuevo: true`.
+pub(crate) fn exigir_campos_existentes(
+    selector: &str,
+    outcomes: &[edit::ChangeOutcome],
+    args: &Value,
+) -> Result<()> {
+    if crate::args::flag(args, &["nuevo"]) {
+        return Ok(());
+    }
+    let nuevos: Vec<&str> = outcomes
+        .iter()
+        .filter(|o| o.action == AccionCambio::Inserted)
+        .map(|o| o.key.as_str())
+        .collect();
+    if nuevos.is_empty() {
+        return Ok(());
+    }
+    Err(Error::Invalid(format!(
+        "Campos que el objeto '{selector}' no tiene: {nuevos:?}. editar campos cambia valores existentes; \
+pasa nuevo:true para añadir un campo nuevo, o corrige la clave"
+    )))
+}
+
 fn comprobar_lectura(clave: &str, esperado: Option<&str>, leido: Option<&str>) -> Result<()> {
     let coincide = match esperado {
         None => leido.is_none(),
@@ -120,6 +146,7 @@ pub(crate) fn editar_objeto(paths: &Paths, args: &Value) -> Result<Value> {
         let selector = crate::args::opt_str(args, &["objeto"]).unwrap_or("pvModule");
         let (new_bytes, outcomes) =
             crate::components::pan::parchear_campos_legacy(&bytes, &changes)?;
+        exigir_campos_existentes(selector, &outcomes, args)?;
         let historial_id =
             history::snapshot(&workspace, std::slice::from_ref(&path), "editar_objeto")?;
         history::escribir_atomico(&path, &new_bytes)?;
@@ -136,6 +163,7 @@ pub(crate) fn editar_objeto(paths: &Paths, args: &Value) -> Result<Value> {
     let selector = req_str(args, &["objeto"], "e.g. \"pvSubArray\", \"role:SitePrj\"")?;
 
     let (new_bytes, outcomes) = edit::edit_fields(&bytes, selector, &changes)?;
+    exigir_campos_existentes(selector, &outcomes, args)?;
     let verified = verificar_span(&new_bytes, selector, &changes)?;
     let historial_id = history::snapshot(&workspace, std::slice::from_ref(&path), "editar_objeto")?;
     history::escribir_atomico(&path, &new_bytes)?;

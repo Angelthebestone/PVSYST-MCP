@@ -102,6 +102,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A `tools/call` that arrives as a notification and fails is logged; a failed rollback of `disenar_sistema` is logged instead of ignored.
 - **`escribir_archivo` no longer overwrites by default**: an existing file is replaced only with `sobrescribir: true`, so the
   argument means what it says; the refusal names the alternative and the history keeps the previous version.
+- **`editar campos` no longer invents fields**: a key the object does not have is refused (the usual cause is a typo) unless
+  the call asks for it with `nuevo: true`; the same policy applies to the `ediciones` form of a variant.
 
 ### Changed
 - The six `proyecto` actions that edit a variant (storage, pumping, injection limit, losses, economics, tracker) build their answer with one

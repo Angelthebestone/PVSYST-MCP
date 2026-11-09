@@ -32,3 +32,6 @@ mod exportar;
 
 #[path = "mcp_regresiones/escritura.rs"]
 mod escritura;
+
+#[path = "mcp_regresiones/edicion_campos.rs"]
+mod edicion_campos;

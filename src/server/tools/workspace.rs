@@ -170,6 +170,7 @@ pub(crate) const TOOL_EDITAR: Herramienta = Herramienta {
         ("padre", TipoDato::String),
         ("desde", TipoDato::Object),
         ("reemplazar", TipoDato::Boolean),
+        ("nuevo", TipoDato::Boolean),
         ("workspace", TipoDato::String),
         ("permitir_fuera_del_workspace", TipoDato::Boolean),
         ("operacion", TipoDato::String),
