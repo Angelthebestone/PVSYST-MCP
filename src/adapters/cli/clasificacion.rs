@@ -119,7 +119,7 @@ pub(crate) fn buscar_marcador_error(texto: &str) -> Option<String> {
         })
 }
 
-fn es_comando_informativo(command: &str) -> bool {
+pub(crate) fn es_comando_informativo(command: &str) -> bool {
     ["help", "version", "lic-info"]
         .iter()
         .any(|c| command.eq_ignore_ascii_case(c))

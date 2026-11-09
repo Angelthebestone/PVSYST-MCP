@@ -38,6 +38,9 @@ fn main() -> ExitCode {
     if command == "run-simulation" && env::var("FAKE_PVSYST_PROGRESO").as_deref() == Ok("1") {
         emitir_progreso();
     }
+    if emitir_caida() {
+        return ExitCode::SUCCESS;
+    }
     if let Some(mensaje) = error_de_carpeta_destino(command, &args) {
         println!("{mensaje}");
         return ExitCode::SUCCESS;
@@ -150,6 +153,35 @@ fn error_de_carpeta_destino(command: &str, args: &[String]) -> Option<String> {
     (!Path::new(destino).is_dir())
         .then(|| format!("{destino} does not exist. Please set another target folder."))
 }
+/// A run whose worker thread died: the real CLI printed only the license banner and
+/// exited 0, and left the exception in its Admin log (measured in 8.1.8).
+fn emitir_caida() -> bool {
+    if env::var("FAKE_PVSYST_CRASH").as_deref() != Ok("1") {
+        return false;
+    }
+    println!("Checking license...");
+    if let Some(local) = env::var_os("LOCALAPPDATA") {
+        let admin = Path::new(&local)
+            .join("PVsystCLI")
+            .join("8.1")
+            .join("Admin");
+        if fs::create_dir_all(&admin).is_ok() {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            let _ = fs::write(
+                admin.join(format!("{now}Err.log")),
+                concat!(
+                    "01:58:59|Err |EPrivilege      |run-simulation      |Instruction privilégiée\n",
+                    "        |    |                |                    |1.110 sec;\n",
+                ),
+            );
+        }
+    }
+    true
+}
+
 /// Opciones que el CLI real rechaza con `Error: Invalid command syntax` y salida 0.
 fn emitir_error_de_opciones(dir: &Path, args: &[String]) -> bool {
     let fixture = if args.iter().any(|a| a == "--bogus") {

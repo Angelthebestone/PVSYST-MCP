@@ -58,6 +58,23 @@ fn should_accept_a_command_in_any_case() {
     }
 }
 
+/// A run whose worker thread died exits 0 and prints only the license banner; the
+/// exception is in the Admin log, and the tool must not call that «ambiguo».
+#[test]
+fn should_report_a_crashed_command_as_error() {
+    let ws = workspace();
+    let local = tempfile::tempdir().unwrap();
+    let mut env = fake_env();
+    env.push(("LOCALAPPDATA", local.path().to_str().unwrap()));
+    env.push(("FAKE_PVSYST_CRASH", "1"));
+    let mut client = Client::start_env(Some(&ws_str(ws.path())), &env);
+    client.initialize();
+    let v = tool_text(&client.call(2, "pvsyst_cli", json!({ "comando": "run-simulation" })));
+    assert_eq!(v["success"], json!(false), "{v}");
+    assert_eq!(v["clasificacion"], json!("error"), "{v}");
+    assert_eq!(v["crash"], json!("Instruction privilégiée"), "{v}");
+}
+
 /// A clear failure message from the CLI is an error, not an ambiguity to retry.
 #[test]
 fn should_report_a_clear_cli_failure_message_as_error() {

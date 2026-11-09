@@ -29,6 +29,14 @@ fn determinar_estado_ejecucion(
         );
     }
     let clasificacion = clasificar_salida(command, &out.stdout, out.exit_code);
+    // A command whose worker thread died confirms nothing: the Admin log says why,
+    // and an agent that reads «ambiguo» retries and spends another trial run.
+    let clasificacion = match (clasificacion, &out.crash) {
+        (Clasificacion::Ambiguo(_), Some(motivo)) => {
+            Clasificacion::Error(format!("crash: {motivo}"))
+        }
+        (otra, _) => otra,
+    };
     let (success, err) = match &clasificacion {
         Clasificacion::Exito => (true, None),
         Clasificacion::Error(e) => (false, Some(e.clone())),
@@ -65,6 +73,9 @@ fn enriquecer_salida_json(
     }
     if let Some(e) = detected_error {
         base["detected_error"] = json!(e);
+    }
+    if let Some(crash) = &out.crash {
+        base["crash"] = json!(crash);
     }
     if !out.stderr.trim().is_empty() {
         base["stderr_tail"] = json!(tail(&out.stderr, LINEAS_TAIL_STDERR));

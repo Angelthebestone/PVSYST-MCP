@@ -4,6 +4,7 @@
 //! la cancelación cooperativa y la publicación de avance.
 
 use super::captura::{crear_sink, es_truncado, esperar_lector, texto_sink, Sink};
+use super::clasificacion::es_comando_informativo;
 use super::linea_comando::{display_command_line, requerir_cli, timeout_de, TIMEOUT_DEFECTO_S};
 use super::salida_json::output_json;
 use crate::args::{flag, req_str, DRY_RUN};
@@ -69,6 +70,7 @@ pub(crate) fn run_seguido(params: &ParametrosEjecucion<'_>) -> Result<CliOutput>
 
 pub(crate) fn run_inner(params: &ParametrosEjecucion<'_>, out_sink: &Sink) -> Result<CliOutput> {
     requerir_cli(params.paths)?;
+    let inicio = std::time::SystemTime::now();
     let mut child = Command::new(&params.paths.cli_exe)
         .args(params.cli_args)
         .stdout(Stdio::piped())
@@ -96,6 +98,14 @@ pub(crate) fn run_inner(params: &ParametrosEjecucion<'_>, out_sink: &Sink) -> Re
     esperar_lector(reader_err, (&err_sink, "stderr"), fin_lectura)?;
     let (exit_code, timed_out) = resultado?;
 
+    let comando = params.cli_args.first().map_or("", String::as_str);
+    // A crashed worker thread leaves no trace in stdout, only in the Admin log.
+    let crash = if es_comando_informativo(comando) {
+        None
+    } else {
+        super::crash::crash_desde(inicio)
+    };
+
     Ok(CliOutput {
         exit_code,
         stdout: texto_sink(out_sink)?,
@@ -108,6 +118,7 @@ pub(crate) fn run_inner(params: &ParametrosEjecucion<'_>, out_sink: &Sink) -> Re
         timeout_s: params.timeout.as_secs(),
         stdout_truncado: es_truncado(out_sink)?,
         stderr_truncado: es_truncado(&err_sink)?,
+        crash,
     })
 }
 
