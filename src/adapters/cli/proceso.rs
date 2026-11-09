@@ -284,6 +284,28 @@ fn dry_run_de(args: &Value) -> Result<bool> {
     }
 }
 
+/// Comandos que cambian la licencia. `pvsyst_cli` es un passthrough, pero el
+/// servidor promete que nunca activa ni desactiva la licencia: la clave la pone el
+/// usuario, fuera del servidor, con el comando que devuelve `entorno`.
+const COMANDOS_DE_LICENCIA: [(&str, &str); 3] = [
+    ("lic-activate", "licencia_activar"),
+    ("lic-deactivate", "licencia_desactivar"),
+    ("lic-sync", "licencia_sync"),
+];
+
+/// Rechaza un comando que cambia la licencia, nombrando la acción que sí lo hace.
+fn rechazar_comando_de_licencia(comando: &str) -> Result<()> {
+    let Some((_, accion)) = COMANDOS_DE_LICENCIA
+        .iter()
+        .find(|(clave, _)| comando.eq_ignore_ascii_case(clave))
+    else {
+        return Ok(());
+    };
+    Err(Error::Invalid(format!(
+        "'{comando}' cambia la licencia y pvsyst_cli no la toca: usa entorno {{accion:\"{accion}\"}}, que devuelve el comando para que lo ejecutes tú con tu clave"
+    )))
+}
+
 /// `detalle:completo` pide la salida entera en vez de la cola de 60 líneas.
 fn detalle_completo(args: &Value) -> bool {
     args.get("detalle").and_then(Value::as_str) == Some("completo")
@@ -292,6 +314,7 @@ fn detalle_completo(args: &Value) -> bool {
 /// Ejecuta cualquier comando con argumentos en crudo (passthrough de `pvsyst_cli`).
 pub(crate) fn ejecutar(paths: &Paths, args: &Value) -> Result<Value> {
     let comando = comando_de(args)?;
+    rechazar_comando_de_licencia(comando)?;
 
     let mut cli_args: Vec<String> = vec![comando.to_string()];
     cli_args.extend(opciones_de(args)?);

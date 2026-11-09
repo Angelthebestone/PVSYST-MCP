@@ -21,19 +21,67 @@ const TIMEOUT_MINIMO_S: u64 = 1;
 /// Límite superior permitido para el parámetro de tiempo de espera (1 hora).
 const TIMEOUT_MAXIMO_S: u64 = 3600;
 
-/// Genera una cadena legible representando la línea de comando ejecutada.
+/// Opciones cuyo valor es un secreto: no se devuelven nunca en la respuesta.
+const OPCIONES_SECRETAS: [&str; 4] = ["-k", "--key", "-c", "--customer-id"];
+
+/// Genera una cadena legible representando la línea de comando ejecutada. Es la
+/// única salida de un `dry_run`, así que debe poder copiarse tal cual: el
+/// ejecutable y los argumentos se citan y se escapan, y los secretos se tachan.
 pub(crate) fn display_command_line(exe: &str, args: &[String]) -> String {
-    let mut s = exe.to_string();
+    let mut s = citar(exe);
     for a in args {
         s.push(' ');
-        if a.contains(' ') {
-            s.push('"');
-            s.push_str(a);
-            s.push('"');
-        } else {
-            s.push_str(a);
+        s.push_str(&citar(&redactar(a)));
+    }
+    s
+}
+
+/// Tacha el valor de una opción secreta (`-k:<clave>`, `-c:<id>`).
+fn redactar(arg: &str) -> String {
+    let Some((nombre, _)) = arg.split_once(':') else {
+        return arg.to_string();
+    };
+    if OPCIONES_SECRETAS
+        .iter()
+        .any(|s| nombre.eq_ignore_ascii_case(s))
+    {
+        return format!("{nombre}:<REDACTADO>");
+    }
+    arg.to_string()
+}
+
+/// Cita y escapa un argumento con las reglas de `CommandLineToArgvW`: una comilla
+/// interior lleva delante un número impar de barras y las barras finales se
+/// duplican para que no escapen la comilla de cierre.
+fn citar(arg: &str) -> String {
+    if !arg.is_empty() && !arg.contains([' ', '\t', '"']) && !arg.ends_with('\\') {
+        return arg.to_string();
+    }
+    let mut s = String::from("\"");
+    let mut barras = 0_usize;
+    for c in arg.chars() {
+        match c {
+            '\\' => {
+                barras += 1;
+                s.push('\\');
+            }
+            '"' => {
+                for _ in 0..=barras {
+                    s.push('\\');
+                }
+                s.push('"');
+                barras = 0;
+            }
+            otro => {
+                barras = 0;
+                s.push(otro);
+            }
         }
     }
+    for _ in 0..barras {
+        s.push('\\');
+    }
+    s.push('"');
     s
 }
 

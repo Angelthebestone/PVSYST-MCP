@@ -9,8 +9,8 @@ use serde_json::Value;
 pub(crate) const TOOL_PVSYST_CLI: Herramienta = Herramienta {
     nombre: "pvsyst_cli",
     descripcion: crate::idioma::Texto {
-        es: "Passthrough a cualquier comando de PVsystCLI. Los argumentos van en 'opciones'; cualquier otra clave se lista en ignorados y no se pasa.",
-        en: "Passthrough to any PVsystCLI command. Its arguments go in 'opciones'; any other key is listed in ignorados and not passed.",
+        es: "Passthrough a cualquier comando de PVsystCLI. Los argumentos van en 'opciones'; cualquier otra clave se lista en ignorados y no se pasa. No confina rutas (una ruta relativa se resuelve contra el workspace) y no toca la licencia: lic-activate, lic-deactivate y lic-sync se rechazan.",
+        en: "Passthrough to any PVsystCLI command. Its arguments go in 'opciones'; any other key is listed in ignorados and not passed. It does not confine paths (a relative path resolves against the workspace) and it never touches the licence: lic-activate, lic-deactivate and lic-sync are refused.",
     },
     anotaciones: Anotaciones {
         titulo: crate::idioma::Texto {
@@ -20,7 +20,8 @@ pub(crate) const TOOL_PVSYST_CLI: Herramienta = Herramienta {
         es_solo_lectura: false,
         es_destructiva: true,
         es_idempotente: false,
-        usa_red: false,
+        // `version` checks for updates and `lic-sync` asks the licence server.
+        usa_red: true,
     },
     propiedades: &[
         ("comando", TipoDato::String),
