@@ -13,6 +13,7 @@ pub(crate) mod rotulos;
 use crate::adapters::gui::conduccion::Formulario;
 use crate::adapters::gui::rotulos::Idioma;
 use crate::adapters::gui::sesion_pvsyst::Sesion;
+use crate::adapters::gui::sondeo::sondear_hasta;
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use rotulos::{rotulos_proyecto_gui, RotulosProyectoGui};
@@ -32,6 +33,8 @@ const GUARDAR_VARIANTE: &str = "ventana_proyecto.variante.guardar";
 /// The project list shows the file typed in the search box as its first row.
 const PRIMERA_FILA: u64 = 0;
 const ESPERA_TITULO: Duration = Duration::from_secs(10);
+const ESPERA_GUARDADO: Duration = Duration::from_secs(20);
+const SONDEO_GUARDADO: Duration = Duration::from_millis(300);
 
 /// A project open in PVsyst on one variant.
 pub(crate) struct ProyectoEnPvsyst<'s> {
@@ -155,13 +158,12 @@ impl<'s> ProyectoEnPvsyst<'s> {
         let dialogo = self.sesion.esperar(ROTULOS.formulario_guardar)?;
         dialogo.pulsar(ROTULOS.guardar)?;
         self.sesion.aceptar_mensajes();
-        let despues = crate::workspace::leer_bytes(&self.archivo_variante)?;
-        if despues == antes {
+        let Some(despues) = esperar_guardado(&self.archivo_variante, &antes) else {
             return Err(Error::Gui(format!(
                 "PVsyst no guardó {}: ¿usa PVsyst otro espacio de trabajo?",
                 self.archivo_variante.display()
             )));
-        }
+        };
         raiz_completa(&despues, &self.archivo_variante)
     }
 
@@ -169,6 +171,23 @@ impl<'s> ProyectoEnPvsyst<'s> {
         let bytes = crate::workspace::leer_bytes(&self.archivo_variante)?;
         raiz_completa(&bytes, &self.archivo_variante)
     }
+}
+
+/// PVsyst closes its save dialog before it has finished writing the variant: it
+/// counts as saved once it differs from `antes` and two reads in a row agree.
+/// Reading at once found it half written, or unchanged (BUG-05).
+fn esperar_guardado(archivo: &Path, antes: &[u8]) -> Option<Vec<u8>> {
+    let mut anterior: Option<Vec<u8>> = None;
+    sondear_hasta(ESPERA_GUARDADO, SONDEO_GUARDADO, || {
+        let actual = crate::workspace::leer_bytes(archivo).ok()?;
+        let listo = es_guardado_estable(antes, anterior.as_deref(), &actual);
+        anterior = Some(actual.clone());
+        listo.then_some(actual)
+    })
+}
+
+fn es_guardado_estable(antes: &[u8], anterior: Option<&[u8]>, actual: &[u8]) -> bool {
+    actual != antes && anterior == Some(actual)
 }
 
 /// Root object of a saved variant; a truncated file is an error, not a wrongly nested tree.
