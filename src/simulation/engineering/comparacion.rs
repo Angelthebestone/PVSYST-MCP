@@ -166,10 +166,21 @@ pub(crate) fn comparar(paths: &Paths, args: &Value) -> Result<Value> {
         None => variantes_con_resultados(&workspace, proyecto),
     };
     if variantes.len() < 2 {
-        return Err(Error::Invalid(format!(
-            "Se necesitan al menos 2 variantes con resultados en '{proyecto}' (hay {})",
-            variantes.len()
-        )));
+        // A call that named its variants is short of variants, not of results: saying
+        // "the project has 1" would send the caller looking for the wrong thing.
+        let mensaje = if args.get("variantes").is_some_and(Value::is_array) {
+            format!(
+                "comparar necesita al menos 2 variantes: se pidieron {} ({})",
+                variantes.len(),
+                variantes.join(", ")
+            )
+        } else {
+            format!(
+                "Se necesitan al menos 2 variantes con resultados en '{proyecto}' (hay {})",
+                variantes.len()
+            )
+        };
+        return Err(Error::Invalid(mensaje));
     }
     let mut kpis = Vec::new();
     for v in &variantes {

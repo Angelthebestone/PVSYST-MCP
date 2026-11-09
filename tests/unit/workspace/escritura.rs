@@ -10,7 +10,7 @@ fn dummy_paths(ws: &Path) -> Paths {
 }
 
 #[test]
-fn should_refuse_overwriting_when_sobrescribir_is_explicitly_false() {
+fn should_replace_an_existing_file_only_when_sobrescribir_is_true() {
     let ws = tempdir().expect("ws");
     let paths = dummy_paths(ws.path());
     let destino = ws.path().join("UserData").join("Nota.txt");
@@ -19,17 +19,17 @@ fn should_refuse_overwriting_when_sobrescribir_is_explicitly_false() {
 
     let err = escribir_archivo(
         &paths,
-        &json!({ "archivo": "UserData/Nota.txt", "contenido": "nuevo", "sobrescribir": false }),
+        &json!({ "archivo": "UserData/Nota.txt", "contenido": "nuevo" }),
     )
-    .expect_err("sobrescribir:false veta el reemplazo");
+    .expect_err("sin 'sobrescribir' un archivo existente no se toca");
     assert!(err.to_string().contains("already exists"), "{err}");
     assert_eq!(fs::read_to_string(&destino).expect("leer"), "original");
 
     escribir_archivo(
         &paths,
-        &json!({ "archivo": "UserData/Nota.txt", "contenido": "nuevo" }),
+        &json!({ "archivo": "UserData/Nota.txt", "contenido": "nuevo", "sobrescribir": true }),
     )
-    .expect("sin el veto se sobrescribe como siempre");
+    .expect("sobrescribir:true reemplaza");
     assert_eq!(fs::read_to_string(&destino).expect("leer"), "nuevo");
 }
 

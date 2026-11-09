@@ -198,9 +198,11 @@ pub(crate) fn preferencias(args: &Value) -> Result<Value> {
         if let Some(pedida) = clave_pedida {
             valor = filtrar_clave(&valor, pedida)?;
         }
+        let n_claves = valor.as_object().map_or(0, Map::len);
         secciones = Map::from_iter([(clave, valor)]);
         return Ok(json!({
             "archivo": ruta.display().to_string(),
+            "n_claves": n_claves,
             "secciones": secciones,
         }));
     }
@@ -208,8 +210,13 @@ pub(crate) fn preferencias(args: &Value) -> Result<Value> {
         .into_iter()
         .map(|(k, v)| (k, Value::from(v.as_object().map_or(0, Map::len))))
         .collect();
+    // The counts are the answer's own values: without them `vista.campos` is empty,
+    // because `archivo` is a path (a text too long to be a value) and the section
+    // table is a table, not a group of values.
+    let n_secciones = conteo.len();
     Ok(json!({
         "archivo": ruta.display().to_string(),
+        "n_secciones": n_secciones,
         "secciones": conteo,
     }))
 }

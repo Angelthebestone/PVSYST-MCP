@@ -221,6 +221,17 @@ pub(crate) fn run_tar(args: &[&std::ffi::OsStr]) -> Result<()> {
     }
 }
 
+/// `dest` and `temporal` as paths relative to `dir`, when they live inside it:
+/// `tar` must skip both, or the archive contains itself.
+fn propios_en_dir(dest: &Path, temporal: &Path, dir: &Path) -> Vec<String> {
+    [dest, temporal]
+        .iter()
+        .filter_map(|p| p.strip_prefix(dir).ok())
+        .map(|rel| rel.to_string_lossy().replace('\\', "/"))
+        .filter(|rel| !rel.is_empty())
+        .collect()
+}
+
 /// Zip `names` (relative to `dir`) into `dest`. The archive is built next to
 /// `dest` and only then moved over it, so a failed export keeps the old file.
 pub(crate) fn zip_into(dest: &Path, dir: &Path, names: &[std::ffi::OsString]) -> Result<()> {
@@ -235,12 +246,10 @@ pub(crate) fn zip_into(dest: &Path, dir: &Path, names: &[std::ffi::OsString]) ->
         "-C".as_ref(),
         dir.as_os_str(),
     ];
-    // A destination inside `dir` would otherwise archive the previous copy of itself.
-    let propio: Vec<String> = dest
-        .strip_prefix(dir)
-        .map(|rel| vec![rel.to_string_lossy().replace('\\', "/")])
-        .unwrap_or_default();
-    args.extend(propio.iter().flat_map(|p| {
+    // A destination inside `dir` would otherwise archive the previous copy of itself,
+    // and the archive being written would archive itself.
+    let propios = propios_en_dir(dest, &temporal, dir);
+    args.extend(propios.iter().flat_map(|p| {
         [
             std::ffi::OsStr::new("--exclude"),
             std::ffi::OsStr::new(p.as_str()),

@@ -15,6 +15,7 @@ fn should_restore_previous_content_when_historial_targets_the_requested_workspac
             json!({
                 "archivo": "Notas/nota.txt",
                 "contenido": contenido,
+                "sobrescribir": true,
                 "workspace": target.path().to_str().unwrap(),
             }),
         );

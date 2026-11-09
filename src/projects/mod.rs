@@ -212,10 +212,22 @@ pub(crate) fn leer_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     if flag(args, &["completo"]) {
         out["tree"] = Value::Array(roots.iter().map(object::PvNode::to_json).collect());
     } else {
-        out["hint"] =
-            json!("Pass completo:true for the full tree, or leer with 'objeto' for one object.");
+        out["hint"] = json!(
+            "Pass detalle:\"completo\" for the full tree, or leer with 'objeto' for one object."
+        );
     }
     Ok(out)
+}
+
+/// Names of the projects `Projects/` holds, so a "not found" can name them.
+///
+/// A read-only or unreadable folder lists none: this only feeds a message.
+fn proyectos_disponibles(projects_dir: &Path) -> Vec<String> {
+    let mut prjs = Vec::new();
+    let _ = walk_ext(projects_dir, ".prj", &mut prjs);
+    prjs.iter()
+        .filter_map(|p| p.file_stem().and_then(|s| s.to_str()).map(str::to_string))
+        .collect()
 }
 
 /// Accepts `Projects\X.VC0`, `Projects/X.PRJ` and `X.PRJ`: returns the name relative to the Projects folder.
@@ -248,7 +260,7 @@ pub(crate) fn resolve_project_file_con_alcance(
         return Err(no_encontrado(
             "Proyecto",
             name,
-            &[],
+            &proyectos_disponibles(&projects_dir),
             &projects_dir.to_string_lossy(),
         ));
     }

@@ -20,7 +20,13 @@ pub(crate) fn importar_workspace(paths: &Paths, args: &Value) -> Result<Value> {
     let zip_str = req_str(args, &["zip"], "archive path")?;
     let zip = resolver_ruta(&workspace, zip_str, Alcance::de_args(args))?;
     if !zip.exists() {
-        return Err(Error::NotFound(format!("Zip not found: {}", zip.display())));
+        // A relative `zip` anchors to the call's workspace, as `destino` does: name it,
+        // so a caller that exported into another workspace knows where to look.
+        return Err(Error::NotFound(format!(
+            "Zip not found: {} (resolved against the workspace {}: pass an absolute path, or a 'zip' relative to that workspace)",
+            zip.display(),
+            workspace.display()
+        )));
     }
     let dest_str = req_str(args, &["destino"], "folder to extract into")?;
     let destino = resolver_ruta(&workspace, dest_str, Alcance::de_args(args))?;

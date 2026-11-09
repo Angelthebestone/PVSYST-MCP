@@ -45,7 +45,7 @@ fn should_not_touch_files_when_restaurar_asks_dry_run() {
     let editado = c.call(
         90,
         "escribir_archivo",
-        json!({ "archivo": "Projects/SYNTH_Plant.PRJ", "contenido": "PVObject_=pvProject\n  Comment=editado\nEnd of PVObject pvProject\n", "workspace": ws_str }),
+        json!({ "archivo": "Projects/SYNTH_Plant.PRJ", "contenido": "PVObject_=pvProject\n  Comment=editado\nEnd of PVObject pvProject\n", "sobrescribir": true, "workspace": ws_str }),
     );
     let id = tool_text(&editado)["historial_id"]
         .as_str()

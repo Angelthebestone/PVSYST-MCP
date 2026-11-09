@@ -84,6 +84,11 @@ pub(crate) fn insertar_objeto_archivo(paths: &Paths, args: &Value) -> Result<Val
     let desde = args
         .get("desde")
         .ok_or_else(|| args::missing("desde", "desde:{archivo, objeto}"))?;
+    // Named as `desde.archivo`: the top-level `archivo` is already there, so
+    // "Missing 'archivo'" would send the caller to the wrong key.
+    if opt_str(desde, &["archivo"]).is_none() {
+        return Err(args::missing("desde.archivo", "desde:{archivo, objeto}"));
+    }
     let origen = objects::resolve_file(&ws, desde)?;
     let objeto = req_str(desde, &["objeto"], "desde.objeto")?;
     let bloque = insert::extraer_objeto(&leer_bytes(&origen)?, objeto)?;

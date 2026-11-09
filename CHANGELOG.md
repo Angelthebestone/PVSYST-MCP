@@ -124,6 +124,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     through the tool (BUG-06).
   - `sitio crear dry_run` reports `costo_estimado`, the trial executions the real call would spend (BUG-20).
   - `simular preparar` suggests running the batch it prepared, carrying `batch_params_file`/`batch_rvt_file` (BUG-22).
+- **`escribir_archivo` no longer overwrites by default**: an existing file is replaced only with `sobrescribir: true`, so the
+  argument means what it says; the refusal names the alternative and the history keeps the previous version.
+- **`editar campos` no longer invents fields**: a key the object does not have is refused (the usual cause is a typo) unless
+  the call asks for it with `nuevo: true`; the same policy applies to the `ediciones` form of a variant.
+- **`componente crear` copies the template when the call asks for no `cambios`** (the description already said "from a
+  template"), and the schema declares `campos`, the spelling the handler already accepted: a test fails when an action
+  consumes a key its tool does not declare.
+- **`sitio escribir_horizonte` writes the `.HOR` in `Shadings/` under its own name**: a path in `archivo`
+  (`Sites/X.HOR`) no longer creates a folder inside `Shadings`, which is not where PVsyst looks for a horizon.
+- **`sitio crear` from a CSV reports the `.SIT` it expects** (`output_sit_file`, else `Sites/<name>.SIT`) instead of
+  `expected_sit:null`; both origins now use the same rule.
+- **`entorno preferencias` reports `n_secciones`** (and `n_claves` when a `seccion` is asked for), so `vista.campos` is
+  no longer empty: the file path and the section table were the only other values.
+- **"Not found" messages no longer say something false**: `no_encontrado` names the options it has instead of
+  "no hay ninguno" when it was given a list, `leer` names the projects of `Projects/`, `proyecto crear` says in
+  Spanish that the project exists and names `sobrescribir`, `resultados comparar` says how many variants the
+  call asked for, and `editar insertar_objeto` names `desde.archivo` instead of the top-level `archivo`.
+- The `leer` hint points at the parameter that exists (`detalle:"completo"`), not at `completo:true`.
+- **`workspace exportar` no longer archives its own temporary**: a `destino` inside the exported tree put
+  `<zip>.mcp_tmp_<pid>.zip` (0 bytes) in the archive; both the destination and its temporary are excluded, and
+  `workspace importar` names the workspace a relative `zip` was resolved against when it finds nothing.
 
 ### Changed
 - The six `proyecto` actions that edit a variant (storage, pumping, injection limit, losses, economics, tracker) build their answer with one

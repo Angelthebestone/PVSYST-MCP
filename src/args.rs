@@ -155,17 +155,42 @@ pub(crate) fn candidatos(objetivo: &str, opciones: &[String]) -> Vec<String> {
     out
 }
 
+/// Most options a "not found" lists when none of them is close to the request.
+const MUESTRA_DE_OPCIONES: usize = 5;
+
 /// Uniform "not found" message listing candidates or the folder that was searched.
+///
+/// With no close candidate it names a few of the options it was given: saying
+/// "there are none" when the caller passed a list would be false.
 pub(crate) fn no_encontrado(tipo: &str, pedido: &str, opciones: &[String], carpeta: &str) -> Error {
     let sugeridos = candidatos(pedido, opciones);
-    Error::NotFound(if sugeridos.is_empty() {
-        format!("{tipo} '{pedido}' no encontrado; no hay ninguno en {carpeta}")
-    } else {
-        format!(
+    if !sugeridos.is_empty() {
+        return Error::NotFound(format!(
             "{tipo} '{pedido}' no encontrado; candidatos: {}",
             sugeridos.join(", ")
-        )
-    })
+        ));
+    }
+    if opciones.is_empty() {
+        return Error::NotFound(format!(
+            "{tipo} '{pedido}' no encontrado; no hay ninguno en {carpeta}"
+        ));
+    }
+    let muestra = opciones
+        .iter()
+        .take(MUESTRA_DE_OPCIONES)
+        .map(String::as_str)
+        .collect::<Vec<_>>()
+        .join(", ");
+    let resto = opciones.len().saturating_sub(MUESTRA_DE_OPCIONES);
+    let mas = if resto == 0 {
+        String::new()
+    } else {
+        format!(" y {resto} más")
+    };
+    Error::NotFound(format!(
+        "{tipo} '{pedido}' no encontrado en {carpeta}; hay {}: {muestra}{mas}",
+        opciones.len()
+    ))
 }
 
 /// Levenshtein edit distance over chars.

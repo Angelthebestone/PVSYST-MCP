@@ -97,17 +97,17 @@ pub(crate) fn crear_sitio(paths: &Paths, args: &Value) -> Result<Value> {
         format!("-lon:{}", req("longitud")?),
     ];
     opciones.extend(opciones_crear::opciones_sitio(args));
-    opciones.extend(opciones_crear::archivos_sitio(
-        &workspace_of(paths, args),
-        args,
-    )?);
+    let ws = workspace_of(paths, args);
+    opciones.extend(opciones_crear::archivos_sitio(&ws, args)?);
+    // The same rule the coordinates path uses: `output_sit_file`, else `Sites/<name>.SIT`.
+    let expected_sit = coordenadas::ruta_sit(&ws, args, &name)?;
     ejecutar(
         paths,
         args,
         PeticionEjecutar {
             comando: "create-site",
             opciones,
-            extra: |costo| json!({ "site_name": name, "expected_sit": args.get("output_sit_file"), "costo": costo }),
+            extra: move |costo| json!({ "site_name": name, "expected_sit": expected_sit, "costo": costo }),
         },
     )
 }

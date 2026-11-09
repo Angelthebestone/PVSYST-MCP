@@ -403,7 +403,7 @@
       "name": "editar"
     },
     {
-      "description": "Writes a file inside the workspace (with history).",
+      "description": "Writes a file inside the workspace (with history). An existing file is only replaced with 'sobrescribir': true.",
       "name": "escribir_archivo"
     },
     {

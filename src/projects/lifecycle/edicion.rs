@@ -18,7 +18,11 @@ pub(crate) fn editar_variante(paths: &Paths, args: &Value) -> Result<Value> {
     let plan: Vec<EdicionObjeto> = ediciones.iter().map(edicion_de).collect::<Result<_>>()?;
     let abierta = abrir_variante(paths, args)?;
     let (bytes, outcomes) = edit::editar_objetos(&abierta.bytes, &plan)?;
-    let report = reporte(&plan, &outcomes);
+    let por_edicion = por_edicion(&plan, &outcomes);
+    for (selector, cambios) in &por_edicion {
+        crate::objects::exigir_campos_existentes(selector, cambios, args)?;
+    }
+    let report = reporte(&por_edicion);
     let historial_id = guardar_variante(&abierta, &bytes, "editar_variante")?;
     Ok(json!({
         "variant_file": abierta.vpath.to_string_lossy(),
@@ -42,16 +46,29 @@ fn edicion_de(ed: &Value) -> Result<EdicionObjeto> {
     })
 }
 
-fn reporte(plan: &[EdicionObjeto], outcomes: &[edit::ChangeOutcome]) -> Vec<Value> {
+/// Outcomes of each edition, in `plan` order: `editar_objetos` accumulates them.
+fn por_edicion<'a>(
+    plan: &'a [EdicionObjeto],
+    outcomes: &'a [edit::ChangeOutcome],
+) -> Vec<(&'a str, &'a [edit::ChangeOutcome])> {
     plan.iter()
         .scan(0usize, |inicio, ed| {
             let fin = *inicio + ed.cambios.len();
             let changes = outcomes.get(*inicio..fin).unwrap_or_default();
             *inicio = fin;
-            Some(json!({
-                "objeto": ed.selector,
+            Some((ed.selector.as_str(), changes))
+        })
+        .collect()
+}
+
+fn reporte(por_edicion: &[(&str, &[edit::ChangeOutcome])]) -> Vec<Value> {
+    por_edicion
+        .iter()
+        .map(|(selector, changes)| {
+            json!({
+                "objeto": selector,
                 "changes": changes.iter().map(edit::ChangeOutcome::to_json).collect::<Vec<_>>(),
-            }))
+            })
         })
         .collect()
 }
