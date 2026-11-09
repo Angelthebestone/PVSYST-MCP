@@ -157,6 +157,12 @@ fn should_report_the_trial_cost_of_a_passthrough_simulation() {
         json!(1),
         "{ensayo}"
     );
+    // Cold workspace: the budget is read from `lic-info` (223 in the fixture).
+    assert_eq!(
+        ensayo["costo_estimado"]["restantes"],
+        json!(223),
+        "{ensayo}"
+    );
 
     let real = tool_text(&client.call(3, "pvsyst_cli", json!({ "comando": "run-simulation" })));
     assert_eq!(real["costo"]["ejecuciones"], json!(1), "{real}");

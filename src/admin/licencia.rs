@@ -46,6 +46,11 @@ pub(crate) fn licencia(paths: &Paths, args: &Value) -> Result<Value> {
         &cli_args,
         cli::timeout_de(args, cli::TIMEOUT_DEFECTO_S),
     )?;
+    // `lic-info` is the only read that knows the licence mode: keep the trial
+    // budget in the ledger in step with it.
+    if accion == "info" || accion == "estado" {
+        crate::adapters::ledger::registrar_lic_info(&paths.workspace, &out.stdout);
+    }
     Ok(cli::output_json(
         &out,
         &cli_args[0],

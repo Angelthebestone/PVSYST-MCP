@@ -43,6 +43,44 @@ fn should_accept_a_higher_counter_after_a_renewal() {
     assert_eq!(registrar(dir, renovado, 1)["restantes"], json!(249));
 }
 
+/// `lic-info` prints the same counters under another shape (`Status: TRIAL`,
+/// `Remaining executions: N`); reading them is what lets a cold workspace answer
+/// the budget before its first run.
+#[test]
+fn should_read_the_counters_of_lic_info() {
+    let lic_info = concat!(
+        "The license file \"C:\\ProgramData\\PVsystCLI\\PVsystCLI.lic\" is missing.\r\n",
+        "You can run \"lic-activate\" command to activate your license.\r\n",
+        "Status: TRIAL\r\n",
+        "Remaining days: 58\r\n",
+        "Remaining executions: 223\r\n",
+        "Host ID: HARDDISK=0000_0000_ACE4_2E00_3B04_AF6C\r\n",
+    );
+    let estado = parsear_lic_info(lic_info).expect("lic-info legible");
+    assert_eq!(estado.modo, "trial");
+    assert_eq!(estado.dias, Some(58));
+    assert_eq!(estado.restantes, Some(223));
+}
+
+/// A licensed install prints `Status:` without the trial counters.
+#[test]
+fn should_read_a_licensed_lic_info_without_counters() {
+    let estado = parsear_lic_info("Status: Licensed\r\n").expect("lic-info legible");
+    assert_eq!(estado.modo, "licencia");
+    assert_eq!(estado.restantes, None);
+}
+
+/// A run without the trial banner is not a licence change: it must not wipe the
+/// counters a previous `lic-info` stored.
+#[test]
+fn should_not_wipe_the_ledger_when_a_run_prints_no_trial_banner() {
+    let tmp = ws_temporal();
+    let dir = tmp.path();
+    registrar(dir, BANNER, 0);
+    registrar(dir, "Simulation done in 0min 3sec\r\n", 1);
+    assert_eq!(estado(dir).map(|e| e.restantes), Some(Some(223)));
+}
+
 #[test]
 fn should_ask_for_confirmation_when_a_trial_run_would_spend_several_executions() {
     let tmp = ws_temporal();
