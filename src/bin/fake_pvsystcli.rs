@@ -49,7 +49,7 @@ fn main() -> ExitCode {
         return ExitCode::SUCCESS;
     }
     // Success fixtures are stored as `<command>-ok.txt`; plain `<command>.txt` wins when present.
-    let fixture = dir.join(format!("{command}.txt"));
+    let fixture = dir.join(fixture_de(command, &args));
     let ok_fixture = dir.join(format!("{command}-ok.txt"));
     let fallback = dir.join("unknown-command.txt");
     let stdout = fs::read(&fixture)
@@ -140,6 +140,16 @@ fn touch_output(args: &[String], flag: &str) {
     }
 }
 
+/// Fixture name for `command`: `help <comando>` prints the per-command help.
+fn fixture_de(command: &str, args: &[String]) -> String {
+    match args.get(2).map(String::as_str) {
+        Some(sub) if command == "help" && sub == "run-simulation" => {
+            "help-run-simulation.txt".to_string()
+        }
+        _ => format!("{command}.txt"),
+    }
+}
+
 fn option<'a>(args: &'a [String], flag: &str) -> Option<&'a str> {
     args.iter().find_map(|a| a.strip_prefix(flag))
 }
@@ -186,7 +196,7 @@ fn emitir_caida() -> bool {
 fn emitir_error_de_opciones(dir: &Path, args: &[String]) -> bool {
     let fixture = if args.iter().any(|a| a == "--bogus") {
         "bad-option.txt"
-    } else if args.get(1).map(String::as_str) == Some("help") {
+    } else if args.get(2).map(String::as_str) == Some("help") {
         "unknown-command.txt"
     } else {
         return false;

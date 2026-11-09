@@ -117,6 +117,53 @@ fn should_truncate_huge_output_and_complete_process() {
     assert_eq!(v["exit_code"], json!(0));
 }
 
+/// `help run-simulation` prints 65 lines; the answer keeps the last 60 and says so,
+/// and `detalle:completo` returns the whole stdout.
+#[test]
+fn should_flag_a_cut_help_tail_and_return_the_whole_stdout_on_request() {
+    let ws = workspace();
+    let mut client = Client::start_env(Some(&ws_str(ws.path())), &fake_env());
+    client.initialize();
+    let args = json!({ "comando": "help", "opciones": ["run-simulation"] });
+    let corto = tool_text(&client.call(2, "pvsyst_cli", args.clone()));
+    assert_eq!(corto["stdout_tail_truncado"], json!(true), "{corto}");
+    assert!(
+        !corto["stdout_tail"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("Usage: pvsystcli run-simulation"),
+        "{corto}"
+    );
+
+    let mut completo = args;
+    completo["detalle"] = json!("completo");
+    let largo = tool_text(&client.call(3, "pvsyst_cli", completo));
+    assert_eq!(largo["stdout_tail_truncado"], json!(false), "{largo}");
+    assert!(
+        largo["stdout"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("Usage: pvsystcli run-simulation"),
+        "{largo}"
+    );
+}
+
+/// The license banner is noise for a run, but `help` lists `lic-activate`.
+#[test]
+fn should_keep_the_command_list_of_help() {
+    let ws = workspace();
+    let mut client = Client::start_env(Some(&ws_str(ws.path())), &fake_env());
+    client.initialize();
+    let v = tool_text(&client.call(2, "pvsyst_cli", json!({ "comando": "help" })));
+    assert!(
+        v["stdout_tail"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("lic-activate"),
+        "{v}"
+    );
+}
+
 #[test]
 fn should_classify_contradictory_output_as_ambiguous() {
     let ws = workspace();

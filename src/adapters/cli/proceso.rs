@@ -203,6 +203,11 @@ pub(crate) fn opciones_de(args: &Value) -> Result<Vec<String>> {
     }
 }
 
+/// `detalle:completo` pide la salida entera en vez de la cola de 60 líneas.
+fn detalle_completo(args: &Value) -> bool {
+    args.get("detalle").and_then(Value::as_str) == Some("completo")
+}
+
 /// Ejecuta cualquier comando con argumentos en crudo (passthrough de `pvsyst_cli`).
 pub(crate) fn ejecutar(paths: &Paths, args: &Value) -> Result<Value> {
     let comando = req_str(
@@ -221,7 +226,12 @@ pub(crate) fn ejecutar(paths: &Paths, args: &Value) -> Result<Value> {
     }
     requerir_cli(paths)?;
     let out = run(paths, &cli_args, timeout_de(args, TIMEOUT_DEFECTO_S))?;
-    Ok(output_json(&out, comando, &json!({ "command": comando })))
+    let mut respuesta = output_json(&out, comando, &json!({ "command": comando }));
+    if detalle_completo(args) {
+        respuesta["stdout"] = json!(out.stdout);
+        respuesta["stdout_tail_truncado"] = json!(false);
+    }
+    Ok(respuesta)
 }
 
 #[cfg(test)]

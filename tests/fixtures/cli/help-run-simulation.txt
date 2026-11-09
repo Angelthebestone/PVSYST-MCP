@@ -1,0 +1,65 @@
+
+Help for "run-simulation" command.
+
+Usage: pvsystcli run-simulation <options>
+
+Run a simulation for the given project and variant, and output results
+
+--------------------------------------------- Required options --------------------------------------------------
+
+ --workspace|-w:<workspace>                       Full path to the workspace to use
+
+ --project|-p:<project>                           Name of the project to use
+
+ --variant|-v:<variant>                           Name of the variant to use
+
+--------------------------------------------- Optional options --------------------------------------------------
+
+ --time-step|-ts:<time-step>                      Simulation time step. Accepted values:  hour, subhour. Sub-hour mode requires sub-hourly weather data
+
+ --site|-s:<site>                                 Full path to the site file (.SIT) to use
+
+ --synthetic-weatherdata-generation|-swg          Can be used only with the --site option.
+                                                  Indicates whether synthetic weather data should be generated from the provided .SIT file.
+
+ --input-met-file|-imf:<input-met-file>           Full path to the MET file to use
+
+ --input-sfi-file|-isf:<input-sfi-file>           Full path to the SFI file to use for hourly results variables.
+                                                  See the online specific help available at https://www.pvsyst.com/help/glossary/pv-system/sfi-file-format.html for more information about this file
+
+ --input-rvt-file|-irf:<input-rvt-file>           Full path to the RVT file to use for hourly results variables.
+                                                  See the online specific help available at https://www.pvsyst.com/help/glossary/pv-system/rvt-file-format.html for more information about this file
+
+ --input-param-file|-ipf:<input-param-file>       Full path to the Param_Modif.dat file edited in PVsyst and containing custom advanced parameters.
+                                                  See the online PVsystCLI help available at https://www.pvsyst.com/help-cli for more information about this file
+
+ --batch-params-file|-bpf:<batch-params-file>     Full path to the batch parameter file edited in PVsyst and containing definition of simulations to be run for this project/variant.
+                                                  See the online PVsystCLI help available at https://www.pvsyst.com/help-cli for more information about this file
+
+ --batch-rvt-file|-brf:<batch-rvt-file>           Full path to the batch RVT file defining the result variables for the batch simulation.
+                                                  See the online specific help available at https://www.pvsyst.com/help/glossary/pv-system/rvt-file-format.html for more information about this file
+
+ --output-csv-file|-ocf:<output-csv-file>         Full path to the output CSV file
+
+ --overwrite-default-csv|-odc                     Overwrites the default CSV file if it already exists
+
+ --report-pdf-file|-rpf:<report-pdf-file>         Full path to the report PDF file
+
+ --report-language|-rl:<report-language>          Language to use for the report (Default=en)
+                                                  Available language: []
+
+ --report-pages|-rp:<report-pages>                List of pages to include in the report separated by ','
+                                                  Available pages: [cover, summary, notes, params, horizon, shadings, usersneeds, results, econeval, circuit, losses, financialbalance, p50p90, carbonbalance, predefgraphs]
+
+ --start-date|-sd:<start-date>                    Start date of simulation (MM.DD or YY.MM.DD or YYYY.MM.DD)
+
+ --end-date|-ed:<end-date>                        End date of simulation (MM.DD or YY.MM.DD or YYYY.MM.DD)
+
+ --recompute-shadingfactors-tables|-rst           Recomputation of shading factor tables for variants simulated with an older version.
+                                                  Accepted values: 0 [FALSE], 1 [TRUE] (Default=TRUE)
+
+ --log-level|-ll:<log-level>                      Level of verbosity for command output: 0 [OFF] < 1 [ERROR] < 2 [WARNING] < 3 [INFO] (Default=3)
+
+ --cmd-options-file|-cof:<cmd-options-file>       Full path to an options file.
+                                                  Use this instead of a long command line: list each name:value option on a separate line, with no other separator.
+
