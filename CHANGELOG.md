@@ -113,6 +113,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `expected_sit:null`; both origins now use the same rule.
 - **`entorno preferencias` reports `n_secciones`** (and `n_claves` when a `seccion` is asked for), so `vista.campos` is
   no longer empty: the file path and the section table were the only other values.
+- **"Not found" messages no longer say something false**: `no_encontrado` names the options it has instead of
+  "no hay ninguno" when it was given a list, `leer` names the projects of `Projects/`, `proyecto crear` says in
+  Spanish that the project exists and names `sobrescribir`, `resultados comparar` says how many variants the
+  call asked for, and `editar insertar_objeto` names `desde.archivo` instead of the top-level `archivo`.
+- The `leer` hint points at the parameter that exists (`detalle:"completo"`), not at `completo:true`.
 
 ### Changed
 - The six `proyecto` actions that edit a variant (storage, pumping, injection limit, losses, economics, tracker) build their answer with one

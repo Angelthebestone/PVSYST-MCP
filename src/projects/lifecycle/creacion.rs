@@ -115,7 +115,7 @@ pub(crate) fn crear_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     let new_var = ruta_variante(&parent, nombre, &variante)?;
     if (new_prj.exists() || new_var.exists()) && !flag(args, &["sobrescribir"]) {
         return Err(Error::Invalid(format!(
-            "Project exists: {}",
+            "'{}' ya existe: pasa 'sobrescribir': true para reemplazarlo",
             new_prj.display()
         )));
     }

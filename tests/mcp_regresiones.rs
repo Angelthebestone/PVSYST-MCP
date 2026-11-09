@@ -47,3 +47,6 @@ mod sitios;
 
 #[path = "mcp_regresiones/entorno.rs"]
 mod entorno;
+
+#[path = "mcp_regresiones/mensajes.rs"]
+mod mensajes;
