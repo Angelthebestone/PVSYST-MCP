@@ -4,7 +4,6 @@
 use super::cliente_mcp::{error_text, synthetic_workspace, tool_text, Client};
 use serde_json::{json, Value};
 use std::fs;
-use std::path::Path;
 
 const FAKE: &str = env!("CARGO_BIN_EXE_fake_pvsystcli");
 
@@ -128,12 +127,6 @@ fn should_accept_the_module_name_without_its_extension() {
     // Then: it sizes with that module instead of failing to find it
     assert_eq!(paso(&out, "dimensionado")["ok"], json!(true), "{out}");
     assert_eq!(out["kwp_realizado"].as_f64(), Some(8.0), "{out}");
-}
-
-/// The workspace of a design that ran once, for the calls that need one.
-#[allow(dead_code)]
-fn vc0(ws: &Path) -> String {
-    fs::read_to_string(ws.join("Projects").join("Diseno.VC0")).expect("variante")
 }
 
 /// The `via` enum of `disenar_sistema` in `tools/list`.
