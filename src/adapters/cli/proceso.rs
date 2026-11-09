@@ -194,10 +194,12 @@ pub(crate) fn ejecutar(
 ) -> Result<Value> {
     let entrada = entrada::leer(args)?;
     let es_simulacion = entrada.es_simulacion();
+    let timeout = timeout_de_comando(args, &entrada.comando)?;
     if entrada.dry_run {
         let mut ensayo = json!({
             "dry_run": true,
             "command_line": display_command_line(&paths.cli_exe.to_string_lossy(), &entrada.cli_args),
+            "timeout_s": timeout.as_secs(),
         });
         // A simulation spends a trial execution whether it is asked for here or
         // through `simular`: the rehearsal says what it would cost.
@@ -209,7 +211,7 @@ pub(crate) fn ejecutar(
     let out = run_seguido(&ParametrosEjecucion {
         paths,
         cli_args: &entrada.cli_args,
-        timeout: timeout_de_comando(args, &entrada.comando)?,
+        timeout,
         seguimiento,
     })?;
     let mut respuesta = output_json(

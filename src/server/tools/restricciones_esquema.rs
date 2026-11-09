@@ -42,6 +42,10 @@ const DESC_DRY_RUN: Texto = Texto {
     es: "true: ensayo, no ejecuta nada y devuelve lo que haría. null no se acepta: ejecutaría de verdad.",
     en: "true: rehearsal, runs nothing and returns what it would do. null is refused: it would run for real.",
 };
+const DESC_COMANDO_CLI: Texto = Texto {
+    es: "Solo el nombre del comando (`help`, `version`, `lic-info`), sin espacios; los argumentos van en 'opciones'.",
+    en: "Only the command name (`help`, `version`, `lic-info`), with no spaces; its arguments go in 'opciones'.",
+};
 const DESC_OPCIONES_CLI: Texto = Texto {
     es: "Argumentos de PVsystCLI. Lista: cada elemento tal cual (`-w:C:/ws`). Objeto: `--nombre:valor`, en orden alfabético; una clave que empieza por `-` se usa tal cual, `true` es un flag sin valor y `false`/`null` omiten la opción.",
     en: "PVsystCLI arguments. List: each item as written (`-w:C:/ws`). Object: `--name:value`, in alphabetical order; a key starting with `-` is used as written, `true` is a flag with no value and `false`/`null` leave the option out.",
@@ -52,6 +56,9 @@ const DESC_OPCIONES_CLI: Texto = Texto {
 /// the same property names (`texto`) with a different meaning.
 pub(crate) fn anotar_restricciones(an: &Anotador, prop_val: &mut Value, clave: &str) {
     if reemplazar_esquema_opciones(an, prop_val, clave) {
+        return;
+    }
+    if anotar_comando_cli(an, prop_val, clave) {
         return;
     }
     let Some(obj) = prop_val.as_object_mut() else {
@@ -106,6 +113,24 @@ fn descripcion_de_ejecucion(an: &Anotador, clave: &str) -> Option<String> {
         _ => return None,
     };
     Some(texto.en_idioma(an.idioma).to_string())
+}
+
+/// `comando` of the passthrough is a bare command name: the schema says so, so a
+/// client can reject `" help"` before the call.
+fn anotar_comando_cli(an: &Anotador, prop_val: &mut Value, clave: &str) -> bool {
+    if clave != "comando" || an.herramienta.nombre != "pvsyst_cli" {
+        return false;
+    }
+    let Some(obj) = prop_val.as_object_mut() else {
+        return false;
+    };
+    obj.insert("minLength".to_string(), json!(1));
+    obj.insert("pattern".to_string(), json!(r"^\S+$"));
+    obj.insert(
+        "description".to_string(),
+        json!(DESC_COMANDO_CLI.en_idioma(an.idioma)),
+    );
+    true
 }
 
 /// The passthrough's `opciones` is the only free object of the schema: it declares
