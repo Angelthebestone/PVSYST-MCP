@@ -162,3 +162,30 @@ fn should_reject_impossible_sizing_and_leave_the_variant_untouched_when_dimensio
     }
     assert_eq!(fs::read(&vc0).unwrap(), before);
 }
+
+#[test]
+fn should_report_the_trial_cost_of_a_site_creation_dry_run() {
+    let ws = synthetic_workspace();
+    // Given: the budget the last CLI run recorded in the ledger
+    let cache = ws.path().join("UserData").join("mcp_cache");
+    fs::create_dir_all(&cache).expect("cache");
+    fs::write(
+        cache.join("ledger.json"),
+        r#"{"modo":"trial","dias":58,"restantes":249,"actualizado":0}"#,
+    )
+    .expect("ledger");
+    let mut c = start(&ws);
+
+    // When: the site is only planned
+    let out = tool_text(&c.call(
+        2,
+        "sitio",
+        json!({ "accion": "crear", "latitud": 10.0, "longitud": -70.0,
+                "nombre_sitio": "Z_Site", "dry_run": true }),
+    ));
+
+    // Then: the plan says what the real call would spend and what is left
+    assert_eq!(out["dry_run"], json!(true), "out={out}");
+    assert_eq!(out["costo_estimado"]["ejecuciones"], json!(1), "out={out}");
+    assert_eq!(out["costo_estimado"]["restantes"], json!(249), "out={out}");
+}

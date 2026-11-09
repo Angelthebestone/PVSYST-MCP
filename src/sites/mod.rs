@@ -26,6 +26,9 @@ fn as_text(v: &Value) -> Option<String> {
     (v.is_string() || v.is_number() || v.is_boolean()).then(|| value_text(v))
 }
 
+/// Trial executions a `create-site` or `convert-meteo` run spends when it succeeds.
+const EJECUCIONES_POR_COMANDO: u32 = 1;
+
 /// Trial-budget cost of one CLI run: it consumes an execution only when the command succeeded.
 fn costo_de(ws: &std::path::Path, command: &str, out: &cli::CliOutput) -> Value {
     let usadas = u32::from(!out.timed_out && cli::classify(command, &out.stdout).0);
@@ -58,9 +61,11 @@ fn ejecutar<F: FnOnce(Value) -> Value>(
         cli_args.push(format!("-ll:{v}"));
     }
     if flag(args, &[DRY_RUN]) {
+        let ws = workspace_of(paths, args);
         return Ok(json!({
             "dry_run": true,
             "command_line": cli::display_command_line(&paths.cli_exe.to_string_lossy(), &cli_args),
+            "costo_estimado": ledger::costo_estimado(&ws, EJECUCIONES_POR_COMANDO),
         }));
     }
     let out = cli::run(
