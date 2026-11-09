@@ -16,6 +16,25 @@ fn should_name_a_catalogued_parent_that_opens_the_host_when_function_requires_on
     }
 }
 
+/// GUI-12: `menus` listed ids and positions but no name for any entry.
+#[test]
+fn should_name_a_menu_entry_by_the_catalogued_function_at_its_position() {
+    let (f, menu, item) = funciones()
+        .find_map(|f| match f.acceso {
+            Acceso::MenuPosicion { menu, item } => Some((f, usize::from(menu), usize::from(item))),
+            _ => None,
+        })
+        .expect("the catalogue has an entry by position");
+
+    let nombre = super::funcion_de_menu(f.ventana, (menu, item), None);
+
+    assert_eq!(nombre, Some((f.clave, f.etiqueta)));
+    assert_eq!(
+        super::funcion_de_menu("TNoExisteForm", (menu, item), None),
+        None
+    );
+}
+
 #[test]
 fn should_read_menu_ids_at_run_time_when_the_project_window_hosts_a_menu_item() {
     // The project window's command ids move between instances: a fixed id there

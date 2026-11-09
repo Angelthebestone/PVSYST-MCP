@@ -20,6 +20,26 @@ pub(crate) fn funciones_que_abren(clase: &str) -> Vec<&'static str> {
         .collect()
 }
 
+/// The catalogued function behind item `item` (or command `id`) of menu `menu` of
+/// window class `clase`, as `(clave, etiqueta)`: owner-drawn menus carry no text,
+/// so the catalogue is what names an entry. O(n) in the catalogued functions.
+pub(crate) fn funcion_de_menu(
+    clase: &str,
+    (menu, item): (usize, usize),
+    id: Option<u32>,
+) -> Option<(&'static str, &'static str)> {
+    entradas::funciones()
+        .filter(|f| f.ventana == clase)
+        .find(|f| match f.acceso {
+            dominio::Acceso::MenuPosicion { menu: m, item: i } => {
+                usize::from(m) == menu && usize::from(i) == item
+            }
+            dominio::Acceso::Menu { id: i } => id == Some(u32::from(i)),
+            dominio::Acceso::Boton { .. } => false,
+        })
+        .map(|f| (f.clave, f.etiqueta))
+}
+
 #[cfg(test)]
 #[path = "../../tests/unit/gui_catalogo/mod.rs"]
 mod tests;
