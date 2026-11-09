@@ -22,6 +22,24 @@ fn should_report_a_click_without_ocr_match_as_partial() {
     assert!(error.motivo.contains("NoExiste"), "{}", error.motivo);
 }
 
+/// GUI-09: `indice:5` with one match clicked that match through UIA.
+#[test]
+fn should_not_click_through_uia_when_the_index_is_out_of_range() {
+    use crate::adapters::gui::ffi::Rect;
+    let una_caja = [Rect {
+        left: 0,
+        top: 0,
+        right: 10,
+        bottom: 10,
+    }];
+
+    let rechazo = elegir_caja(&una_caja, Some(5), "Herramientas").expect_err("index 5 of 1");
+    let sin_nada = elegir_caja(&[], None, "Herramientas").expect_err("not drawn");
+
+    assert!(!recurre_a_uia(&rechazo));
+    assert!(recurre_a_uia(&sin_nada));
+}
+
 #[test]
 fn should_leave_a_click_with_an_ocr_match_as_it_was() {
     let mut resultado = json!({ "accion": "clic_texto", "coincidencias": 1 });
