@@ -77,8 +77,13 @@ Every task goes through these six steps, in order. Skipping one is a defect in t
 
 - **Assert what a user of the code observes:** the return value, the file on disk, the MCP response. Given state, when action, then observable result.
 - **Forbidden:** testing private functions, asserting call counts on mocks, asserting internal state, tests that pass when the behavior is broken.
-- **Every bug fix ships the test that failed before it.** Every feature covers the happy path, the error path and the edge.
-- **Layers:** unit tests sit beside the module, are pure and run in under 100 ms. Integration tests in `tests/` run against `tests/fixtures/workspace` and `fake_pvsystcli`. Tests that need a real PVsyst are `#[ignore]` and run on purpose.
+- **Few tests, each one earning its place.** A test exists because a behavior a user depends on would break without it. Not because a function, a branch or a line exists.
+- **One behavior, one test.** Before you add a test, look for the one that already covers that behavior and extend it. A change that alters no observable behavior adds no test: a rename, a refactor, a moved file, a log line, a doc.
+- **Forbidden:** one test per function, one test per small change, a new test for each input when a table of cases in one test does the job, tests that restate the implementation, tests for getters, constructors or trivial conversions.
+- **A bug fix ships one test:** the one that failed before the fix. A feature ships the tests of its behaviors: the main path, plus the error and edge cases that a user can actually reach. Not every combination.
+- **Prefer the outermost level that is still fast.** A test through the MCP tool or the public function of a feature is worth more than five tests of its internals.
+- **Deleting a test is a valid change.** A test that duplicates another, or that breaks on every refactor while the behavior stays the same, is deleted, and the commit says why.
+- **Layers:** unit tests cover pure domain behavior, sit beside the module and run in under 100 ms. Integration tests in `tests/` run against `tests/fixtures/workspace` and `fake_pvsystcli`. Tests that need a real PVsyst are `#[ignore]` and run on purpose.
 - **Deterministic and isolated.** No `sleep`, no network, no shared temp paths, no dependence on test order. Fakes over mocks.
 - **Fixtures are CRLF on purpose.** Do not re-encode `tests/fixtures/workspace/**`.
 - **Never weaken a test to make it pass.** A changed expectation is justified in the commit message.
@@ -96,7 +101,7 @@ cargo test --test <name>             # its integration binary, e.g. bombeo, perd
 pytest -q tools/<file>               # only when you touched tools/
 ```
 
-A change with no test covering it gets its test in the same unit. A change to `format/`, `error.rs`, `server/` or anything many modules depend on has no narrow scope: run the full gate.
+A new behavior with no test covering it gets one in the same unit. A change to `format/`, `error.rs`, `server/` or anything many modules depend on has no narrow scope: run the full gate.
 
 **Full gate, once per phase.** Run it when a phase or the whole plan is finished, and always before a push. It is what CI runs.
 
@@ -128,7 +133,7 @@ ruff check tools; ruff format --check tools; mypy --strict tools; pytest -q tool
 - [ ] No module named `utils`, `helpers` or `common`. Files at most 300 lines, functions at most 50.
 - [ ] No `unwrap`, `panic!` or print in production paths. Errors are typed and carry context.
 - [ ] PVsyst file edits preserve bytes they do not own, proven by a round-trip test.
-- [ ] Tests assert observable behavior and cover happy, error and edge paths.
+- [ ] Tests assert observable behavior. I added only the tests a new behavior needs, and none for changes that alter no behavior.
 - [ ] Each unit passed its scoped check. The full gate in section 8 is green, and I ran it after the last edit of the phase.
 - [ ] The work is committed, and pushed after the full gate.
 - [ ] README and CHANGELOG match the new behavior.
