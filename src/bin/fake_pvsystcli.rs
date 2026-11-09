@@ -127,10 +127,21 @@ fn write_simulation_log() {
 /// Write the `.SIT` PVsyst would create at the value of `-osf:`, with the site
 /// object the project and the variant take from it.
 fn escribir_sit(args: &[String], flag: &str) {
-    if let Some(target) = option(args, flag) {
-        let sitio = "PVObject_=pvSite\r\n  Comment=Synthetic site;Nowhere;\r\n  Version=8.1.0\r\n  Latitude=10.0000\r\n  Longitude=-70.0000\r\n  Altitude=100\r\n  TimeZone=-5.0\r\nEnd of PVObject pvSite\r\n";
-        let _ = fs::write(target, sitio);
-    }
+    let Some(target) = option(args, flag) else {
+        return;
+    };
+    // The fields the MCP reads back: the coordinates it asked for, the altitude and
+    // the `Source` that marks a site created from a NASA grid cell.
+    let campo = |flag: &str, defecto: &str| option(args, flag).unwrap_or(defecto).to_string();
+    let sitio = format!(
+        "PVObject_=pvSite\r\n  Comment=Synthetic site;Nowhere;\r\n  Version=8.1.0\r\n  NomF={nombre}\r\n  Country=Nowhere\r\n  Latitude={lat}\r\n  Longitude={lon}\r\n  Altitude={alt}\r\n  TimeZone=-5.0\r\n  Source={src}\r\nEnd of PVObject pvSite\r\n",
+        nombre = campo("-sn:", "Synthetic"),
+        lat = campo("-lat:", "10.0000"),
+        lon = campo("-lon:", "-70.0000"),
+        alt = campo("-alt:", "0"),
+        src = campo("-s:", "NASA SSE grid cell"),
+    );
+    let _ = fs::write(target, sitio);
 }
 
 fn option<'a>(args: &'a [String], flag: &str) -> Option<&'a str> {

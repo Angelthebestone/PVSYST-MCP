@@ -152,7 +152,9 @@ fn should_refuse_a_standalone_design_without_the_string_layout_before_any_work()
     }));
 
     // When: the preflight runs
-    let err = super::diseno::exigir_dimensionado_sin_gui(&params).expect_err("sin disposición");
+    let paths = Paths::para_test(std::env::temp_dir());
+    let err =
+        super::diseno::exigir_dimensionado_sin_gui(&paths, &params).expect_err("sin disposición");
 
     // Then: it names both keys and the way out instead of failing after the site exists
     let msg = err.to_string();

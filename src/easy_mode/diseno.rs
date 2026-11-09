@@ -20,7 +20,7 @@ use serde_json::{json, Value};
 /// unless `confirmar` is true.
 pub(crate) fn disenar_sistema(paths: &Paths, args: &Value) -> Result<Value> {
     let params = DisenoParametros::parse(args)?;
-    exigir_dimensionado_sin_gui(&params)?;
+    exigir_dimensionado_sin_gui(paths, &params)?;
     meteonorm::exigir_si_sintetica(
         meteonorm::bases_de_instalacion(paths).as_deref(),
         params.simulacion.simular && params.simulacion.synthetic_weather,
@@ -72,16 +72,31 @@ pub(crate) fn disenar_sistema(paths: &Paths, args: &Value) -> Result<Value> {
 /// real workspace, which failed on every trial: reject it before any work starts. A stand-alone
 /// design without both would only fail later, in the sizing step, after the site and the project
 /// exist, so it is refused here too instead of leaving half the work behind.
-pub(super) fn exigir_dimensionado_sin_gui(params: &DisenoParametros) -> Result<()> {
+pub(super) fn exigir_dimensionado_sin_gui(paths: &Paths, params: &DisenoParametros) -> Result<()> {
     let d = &params.dimensionado;
     let completo = d.n_mod_serie.is_some() && d.n_strings.is_some();
     if completo || d.via_aproximacion {
         return Ok(());
     }
-    Err(Error::Invalid(
-        "Sin 'n_mod_serie' y 'n_strings' el dimensionado no es fiable (red: lo haría la GUI de PVsyst; aislado: no hay pre-dimensionado): pasa ambos o usa via:'aproximacion'".into(),
-    ))
+    // The way out named here must be one the schema offers: `via:"aproximacion"`
+    // only exists while approximations are enabled.
+    let mensaje = if paths.aproximaciones {
+        SIN_DIMENSIONADO_CON_APROXIMACION
+    } else {
+        SIN_DIMENSIONADO_SIN_APROXIMACION
+    };
+    Err(Error::Invalid(mensaje.en_idioma(paths.idioma).to_string()))
 }
+
+const SIN_DIMENSIONADO_CON_APROXIMACION: Texto = Texto {
+    es: "Sin 'n_mod_serie' y 'n_strings' el dimensionado no es fiable (red: lo haría la GUI de PVsyst; aislado: no hay pre-dimensionado): pasa ambos o usa via:'aproximacion'",
+    en: "Without 'n_mod_serie' and 'n_strings' the sizing is unreliable (grid: PVsyst's GUI would do it; stand-alone: there is no pre-sizing): pass both, or use via:'aproximacion'",
+};
+
+const SIN_DIMENSIONADO_SIN_APROXIMACION: Texto = Texto {
+    es: "Sin 'n_mod_serie' y 'n_strings' el dimensionado no es fiable (red: lo haría la GUI de PVsyst; aislado: no hay pre-dimensionado): pasa ambos. via:'aproximacion' solo existe con PVSYST_MCP_APROXIMACIONES=1 en el servidor MCP",
+    en: "Without 'n_mod_serie' and 'n_strings' the sizing is unreliable (grid: PVsyst's GUI would do it; stand-alone: there is no pre-sizing): pass both. via:'aproximacion' only exists with PVSYST_MCP_APROXIMACIONES=1 in the MCP server",
+};
 
 /// Runs the steps; when one fails, undoes this call on the project's own files.
 fn correr_transaccional(
