@@ -117,6 +117,35 @@ fn entidad_pedida(args: &Value) -> Result<Option<&'static Entidad>> {
         .find(|e| clases.iter().any(|c| c == e.formulario)))
 }
 
+/// Windows that exist only to host the others: never what a caller means by "the open window".
+const AUXILIARES: [&str; 2] = ["TApplication", "THintWindow"];
+
+/// Why `vista` has no entity: nothing is open, or what is open (named) has no schema (BUG-17:
+/// «ninguna ventana conocida abierta» with the home screen on screen).
+fn aviso_sin_entidad(args: &Value) -> Result<String> {
+    let clases: Vec<String> = if args.get("ventana").is_some() {
+        vec![class_of(hwnd_de(args, "ventana")?)]
+    } else {
+        ventanas_de(args)?
+            .into_iter()
+            .filter(|h| visible(*h))
+            .map(class_of)
+            .filter(|c| !AUXILIARES.contains(&c.as_str()))
+            .collect()
+    };
+    Ok(texto_sin_entidad(&clases))
+}
+
+fn texto_sin_entidad(clases: &[String]) -> String {
+    if clases.is_empty() {
+        return "ninguna ventana de PVsyst abierta; esquemas con gui_observar que:esquema".into();
+    }
+    format!(
+        "{} no tiene esquema de campos; lo abierto se lee con gui_observar que:controles, y los esquemas existentes se listan con que:esquema",
+        clases.join(", ")
+    )
+}
+
 /// A registered window without a schema: its fields by position, or why it is capture-only.
 fn vista_de_ventana_registrada(args: &Value) -> Result<Option<Value>> {
     if args.get("ventana").is_none() {
@@ -141,10 +170,7 @@ pub(crate) fn vista(paths: &crate::config::Paths, args: &Value) -> Result<Value>
         if let Some(vista) = vista_de_ventana_registrada(args)? {
             return Ok(vista);
         }
-        return Ok(json!({
-            "entidad": null,
-            "aviso": "ninguna ventana conocida abierta; esquemas con gui_observar que:esquema",
-        }));
+        return Ok(json!({ "entidad": null, "aviso": aviso_sin_entidad(args)? }));
     };
     let h = ventana_de(args, ent)?;
     let vivos = campos_vivos(h);
@@ -203,3 +229,7 @@ pub(crate) fn listar_esquemas(args: &Value) -> Result<Value> {
     }
     Ok(esquemas)
 }
+
+#[cfg(test)]
+#[path = "../../tests/unit/vista_agente/vista.rs"]
+mod tests;
