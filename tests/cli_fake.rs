@@ -13,6 +13,9 @@
 
 mod cliente_mcp;
 
+#[path = "cli_fake/clasificacion.rs"]
+mod clasificacion;
+
 #[path = "cli_fake/ejecucion.rs"]
 mod ejecucion;
 

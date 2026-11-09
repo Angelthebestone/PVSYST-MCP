@@ -25,7 +25,9 @@ fn main() -> ExitCode {
         return ExitCode::from(2);
     };
     let dir = Path::new(&dir);
-    let command = args.get(1).map(String::as_str).unwrap_or("");
+    // Real PVsystCLI command names are case-insensitive.
+    let comando = args.get(1).map(String::as_str).unwrap_or("").to_lowercase();
+    let command = comando.as_str();
     if let Some(ms) = env::var("FAKE_PVSYST_SLEEP_MS")
         .ok()
         .and_then(|v| v.parse::<u64>().ok())
@@ -36,7 +38,11 @@ fn main() -> ExitCode {
     if command == "run-simulation" && env::var("FAKE_PVSYST_PROGRESO").as_deref() == Ok("1") {
         emitir_progreso();
     }
-    if emitir_casos_especiales(command, &args) {
+    if let Some(mensaje) = error_de_carpeta_destino(command, &args) {
+        println!("{mensaje}");
+        return ExitCode::SUCCESS;
+    }
+    if emitir_error_de_opciones(dir, &args) || emitir_casos_especiales(command, &args) {
         return ExitCode::SUCCESS;
     }
     // Success fixtures are stored as `<command>-ok.txt`; plain `<command>.txt` wins when present.
@@ -134,6 +140,32 @@ fn touch_output(args: &[String], flag: &str) {
 fn option<'a>(args: &'a [String], flag: &str) -> Option<&'a str> {
     args.iter().find_map(|a| a.strip_prefix(flag))
 }
+
+/// `export-logs` to a folder that does not exist: the real CLI prints this and exits 0.
+fn error_de_carpeta_destino(command: &str, args: &[String]) -> Option<String> {
+    if command != "export-logs" {
+        return None;
+    }
+    let destino = option(args, "-t:")?;
+    (!Path::new(destino).is_dir())
+        .then(|| format!("{destino} does not exist. Please set another target folder."))
+}
+/// Opciones que el CLI real rechaza con `Error: Invalid command syntax` y salida 0.
+fn emitir_error_de_opciones(dir: &Path, args: &[String]) -> bool {
+    let fixture = if args.iter().any(|a| a == "--bogus") {
+        "bad-option.txt"
+    } else if args.get(1).map(String::as_str) == Some("help") {
+        "unknown-command.txt"
+    } else {
+        return false;
+    };
+    let Ok(bytes) = fs::read(dir.join(fixture)) else {
+        return false;
+    };
+    print!("{}", String::from_utf8_lossy(&bytes));
+    true
+}
+
 /// Emite respuestas sintéticas para pruebas de volumen masivo y ambigüedad.
 fn emitir_casos_especiales(command: &str, args: &[String]) -> bool {
     if command == "huge-output" || args.iter().any(|a| a == "--huge-output") {

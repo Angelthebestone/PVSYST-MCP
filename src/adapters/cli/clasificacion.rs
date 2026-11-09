@@ -6,7 +6,7 @@
 //! confirmación, se clasifica explícitamente como ambiguo.
 
 /// Substrings en la salida estándar que indican que el comando falló.
-pub(crate) const ERROR_MARKERS: [&str; 22] = [
+pub(crate) const ERROR_MARKERS: [&str; 24] = [
     "Invalid command syntax",
     "Unknown command",
     "Unknown option",
@@ -29,6 +29,21 @@ pub(crate) const ERROR_MARKERS: [&str; 22] = [
     "was not specified",
     "already exists in the working directory",
     "Simulation cannot be run",
+    // Measured in 8.1.8: `export-logs` to a folder that does not exist.
+    "does not exist. Please set another target folder",
+    // Measured in 8.1.8: `convert-meteo` with a CSV whose dates are unreadable.
+    "Invalid date Line",
+];
+
+/// Comienzos de línea que PVsystCLI imprime solo cuando rechazó el comando. Se
+/// buscan al principio de la línea para no confundirlos con el texto de ayuda,
+/// que documenta esas mismas cadenas. Medidos en 8.1.8 (rev. 49527):
+/// `Error: Invalid command syntax`, `Unknown command line option : --x`,
+/// `Unknown option : x` y `Unknown command "help"`.
+const PREFIJOS_ERROR_EXPLICITO: [&str; 3] = [
+    "Error: Invalid command syntax",
+    "Unknown command",
+    "Unknown option :",
 ];
 
 /// Clasificación explícita y tipada del resultado de un comando CLI.
@@ -60,18 +75,31 @@ pub(crate) fn is_license_banner(line: &str) -> bool {
 }
 
 /// Subcadena positiva de confirmación requerida para cada comando de acción.
+/// Los comandos de PVsystCLI no distinguen mayúsculas de minúsculas.
+const CONFIRMACIONES: [(&str, &str); 7] = [
+    ("create-site", "created with success"),
+    ("convert-meteo", "Conversion ended successfully"),
+    ("run-simulation", "Simulation done in "),
+    ("export-logs", "Logs ZIP file successfully created"),
+    ("lic-activate", "successfully activated"),
+    ("lic-sync", "successfully synchronised"),
+    ("lic-deactivate", "successfully deactivated"),
+];
+
 pub(crate) fn confirmed(command: &str, stdout: &str) -> bool {
-    let needle = match command {
-        "create-site" => "created with success",
-        "convert-meteo" => "Conversion ended successfully",
-        "run-simulation" => "Simulation done in ",
-        "export-logs" => "Logs ZIP file successfully created",
-        "lic-activate" => "successfully activated",
-        "lic-sync" => "successfully synchronised",
-        "lic-deactivate" => "successfully deactivated",
-        _ => return false,
-    };
-    stdout.contains(needle)
+    CONFIRMACIONES
+        .iter()
+        .find(|(nombre, _)| command.eq_ignore_ascii_case(nombre))
+        .is_some_and(|(_, needle)| stdout.contains(needle))
+}
+
+/// Primer error explícito de la línea de comandos en `texto`, si lo hay.
+fn error_explicito(texto: &str) -> Option<String> {
+    texto
+        .lines()
+        .map(str::trim)
+        .find(|l| PREFIJOS_ERROR_EXPLICITO.iter().any(|p| l.starts_with(p)))
+        .map(str::to_string)
 }
 
 /// Busca marcadores de error conocidos dentro del texto filtrado.
@@ -92,7 +120,9 @@ pub(crate) fn buscar_marcador_error(texto: &str) -> Option<String> {
 }
 
 fn es_comando_informativo(command: &str) -> bool {
-    matches!(command, "help" | "version" | "lic-info")
+    ["help", "version", "lic-info"]
+        .iter()
+        .any(|c| command.eq_ignore_ascii_case(c))
 }
 
 /// Clasifica la salida estándar de PVsystCLI considerando marcadores y confirmación.
@@ -156,6 +186,11 @@ pub(crate) fn clasificar_salida(
 }
 
 fn clasificar_informativo(command: &str, stdout: &str) -> Clasificacion {
+    // El atajo por código de salida existe porque el texto de ayuda documenta
+    // marcadores como "Required option"; un error explícito sigue siendo un error.
+    if let Some(err) = error_explicito(stdout) {
+        return Clasificacion::Error(err);
+    }
     if stdout.trim().is_empty() {
         return Clasificacion::Ambiguo(format!("Salida vacía para '{command}'"));
     }
