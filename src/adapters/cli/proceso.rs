@@ -165,9 +165,10 @@ fn esperar_proceso(child: &mut Child, espera: &EsperaProceso<'_>) -> Result<(Opt
             terminar(child);
             return Ok((None, true));
         }
-        // Solo se copia el stdout acumulado cuando el lector añadió bytes nuevos.
+        // Solo se copia el stdout acumulado cuando hay quien escuche el avance y el
+        // lector añadió bytes nuevos: sin reporter, copiar era O(n²) para nada.
         let longitud = super::captura::longitud_sink(espera.sink);
-        if longitud != bytes_escaneados {
+        if espera.seguimiento.informa_progreso() && longitud != bytes_escaneados {
             bytes_escaneados = longitud;
             let avance = texto_sink(espera.sink)
                 .ok()
@@ -357,7 +358,6 @@ pub(crate) fn ejecutar(
         }
         return Ok(ensayo);
     }
-    requerir_cli(paths)?;
     let out = run_seguido(&ParametrosEjecucion {
         paths,
         cli_args: &cli_args,
