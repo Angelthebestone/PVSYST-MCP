@@ -111,6 +111,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`Sites/X.HOR`) no longer creates a folder inside `Shadings`, which is not where PVsyst looks for a horizon.
 - **`sitio crear` from a CSV reports the `.SIT` it expects** (`output_sit_file`, else `Sites/<name>.SIT`) instead of
   `expected_sit:null`; both origins now use the same rule.
+- **`entorno preferencias` reports `n_secciones`** (and `n_claves` when a `seccion` is asked for), so `vista.campos` is
+  no longer empty: the file path and the section table were the only other values.
 
 ### Changed
 - The six `proyecto` actions that edit a variant (storage, pumping, injection limit, losses, economics, tracker) build their answer with one

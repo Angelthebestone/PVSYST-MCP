@@ -44,3 +44,6 @@ mod horizonte;
 
 #[path = "mcp_regresiones/sitios.rs"]
 mod sitios;
+
+#[path = "mcp_regresiones/entorno.rs"]
+mod entorno;
