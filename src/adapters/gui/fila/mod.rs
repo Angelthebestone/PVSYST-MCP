@@ -11,8 +11,9 @@ mod error;
 mod geometria;
 mod registro;
 
-use super::acciones::{clic_fisico_en_control, exigir_escritorio, PuntoPedido};
+use super::acciones::exigir_escritorio;
 use super::captura::{rgb_de_control, ImagenRgb};
+use super::clic_fisico::{clic_fisico_en_control, PuntoPedido};
 use super::conduccion::formularios;
 use super::escritorio;
 use super::ffi::{self, Hwnd, GA_ROOT};
