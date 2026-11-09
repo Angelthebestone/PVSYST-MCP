@@ -59,6 +59,12 @@ pub(crate) fn recortar(v: &mut Value, lim: (usize, usize)) -> bool {
                 recortado |= recortar_campo_objeto(k, hijo, &mut ctx);
             }
             recortado |= !totales.is_empty();
+            // A `count` that counted the list now cut says how many are left, not how many there were.
+            for (_, total) in &totales {
+                if mapa.get("count").and_then(Value::as_u64) == u64::try_from(*total).ok() {
+                    mapa.insert("count".into(), Value::from(max_arr));
+                }
+            }
             // A `<clave>_total` the answer already carries is the domain's count: keep it.
             for (k, total) in totales {
                 mapa.entry(k).or_insert(Value::from(total));
