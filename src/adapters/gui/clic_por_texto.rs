@@ -46,8 +46,27 @@ pub(crate) fn clic_texto(args: &Value) -> Result<Value> {
     if let (Some(aviso), Some(obj)) = (aviso, resultado.as_object_mut()) {
         obj.insert("advertencias".into(), json!([aviso]));
     }
+    marcar_sin_ocr(&mut resultado, texto, coincidencias);
     Ok(resultado)
 }
+
+/// A click without an OCR match went to the UIA element of that name: it
+/// happened, but nothing confirms it hit the text the caller read, so the answer
+/// carries `error` and `vista` reports it as partial instead of "ok" (BUG-03).
+fn marcar_sin_ocr(resultado: &mut Value, texto: &str, coincidencias: usize) {
+    if let (0, Some(obj)) = (coincidencias, resultado.as_object_mut()) {
+        obj.insert(
+            "error".into(),
+            json!(format!(
+                "El OCR no encontró '{texto}' (coincidencias:0): se pulsó el elemento UIA de ese nombre; comprueba el efecto con gui_observar que:ventanas"
+            )),
+        );
+    }
+}
+
+#[cfg(test)]
+#[path = "../../../tests/unit/adapters/gui/clic_por_texto.rs"]
+mod tests;
 
 /// Screen point to click for `texto`: the OCR box chosen by `indice`, or, when
 /// OCR does not draw the text (VCL buttons sometimes lack pixels), the centre

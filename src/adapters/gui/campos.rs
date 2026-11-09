@@ -197,13 +197,29 @@ where
         Err(error) => return Err(error),
     };
     let cerrado = esperar_cierre(h, Duration::from_millis(espera_ms));
-    Ok(json!({
+    Ok(respuesta_de_espera(h, cerrado, espera_ms))
+}
+
+/// The answer of a wait: a window that stayed open carries `error`, so the
+/// `vista` block reports it as partial instead of "ok".
+fn respuesta_de_espera(h: Hwnd, cerrado: bool, espera_ms: u64) -> Value {
+    let mut respuesta = json!({
         "accion": "esperar_cierre",
         "hwnd": format!("0x{h:X}"),
         "cerrado": cerrado,
         "ya_cerrada": false,
         "espera_ms": espera_ms,
-    }))
+    });
+    if let (false, Some(mapa)) = (cerrado, respuesta.as_object_mut()) {
+        mapa.insert(
+            "error".into(),
+            json!(format!(
+                "{} sigue abierta tras {espera_ms} ms (gui_observar que:ventanas)",
+                class_of(h)
+            )),
+        );
+    }
+    respuesta
 }
 
 /// Waits until the target window is gone or hidden; an already closed window is
