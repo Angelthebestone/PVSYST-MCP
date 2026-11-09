@@ -70,6 +70,48 @@ fn should_refuse_a_command_name_with_spaces_or_controls() {
     }
 }
 
+/// `log_level` is the tool's own name for PVsystCLI's `-ll`: it must reach the
+/// command line instead of being listed as ignored, and its range is checked.
+#[test]
+fn should_pass_log_level_as_the_cli_log_level_option() {
+    let ws = workspace();
+    let mut client = Client::start_env(Some(&ws_str(ws.path())), &fake_env());
+    client.initialize();
+    let v = tool_text(&client.call(
+        2,
+        "pvsyst_cli",
+        json!({ "comando": "version", "log_level": 2 }),
+    ));
+    assert_eq!(v["success"], json!(true), "{v}");
+    assert!(
+        v["command_line"]
+            .as_str()
+            .unwrap_or_default()
+            .ends_with("-ll:2"),
+        "{v}"
+    );
+    let error = error_text(&client.call(
+        3,
+        "pvsyst_cli",
+        json!({ "comando": "version", "log_level": 9 }),
+    ));
+    assert!(error.contains("log_level"), "{error}");
+}
+
+/// `via` changes nothing in a passthrough, so the answer must say it was ignored.
+#[test]
+fn should_report_via_as_ignored() {
+    let ws = workspace();
+    let mut client = Client::start_env(Some(&ws_str(ws.path())), &fake_env());
+    client.initialize();
+    let v = tool_text(&client.call(
+        2,
+        "pvsyst_cli",
+        json!({ "comando": "help", "via": "pvsyst" }),
+    ));
+    assert_eq!(v["ignorados"], json!(["via"]), "{v}");
+}
+
 /// A relative output path must land in the workspace, not in the directory the
 /// server was started from.
 #[test]

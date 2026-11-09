@@ -29,6 +29,7 @@ pub(crate) const TOOL_PVSYST_CLI: Herramienta = Herramienta {
         ("opciones", TipoDato::ArrayOrObject),
         ("dry_run", TipoDato::Boolean),
         ("timeout_s", TipoDato::Integer),
+        ("log_level", TipoDato::Integer),
     ],
     requeridos: &["comando"],
     discriminador: None,

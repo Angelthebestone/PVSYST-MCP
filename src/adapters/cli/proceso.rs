@@ -328,6 +328,20 @@ pub(crate) fn ejecutar(
 
     let mut cli_args: Vec<String> = vec![comando.to_string()];
     cli_args.extend(opciones_de(args)?);
+    // `log_level` is this tool's name for PVsystCLI's `-ll`; an `-ll` already in
+    // `opciones` wins, so the option is never written twice.
+    super::linea_comando::validar_log_level(args)?;
+    if let Some(nivel) = args.get("log_level").and_then(Value::as_i64) {
+        let ya_puesto = cli_args.iter().any(|a| {
+            a.starts_with("-ll:")
+                || a.starts_with("--log-level:")
+                || a == "-ll"
+                || a == "--log-level"
+        });
+        if !ya_puesto {
+            cli_args.push(format!("-ll:{nivel}"));
+        }
+    }
 
     let dry_run = dry_run_de(args)?;
     let command_line = display_command_line(&paths.cli_exe.to_string_lossy(), &cli_args);
