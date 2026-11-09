@@ -221,8 +221,8 @@ pub(crate) fn ejecutar(
         respuesta["costo"] = crate::adapters::ledger::registrar(&paths.workspace, &out.stdout, 1);
     }
     if entrada.detalle_completo {
+        // The tail stays flagged as cut: `stdout` is what has the whole answer.
         respuesta["stdout"] = json!(out.stdout);
-        respuesta["stdout_tail_truncado"] = json!(false);
     }
     Ok(respuesta)
 }

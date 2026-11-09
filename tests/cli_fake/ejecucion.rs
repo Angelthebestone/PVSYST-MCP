@@ -209,7 +209,7 @@ fn should_flag_a_cut_help_tail_and_return_the_whole_stdout_on_request() {
     let mut completo = args;
     completo["detalle"] = json!("completo");
     let largo = tool_text(&client.call(3, "pvsyst_cli", completo));
-    assert_eq!(largo["stdout_tail_truncado"], json!(false), "{largo}");
+    assert_eq!(largo["stdout_tail_truncado"], json!(true), "{largo}");
     assert!(
         largo["stdout"]
             .as_str()
