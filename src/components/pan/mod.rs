@@ -121,16 +121,24 @@ pub(crate) fn resolve_module_file(
         )));
     }
 
+    // A bare stem is accepted too ("Generic_440" -> "Generic_440.PAN"), the way
+    // every other component reference is resolved.
     let bare = direct.file_name().and_then(|s| s.to_str()).unwrap_or(name);
-    let candidates = [
-        ws.join("ComposPV").join("PVModules").join(bare),
-        ws.join("ComposPV").join("PVmodules").join(bare),
-        paths.modules_dir().join(bare),
-        crate::config::compos_ro().join("PVModules").join(bare),
+    let nombres = [
+        bare.to_string(),
+        crate::components::nombre_con_extension(bare, "PAN"),
     ];
-    for c in candidates {
-        if c.exists() {
-            return Ok(c);
+    for nombre in &nombres {
+        let candidates = [
+            ws.join("ComposPV").join("PVModules").join(nombre),
+            ws.join("ComposPV").join("PVmodules").join(nombre),
+            paths.modules_dir().join(nombre),
+            crate::config::compos_ro().join("PVModules").join(nombre),
+        ];
+        for c in candidates {
+            if c.exists() {
+                return Ok(c);
+            }
         }
     }
 

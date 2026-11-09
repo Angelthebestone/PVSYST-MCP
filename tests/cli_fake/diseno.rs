@@ -103,6 +103,33 @@ fn should_report_what_pvsyst_printed_when_the_simulation_step_fails() {
     );
 }
 
+#[test]
+fn should_accept_the_module_name_without_its_extension() {
+    // Given: the module named the way `componente` accepts it, without `.PAN`
+    let ws = synthetic_workspace();
+    let data_ro = data_ro();
+    let cli = cli_que_falla("Checking license...\nSimulation done in 0min 2sec\n");
+    let mut client = Client::start_env(
+        Some(&ws.path().to_string_lossy()),
+        &[
+            ("PVSYST_CLI", FAKE),
+            ("FAKE_PVSYST_FIXTURES", &cli.path().to_string_lossy()),
+            ("PVSYST_DATARO", &data_ro.path().to_string_lossy()),
+        ],
+    );
+    client.initialize();
+
+    // When
+    let out = disenar(
+        &mut client,
+        json!({ "modulo": "Synth_400W", "simular": false }),
+    );
+
+    // Then: it sizes with that module instead of failing to find it
+    assert_eq!(paso(&out, "dimensionado")["ok"], json!(true), "{out}");
+    assert_eq!(out["kwp_realizado"].as_f64(), Some(8.0), "{out}");
+}
+
 /// The workspace of a design that ran once, for the calls that need one.
 #[allow(dead_code)]
 fn vc0(ws: &Path) -> String {
