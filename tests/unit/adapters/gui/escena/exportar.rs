@@ -1,8 +1,17 @@
 //! File policy of a scene export: PVsyst writes a temporary name, a read deletes
 //! it and a write replaces the requested name.
 
-use super::{borrar, conservar, ruta_de, ruta_temporal};
+use super::{borrar, conservar, exigir_nombre_escrito, ruta_de, ruta_temporal};
 use crate::config::Paths;
+
+/// GUI-03: «Guardar» with a name that never reached the field wrote nothing and said nothing.
+#[test]
+fn should_refuse_to_save_when_the_name_did_not_reach_the_dialog() {
+    let error = exigir_nombre_escrito("_mcp_QA", "").expect_err("empty field");
+
+    assert!(error.to_string().contains("_mcp_QA"), "{error}");
+    assert!(exigir_nombre_escrito("_mcp_QA", "_mcp_QA").is_ok());
+}
 
 fn workspace() -> (tempfile::TempDir, Paths) {
     let carpeta = tempfile::tempdir().expect("carpeta temporal");
