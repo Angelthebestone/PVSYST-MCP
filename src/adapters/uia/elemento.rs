@@ -4,6 +4,7 @@ use super::com;
 use super::limite::con_limite;
 use super::{rol_de, Sesion};
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Value};
 use std::time::Duration;
 use windows::Win32::UI::Accessibility::IUIAutomationElement;
@@ -93,16 +94,30 @@ pub(crate) fn invocar(
     let tarea = move || invocar_sin_limite(hwnd, n.as_deref(), r.as_deref(), &a, v.as_deref());
     match con_limite(ESPERA_OPERACION, tarea)? {
         Some(resultado) => resultado,
+        // `invocar` is also called from `projects::gui`, which carries no `Idioma`:
+        // the environment is the same source `Paths` reads.
         None => Ok(json!({
             "operacion": accion,
             "nombre": nombre,
             "retorno": false,
-            "error": format!(
-                "UIA '{accion}' no volvió en {} s: PVsyst probablemente abrió un formulario modal que sigue abierto; comprueba con gui_observar que:ventanas",
-                ESPERA_OPERACION.as_secs()
-            ),
+            "error": sin_retorno(accion),
         })),
     }
+}
+
+/// What a pattern call that did not return means for the caller.
+fn sin_retorno(accion: &str) -> String {
+    let no_vuelve = Texto {
+        es: "UIA '{accion}' no volvió en {segundos} s: PVsyst probablemente abrió un formulario modal que sigue abierto; comprueba con gui_observar que:ventanas",
+        en: "UIA '{accion}' did not return in {segundos} s: PVsyst probably opened a modal form that is still open; check with gui_observar que:ventanas",
+    };
+    no_vuelve.texto_con(
+        Idioma::de_entorno(),
+        &[
+            ("accion", accion),
+            ("segundos", &ESPERA_OPERACION.as_secs().to_string()),
+        ],
+    )
 }
 
 fn invocar_sin_limite(

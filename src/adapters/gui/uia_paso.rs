@@ -9,7 +9,7 @@ use super::ventanas::{class_of, hwnd_de, resolve, ventanas_de, visible};
 use crate::adapters::uia;
 use crate::args::req_str;
 use crate::error::{Error, Result};
-use crate::idioma::Idioma;
+use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Value};
 
 /// Lets PVsyst finish the tab change (or its veto) before the strip is read back.
@@ -128,16 +128,20 @@ pub(crate) fn cascada(
         teclas(&Value::Object(a), idioma)?;
         return Ok("teclas");
     }
-    Err(Error::Gui(
-        "No se pudo ejecutar el paso: objetivo no encontrado".into(),
-    ))
+    let sin_objetivo = Texto {
+        es: "No se pudo ejecutar el paso: objetivo no encontrado",
+        en: "Could not run the step: target not found",
+    };
+    Err(Error::Gui(sin_objetivo.en_idioma(idioma).into()))
 }
 
 pub(crate) fn paso(args: &Value, idioma: Idioma) -> Result<Value> {
     if args.get("operacion").is_some() {
-        return Err(Error::Invalid(
-            "'operacion' no aplica a 'paso': la cascada elige la acción; use uia_invocar operacion:… o gui_actuar accion:campo/seleccionar".into(),
-        ));
+        let no_aplica = Texto {
+            es: "'operacion' no aplica a 'paso': la cascada elige la acción; usa uia_invocar operacion:… o gui_actuar accion:campo/seleccionar",
+            en: "'operacion' does not apply to 'paso': the cascade picks the action; use uia_invocar operacion:… or gui_actuar accion:campo/seleccionar",
+        };
+        return Err(Error::Invalid(no_aplica.en_idioma(idioma).into()));
     }
     let objetivo = args
         .get("objetivo")
@@ -150,9 +154,11 @@ pub(crate) fn paso(args: &Value, idioma: Idioma) -> Result<Value> {
         titulo: campo("titulo"),
     };
     if obj.nombre.is_none() && obj.rol.is_none() && obj.clase.is_none() && obj.titulo.is_none() {
-        return Err(Error::Gui(
-            "'objetivo' necesita nombre, rol, clase o titulo".into(),
-        ));
+        let sin_criterio = Texto {
+            es: "'objetivo' necesita nombre, rol, clase o titulo",
+            en: "'objetivo' needs nombre, rol, clase or titulo",
+        };
+        return Err(Error::Gui(sin_criterio.en_idioma(idioma).into()));
     }
     let scoped = ventanas_de(args)?;
     let raiz = match args.get("ventana").and_then(Value::as_str) {

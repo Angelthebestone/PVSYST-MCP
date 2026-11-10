@@ -5,6 +5,7 @@
 //! already owns one COM apartment per call) and the caller stops waiting.
 
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use std::sync::mpsc::{self, RecvTimeoutError};
 use std::time::Duration;
 
@@ -23,13 +24,26 @@ where
             // The receiver is gone once the caller gave up: nobody wants the result.
             let _ = emisor.send(tarea());
         })
-        .map_err(|e| Error::Gui(format!("No se pudo crear el hilo UIA: {e}")))?;
+        .map_err(|e| {
+            // Its only caller (`uia::invocar`) has no `Idioma` to hand down.
+            let sin_hilo = Texto {
+                es: "No se pudo crear el hilo UIA: {error}",
+                en: "Could not create the UIA thread: {error}",
+            };
+            Error::Gui(sin_hilo.texto_con(Idioma::de_entorno(), &[("error", &e.to_string())]))
+        })?;
     match receptor.recv_timeout(espera) {
         Ok(resultado) => Ok(Some(resultado)),
         Err(RecvTimeoutError::Timeout) => Ok(None),
-        Err(RecvTimeoutError::Disconnected) => Err(Error::Gui(
-            "La operación UIA terminó de forma inesperada (el hilo falló)".into(),
-        )),
+        Err(RecvTimeoutError::Disconnected) => {
+            let hilo_caido = Texto {
+                es: "La operación UIA terminó de forma inesperada (el hilo falló)",
+                en: "The UIA operation ended unexpectedly (the thread failed)",
+            };
+            Err(Error::Gui(
+                hilo_caido.en_idioma(Idioma::de_entorno()).into(),
+            ))
+        }
     }
 }
 

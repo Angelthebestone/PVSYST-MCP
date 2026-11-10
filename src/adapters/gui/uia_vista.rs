@@ -6,6 +6,7 @@ use super::ventanas::{hwnd_de, ventanas_de, window_brief};
 use crate::adapters::uia;
 use crate::args::flag;
 use crate::error::{Error, Result};
+use crate::idioma::Texto;
 use serde_json::{json, Value};
 
 const DEFAULT_UIA_DEPTH: u32 = 4;
@@ -98,8 +99,13 @@ pub(crate) fn controles_con_uia(paths: &crate::config::Paths, args: &Value) -> R
     if flag(args, &["incluir_uia"]) {
         let h = match args.get("ventana").and_then(Value::as_str) {
             Some(_) => hwnd_de(args, "ventana")?,
-            None => raiz_por_defecto(&ventanas_de(args)?)
-                .ok_or_else(|| Error::Gui("No hay una ventana visible para inspeccionar".into()))?,
+            None => raiz_por_defecto(&ventanas_de(args)?).ok_or_else(|| {
+                let sin_ventana = Texto {
+                    es: "No hay una ventana visible para inspeccionar",
+                    en: "There is no visible window to inspect",
+                };
+                Error::Gui(sin_ventana.en_idioma(paths.idioma).into())
+            })?,
         };
         let arbol = uia::arbol(&paths.estado, h, DEFAULT_UIA_DEPTH, DEFAULT_UIA_MAX_NODES)?;
         let mut plano = Vec::new();
