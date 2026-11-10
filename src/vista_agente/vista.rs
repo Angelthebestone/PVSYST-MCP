@@ -13,10 +13,28 @@ use crate::adapters::gui::ventanas::{
 };
 use crate::args::{flag, opt_str};
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Value};
 
 /// The shapes of the 3D editor are described by their own catalogue, not by a form.
 const FORMAS_3D: &str = "escena_3d.formas";
+
+const SIN_VENTANAS: Texto = Texto {
+    es: "ninguna ventana de PVsyst abierta; esquemas con gui_observar que:esquema",
+    en: "no PVsyst window is open; schemas with gui_observar que:esquema",
+};
+const VENTANAS_SIN_ESQUEMA: Texto = Texto {
+    es: "ninguna de las ventanas abiertas ({clases}) tiene esquema de campos; se leen con gui_observar que:controles, y los esquemas existentes se listan con que:esquema",
+    en: "none of the open windows ({clases}) has a field schema; they are read with gui_observar que:controles, and the existing schemas are listed with que:esquema",
+};
+const CAMPOS_NO_VISIBLES: Texto = Texto {
+    es: "la ventana no muestra los campos del esquema: hay otra pestaña activa",
+    en: "the window does not show the schema fields: another tab is active",
+};
+const INCLUIR_UIA_NO_APLICA: Texto = Texto {
+    es: "'incluir_uia' no aplica a 'vista': use gui_observar que:controles incluir_uia:true o que:uia",
+    en: "'incluir_uia' does not apply to 'vista': use gui_observar que:controles incluir_uia:true or que:uia",
+};
 
 fn campo_json(campo: &CampoEsquema, vivo: Option<&CampoVivo>) -> Value {
     let mut map = serde_json::Map::new();
@@ -122,7 +140,7 @@ const AUXILIARES: [&str; 2] = ["TApplication", "THintWindow"];
 
 /// Why `vista` has no entity: nothing is open, or what is open (named) has no schema (BUG-17:
 /// «ninguna ventana conocida abierta» with the home screen on screen).
-fn aviso_sin_entidad(args: &Value) -> Result<String> {
+fn aviso_sin_entidad(args: &Value, idioma: Idioma) -> Result<String> {
     let clases: Vec<String> = if args.get("ventana").is_some() {
         vec![class_of(hwnd_de(args, "ventana")?)]
     } else {
@@ -133,17 +151,14 @@ fn aviso_sin_entidad(args: &Value) -> Result<String> {
             .filter(|c| !AUXILIARES.contains(&c.as_str()))
             .collect()
     };
-    Ok(texto_sin_entidad(&clases))
+    Ok(texto_sin_entidad(&clases, idioma))
 }
 
-fn texto_sin_entidad(clases: &[String]) -> String {
+fn texto_sin_entidad(clases: &[String], idioma: Idioma) -> String {
     if clases.is_empty() {
-        return "ninguna ventana de PVsyst abierta; esquemas con gui_observar que:esquema".into();
+        return SIN_VENTANAS.en_idioma(idioma).to_string();
     }
-    format!(
-        "ninguna de las ventanas abiertas ({}) tiene esquema de campos; se leen con gui_observar que:controles, y los esquemas existentes se listan con que:esquema",
-        clases.join(", ")
-    )
+    VENTANAS_SIN_ESQUEMA.texto_con(idioma, &[("clases", &clases.join(", "))])
 }
 
 /// A registered window without a schema: its fields by position, or why it is capture-only.
@@ -163,14 +178,14 @@ fn vista_de_ventana_registrada(args: &Value) -> Result<Option<Value>> {
 pub(crate) fn vista(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     if args.get("incluir_uia").is_some() {
         return Err(Error::Invalid(
-            "'incluir_uia' no aplica a 'vista': use gui_observar que:controles incluir_uia:true o que:uia".into(),
+            INCLUIR_UIA_NO_APLICA.en_idioma(paths.idioma).to_string(),
         ));
     }
     let Some(ent) = entidad_pedida(args)? else {
         if let Some(vista) = vista_de_ventana_registrada(args)? {
             return Ok(vista);
         }
-        return Ok(json!({ "entidad": null, "aviso": aviso_sin_entidad(args)? }));
+        return Ok(json!({ "entidad": null, "aviso": aviso_sin_entidad(args, paths.idioma)? }));
     };
     let h = ventana_de(args, ent)?;
     let vivos = campos_vivos(h);
@@ -187,7 +202,7 @@ pub(crate) fn vista(paths: &crate::config::Paths, args: &Value) -> Result<Value>
     if presentes == 0 {
         map.insert(
             "aviso".into(),
-            json!("la ventana no muestra los campos del esquema: hay otra pestaña activa"),
+            json!(CAMPOS_NO_VISIBLES.en_idioma(paths.idioma)),
         );
     }
     if flag(args, &["ocr"]) {

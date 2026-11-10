@@ -1,5 +1,6 @@
 use super::construccion::{construir, Contexto};
 use super::tipos::{Estado, Vista};
+use crate::idioma::Idioma;
 use serde_json::{json, Value};
 
 fn vista_de(tool: &str, accion: &str, salida: &Value) -> Vista {
@@ -9,6 +10,7 @@ fn vista_de(tool: &str, accion: &str, salida: &Value) -> Vista {
             tool,
             accion,
             args: &args,
+            idioma: Idioma::Es,
         },
         salida,
     )

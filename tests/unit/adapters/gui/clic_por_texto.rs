@@ -1,4 +1,5 @@
 use super::*;
+use crate::idioma::Idioma;
 use crate::vista_agente::contrato::{construir, Contexto};
 
 /// BUG-03: `coincidencias:0` used to carry `vista.estado:"ok"`.
@@ -13,6 +14,7 @@ fn should_report_a_click_without_ocr_match_as_partial() {
             tool: "gui_actuar",
             accion: "clic_texto",
             args: &args,
+            idioma: Idioma::Es,
         },
         &resultado,
     );

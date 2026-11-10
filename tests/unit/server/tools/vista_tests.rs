@@ -1,4 +1,5 @@
 use super::*;
+use crate::idioma::Idioma;
 use crate::progreso::SeguimientoTarea;
 use crate::server::tools::{call_seguido, Solicitud};
 use serde_json::json;
@@ -40,7 +41,12 @@ fn acciones_declaradas() -> Vec<(&'static str, &'static str)> {
 }
 
 fn contexto<'a>(tool: &'a str, accion: &'a str, args: &'a Value) -> Contexto<'a> {
-    Contexto { tool, accion, args }
+    Contexto {
+        tool,
+        accion,
+        args,
+        idioma: Idioma::Es,
+    }
 }
 
 pub(super) fn con_vista((tool, accion): (&str, &str), args: &Value, salida: Value) -> Value {

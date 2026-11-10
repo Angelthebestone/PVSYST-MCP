@@ -24,6 +24,7 @@ fn should_treat_an_already_closed_window_as_a_trivial_success() {
 /// "Cierre de la ventana esperado".
 #[test]
 fn should_report_a_wait_that_timed_out_as_partial() {
+    use crate::idioma::Idioma;
     use crate::vista_agente::contrato::{construir, Contexto};
 
     let salida = respuesta_de_espera(0, false, 2000);
@@ -33,6 +34,7 @@ fn should_report_a_wait_that_timed_out_as_partial() {
             tool: "gui_actuar",
             accion: "esperar_cierre",
             args: &args,
+            idioma: Idioma::Es,
         },
         &salida,
     );

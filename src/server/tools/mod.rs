@@ -158,11 +158,12 @@ pub(crate) fn call_seguido(solicitud: &Solicitud<'_>) -> Result<Value> {
         ms,
         ignorados: h.desconocidos(&args_efectivos, &accion),
     };
-    recorte::decorar(&mut v, args, respuesta);
+    recorte::decorar_con(&mut v, args, respuesta, paths.idioma);
     let contexto = Contexto {
         tool: name,
         accion: &accion,
         args: &args_efectivos,
+        idioma: paths.idioma,
     };
     vista::anadir_vista(paths, &contexto, &mut v);
 

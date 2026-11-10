@@ -97,6 +97,7 @@ pub(crate) fn vista_de_error(solicitud: &Solicitud<'_>, error: &Error) -> Option
         tool: solicitud.name,
         accion,
         args: &efectivos,
+        idioma: solicitud.paths.idioma,
     };
     let mut vista = desde_error(&contexto, error, claves_validas(h, accion, error));
     solo_ejecutables(solicitud.paths, &mut vista);
