@@ -12,7 +12,11 @@ $installDir = "C:\pvsyst-mcp"
 $installExe = Join-Path $installDir "pvsyst-mcp.exe"
 
 $mingw = "C:\Users\Lenovo\AppData\Local\Microsoft\WinGet\Packages\BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe\mingw64\bin"
-if (Test-Path $mingw) { $env:Path = "$env:USERPROFILE\.cargo\bin;$mingw;$env:Path" }
+if (Test-Path $mingw) {
+    $env:Path = "$env:USERPROFILE\.cargo\bin;$mingw;$env:Path"
+    # The default MSVC toolchain has no link.exe here; the MinGW linker pairs with the GNU one.
+    if (-not $env:RUSTUP_TOOLCHAIN) { $env:RUSTUP_TOOLCHAIN = "stable-x86_64-pc-windows-gnu" }
+}
 
 Write-Host "Building release..."
 Push-Location $project
