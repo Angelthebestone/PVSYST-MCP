@@ -1,14 +1,16 @@
 //! Catalogue of PVsyst GUI functions: which menu item or button opens each one,
 //! with the window it opens. The domain (`dominio`) is pure data and lookup;
-//! `aplicacion` drives the live PVsyst through the GUI adapter.
+//! `abrir` and `aplicacion` drive the live PVsyst through the GUI adapter.
 
+mod abrir;
 mod aplicacion;
 mod dominio;
 mod entradas;
 mod espera;
 mod recurso;
 
-pub(crate) use aplicacion::{abrir, listar, menu};
+pub(crate) use abrir::abrir;
+pub(crate) use aplicacion::{listar, menu};
 pub(crate) use recurso::{como_recurso, mapa_de_ventanas};
 
 /// Keys of the catalogue functions that open window class `clase`, in catalogue
