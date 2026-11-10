@@ -1,10 +1,11 @@
 use super::*;
+use crate::idioma::Idioma;
 use serde_json::json;
 
 #[test]
 fn should_refuse_cli_options_that_are_not_texts() {
     for opciones in [json!(["-w:C:\\ws", 3]), json!("-w:C:\\ws"), json!(7)] {
-        let res = opciones_de(&json!({ "opciones": opciones }));
+        let res = opciones_de(&json!({ "opciones": opciones }), Idioma::Es);
         assert!(matches!(res, Err(Error::Invalid(_))), "{opciones}");
     }
 }
@@ -21,7 +22,7 @@ fn should_express_short_aliases_flags_and_omitted_values_in_the_object_form() {
         "overwrite": false,
         "log-level": 3,
     }});
-    let mut opciones = opciones_de(&args).expect("opciones válidas");
+    let mut opciones = opciones_de(&args, Idioma::Es).expect("opciones válidas");
     opciones.sort();
     assert_eq!(
         opciones,
@@ -33,7 +34,7 @@ fn should_express_short_aliases_flags_and_omitted_values_in_the_object_form() {
 #[test]
 fn should_refuse_option_values_that_are_not_scalars() {
     for valor in [json!(["cover", "summary"]), json!({ "a": 1 })] {
-        let res = opciones_de(&json!({ "opciones": { "rp": valor } }));
+        let res = opciones_de(&json!({ "opciones": { "rp": valor } }), Idioma::Es);
         assert!(matches!(res, Err(Error::Invalid(_))), "{valor}");
     }
 }
@@ -46,7 +47,7 @@ fn should_refuse_blank_and_repeated_options() {
         json!(["-ll:1", "-ll:1"]),
         json!({ "": "x" }),
     ] {
-        let res = opciones_de(&json!({ "opciones": opciones }));
+        let res = opciones_de(&json!({ "opciones": opciones }), Idioma::Es);
         assert!(matches!(res, Err(Error::Invalid(_))), "{opciones}");
     }
 }

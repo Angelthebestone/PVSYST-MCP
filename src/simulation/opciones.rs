@@ -46,7 +46,12 @@ pub(crate) fn exigir_variante(variant_file: &Path) -> Result<()> {
         .parent()
         .map(|p| p.display().to_string())
         .unwrap_or_default();
-    Err(no_encontrado("Variante", pedido, &disponibles, &carpeta))
+    Err(no_encontrado(
+        crate::args::VARIANTE,
+        pedido,
+        &disponibles,
+        &carpeta,
+    ))
 }
 
 /// Validates every option of a simulation request that PVsystCLI would otherwise

@@ -7,10 +7,28 @@ use crate::format::accion::AccionCambio;
 use crate::format::edit;
 use crate::format::object;
 use crate::history;
+use crate::idioma::{Idioma, Texto};
 use crate::objects::resolucion::resolve_file;
 use serde_json::{json, Value};
 use std::fs;
 use std::path::Path;
+
+const RELEER: Texto = Texto {
+    es: "No se pudo releer '{selector}' para verificar la escritura",
+    en: "Could not re-read '{selector}' to verify the write",
+};
+const NO_CONTIENE: Texto = Texto {
+    es: "{archivo} no contiene lo escrito: restaura con historial",
+    en: "{archivo} does not contain what was written: restore it from the history",
+};
+const ESCRITURA_NO_VERIFICADA: Texto = Texto {
+    es: "Escritura no verificada en el campo '{clave}'",
+    en: "Write not verified in field '{clave}'",
+};
+const CAMPOS_INEXISTENTES: Texto = Texto {
+    es: "Campos que el objeto '{selector}' no tiene: {nuevos}. editar campos cambia valores existentes; pasa nuevo:true para añadir un campo nuevo, o corrige la clave",
+    en: "Fields the object '{selector}' does not have: {nuevos}. editar campos changes existing values; pass nuevo:true to add a new field, or fix the key",
+};
 
 /// Re-parse only the edited object's lines and read back each changed key.
 /// A readback that differs from the requested value, or an object that cannot be
@@ -20,11 +38,8 @@ fn verificar_span(
     selector: &str,
     changes: &[(String, Option<String>)],
 ) -> Result<serde_json::Map<String, Value>> {
-    let no_verificable = || {
-        Error::Format(format!(
-            "No se pudo releer '{selector}' para verificar la escritura"
-        ))
-    };
+    let no_verificable =
+        || Error::Format(RELEER.texto_con(Idioma::de_entorno(), &[("selector", selector)]));
     let spans = edit::spans_of(bytes);
     let span = edit::find_span(&spans, selector)
         .and_then(|i| spans.get(i))
@@ -49,9 +64,9 @@ fn verificar_span(
 fn releer_escrito(path: &Path, enviado: &[u8]) -> Result<Vec<u8>> {
     let leido = crate::workspace::leer_bytes(path)?;
     if leido != enviado {
-        return Err(Error::Format(format!(
-            "{} no contiene lo escrito: restaura con historial",
-            path.display()
+        return Err(Error::Format(NO_CONTIENE.texto_con(
+            Idioma::de_entorno(),
+            &[("archivo", &path.to_string_lossy())],
         )));
     }
     Ok(leido)
@@ -72,16 +87,14 @@ fn verificar_legacy(
     let mut verified = serde_json::Map::new();
     for (pedido, disco) in outcomes.iter().zip(&en_disco) {
         let (Some(p), Some(d)) = (numero(&pedido.new_value), numero(&disco.old_value)) else {
-            return Err(Error::Format(format!(
-                "Escritura no verificada en el campo '{}'",
-                pedido.key
-            )));
+            return Err(Error::Format(
+                ESCRITURA_NO_VERIFICADA.texto_con(Idioma::de_entorno(), &[("clave", &pedido.key)]),
+            ));
         };
         if (p - d).abs() > TOLERANCIA_REAL48 * p.abs().max(1.0) {
-            return Err(Error::Format(format!(
-                "Escritura no verificada en el campo '{}'",
-                pedido.key
-            )));
+            return Err(Error::Format(
+                ESCRITURA_NO_VERIFICADA.texto_con(Idioma::de_entorno(), &[("clave", &pedido.key)]),
+            ));
         }
         verified.insert(pedido.key.clone(), json!(disco.old_value));
     }
@@ -107,9 +120,9 @@ pub(crate) fn exigir_campos_existentes(
     if nuevos.is_empty() {
         return Ok(());
     }
-    Err(Error::Invalid(format!(
-        "Campos que el objeto '{selector}' no tiene: {nuevos:?}. editar campos cambia valores existentes; \
-pasa nuevo:true para añadir un campo nuevo, o corrige la clave"
+    Err(Error::Invalid(CAMPOS_INEXISTENTES.texto_con(
+        Idioma::de_entorno(),
+        &[("selector", selector), ("nuevos", &format!("{nuevos:?}"))],
     )))
 }
 
@@ -121,9 +134,9 @@ fn comprobar_lectura(clave: &str, esperado: Option<&str>, leido: Option<&str>) -
     if coincide {
         Ok(())
     } else {
-        Err(Error::Format(format!(
-            "Escritura no verificada en el campo '{clave}'"
-        )))
+        Err(Error::Format(
+            ESCRITURA_NO_VERIFICADA.texto_con(Idioma::de_entorno(), &[("clave", clave)]),
+        ))
     }
 }
 

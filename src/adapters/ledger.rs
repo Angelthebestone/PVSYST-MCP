@@ -4,6 +4,12 @@
 
 use crate::args::{flag, CONFIRMAR};
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
+
+const CONFIRMACION_TRIAL: Texto = Texto {
+    es: "Esta acción consume {n} ejecuciones de prueba; repítela con confirmar:true",
+    en: "This action spends {n} trial runs; repeat it with confirmar:true",
+};
 use serde_json::{json, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -236,8 +242,9 @@ pub(crate) fn requiere_confirmacion(
         "ejecuciones_estimadas": ejecuciones_estimadas,
         "restantes": estado.restantes,
         "plan": plan,
-        "mensaje": format!(
-            "Esta acción consume {ejecuciones_estimadas} ejecuciones de prueba; repítela con confirmar:true"
+        "mensaje": CONFIRMACION_TRIAL.texto_con(
+            Idioma::de_entorno(),
+            &[("n", &ejecuciones_estimadas.to_string())],
         ),
     }))
 }

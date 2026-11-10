@@ -17,16 +17,24 @@ const CONTENIDO_VACIO: Texto = Texto {
     en: "'contenido' must not be empty: a 0-byte file has nothing to verify. Pass 'base64': true if the empty content is deliberate.",
 };
 
+const CONTENIDO_GRANDE: Texto = Texto {
+    es: "Contenido a escribir excede el límite máximo permitido ({bytes} bytes, máx {max})",
+    en: "Content to write exceeds the maximum allowed ({bytes} bytes, max {max})",
+};
+const NO_CREAR: Texto = Texto {
+    es: "No se pudo crear {ruta}",
+    en: "Could not create {ruta}",
+};
+
 /// An existing file is only replaced when the caller asks for it with `sobrescribir: true`:
 /// the argument means what it says, and a repeated call cannot lose a file by accident.
-fn exigir_sobrescritura(path: &Path, args: &Value) -> Result<()> {
+fn exigir_sobrescritura(path: &Path, args: &Value, idioma: Idioma) -> Result<()> {
     if !path.exists() || flag(args, &["sobrescribir"]) {
         return Ok(());
     }
-    Err(Error::Invalid(SOBRESCRITURA_RECHAZADA.texto_con(
-        Idioma::de_entorno(),
-        &[("archivo", &path.to_string_lossy())],
-    )))
+    Err(Error::Invalid(
+        SOBRESCRITURA_RECHAZADA.texto_con(idioma, &[("archivo", &path.to_string_lossy())]),
+    ))
 }
 
 /// Refusal of an overwrite the caller did not ask for.
@@ -45,14 +53,18 @@ pub(crate) fn escribir_archivo(
     let workspace = workspace_of(paths, args);
     let p = req_str(args, &["archivo"], "")?;
     let path = resolver_ruta(&workspace, p, Alcance::de_args(args))?;
-    let bytes = extraer_bytes_acotados(args)?;
+    let bytes = extraer_bytes_acotados(args, paths.idioma)?;
 
     validar_formato_pvsyst(&path, &bytes, validar_mef)?;
 
-    exigir_sobrescritura(&path, args)?;
+    exigir_sobrescritura(&path, args, paths.idioma)?;
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|e| Error::io(format!("Cannot create {}", parent.display()), e))?;
+        fs::create_dir_all(parent).map_err(|e| {
+            Error::io(
+                NO_CREAR.texto_con(paths.idioma, &[("ruta", &parent.to_string_lossy())]),
+                e,
+            )
+        })?;
     }
     let historial_id = history::reemplazar(&workspace, &path, &bytes, "escribir_archivo")?;
     Ok(json!({
@@ -62,13 +74,11 @@ pub(crate) fn escribir_archivo(
     }))
 }
 
-fn extraer_bytes_acotados(args: &Value) -> Result<Vec<u8>> {
+fn extraer_bytes_acotados(args: &Value, idioma: Idioma) -> Result<Vec<u8>> {
     let content = req_texto(args, &["contenido"], "")?;
     let es_base64 = flag(args, &["base64"]);
     if content.is_empty() && !es_base64 {
-        return Err(Error::Invalid(
-            CONTENIDO_VACIO.texto_con(Idioma::de_entorno(), &[]),
-        ));
+        return Err(Error::Invalid(CONTENIDO_VACIO.texto_con(idioma, &[])));
     }
     let limite_texto = if es_base64 {
         crate::workspace::MAX_BYTES_MAXIMO.saturating_mul(4) / 3 + 16
@@ -76,10 +86,12 @@ fn extraer_bytes_acotados(args: &Value) -> Result<Vec<u8>> {
         crate::workspace::MAX_BYTES_MAXIMO
     };
     if content.len() > limite_texto {
-        return Err(Error::Invalid(format!(
-            "Contenido a escribir excede el límite máximo permitido ({} bytes, máx {})",
-            content.len(),
-            limite_texto
+        return Err(Error::Invalid(CONTENIDO_GRANDE.texto_con(
+            idioma,
+            &[
+                ("bytes", &content.len().to_string()),
+                ("max", &limite_texto.to_string()),
+            ],
         )));
     }
     let bytes = if es_base64 {

@@ -14,6 +14,7 @@ use crate::args::{flag, req_str};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::object;
+use crate::idioma::Texto;
 use crate::workspace::{walk_ext, Alcance};
 use serde_json::{json, Value};
 use std::fs;
@@ -179,6 +180,11 @@ fn plantillas_ro(texto: Option<&str>) -> Vec<Value> {
         .collect()
 }
 
+const HINT_ARBOL: Texto = Texto {
+    es: "Pasa detalle:\"completo\" para el árbol completo, o leer con 'objeto' para un objeto.",
+    en: "Pass detalle:\"completo\" for the full tree, or leer with 'objeto' for one object.",
+};
+
 /// Read a .PRJ or .VCi file and return its parsed object tree plus key fields.
 pub(crate) fn leer_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
@@ -214,9 +220,7 @@ pub(crate) fn leer_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     if flag(args, &["completo"]) {
         out["tree"] = Value::Array(roots.iter().map(object::PvNode::to_json).collect());
     } else {
-        out["hint"] = json!(
-            "Pass detalle:\"completo\" for the full tree, or leer with 'objeto' for one object."
-        );
+        out["hint"] = json!(HINT_ARBOL.en_idioma(paths.idioma));
     }
     Ok(out)
 }

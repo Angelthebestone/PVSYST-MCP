@@ -10,6 +10,7 @@ use super::linea_comando::{display_command_line, requerir_cli, timeout_de_comand
 use super::salida_json::output_json;
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use crate::progreso::SeguimientoTarea;
 pub(crate) use crate::state::CliOutput;
 use serde_json::{json, Value};
@@ -17,6 +18,15 @@ use std::process::{Child, Command, Stdio};
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
+
+const NO_ARRANCA: Texto = Texto {
+    es: "No se pudo lanzar {exe}: {e}. Configura PVSYST_CLI.",
+    en: "Failed to launch {exe}: {e}. Set PVSYST_CLI.",
+};
+const CANCELADO: Texto = Texto {
+    es: "Comando cancelado por el cliente",
+    en: "Command cancelled by the client",
+};
 
 /// Intervalo de sondeo activo para el estado de finalización del subproceso.
 const INTERVALO_ESPERA_PROCESO: Duration = Duration::from_millis(50);
@@ -80,12 +90,7 @@ pub(crate) fn run_inner(params: &ParametrosEjecucion<'_>, out_sink: &Sink) -> Re
     if params.paths.workspace.is_dir() {
         orden.current_dir(&params.paths.workspace);
     }
-    let mut child = orden.spawn().map_err(|e| {
-        Error::Cli(format!(
-            "Failed to launch {}: {e}. Set PVSYST_CLI.",
-            params.paths.cli_exe.display()
-        ))
-    })?;
+    let mut child = lanzar(&mut orden, params.paths)?;
 
     let err_sink = crear_sink();
     let reader_out = super::captura::drain(child.stdout.take(), Arc::clone(out_sink), "stdout");
@@ -93,6 +98,7 @@ pub(crate) fn run_inner(params: &ParametrosEjecucion<'_>, out_sink: &Sink) -> Re
 
     let espera = EsperaProceso {
         timeout: params.timeout,
+        idioma: params.paths.idioma,
         sink: out_sink,
         seguimiento: params.seguimiento,
     };
@@ -126,9 +132,23 @@ pub(crate) fn run_inner(params: &ParametrosEjecucion<'_>, out_sink: &Sink) -> Re
     })
 }
 
+/// Starts PVsystCLI, naming the executable and the OS error when it cannot.
+fn lanzar(orden: &mut Command, paths: &Paths) -> Result<Child> {
+    orden.spawn().map_err(|e| {
+        Error::Cli(NO_ARRANCA.texto_con(
+            paths.idioma,
+            &[
+                ("exe", &paths.cli_exe.to_string_lossy()),
+                ("e", &e.to_string()),
+            ],
+        ))
+    })
+}
+
 /// What one wait loop needs: the deadline, the captured stdout and the tracker.
 struct EsperaProceso<'a> {
     timeout: Duration,
+    idioma: Idioma,
     sink: &'a Sink,
     seguimiento: &'a SeguimientoTarea<'a>,
 }
@@ -151,7 +171,7 @@ fn esperar_proceso(child: &mut Child, espera: &EsperaProceso<'_>) -> Result<(Opt
     loop {
         if espera.seguimiento.esta_cancelado() {
             terminar(child);
-            return Err(Error::Cli("Comando cancelado por el cliente".into()));
+            return Err(Error::Cli(CANCELADO.en_idioma(espera.idioma).to_string()));
         }
         match child.try_wait() {
             Ok(Some(status)) => return Ok((status.code(), false)),
@@ -192,9 +212,9 @@ pub(crate) fn ejecutar(
     args: &Value,
     seguimiento: &SeguimientoTarea<'_>,
 ) -> Result<Value> {
-    let entrada = entrada::leer(args)?;
+    let entrada = entrada::leer(args, paths.idioma)?;
     let es_simulacion = entrada.es_simulacion();
-    let timeout = timeout_de_comando(args, &entrada.comando)?;
+    let timeout = timeout_de_comando(args, &entrada.comando, paths.idioma)?;
     if entrada.dry_run {
         let mut ensayo = json!({
             "dry_run": true,

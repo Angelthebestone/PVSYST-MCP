@@ -7,12 +7,22 @@ use super::captura::{crear_sink, texto_sink};
 use super::proceso::{run_inner, CliOutput, ParametrosEjecucion};
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use crate::progreso::SeguimientoTarea;
 pub(crate) use crate::state::Trabajo;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
+
+const MUTEX_ENVENENADO: Texto = Texto {
+    es: "Mutex de trabajos envenenado: no se lanzó el trabajo",
+    en: "Job mutex poisoned: the job was not started",
+};
+const HILO_CON_PANICO: Texto = Texto {
+    es: "El hilo del trabajo terminó con pánico antes de registrar su resultado",
+    en: "The job thread panicked before recording its result",
+};
 
 /// Cuántos trabajos terminados se conservan: cada uno retiene hasta 2 MiB de salida
 /// y nadie los borraba, así que una sesión larga crecía sin límite.
@@ -35,10 +45,11 @@ pub(crate) fn run_en_segundo_plano(
 ) -> Result<String> {
     let id = paths.estado.siguiente_trabajo();
     let sink = crear_sink();
-    let mut trabajos =
-        paths.estado.trabajos.lock().map_err(|_| {
-            Error::Cli("Mutex de trabajos envenenado: no se lanzó el trabajo".into())
-        })?;
+    let mut trabajos = paths
+        .estado
+        .trabajos
+        .lock()
+        .map_err(|_| Error::Cli(MUTEX_ENVENENADO.en_idioma(paths.idioma).to_string()))?;
     trabajos.insert(
         id.clone(),
         Trabajo {
@@ -94,7 +105,7 @@ fn liberar_trabajos_terminados(trabajos: &mut HashMap<String, Trabajo>) {
 pub(crate) fn sin_panico(trabajo: impl FnOnce() -> Result<CliOutput>) -> Result<CliOutput> {
     std::panic::catch_unwind(std::panic::AssertUnwindSafe(trabajo)).unwrap_or_else(|_| {
         Err(Error::Cli(
-            "El hilo del trabajo terminó con pánico antes de registrar su resultado".into(),
+            HILO_CON_PANICO.en_idioma(Idioma::de_entorno()).to_string(),
         ))
     })
 }

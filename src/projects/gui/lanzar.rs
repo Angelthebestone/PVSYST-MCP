@@ -7,7 +7,17 @@ use super::{abrir_sesion, ProyectoEnPvsyst};
 use crate::adapters::gui::{self, proceso};
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::idioma::Texto;
 use serde_json::{json, Value};
+
+const NO_ES_PROYECTO: Texto = Texto {
+    es: "'{pedido}' no es el nombre de un proyecto",
+    en: "'{pedido}' is not a project name",
+};
+const PROYECTO_IGNORADO: Texto = Texto {
+    es: "PVsyst 8.1.8 ignora el proyecto de su línea de comandos: se lanzó sin él y se cargó con su ventana «Cargar proyecto».",
+    en: "PVsyst 8.1.8 ignores the project on its command line: it was launched without it and the project was loaded through its «Load project» window.",
+};
 
 /// Variant opened with the project when the request names none.
 const VARIANTE_POR_DEFECTO: &str = "VC0";
@@ -40,7 +50,9 @@ pub(crate) fn lanzar_con_proyecto(paths: &Paths, args: &Value) -> Result<Value> 
     let nombre = ruta
         .file_stem()
         .map(|s| s.to_string_lossy().into_owned())
-        .ok_or_else(|| Error::Invalid(format!("'{pedido}' no es el nombre de un proyecto")))?;
+        .ok_or_else(|| {
+            Error::Invalid(NO_ES_PROYECTO.texto_con(paths.idioma, &[("pedido", pedido)]))
+        })?;
     let variante = args
         .get("variante")
         .and_then(Value::as_str)
@@ -60,7 +72,7 @@ pub(crate) fn lanzar_con_proyecto(paths: &Paths, args: &Value) -> Result<Value> 
         );
         mapa.insert(
             "aviso".into(),
-            json!("PVsyst 8.1.8 ignora el proyecto de su línea de comandos: se lanzó sin él y se cargó con su ventana «Cargar proyecto»."),
+            json!(PROYECTO_IGNORADO.en_idioma(paths.idioma)),
         );
     }
     Ok(respuesta)

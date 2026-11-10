@@ -3,7 +3,13 @@
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::history;
+use crate::idioma::Texto;
 use std::path::{Path, PathBuf};
+
+const NO_LEER: Texto = Texto {
+    es: "No se pudo leer {ruta}",
+    en: "Could not read {ruta}",
+};
 
 /// Files of project `nombre` in the workspace `Projects` folder: empty when the folder
 /// does not exist, an error when it cannot be read (a rollback must not guess).
@@ -12,12 +18,22 @@ fn archivos_del_proyecto(paths: &Paths, nombre: &str) -> Result<Vec<PathBuf>> {
     let entradas = match std::fs::read_dir(&dir) {
         Ok(e) => e,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
-        Err(e) => return Err(Error::io(format!("No se pudo leer {}", dir.display()), e)),
+        Err(e) => {
+            return Err(Error::io(
+                NO_LEER.texto_con(paths.idioma, &[("ruta", &dir.to_string_lossy())]),
+                e,
+            ))
+        }
     };
     let mut archivos = Vec::new();
     for entrada in entradas {
         let ruta = entrada
-            .map_err(|e| Error::io(format!("No se pudo leer {}", dir.display()), e))?
+            .map_err(|e| {
+                Error::io(
+                    NO_LEER.texto_con(paths.idioma, &[("ruta", &dir.to_string_lossy())]),
+                    e,
+                )
+            })?
             .path();
         if es_del_proyecto(&ruta, nombre) {
             archivos.push(ruta);

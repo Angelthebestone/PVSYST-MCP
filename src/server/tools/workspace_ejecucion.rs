@@ -6,6 +6,12 @@ use crate::args::workspace_of;
 use crate::components::{self, pan};
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::idioma::Texto;
+
+const ACCION_DESCONOCIDA: Texto = Texto {
+    es: "Valor '{valor}' no soportado para workspace",
+    en: "Value '{valor}' not supported for workspace",
+};
 use crate::history;
 use crate::objects;
 use crate::projects::{self, lifecycle};
@@ -37,9 +43,9 @@ pub(super) fn ejecutar_workspace(paths: &Paths, args: &Value) -> Result<Value> {
                 dry_run: crate::args::flag(args, &["dry_run"]),
             })
         }
-        _ => Err(Error::Invalid(format!(
-            "Value '{valor}' not supported for workspace"
-        ))),
+        _ => Err(Error::Invalid(
+            ACCION_DESCONOCIDA.texto_con(paths.idioma, &[("valor", valor)]),
+        )),
     }
 }
 

@@ -8,11 +8,74 @@ use crate::admin::archive::{run_tar, validar_entradas_zip};
 use crate::args::{flag, req_str, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use crate::workspace::{resolver_ruta, Alcance};
 use serde_json::{json, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
+
+const ZIP_NO_ENCONTRADO: Texto = Texto {
+    es: "Zip no encontrado: {zip} (resuelto contra el workspace {workspace}: pasa una ruta absoluta, o un 'zip' relativo a ese workspace)",
+    en: "Zip not found: {zip} (resolved against the workspace {workspace}: pass an absolute path, or a 'zip' relative to that workspace)",
+};
+const DESTINO_NO_VACIO: Texto = Texto {
+    es: "La carpeta destino no está vacía: {destino} (pasa sobrescribir:true)",
+    en: "The destination folder is not empty: {destino} (pass sobrescribir:true)",
+};
+const NO_LEER_DESTINO: Texto = Texto {
+    es: "No se pudo leer el destino {destino}",
+    en: "Could not read the destination {destino}",
+};
+const RUTA_FUERA_TEMPORAL: Texto = Texto {
+    es: "Ruta extraída fuera del temporal: {e}",
+    en: "Extracted path outside the temporary folder: {e}",
+};
+const IMPORTACION_CANCELADA: Texto = Texto {
+    es: "Importación cancelada en {destino}: {e}; {reversion}",
+    en: "Import cancelled at {destino}: {e}; {reversion}",
+};
+const NO_CREAR: Texto = Texto {
+    es: "No se pudo crear {ruta}",
+    en: "Could not create {ruta}",
+};
+const NO_RESPALDAR: Texto = Texto {
+    es: "No se pudo respaldar {ruta}",
+    en: "Could not back up {ruta}",
+};
+const NO_DEVOLVER_RESPALDO: Texto = Texto {
+    es: "Importación cancelada en {destino}: no se pudo devolver el respaldo {respaldo} a su sitio ({e2}); recupéralo a mano desde esa ruta",
+    en: "Import cancelled at {destino}: the backup {respaldo} could not be put back ({e2}); recover it by hand from that path",
+};
+const IMPORTACION_CANCELADA_SIMPLE: Texto = Texto {
+    es: "Importación cancelada en {destino}",
+    en: "Import cancelled at {destino}",
+};
+const COPIAS_EN: Texto = Texto {
+    es: "copias de los archivos reemplazados en: {ruta}",
+    en: "copies of the replaced files in: {ruta}",
+};
+
+/// Refuses a destination that holds files unless the caller asked to overwrite it.
+fn exigir_destino_libre(paths: &Paths, destino: &Path, args: &Value) -> Result<()> {
+    let no_vacia = match destino.read_dir() {
+        Ok(mut d) => d.next().is_some(),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
+        Err(e) => {
+            return Err(Error::io(
+                NO_LEER_DESTINO.texto_con(paths.idioma, &[("destino", &destino.to_string_lossy())]),
+                e,
+            ))
+        }
+    };
+    if no_vacia && !flag(args, &["sobrescribir"]) {
+        return Err(Error::Invalid(DESTINO_NO_VACIO.texto_con(
+            paths.idioma,
+            &[("destino", &destino.to_string_lossy())],
+        )));
+    }
+    Ok(())
+}
 
 /// Import a workspace from a zip into a destination folder.
 pub(crate) fn importar_workspace(paths: &Paths, args: &Value) -> Result<Value> {
@@ -22,33 +85,24 @@ pub(crate) fn importar_workspace(paths: &Paths, args: &Value) -> Result<Value> {
     if !zip.exists() {
         // A relative `zip` anchors to the call's workspace, as `destino` does: name it,
         // so a caller that exported into another workspace knows where to look.
-        return Err(Error::NotFound(format!(
-            "Zip not found: {} (resolved against the workspace {}: pass an absolute path, or a 'zip' relative to that workspace)",
-            zip.display(),
-            workspace.display()
+        return Err(Error::NotFound(ZIP_NO_ENCONTRADO.texto_con(
+            paths.idioma,
+            &[
+                ("zip", &zip.to_string_lossy()),
+                ("workspace", &workspace.to_string_lossy()),
+            ],
         )));
     }
     let dest_str = req_str(args, &["destino"], "folder to extract into")?;
     let destino = resolver_ruta(&workspace, dest_str, Alcance::de_args(args))?;
-    let no_vacia = match destino.read_dir() {
-        Ok(mut d) => d.next().is_some(),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
-        Err(e) => {
-            return Err(Error::io(
-                format!("No se pudo leer el destino {}", destino.display()),
-                e,
-            ))
-        }
-    };
-    if no_vacia && !flag(args, &["sobrescribir"]) {
-        return Err(Error::Invalid(format!(
-            "La carpeta destino no está vacía: {} (pasa sobrescribir:true)",
-            destino.display()
-        )));
-    }
+    exigir_destino_libre(paths, &destino, args)?;
     validar_entradas_zip(&zip)?;
-    fs::create_dir_all(&destino)
-        .map_err(|e| Error::io(format!("Cannot create {}", destino.display()), e))?;
+    fs::create_dir_all(&destino).map_err(|e| {
+        Error::io(
+            NO_CREAR.texto_con(paths.idioma, &[("ruta", &destino.to_string_lossy())]),
+            e,
+        )
+    })?;
 
     let (tmp, bak) = rutas_temporales(&destino);
     extraer(&zip, &tmp)?;
@@ -88,8 +142,12 @@ fn rutas_temporales(destino: &Path) -> (PathBuf, PathBuf) {
 
 /// Extract `zip` into the (new) `tmp`; removes any partial output on failure.
 fn extraer(zip: &Path, tmp: &Path) -> Result<()> {
-    fs::create_dir_all(tmp)
-        .map_err(|e| Error::io(format!("Cannot create {}", tmp.display()), e))?;
+    fs::create_dir_all(tmp).map_err(|e| {
+        Error::io(
+            NO_CREAR.texto_con(Idioma::de_entorno(), &[("ruta", &tmp.to_string_lossy())]),
+            e,
+        )
+    })?;
     if let Err(e) = run_tar(&[
         "-x".as_ref(),
         "-f".as_ref(),
@@ -148,16 +206,21 @@ fn publicar_extraccion(tmp: &Path, destino: &Path, bak: &Path) -> Result<Vec<Pat
     }
     // Directories with no files in the archive (empty folders) are recreated too.
     for d in directorios {
-        let rel = d
-            .strip_prefix(tmp)
-            .map_err(|e| Error::Invalid(format!("Ruta extraída fuera del temporal: {e}")))?;
+        let rel = d.strip_prefix(tmp).map_err(|e| {
+            Error::Invalid(
+                RUTA_FUERA_TEMPORAL.texto_con(Idioma::de_entorno(), &[("e", &e.to_string())]),
+            )
+        })?;
         let objetivo = destino.join(rel);
         if let Err(e) = fs::create_dir_all(&objetivo) {
             return Err(Error::io(
-                format!(
-                    "Importación cancelada en {}: {e}; {}",
-                    objetivo.display(),
-                    detalle_reversion(&publicados, bak)
+                IMPORTACION_CANCELADA.texto_con(
+                    Idioma::de_entorno(),
+                    &[
+                        ("destino", &objetivo.to_string_lossy()),
+                        ("e", &e.to_string()),
+                        ("reversion", &detalle_reversion(&publicados, bak)),
+                    ],
                 ),
                 e,
             ));
@@ -173,22 +236,40 @@ fn publicar_archivo(
     destino: &Path,
     bak: &Path,
 ) -> Result<(PathBuf, Option<PathBuf>)> {
-    let rel = archivo
-        .strip_prefix(tmp)
-        .map_err(|e| Error::Invalid(format!("Ruta extraída fuera del temporal: {e}")))?;
+    let rel = archivo.strip_prefix(tmp).map_err(|e| {
+        Error::Invalid(
+            RUTA_FUERA_TEMPORAL.texto_con(Idioma::de_entorno(), &[("e", &e.to_string())]),
+        )
+    })?;
     let objetivo = destino.join(rel);
     if let Some(parent) = objetivo.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|e| Error::io(format!("No se pudo crear {}", parent.display()), e))?;
+        fs::create_dir_all(parent).map_err(|e| {
+            Error::io(
+                NO_CREAR.texto_con(Idioma::de_entorno(), &[("ruta", &parent.to_string_lossy())]),
+                e,
+            )
+        })?;
     }
     let respaldo = if objetivo.exists() {
         let b = bak.join(rel);
         if let Some(parent) = b.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|e| Error::io(format!("No se pudo crear {}", parent.display()), e))?;
+            fs::create_dir_all(parent).map_err(|e| {
+                Error::io(
+                    NO_CREAR
+                        .texto_con(Idioma::de_entorno(), &[("ruta", &parent.to_string_lossy())]),
+                    e,
+                )
+            })?;
         }
-        fs::rename(&objetivo, &b)
-            .map_err(|e| Error::io(format!("No se pudo respaldar {}", objetivo.display()), e))?;
+        fs::rename(&objetivo, &b).map_err(|e| {
+            Error::io(
+                NO_RESPALDAR.texto_con(
+                    Idioma::de_entorno(),
+                    &[("ruta", &objetivo.to_string_lossy())],
+                ),
+                e,
+            )
+        })?;
         Some(b)
     } else {
         None
@@ -210,15 +291,21 @@ pub(crate) fn error_de_publicacion(
     let devolucion = respaldo.map(|b| (b, fs::rename(b, objetivo)));
     match devolucion {
         Some((b, Err(e2))) => Error::io(
-            format!(
-                "Importación cancelada en {}: no se pudo devolver el respaldo {} a su sitio ({e2}); recupéralo a mano desde esa ruta",
-                objetivo.display(),
-                b.display()
+            NO_DEVOLVER_RESPALDO.texto_con(
+                Idioma::de_entorno(),
+                &[
+                    ("destino", &objetivo.to_string_lossy()),
+                    ("respaldo", &b.to_string_lossy()),
+                    ("e2", &e2.to_string()),
+                ],
             ),
             fallo,
         ),
         _ => Error::io(
-            format!("Importación cancelada en {}", objetivo.display()),
+            IMPORTACION_CANCELADA_SIMPLE.texto_con(
+                Idioma::de_entorno(),
+                &[("destino", &objetivo.to_string_lossy())],
+            ),
             fallo,
         ),
     }
@@ -240,11 +327,24 @@ fn revertir_publicados(publicados: &[(PathBuf, Option<PathBuf>)]) -> (String, Ve
     }
     if fallos.is_empty() {
         (
-            "las entradas ya publicadas se restauraron".to_string(),
+            Texto {
+                es: "las entradas ya publicadas se restauraron",
+                en: "the already published entries were restored",
+            }
+            .en_idioma(Idioma::de_entorno())
+            .to_string(),
             fallos,
         )
     } else {
-        ("la reversión falló".to_string(), fallos)
+        (
+            Texto {
+                es: "la reversión falló",
+                en: "the reversal failed",
+            }
+            .en_idioma(Idioma::de_entorno())
+            .to_string(),
+            fallos,
+        )
     }
 }
 
@@ -256,8 +356,8 @@ fn detalle_reversion(publicados: &[(PathBuf, Option<PathBuf>)], bak: &Path) -> S
         reversion
     } else {
         format!(
-            "{reversion}; copias de los archivos reemplazados en: {}",
-            bak.display()
+            "{reversion}; {}",
+            COPIAS_EN.texto_con(Idioma::de_entorno(), &[("ruta", &bak.to_string_lossy())],)
         )
     }
 }

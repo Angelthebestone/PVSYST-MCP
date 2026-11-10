@@ -2,6 +2,13 @@
 
 use crate::args::no_encontrado;
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
+
+/// A project whose folder could not be searched completely.
+const BUSQUEDA_INCOMPLETA: Texto = Texto {
+    es: "Proyecto '{name}' no encontrado y la búsqueda quedó incompleta: {avisos}",
+    en: "Project '{name}' not found and the search was incomplete: {avisos}",
+};
 use crate::workspace::{es_relativa_simple, resolver_ruta, walk_ext, Alcance};
 use std::path::{Path, PathBuf};
 
@@ -44,7 +51,7 @@ pub(crate) fn resolve_project_file_con_alcance(
         }
         let projects_dir = workspace.join("Projects");
         return Err(no_encontrado(
-            "Proyecto",
+            crate::args::PROYECTO,
             name,
             &proyectos_disponibles(&projects_dir),
             &projects_dir.to_string_lossy(),
@@ -72,9 +79,9 @@ pub(crate) fn resolve_project_file_con_alcance(
         }
     }
     if !avisos.is_empty() {
-        return Err(Error::NotFound(format!(
-            "Proyecto '{name}' no encontrado y la búsqueda quedó incompleta: {}",
-            avisos.join("; ")
+        return Err(Error::NotFound(BUSQUEDA_INCOMPLETA.texto_con(
+            Idioma::de_entorno(),
+            &[("name", name), ("avisos", &avisos.join("; "))],
         )));
     }
     let opciones: Vec<String> = prjs
@@ -82,7 +89,7 @@ pub(crate) fn resolve_project_file_con_alcance(
         .filter_map(|p| p.file_stem().and_then(|s| s.to_str()).map(str::to_string))
         .collect();
     Err(no_encontrado(
-        "Proyecto",
+        crate::args::PROYECTO,
         name,
         &opciones,
         &projects_dir.to_string_lossy(),

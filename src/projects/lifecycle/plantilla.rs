@@ -49,7 +49,7 @@ pub(super) fn sit_pedido(workspace: &Path, args: &Value) -> Result<Option<PathBu
     let sit = dir.join(format!("{sitio}.SIT"));
     if !sit.is_file() {
         return Err(crate::args::no_encontrado(
-            "Sitio",
+            crate::args::SITIO,
             sitio,
             &[],
             &dir.to_string_lossy(),

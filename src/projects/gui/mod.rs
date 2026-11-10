@@ -113,7 +113,7 @@ fn leer_variante(archivo: &Path, dir: &Path) -> Result<Vec<u8>> {
         .filter_map(|e| e.file_name().into_string().ok())
         .collect();
     Err(crate::args::no_encontrado(
-        "Variante",
+        crate::args::VARIANTE,
         &pedido,
         &opciones,
         &dir.to_string_lossy(),

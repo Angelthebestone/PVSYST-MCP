@@ -96,7 +96,12 @@ pub(crate) fn variante_no_encontrada(parent: &Path, stem: &str, pedido: &str) ->
                 .map(str::to_uppercase)
         })
         .collect();
-    no_encontrado("Variante", pedido, &opciones, &parent.to_string_lossy())
+    no_encontrado(
+        crate::args::VARIANTE,
+        pedido,
+        &opciones,
+        &parent.to_string_lossy(),
+    )
 }
 
 /// A variant file located from `proyecto` / `variante` arguments and read into memory.

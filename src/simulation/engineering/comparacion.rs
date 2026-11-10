@@ -4,6 +4,7 @@ use super::caso::{caso, especifica, round1, Caso};
 use crate::args::{req_str, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::idioma::Texto;
 use crate::objects::leer_objeto;
 use crate::simulation::report_pdf;
 use crate::simulation::results::resultado_de;
@@ -17,6 +18,15 @@ pub(super) const CLAVES_EXCLUIDAS: &[&str] = &[
     "WRFactor",
 ];
 pub(super) const MAX_DIFERENCIAS: usize = 100;
+
+const COMPARAR_POCAS_PEDIDAS: Texto = Texto {
+    es: "comparar necesita al menos 2 variantes: se pidieron {n} ({lista})",
+    en: "comparar needs at least 2 variants: {n} were requested ({lista})",
+};
+const COMPARAR_POCAS_RESULTADOS: Texto = Texto {
+    es: "Se necesitan al menos 2 variantes con resultados en '{proyecto}' (hay {n})",
+    en: "At least 2 variants with results are needed in '{proyecto}' (there are {n})",
+};
 
 pub(super) fn excluida(clave: &str) -> bool {
     CLAVES_EXCLUIDAS.iter().any(|p| clave.starts_with(p))
@@ -169,15 +179,17 @@ pub(crate) fn comparar(paths: &Paths, args: &Value) -> Result<Value> {
         // A call that named its variants is short of variants, not of results: saying
         // "the project has 1" would send the caller looking for the wrong thing.
         let mensaje = if args.get("variantes").is_some_and(Value::is_array) {
-            format!(
-                "comparar necesita al menos 2 variantes: se pidieron {} ({})",
-                variantes.len(),
-                variantes.join(", ")
+            COMPARAR_POCAS_PEDIDAS.texto_con(
+                paths.idioma,
+                &[
+                    ("n", &variantes.len().to_string()),
+                    ("lista", &variantes.join(", ")),
+                ],
             )
         } else {
-            format!(
-                "Se necesitan al menos 2 variantes con resultados en '{proyecto}' (hay {})",
-                variantes.len()
+            COMPARAR_POCAS_RESULTADOS.texto_con(
+                paths.idioma,
+                &[("proyecto", proyecto), ("n", &variantes.len().to_string())],
             )
         };
         return Err(Error::Invalid(mensaje));

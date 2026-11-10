@@ -5,6 +5,7 @@ use super::dominio::{validar_puntos, Horizonte, PuntoHorizonte};
 use crate::args::{missing, req_str, workspace_of};
 use crate::config::{data_ro, Alcance, Paths};
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use crate::workspace::{primer_existente_en_bases, primer_existente_en_workspace};
 use serde_json::{json, Value};
 use std::fs;
@@ -83,9 +84,29 @@ fn resolver_archivo_horizonte(paths: &Paths, args: &Value, nombre: &str) -> Resu
         ro.join("Shadings"),
     ];
     let nombres = [nombre.to_string(), format!("{nombre}.HOR")];
-    primer_existente_en_bases(&bases, &nombres)
-        .ok_or_else(|| Error::NotFound(format!("Archivo de horizonte '{nombre}' no encontrado")))
+    primer_existente_en_bases(&bases, &nombres).ok_or_else(|| {
+        Error::NotFound(
+            HORIZONTE_NO_ENCONTRADO.texto_con(Idioma::de_entorno(), &[("nombre", nombre)]),
+        )
+    })
 }
+
+const HORIZONTE_NO_ENCONTRADO: Texto = Texto {
+    es: "Archivo de horizonte '{nombre}' no encontrado",
+    en: "Horizon file '{nombre}' not found",
+};
+const ARCHIVO_INVALIDO: Texto = Texto {
+    es: "'archivo' debe nombrar un archivo: '{nombre}'",
+    en: "'archivo' must name a file: '{nombre}'",
+};
+const PUNTO_SIN_AZIMUT: Texto = Texto {
+    es: "Punto de horizonte sin campo numérico 'azimut'",
+    en: "Horizon point without a numeric 'azimut' field",
+};
+const PUNTO_SIN_ALTURA: Texto = Texto {
+    es: "Punto de horizonte sin campo numérico 'altura'",
+    en: "Horizon point without a numeric 'altura' field",
+};
 
 /// Destination of a written horizon: `<workspace>/Shadings/<name>.HOR`.
 ///
@@ -97,7 +118,9 @@ fn resolver_destino_escritura(paths: &Paths, args: &Value, nombre: &str) -> Resu
     let archivo = Path::new(nombre)
         .file_name()
         .and_then(|n| n.to_str())
-        .ok_or_else(|| Error::Invalid(format!("'archivo' debe nombrar un archivo: '{nombre}'")))?;
+        .ok_or_else(|| {
+            Error::Invalid(ARCHIVO_INVALIDO.texto_con(paths.idioma, &[("nombre", nombre)]))
+        })?;
     crate::workspace::validar_nombre(archivo)?;
     let con_ext = if archivo.to_ascii_uppercase().ends_with(".HOR") {
         archivo.to_string()
@@ -115,14 +138,14 @@ fn parsear_puntos_json(arr: &[Value]) -> Result<Vec<PuntoHorizonte>> {
                 .or_else(|| v.get("azimut_grados"))
                 .and_then(Value::as_f64)
                 .ok_or_else(|| {
-                    Error::Invalid("Punto de horizonte sin campo numérico 'azimut'".into())
+                    Error::Invalid(PUNTO_SIN_AZIMUT.en_idioma(Idioma::de_entorno()).to_string())
                 })?;
             let altura = v
                 .get("altura")
                 .or_else(|| v.get("altura_grados"))
                 .and_then(Value::as_f64)
                 .ok_or_else(|| {
-                    Error::Invalid("Punto de horizonte sin campo numérico 'altura'".into())
+                    Error::Invalid(PUNTO_SIN_ALTURA.en_idioma(Idioma::de_entorno()).to_string())
                 })?;
             Ok(PuntoHorizonte::de_grados(azimut, altura))
         })

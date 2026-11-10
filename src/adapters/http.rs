@@ -1,9 +1,39 @@
 //! HTTP GET through the Windows-bundled `curl.exe` (no HTTP client dependency).
 
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use std::io::Read;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
+
+const LEER_RESPUESTA: Texto = Texto {
+    es: "No se pudo leer la respuesta: {e}",
+    en: "Could not read the response: {e}",
+};
+const RESPUESTA_GRANDE: Texto = Texto {
+    es: "La respuesta supera el máximo de {max} bytes",
+    en: "The response exceeds the maximum of {max} bytes",
+};
+const CURL_NO_ARRANCA: Texto = Texto {
+    es: "No se pudo ejecutar curl.exe: {e}",
+    en: "Could not run curl.exe: {e}",
+};
+const CURL_SIN_SALIDA: Texto = Texto {
+    es: "curl.exe no abrió su salida",
+    en: "curl.exe did not open its output",
+};
+const CURL_NO_TERMINA: Texto = Texto {
+    es: "curl.exe no terminó: {e}",
+    en: "curl.exe did not finish: {e}",
+};
+const GET_FALLO: Texto = Texto {
+    es: "HTTP GET {url} falló: {detalle}",
+    en: "HTTP GET {url} failed: {detalle}",
+};
+const GET_VACIO: Texto = Texto {
+    es: "HTTP GET {url} devolvió una respuesta vacía",
+    en: "HTTP GET {url} returned an empty response",
+};
 
 /// Path to the system `curl.exe`, falling back to the bare name on PATH.
 fn curl_exe() -> PathBuf {
@@ -20,14 +50,13 @@ const MAX_CUERPO_BYTES: u64 = 64 * 1024 * 1024;
 /// Reads `origen` to its end, failing as soon as it holds more than `max` bytes.
 fn leer_acotado(origen: impl Read, max: u64) -> Result<Vec<u8>> {
     let mut cuerpo = Vec::new();
-    origen
-        .take(max + 1)
-        .read_to_end(&mut cuerpo)
-        .map_err(|e| Error::Network(format!("No se pudo leer la respuesta: {e}")))?;
+    origen.take(max + 1).read_to_end(&mut cuerpo).map_err(|e| {
+        Error::Network(LEER_RESPUESTA.texto_con(Idioma::de_entorno(), &[("e", &e.to_string())]))
+    })?;
     if cuerpo.len() as u64 > max {
-        return Err(Error::Network(format!(
-            "La respuesta supera el máximo de {max} bytes"
-        )));
+        return Err(Error::Network(
+            RESPUESTA_GRANDE.texto_con(Idioma::de_entorno(), &[("max", &max.to_string())]),
+        ));
     }
     Ok(cuerpo)
 }
@@ -43,30 +72,39 @@ pub(crate) fn http_get(url: &str) -> Result<String> {
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(|e| Error::Network(format!("No se pudo ejecutar curl.exe: {e}")))?;
+        .map_err(|e| {
+            Error::Network(
+                CURL_NO_ARRANCA.texto_con(Idioma::de_entorno(), &[("e", &e.to_string())]),
+            )
+        })?;
     let Some(salida) = curl.stdout.take() else {
-        return Err(Error::Network("curl.exe no abrió su salida".into()));
+        return Err(Error::Network(
+            CURL_SIN_SALIDA.en_idioma(Idioma::de_entorno()).to_string(),
+        ));
     };
     let cuerpo = leer_acotado(salida, MAX_CUERPO_BYTES);
     if cuerpo.is_err() {
         // `kill` fails only when curl has already ended, which is what is wanted.
         let _ = curl.kill();
     }
-    let estado = curl
-        .wait_with_output()
-        .map_err(|e| Error::Network(format!("curl.exe no terminó: {e}")))?;
+    let estado = curl.wait_with_output().map_err(|e| {
+        Error::Network(CURL_NO_TERMINA.texto_con(Idioma::de_entorno(), &[("e", &e.to_string())]))
+    })?;
     let cuerpo = cuerpo?;
     if !estado.status.success() {
-        return Err(Error::Network(format!(
-            "HTTP GET {url} falló: {}",
-            String::from_utf8_lossy(&estado.stderr).trim()
+        return Err(Error::Network(GET_FALLO.texto_con(
+            Idioma::de_entorno(),
+            &[
+                ("url", url),
+                ("detalle", String::from_utf8_lossy(&estado.stderr).trim()),
+            ],
         )));
     }
     let body = String::from_utf8_lossy(&cuerpo).into_owned();
     if body.trim().is_empty() {
-        return Err(Error::Network(format!(
-            "HTTP GET {url} devolvió una respuesta vacía"
-        )));
+        return Err(Error::Network(
+            GET_VACIO.texto_con(Idioma::de_entorno(), &[("url", url)]),
+        ));
     }
     Ok(body)
 }

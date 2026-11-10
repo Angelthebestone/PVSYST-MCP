@@ -4,6 +4,7 @@ use crate::args::{flag, req_str, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::edit;
+use crate::idioma::Texto;
 use crate::projects::comentario::Comentario;
 use crate::projects::lifecycle::variantes::{
     entero_opcional, ruta_variante, stem_de, variant_files, variante_no_encontrada,
@@ -15,6 +16,12 @@ use std::path::{Path, PathBuf};
 
 use super::plantilla::{carpeta_de_salida, resolver_plantilla, sit_pedido, variante_pedida};
 use super::transacciones::{escribir_par, renombrar_todo};
+
+/// A project whose files already exist and was not asked to overwrite them.
+const PROYECTO_EXISTENTE: Texto = Texto {
+    es: "'{archivo}' ya existe: pasa 'sobrescribir': true para reemplazarlo",
+    en: "'{archivo}' already exists: pass 'sobrescribir': true to replace it",
+};
 
 /// Variant bytes with the optional module / inverter / sizing overrides applied.
 fn aplicar_sizing(bytes: &[u8], args: &Value) -> Result<(Vec<u8>, Vec<Value>)> {
@@ -114,9 +121,9 @@ pub(crate) fn crear_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     let new_prj = parent.join(format!("{nombre}.PRJ"));
     let new_var = ruta_variante(&parent, nombre, &variante)?;
     if (new_prj.exists() || new_var.exists()) && !flag(args, &["sobrescribir"]) {
-        return Err(Error::Invalid(format!(
-            "'{}' ya existe: pasa 'sobrescribir': true para reemplazarlo",
-            new_prj.display()
+        return Err(Error::Invalid(PROYECTO_EXISTENTE.texto_con(
+            paths.idioma,
+            &[("archivo", &new_prj.to_string_lossy())],
         )));
     }
 

@@ -162,7 +162,7 @@ fn archivos_pvsyst(workspace: &Path) -> Vec<String> {
 fn metadatos(workspace: &Path, pedido: &str, path: &Path) -> Result<fs::Metadata> {
     fs::metadata(path).map_err(|e| match e.kind() {
         std::io::ErrorKind::NotFound => crate::args::no_encontrado(
-            "Archivo",
+            crate::args::ARCHIVO,
             pedido,
             &archivos_pvsyst(workspace),
             &workspace.to_string_lossy(),

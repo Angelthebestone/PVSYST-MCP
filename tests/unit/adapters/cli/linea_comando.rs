@@ -1,4 +1,5 @@
 use super::*;
+use crate::idioma::Idioma;
 use serde_json::json;
 
 #[test]
@@ -33,11 +34,11 @@ fn should_escape_quotes_tabs_and_trailing_backslashes() {
 fn should_use_the_simulation_default_for_run_simulation() {
     let sin_timeout = json!({});
     assert_eq!(
-        timeout_de_comando(&sin_timeout, "run-simulation").expect("defecto"),
+        timeout_de_comando(&sin_timeout, "run-simulation", Idioma::Es).expect("defecto"),
         Duration::from_secs(TIMEOUT_SIMULACION_S)
     );
     assert_eq!(
-        timeout_de_comando(&sin_timeout, "help").expect("defecto"),
+        timeout_de_comando(&sin_timeout, "help", Idioma::Es).expect("defecto"),
         Duration::from_secs(TIMEOUT_DEFECTO_S)
     );
 }
@@ -46,11 +47,11 @@ fn should_use_the_simulation_default_for_run_simulation() {
 #[test]
 fn should_refuse_a_timeout_outside_the_declared_range() {
     for valor in [json!(0), json!(-1), json!(3601)] {
-        let res = timeout_de_comando(&json!({ "timeout_s": valor }), "help");
+        let res = timeout_de_comando(&json!({ "timeout_s": valor }), "help", Idioma::Es);
         assert!(matches!(res, Err(Error::Invalid(_))), "{valor}");
     }
     assert_eq!(
-        timeout_de_comando(&json!({ "timeout_s": 42 }), "help").expect("válido"),
+        timeout_de_comando(&json!({ "timeout_s": 42 }), "help", Idioma::Es).expect("válido"),
         Duration::from_secs(42)
     );
 }
