@@ -11,6 +11,7 @@ use super::posicion;
 use super::sondeo::{esperar_mientras, sondear_hasta};
 use super::ventanas::{class_of, enum_windows_de, pid_of, rect_of, text_of, visible};
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use std::time::Duration;
 
 const SONDEO: Duration = Duration::from_millis(200);
@@ -32,6 +33,8 @@ pub(crate) struct Campo {
 pub(crate) struct Formulario {
     pub(crate) h: Hwnd,
     dpi: u32,
+    /// Client-facing language of the messages this form raises.
+    idioma: Idioma,
 }
 
 /// Visible top-level windows of process `pid`, front-most first.
@@ -62,10 +65,18 @@ pub(crate) fn esperar_cierre(h: Hwnd, espera: Duration) -> bool {
 }
 
 impl Formulario {
+    /// A form for a caller that carries no `Idioma` (`vista_agente`): the
+    /// environment is the same source `Paths` reads.
     pub(crate) fn de(h: Hwnd) -> Self {
+        Self::con_idioma(h, Idioma::de_entorno())
+    }
+
+    /// A form driven by a call that knows the client's language.
+    pub(crate) fn con_idioma(h: Hwnd, idioma: Idioma) -> Self {
         Self {
             h,
             dpi: ffi::dpi_de(h),
+            idioma,
         }
     }
 
@@ -139,12 +150,18 @@ impl Formulario {
             candidatos,
         )
         .ok_or_else(|| {
-            Error::Gui(format!(
-                "No {} at ({}, {}) of '{}': did the PVsyst version change?",
-                campo.clase,
-                campo.x,
-                campo.y,
-                self.titulo()
+            let ausente = Texto {
+                es: "No hay {clase} en ({x}, {y}) de '{titulo}': ¿cambió la versión de PVsyst?",
+                en: "No {clase} at ({x}, {y}) of '{titulo}': did the PVsyst version change?",
+            };
+            Error::Gui(ausente.texto_con(
+                self.idioma,
+                &[
+                    ("clase", campo.clase),
+                    ("x", &campo.x.to_string()),
+                    ("y", &campo.y.to_string()),
+                    ("titulo", &self.titulo()),
+                ],
             ))
         })
     }

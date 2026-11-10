@@ -4,6 +4,7 @@ use super::{leer_barra, Fin, MAX_MENUS};
 use crate::adapters::gui::ffi::{Hwnd, ItemMenu, TipoItem};
 use crate::adapters::gui::ventanas::class_of;
 use crate::error::Result;
+use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Value};
 
 fn item_json(posicion: usize, item: &ItemMenu) -> Value {
@@ -34,7 +35,7 @@ fn item_con_funcion(clase: &str, (menu, posicion): (usize, usize), item: &ItemMe
 /// Every top-level menu of `ventana` with its entries, up to the point the
 /// scan wraps around to the first one. Submenus are listed but not entered.
 /// The window's system menu is not listed: `menu` does not accept it (GUI-11).
-pub(crate) fn listar(ventana: Hwnd) -> Result<Value> {
+pub(crate) fn listar(ventana: Hwnd, idioma: Idioma) -> Result<Value> {
     let (mut menus, fin) = leer_barra(ventana)?;
     if matches!(fin, Fin::Sistema) {
         menus.pop();
@@ -55,7 +56,16 @@ pub(crate) fn listar(ventana: Hwnd) -> Result<Value> {
     let (completo, error) = match fin {
         Fin::Sistema => (true, None),
         Fin::Fallo(motivo) => (false, Some(motivo)),
-        Fin::Limite => (false, Some(format!("más de {MAX_MENUS} menús"))),
+        Fin::Limite => {
+            let demasiados = Texto {
+                es: "más de {max} menús",
+                en: "more than {max} menus",
+            };
+            (
+                false,
+                Some(demasiados.texto_con(idioma, &[("max", &MAX_MENUS.to_string())])),
+            )
+        }
     };
     Ok(json!({
         "ventana": format!("0x{ventana:X}"),

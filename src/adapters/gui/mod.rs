@@ -70,7 +70,9 @@ pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Val
         "arbol" => uia_vista::observar_arbol(paths, args),
         "formulario" => ocr::formulario(paths, args),
         "funciones" => Ok(catalogo::listar(args)),
-        "menus" => menu_por_posicion::listar(ventanas::hwnd_de(args, "ventana")?),
+        "menus" => {
+            menu_por_posicion::listar(ventanas::hwnd_de(args, "ventana")?, paths.idioma)
+        }
         "mensajes" => {
             let limite = args
                 .get("lineas")
@@ -130,7 +132,7 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
             acciones::invocar(args, paths.idioma)
                 .map_err(|e| Error::Gui(format!("{e} (accion {accion})")))
         }
-        "clic_texto" => clic_por_texto::clic_texto(args),
+        "clic_texto" => clic_por_texto::clic_texto(args, paths.idioma),
         "clic_fisico" => {
             acciones::exigir_escritorio()?;
             acciones::invocar(args, paths.idioma)
@@ -143,10 +145,10 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         "escena" => escena::crear(paths, args),
         "escena_leer" => escena::leer(paths, args),
         "escena_importar" => escena::importar(paths, args),
-        "escribir" => campos::escribir(args),
-        "seleccionar" => campos::seleccionar(args),
+        "escribir" => campos::escribir(args, paths.idioma),
+        "seleccionar" => campos::seleccionar(args, paths.idioma),
         "pagina" => campos::pagina(paths, args),
-        "esperar_cierre" => campos::esperar_cierre_accion(args),
+        "esperar_cierre" => campos::esperar_cierre_accion(args, paths.idioma),
         "lanzar" => proceso::lanzar(paths, args),
         "cerrar_todo" => proceso::cerrar_todo(args),
         "reiniciar" => recuperacion::reiniciar(paths, args),

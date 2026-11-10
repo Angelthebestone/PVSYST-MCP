@@ -11,6 +11,7 @@ use super::ocr::ubicacion::{elegir_caja, ubicar_texto};
 use super::ventanas::{class_of, hwnd_de};
 use crate::args::{opt_u32, req_str};
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Value};
 use std::time::Duration;
 
@@ -19,7 +20,7 @@ const ASENTAMIENTO_CLIC: Duration = Duration::from_millis(400);
 
 /// Clicks the on-screen text `texto` inside window `ventana`; `indice` picks
 /// among several matches.
-pub(crate) fn clic_texto(args: &Value) -> Result<Value> {
+pub(crate) fn clic_texto(args: &Value, idioma: Idioma) -> Result<Value> {
     let texto = req_str(args, &["texto"], "texto visible sobre el que pulsar")?;
     let indice = opt_u32(args, "indice")?.map(|i| i as usize);
     let h = hwnd_de(args, "ventana")?;
@@ -46,20 +47,22 @@ pub(crate) fn clic_texto(args: &Value) -> Result<Value> {
     if let (Some(aviso), Some(obj)) = (aviso, resultado.as_object_mut()) {
         obj.insert("advertencias".into(), json!([aviso]));
     }
-    marcar_sin_ocr(&mut resultado, texto, coincidencias);
+    marcar_sin_ocr(&mut resultado, texto, coincidencias, idioma);
     Ok(resultado)
 }
 
 /// A click without an OCR match went to the UIA element of that name: it
 /// happened, but nothing confirms it hit the text the caller read, so the answer
 /// carries `error` and `vista` reports it as partial instead of "ok" (BUG-03).
-fn marcar_sin_ocr(resultado: &mut Value, texto: &str, coincidencias: usize) {
+fn marcar_sin_ocr(resultado: &mut Value, texto: &str, coincidencias: usize, idioma: Idioma) {
     if let (0, Some(obj)) = (coincidencias, resultado.as_object_mut()) {
+        let sin_ocr = Texto {
+            es: "El OCR no encontró '{texto}' (coincidencias:0): se pulsó el elemento UIA de ese nombre; comprueba el efecto con gui_observar que:ventanas",
+            en: "OCR did not find '{texto}' (matches:0): the UIA element with that name was clicked; check the effect with gui_observar que:ventanas",
+        };
         obj.insert(
             "error".into(),
-            json!(format!(
-                "El OCR no encontró '{texto}' (coincidencias:0): se pulsó el elemento UIA de ese nombre; comprueba el efecto con gui_observar que:ventanas"
-            )),
+            json!(sin_ocr.texto_con(idioma, &[("texto", texto)])),
         );
     }
 }

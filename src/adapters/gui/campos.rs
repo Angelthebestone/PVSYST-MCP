@@ -7,6 +7,7 @@ use super::ffi::{self, Hwnd};
 use super::modal;
 use super::ventanas::{class_of, hwnd_de};
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Value};
 use std::time::Duration;
 
@@ -75,16 +76,16 @@ fn clase_admitida(clase: &str, clases: &[&str], accion: &str) -> Result<()> {
     )))
 }
 
-fn formulario(args: &Value) -> Result<Formulario> {
-    objetivo_habilitado(args).map(Formulario::de)
+fn formulario(args: &Value, idioma: Idioma) -> Result<Formulario> {
+    objetivo_habilitado(args).map(|h| Formulario::con_idioma(h, idioma))
 }
 
 /// Types `texto` into a form field (`campo`) or directly into the target control.
-pub(crate) fn escribir(args: &Value) -> Result<Value> {
+pub(crate) fn escribir(args: &Value, idioma: Idioma) -> Result<Value> {
     exigir_sin_etiqueta(args, "escribir")?;
     let texto = crate::args::req_str(args, &["texto"], "text to type")?;
     if args.get("campo").is_some() {
-        let f = formulario(args)?;
+        let f = formulario(args, idioma)?;
         f.escribir(campo_de(args)?, texto)?;
         return Ok(json!({
             "accion": "escribir",
@@ -115,11 +116,11 @@ fn exigir_sin_etiqueta(args: &Value, accion: &str) -> Result<()> {
 }
 
 /// Picks the first combo item that starts with `texto`.
-pub(crate) fn seleccionar(args: &Value) -> Result<Value> {
+pub(crate) fn seleccionar(args: &Value, idioma: Idioma) -> Result<Value> {
     exigir_sin_etiqueta(args, "seleccionar")?;
     let texto = crate::args::req_str(args, &["texto"], "prefix of the list item")?;
     let elegido = if args.get("campo").is_some() {
-        let f = formulario(args)?;
+        let f = formulario(args, idioma)?;
         f.seleccionar(campo_de(args)?, texto)?;
         true
     } else {
@@ -146,7 +147,7 @@ pub(crate) fn pagina(paths: &crate::config::Paths, args: &Value) -> Result<Value
                 Error::Invalid("'indice' must be an integer greater than or equal to 0".into())
             })?,
     };
-    let f = formulario(args)?;
+    let f = formulario(args, paths.idioma)?;
     f.pagina(indice)
         .map_err(|e| con_motivo_del_veto(paths, f.h, e))?;
     Ok(json!({ "accion": "pagina", "hwnd": format!("0x{:X}", f.h), "indice": indice }))
@@ -180,7 +181,7 @@ fn respuesta_ya_cerrada(args: &Value, espera_ms: u64) -> Value {
     })
 }
 
-fn esperar_cierre_con<F>(args: &Value, resolver: F) -> Result<Value>
+fn esperar_cierre_con<F>(args: &Value, resolver: F, idioma: Idioma) -> Result<Value>
 where
     F: FnOnce(&Value) -> Result<Hwnd>,
 {
@@ -197,12 +198,12 @@ where
         Err(error) => return Err(error),
     };
     let cerrado = esperar_cierre(h, Duration::from_millis(espera_ms));
-    Ok(respuesta_de_espera(h, cerrado, espera_ms))
+    Ok(respuesta_de_espera(h, cerrado, espera_ms, idioma))
 }
 
 /// The answer of a wait: a window that stayed open carries `error`, so the
 /// `vista` block reports it as partial instead of "ok".
-fn respuesta_de_espera(h: Hwnd, cerrado: bool, espera_ms: u64) -> Value {
+fn respuesta_de_espera(h: Hwnd, cerrado: bool, espera_ms: u64, idioma: Idioma) -> Value {
     let mut respuesta = json!({
         "accion": "esperar_cierre",
         "hwnd": format!("0x{h:X}"),
@@ -211,11 +212,18 @@ fn respuesta_de_espera(h: Hwnd, cerrado: bool, espera_ms: u64) -> Value {
         "espera_ms": espera_ms,
     });
     if let (false, Some(mapa)) = (cerrado, respuesta.as_object_mut()) {
+        let abierta = Texto {
+            es: "{clase} sigue abierta tras {espera_ms} ms (gui_observar que:ventanas)",
+            en: "{clase} is still open after {espera_ms} ms (gui_observar que:ventanas)",
+        };
         mapa.insert(
             "error".into(),
-            json!(format!(
-                "{} sigue abierta tras {espera_ms} ms (gui_observar que:ventanas)",
-                class_of(h)
+            json!(abierta.texto_con(
+                idioma,
+                &[
+                    ("clase", &class_of(h)),
+                    ("espera_ms", &espera_ms.to_string())
+                ],
             )),
         );
     }
@@ -224,8 +232,8 @@ fn respuesta_de_espera(h: Hwnd, cerrado: bool, espera_ms: u64) -> Value {
 
 /// Waits until the target window is gone or hidden; an already closed window is
 /// the trivial success the natural use after `cerrar` expects.
-pub(crate) fn esperar_cierre_accion(args: &Value) -> Result<Value> {
-    esperar_cierre_con(args, |a| hwnd_de(a, "ventana"))
+pub(crate) fn esperar_cierre_accion(args: &Value, idioma: Idioma) -> Result<Value> {
+    esperar_cierre_con(args, |a| hwnd_de(a, "ventana"), idioma)
 }
 
 #[cfg(test)]

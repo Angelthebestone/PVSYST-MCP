@@ -12,6 +12,7 @@ use crate::adapters::gui::ffi;
 use crate::adapters::gui::sondeo::sondear_hasta;
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -55,7 +56,7 @@ pub(super) fn guardar_temporal(paths: &Paths, nombre: &str) -> Result<PathBuf> {
         ffi::traer_al_frente(dialogo.h);
         let nombre = nombre_de(&ruta);
         ffi::teclear_en(campo_nombre, &nombre)?;
-        exigir_nombre_escrito(&nombre, &ffi::texto_control(campo_nombre))?;
+        exigir_nombre_escrito(&nombre, &ffi::texto_control(campo_nombre), paths.idioma)?;
         dialogo.pulsar("Guardar")
     })?;
     let cerrado = esperar_cierre(dialogo.h, ESPERA_GUARDADO);
@@ -73,12 +74,17 @@ pub(super) fn guardar_temporal(paths: &Paths, nombre: &str) -> Result<PathBuf> {
 
 /// «Guardar» with a name that did not reach the field saves under another one (or not
 /// at all) and PVsyst says nothing: the field is read back first (GUI-03).
-fn exigir_nombre_escrito(esperado: &str, leido: &str) -> Result<()> {
+fn exigir_nombre_escrito(esperado: &str, leido: &str, idioma: Idioma) -> Result<()> {
     if leido == esperado {
         return Ok(());
     }
-    Err(Error::Gui(format!(
-        "The file name did not reach the save dialog: it holds '{leido}', not '{esperado}'. PVsyst probably does not have the foreground; bring it to the front with gui_actuar accion:activar and retry"
+    let no_llego = Texto {
+        es: "El nombre del archivo no llegó al diálogo de guardado: tiene '{leido}', no '{esperado}'. PVsyst probablemente no tiene el primer plano; tráelo al frente con gui_actuar accion:activar y repite",
+        en: "The file name did not reach the save dialog: it holds '{leido}', not '{esperado}'. PVsyst probably does not have the foreground; bring it to the front with gui_actuar accion:activar and retry",
+    };
+    Err(Error::Gui(no_llego.texto_con(
+        idioma,
+        &[("leido", leido), ("esperado", esperado)],
     )))
 }
 

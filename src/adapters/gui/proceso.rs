@@ -7,6 +7,7 @@ use super::ventanas::{
 };
 use crate::args::flag;
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use crate::workspace::{resolver_ruta, Alcance};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
@@ -151,20 +152,22 @@ fn cerrar_aviso_demo_si_pedido(pid: u32, args: &Value) {
 }
 
 /// `proyecto` cannot open into a running PVsyst: the request is refused by name.
-fn comprobar_proyecto_libre(args: &Value) -> Result<()> {
+fn comprobar_proyecto_libre(args: &Value, idioma: Idioma) -> Result<()> {
     if args.get("proyecto").is_none() {
         return Ok(());
     }
-    Err(Error::Gui(
-        "'proyecto' cannot be opened: PVsyst is already running. Close it (gui_actuar accion:cerrar_todo) and repeat lanzar with proyecto".into(),
-    ))
+    let ya_en_ejecucion = Texto {
+        es: "'proyecto' no se puede abrir: PVsyst ya está en ejecución. Ciérralo (gui_actuar accion:cerrar_todo) y repite lanzar con proyecto",
+        en: "'proyecto' cannot be opened: PVsyst is already running. Close it (gui_actuar accion:cerrar_todo) and repeat lanzar with proyecto",
+    };
+    Err(Error::Gui(ya_en_ejecucion.en_idioma(idioma).into()))
 }
 
 /// PVsyst allows one instance per session: a second launch stops at the box
 /// "PVsyst is already running." and never opens. So `lanzar` attaches to the
 /// running instance instead of spawning another one.
 fn ya_abierta(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
-    comprobar_proyecto_libre(args)?;
+    comprobar_proyecto_libre(args, paths.idioma)?;
     let pid = pids_pvsyst().first().copied().unwrap_or(0);
     cerrar_aviso_demo_si_pedido(pid, args);
     let windows = ventanas(&json!({ "visibles": true }))?;
@@ -179,9 +182,13 @@ fn ya_abierta(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
 
 pub(crate) fn lanzar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     if !paths.gui_exe.exists() {
-        return Err(Error::Gui(format!(
-            "PVsyst GUI not found at '{}'. Set PVSYST_GUI.",
-            paths.gui_exe.display()
+        let no_esta = Texto {
+            es: "No se encontró la GUI de PVsyst en '{ruta}'. Define PVSYST_GUI.",
+            en: "PVsyst GUI not found at '{ruta}'. Set PVSYST_GUI.",
+        };
+        return Err(Error::Gui(no_esta.texto_con(
+            paths.idioma,
+            &[("ruta", &paths.gui_exe.display().to_string())],
         )));
     }
     if gui_running() {

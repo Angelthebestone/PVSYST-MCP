@@ -16,6 +16,7 @@ use crate::args::{flag, opt_str, req_str};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::escena_3d::{leer_objetos, nombre_valido, verificar_archivo, ObjetoPedido};
+use crate::idioma::Texto;
 use serde_json::{json, Value};
 
 const EDITOR: &str = "TPerspectiveForm";
@@ -113,13 +114,13 @@ fn exportar_y_leer(paths: &Paths, nombre: &str) -> Result<(Value, std::path::Pat
 /// «Cancelar» once PVsyst has read the file. PVsyst converts the mesh: the MCP never does.
 pub(crate) fn importar(paths: &Paths, args: &Value) -> Result<Value> {
     exigir_escritorio()?;
+    let ruta_de_la_malla = Texto {
+        es: "ruta de la malla (3DS, DAE, PVC, PVC2, PVZ2), fuera de Program Files",
+        en: "path of the mesh (3DS, DAE, PVC, PVC2, PVZ2), outside Program Files",
+    };
     let ruta = importar::malla_valida(
         &paths.workspace,
-        req_str(
-            args,
-            &["archivo"],
-            "ruta de la malla (3DS, DAE, PVC, PVC2, PVZ2), fuera de Program Files",
-        )?,
+        req_str(args, &["archivo"], ruta_de_la_malla.en_idioma(paths.idioma))?,
     )?;
     let nombre = nombre_valido(req_str(
         args,
