@@ -3,6 +3,7 @@
 
 use crate::args::opt_u32;
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Value};
 
 /// Window class of the main form; its menu bar and buttons are the entry points.
@@ -198,7 +199,7 @@ pub(crate) enum PedidoMenu {
 /// The command a request for `accion:menu` names: an `id`, or a `menu` and an
 /// `item` (positions from 0), plus a `subitem` when `item` is a submenu. Giving
 /// both kinds, or half a position, is an error rather than a guess.
-pub(crate) fn pedido_de_menu(args: &Value) -> Result<PedidoMenu> {
+pub(crate) fn pedido_de_menu(args: &Value, idioma: Idioma) -> Result<PedidoMenu> {
     let (id, menu, item, sub) = (
         opt_u32(args, "id")?,
         opt_u32(args, "menu")?,
@@ -206,9 +207,13 @@ pub(crate) fn pedido_de_menu(args: &Value) -> Result<PedidoMenu> {
         opt_u32(args, "subitem")?,
     );
     match (id, menu, item, sub) {
-        (Some(id), None, None, None) => u16::try_from(id)
-            .map(PedidoMenu::Id)
-            .map_err(|_| Error::Invalid("'id' va de 0 a 65535".into())),
+        (Some(id), None, None, None) => u16::try_from(id).map(PedidoMenu::Id).map_err(|_| {
+            let fuera = Texto {
+                es: "'id' va de 0 a 65535",
+                en: "'id' goes from 0 to 65535",
+            };
+            Error::Invalid(fuera.en_idioma(idioma).into())
+        }),
         (None, Some(menu), Some(item), None) => Ok(PedidoMenu::Posicion {
             menu: menu as usize,
             item: item as usize,
@@ -218,9 +223,13 @@ pub(crate) fn pedido_de_menu(args: &Value) -> Result<PedidoMenu> {
             item: item as usize,
             sub: sub as usize,
         }),
-        _ => Err(Error::Invalid(
-            "accion 'menu' requiere 'id', o la pareja 'menu' e 'item' (posiciones desde 0; 'subitem' si 'item' es un submenú), no ambas".into(),
-        )),
+        _ => {
+            let pedido_invalido = Texto {
+                es: "accion 'menu' requiere 'id', o la pareja 'menu' e 'item' (posiciones desde 0; 'subitem' si 'item' es un submenú), no ambas",
+                en: "accion 'menu' needs 'id', or the pair 'menu' and 'item' (positions from 0; 'subitem' if 'item' is a submenu), not both",
+            };
+            Err(Error::Invalid(pedido_invalido.en_idioma(idioma).into()))
+        }
     }
 }
 

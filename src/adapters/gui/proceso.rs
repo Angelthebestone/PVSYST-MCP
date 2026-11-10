@@ -124,10 +124,10 @@ fn esperar_formulario_principal(pid: u32, timeout_secs: u64) -> bool {
 
 /// Starts PVsyst (with `proyecto` when given) on the right desktop and returns
 /// its process id.
-fn iniciar_proceso(exe: &Path, proyecto: Option<&Path>) -> Result<u32> {
+fn iniciar_proceso(exe: &Path, proyecto: Option<&Path>, idioma: Idioma) -> Result<u32> {
     if escritorio::es_aislado() {
         let args: Vec<&Path> = proyecto.into_iter().collect();
-        return escritorio::lanzar_proceso(exe, &args, exe.parent());
+        return escritorio::lanzar_proceso(exe, &args, idioma);
     }
     let mut cmd = std::process::Command::new(exe);
     if let Some(p) = proyecto {
@@ -198,7 +198,7 @@ pub(crate) fn lanzar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         Some(p) => Some(resolver_proyecto(paths, args, p)?),
         None => None,
     };
-    let pid = iniciar_proceso(&paths.gui_exe, proyecto.as_deref())?;
+    let pid = iniciar_proceso(&paths.gui_exe, proyecto.as_deref(), paths.idioma)?;
     let wait = args
         .get("esperar_segundos")
         .and_then(serde_json::Value::as_u64)

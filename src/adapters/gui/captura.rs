@@ -6,6 +6,7 @@ use super::png::png_rgb;
 use super::ventanas::{class_of, hwnd_de, json_identidad_ventana, rect_of, visible};
 use crate::args::flag;
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use crate::workspace::codificar_base64 as base64;
 use crate::workspace::{resolver_ruta, Alcance};
 use serde_json::{json, Value};
@@ -163,9 +164,13 @@ fn rgb_dibujado_de(h: Hwnd) -> Result<(Vec<u8>, Lienzo)> {
     let alto = (rect.bottom - rect.top).max(1);
     let rgb = rgb_desde_bgrx(&capture_pixels(h, (w, alto))?);
     if rgb.iter().all(|&b| b == 0) {
-        return Err(Error::Gui(
-            "Captura negra: escritorio no interactivo".into(),
-        ));
+        // `rgb_de_control` is also called from `fila`, which carries no `Idioma`:
+        // the environment is the same source `Paths` reads.
+        let negra = Texto {
+            es: "Captura negra: escritorio no interactivo",
+            en: "Black capture: the desktop is not interactive",
+        };
+        return Err(Error::Gui(negra.en_idioma(Idioma::de_entorno()).into()));
     }
     let lienzo = Lienzo::dibujado((w, alto), ffi::escala_de_captura(h));
     Ok((solo_area_dibujada(rgb, w as usize, lienzo), lienzo))
@@ -185,9 +190,13 @@ pub(crate) fn rgb_de_control(h: Hwnd) -> Result<ImagenRgb> {
 pub(crate) fn capturar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     let h = hwnd_de(args, "ventana")?;
     if !visible(h) {
-        return Err(Error::Gui(format!(
-            "0x{h:X} ({}) está oculto: no hay nada que capturar",
-            class_of(h)
+        let oculto = Texto {
+            es: "0x{hwnd} ({clase}) está oculto: no hay nada que capturar",
+            en: "0x{hwnd} ({clase}) is hidden: there is nothing to capture",
+        };
+        return Err(Error::Gui(oculto.texto_con(
+            paths.idioma,
+            &[("hwnd", &format!("{h:X}")), ("clase", &class_of(h))],
         )));
     }
     let recorte = flag(args, &["recorte"]);
@@ -203,9 +212,11 @@ pub(crate) fn capturar(paths: &crate::config::Paths, args: &Value) -> Result<Val
         (rgb_dibujado, lienzo.ancho, lienzo.alto)
     };
     if ancho == 0 || alto_img == 0 || rgb_final.is_empty() {
-        return Err(Error::Gui(
-            "El área de la captura está vacía (0x0 píxeles)".into(),
-        ));
+        let vacia = Texto {
+            es: "El área de la captura está vacía (0x0 píxeles)",
+            en: "The capture area is empty (0x0 pixels)",
+        };
+        return Err(Error::Gui(vacia.en_idioma(paths.idioma).into()));
     }
     let png = png_rgb(ancho as u32, alto_img as u32, &rgb_final)?;
     let out = ruta_salida(paths, args, h)?;
