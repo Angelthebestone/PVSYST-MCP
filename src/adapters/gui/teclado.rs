@@ -70,7 +70,7 @@ fn exigir_primer_plano(raiz: ffi::Hwnd) -> Result<()> {
 
 pub(crate) fn teclas(args: &Value, idioma: Idioma) -> Result<Value> {
     let combo = req_str(args, &["teclas"], "e.g. \"F1\" or \"CTRL+S\"")?.to_uppercase();
-    let (mods, vk) = parsear_combinacion(&combo)?;
+    let (mods, vk) = parsear_combinacion(&combo, idioma)?;
     let scoped = ventanas_de(args)?;
     let reference = args.get("ventana").and_then(|v| v.as_str());
     let h = match reference {
@@ -98,7 +98,7 @@ pub(crate) fn teclas(args: &Value, idioma: Idioma) -> Result<Value> {
     let foco_actual = ffi::foco_del_hilo(ffi::hilo_de(raiz));
     let raiz_del_foco = (foco_actual != 0).then(|| ffi::get_ancestor(foco_actual, ffi::GA_ROOT));
     exigir_foco_en_la_ventana(foco_actual, raiz, raiz_del_foco)?;
-    exigir_algun_foco(foco_actual, destino_actual(), raiz, idioma)?;
+    exigir_algun_foco(foco_actual, raiz, idioma)?;
     ffi::pulsar_combinacion(vk, &mods);
     Ok(json!({
         "sent": combo,
@@ -122,13 +122,8 @@ fn destino_actual() -> Destino {
 /// On the desktop of the user a window with no control holding the focus has nowhere
 /// to deliver the keys: they would be sent and silently lost (BUG-23). The isolated
 /// desktop posts messages to the window itself.
-fn exigir_algun_foco(
-    foco_actual: ffi::Hwnd,
-    destino: Destino,
-    raiz: ffi::Hwnd,
-    idioma: Idioma,
-) -> Result<()> {
-    if foco_actual != 0 || destino == Destino::Aislado {
+fn exigir_algun_foco(foco_actual: ffi::Hwnd, raiz: ffi::Hwnd, idioma: Idioma) -> Result<()> {
+    if foco_actual != 0 || destino_actual() == Destino::Aislado {
         return Ok(());
     }
     let sin_foco = Texto {

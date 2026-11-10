@@ -118,7 +118,15 @@ pub(crate) fn cerrar_ventana(h: Hwnd, args: &Value) -> Result<()> {
     Ok(())
 }
 
-fn ejecutar_accion(h: Hwnd, action: &str, args: &Value, idioma: IdiomaCliente) -> Result<()> {
+/// The request an action serves: its arguments and the client's language.
+#[derive(Clone, Copy)]
+struct Pedido<'a> {
+    args: &'a Value,
+    idioma: IdiomaCliente,
+}
+
+fn ejecutar_accion(h: Hwnd, action: &str, pedido: Pedido) -> Result<()> {
+    let (args, idioma) = (pedido.args, pedido.idioma);
     match action {
         "click" => match desplazamiento(args, idioma)? {
             Some(punto) if ffi::clic_en_cliente(h, punto) => {}
@@ -155,15 +163,15 @@ pub(crate) fn exigir_escritorio() -> Result<()> {
 
 /// `texto` and `id` name no control for these actions: they are for `clic_texto`
 /// and `menu`. Accepting them silently clicked the window instead (GUI-06).
-fn exigir_sin_texto_ni_id(args: &Value, idioma: IdiomaCliente) -> Result<()> {
+fn exigir_sin_texto_ni_id(pedido: Pedido) -> Result<()> {
     for clave in ["texto", "id"] {
-        if args.get(clave).is_some() {
+        if pedido.args.get(clave).is_some() {
             let no_selecciona = Texto {
                 es: "'{clave}' no selecciona el control en click/clic_fisico/cerrar/activar/mensaje: nómbralo con 'ventana' (hwnd, clase o título) o pulsa texto visible con accion:clic_texto",
                 en: "'{clave}' does not select the control in click/clic_fisico/cerrar/activar/mensaje: name it with 'ventana' (hwnd, class or title) or click visible text with accion:clic_texto",
             };
             return Err(Error::Invalid(
-                no_selecciona.texto_con(idioma, &[("clave", clave)]),
+                no_selecciona.texto_con(pedido.idioma, &[("clave", clave)]),
             ));
         }
     }
@@ -171,26 +179,23 @@ fn exigir_sin_texto_ni_id(args: &Value, idioma: IdiomaCliente) -> Result<()> {
 }
 
 /// A disabled control swallows the click without a trace (GUI-07).
-fn exigir_control_habilitado(
-    habilitada: bool,
-    clase: &str,
-    texto: &str,
-    idioma: IdiomaCliente,
-) -> Result<()> {
-    if habilitada {
+fn exigir_control_habilitado(h: Hwnd, idioma: IdiomaCliente) -> Result<()> {
+    if ffi::estado_ventana(h).habilitada {
         return Ok(());
     }
     let deshabilitado = Texto {
         es: "El control {clase} '{texto}' está deshabilitado: el clic no haría nada. Habilita lo que lo condiciona (gui_observar que:vista) y repite",
         en: "The {clase} control '{texto}' is disabled: the click would do nothing. Enable what conditions it (gui_observar que:vista) and retry",
     };
-    Err(Error::Gui(
-        deshabilitado.texto_con(idioma, &[("clase", clase), ("texto", texto)]),
-    ))
+    Err(Error::Gui(deshabilitado.texto_con(
+        idioma,
+        &[("clase", &class_of(h)), ("texto", &text_of(h))],
+    )))
 }
 
 pub(crate) fn invocar(args: &Value, idioma: IdiomaCliente) -> Result<Value> {
-    exigir_sin_texto_ni_id(args, idioma)?;
+    let pedido = Pedido { args, idioma };
+    exigir_sin_texto_ni_id(pedido)?;
     let scoped = ventanas_de(args)?;
     let reference = req_str(
         args,
@@ -206,12 +211,7 @@ pub(crate) fn invocar(args: &Value, idioma: IdiomaCliente) -> Result<Value> {
         modal::exigir_habilitada(h, modal::PARA_ACTUAR)?;
     }
     if matches!(action, "click" | "clic_fisico") {
-        exigir_control_habilitado(
-            ffi::estado_ventana(h).habilitada,
-            &class_of(h),
-            &text_of(h),
-            idioma,
-        )?;
+        exigir_control_habilitado(h, idioma)?;
     }
     let cerrar = action == "cerrar";
     // The pid must be read while the window still exists: a destroyed HWND
@@ -219,7 +219,7 @@ pub(crate) fn invocar(args: &Value, idioma: IdiomaCliente) -> Result<Value> {
     let pid = cerrar.then(|| pid_of(h));
     let antes = pid.map(cierre::instantanea);
     ffi::traer_al_frente(ffi::get_ancestor(h, GA_ROOT));
-    ejecutar_accion(h, action, args, idioma)?;
+    ejecutar_accion(h, action, pedido)?;
 
     let mut reabiertas = Vec::new();
     if cerrar {

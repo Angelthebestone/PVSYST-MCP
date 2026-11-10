@@ -47,15 +47,17 @@ pub(crate) fn clic_texto(args: &Value, idioma: Idioma) -> Result<Value> {
     if let (Some(aviso), Some(obj)) = (aviso, resultado.as_object_mut()) {
         obj.insert("advertencias".into(), json!([aviso]));
     }
-    marcar_sin_ocr(&mut resultado, texto, coincidencias, idioma);
+    if coincidencias == 0 {
+        marcar_sin_ocr(&mut resultado, texto, idioma);
+    }
     Ok(resultado)
 }
 
 /// A click without an OCR match went to the UIA element of that name: it
 /// happened, but nothing confirms it hit the text the caller read, so the answer
 /// carries `error` and `vista` reports it as partial instead of "ok" (BUG-03).
-fn marcar_sin_ocr(resultado: &mut Value, texto: &str, coincidencias: usize, idioma: Idioma) {
-    if let (0, Some(obj)) = (coincidencias, resultado.as_object_mut()) {
+fn marcar_sin_ocr(resultado: &mut Value, texto: &str, idioma: Idioma) {
+    if let Some(obj) = resultado.as_object_mut() {
         let sin_ocr = Texto {
             es: "El OCR no encontró '{texto}' (coincidencias:0): se pulsó el elemento UIA de ese nombre; comprueba el efecto con gui_observar que:ventanas",
             en: "OCR did not find '{texto}' (matches:0): the UIA element with that name was clicked; check the effect with gui_observar que:ventanas",
