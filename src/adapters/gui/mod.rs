@@ -127,14 +127,15 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         .unwrap_or("click")
     {
         accion @ ("click" | "mensaje" | "cerrar" | "activar") => {
-            acciones::invocar(args).map_err(|e| Error::Gui(format!("{e} (accion {accion})")))
+            acciones::invocar(args, paths.idioma)
+                .map_err(|e| Error::Gui(format!("{e} (accion {accion})")))
         }
         "clic_texto" => clic_por_texto::clic_texto(args),
         "clic_fisico" => {
             acciones::exigir_escritorio()?;
-            acciones::invocar(args)
+            acciones::invocar(args, paths.idioma)
         }
-        "teclas" => teclado::teclas(args),
+        "teclas" => teclado::teclas(args, paths.idioma),
         "fila" => fila::fila(args),
         "funcion" => catalogo::abrir(args),
         "menu" => catalogo::menu(args),
@@ -151,7 +152,7 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         "reiniciar" => recuperacion::reiniciar(paths, args),
         "uia_invocar" => uia_paso::uia_invocar(args),
         "esperar" => esperas::esperar(args),
-        "paso" => uia_paso::paso(args),
+        "paso" => uia_paso::paso(args, paths.idioma),
         other => Err(Error::Invalid(format!(
             "Unknown accion '{other}' ({})",
             ACCIONES.join("|")

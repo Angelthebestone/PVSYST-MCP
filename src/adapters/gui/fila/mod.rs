@@ -21,6 +21,7 @@ use super::modal;
 use super::ventanas::{class_of, hwnd_de, pid_of, text_of, visible};
 use crate::args::{missing, opt_u32};
 use crate::error::{Error, Result};
+use crate::idioma::Idioma;
 use banda::Capturas;
 use error::ErrorFila;
 use geometria::Geometria;
@@ -209,7 +210,7 @@ pub(crate) fn fila(args: &Value) -> Result<Value> {
         .map_err(ErrorFila::a_error)?;
     let ventanas_antes = ventanas_del_proceso(h);
     exigir_foco(h)?;
-    clic_fisico_en_control(h, PuntoPedido::EnControl(x, dy))?;
+    clic_fisico_en_control(h, PuntoPedido::EnControl(x, dy), Idioma::de_entorno())?;
     std::thread::sleep(REPINTADO);
     let pedido = Pedido { h, geom, indice };
     exigir_sin_activacion(&pedido, &ventanas_antes)?;

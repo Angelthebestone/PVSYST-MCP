@@ -9,6 +9,7 @@ use super::ventanas::{class_of, hwnd_de, resolve, ventanas_de, visible};
 use crate::adapters::uia;
 use crate::args::req_str;
 use crate::error::{Error, Result};
+use crate::idioma::Idioma;
 use serde_json::{json, Value};
 
 /// Lets PVsyst finish the tab change (or its veto) before the strip is read back.
@@ -97,7 +98,11 @@ fn intentar_fisico(raiz: Hwnd, obj: &Objetivo) -> bool {
     true
 }
 
-pub(crate) fn cascada(ctx: &CascadaContext, obj: &Objetivo) -> Result<&'static str> {
+pub(crate) fn cascada(
+    ctx: &CascadaContext,
+    obj: &Objetivo,
+    idioma: Idioma,
+) -> Result<&'static str> {
     if let Some(h) = ctx.raiz {
         if intentar_uia(h, obj) {
             return Ok("uia");
@@ -120,7 +125,7 @@ pub(crate) fn cascada(ctx: &CascadaContext, obj: &Objetivo) -> Result<&'static s
         if let Some(v) = ctx.args.get("ventana") {
             a.insert("ventana".into(), v.clone());
         }
-        teclas(&Value::Object(a))?;
+        teclas(&Value::Object(a), idioma)?;
         return Ok("teclas");
     }
     Err(Error::Gui(
@@ -128,7 +133,7 @@ pub(crate) fn cascada(ctx: &CascadaContext, obj: &Objetivo) -> Result<&'static s
     ))
 }
 
-pub(crate) fn paso(args: &Value) -> Result<Value> {
+pub(crate) fn paso(args: &Value, idioma: Idioma) -> Result<Value> {
     if args.get("operacion").is_some() {
         return Err(Error::Invalid(
             "'operacion' no aplica a 'paso': la cascada elige la acción; use uia_invocar operacion:… o gui_actuar accion:campo/seleccionar".into(),
@@ -161,7 +166,7 @@ pub(crate) fn paso(args: &Value) -> Result<Value> {
         scoped: &scoped,
         raiz,
     };
-    let via = cascada(&ctx, &obj)?;
+    let via = cascada(&ctx, &obj, idioma)?;
     let verificado = match args.get("verificar") {
         Some(v) => {
             let params = EsperarParams {

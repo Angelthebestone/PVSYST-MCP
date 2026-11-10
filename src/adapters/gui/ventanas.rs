@@ -5,6 +5,7 @@ use super::modal;
 pub(crate) use super::resolucion::resolve;
 use crate::args::{flag, req_str};
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Value};
 
 const TEXT_BUFFER_LEN: usize = 512;
@@ -136,9 +137,15 @@ pub(crate) fn target_pids(args: &Value) -> Result<Vec<u32>> {
     };
     let pids = pids_de_ejecutable(&name);
     if pids.is_empty() && args.get("proceso").is_none() {
-        return Err(Error::Gui(format!(
-            "Process '{name}' is not running. Launch the PVsyst GUI first (or pass 'proceso')."
-        )));
+        // `hwnd_de`/`ventanas_de` are also called from `vista_agente`, which carries
+        // no `Idioma`: the environment is the same source `Paths` reads.
+        let no_arranca = Texto {
+            es: "El proceso '{name}' no está en ejecución. Lanza la GUI de PVsyst primero (o pasa 'proceso').",
+            en: "Process '{name}' is not running. Launch the PVsyst GUI first (or pass 'proceso').",
+        };
+        return Err(Error::Gui(
+            no_arranca.texto_con(Idioma::de_entorno(), &[("name", &name)]),
+        ));
     }
     Ok(pids)
 }

@@ -8,6 +8,7 @@ use super::modal;
 use super::proceso::pids_pvsyst;
 use super::ventanas::{class_of, pid_of, text_of, visible};
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Value};
 use std::time::Duration;
 
@@ -92,7 +93,7 @@ pub(crate) fn aviso(reabiertas: &[Value]) -> Option<String> {
 
 /// A close that left the window open (it asked for a confirmation, or a modal
 /// intercepted it) is a failure the caller must see.
-pub(super) fn exigir_cerrada(h: Hwnd) -> Result<()> {
+pub(super) fn exigir_cerrada(h: Hwnd, idioma: Idioma) -> Result<()> {
     if esperar_cierre(h, ESPERA_CIERRE) {
         return Ok(());
     }
@@ -100,6 +101,7 @@ pub(super) fn exigir_cerrada(h: Hwnd) -> Result<()> {
     Err(Error::Gui(sigue_abierta(
         &class_of(h),
         confirmacion.map(|m| (m, botones_de(m))),
+        idioma,
     )))
 }
 
@@ -116,19 +118,33 @@ fn botones_de(h: Hwnd) -> Vec<(Hwnd, String)> {
 
 /// Why a close failed: it opened a confirmation (named, with the buttons that
 /// answer it) or it is unknown (GUI-14).
-fn sigue_abierta(clase: &str, confirmacion: Option<(Hwnd, Vec<(Hwnd, String)>)>) -> String {
+fn sigue_abierta(
+    clase: &str,
+    confirmacion: Option<(Hwnd, Vec<(Hwnd, String)>)>,
+    idioma: Idioma,
+) -> String {
     let Some((mensaje, botones)) = confirmacion else {
-        return format!(
-            "{clase} is still open after asking it to close: it may have opened a confirmation (gui_observar que:ventanas)"
-        );
+        let abierta = Texto {
+            es: "{clase} sigue abierta tras pedirle que se cierre: puede haber abierto una confirmación (gui_observar que:ventanas)",
+            en: "{clase} is still open after asking it to close: it may have opened a confirmation (gui_observar que:ventanas)",
+        };
+        return abierta.texto_con(idioma, &[("clase", clase)]);
     };
     let botones: Vec<String> = botones
         .iter()
         .map(|(b, texto)| format!("'{texto}' (0x{b:X})"))
         .collect();
-    format!(
-        "{clase} is still open: it asked for a confirmation in {CLASE_MENSAJE} 0x{mensaje:X}. Answer it with gui_actuar accion:click ventana:<hwnd> on one of its buttons: {}",
-        botones.join(", ")
+    let pide_confirmacion = Texto {
+        es: "{clase} sigue abierta: pidió confirmación en {mensaje}. Respóndela con gui_actuar accion:click ventana:<hwnd> sobre uno de sus botones: {botones}",
+        en: "{clase} is still open: it asked for a confirmation in {mensaje}. Answer it with gui_actuar accion:click ventana:<hwnd> on one of its buttons: {botones}",
+    };
+    pide_confirmacion.texto_con(
+        idioma,
+        &[
+            ("clase", clase),
+            ("mensaje", &format!("{CLASE_MENSAJE} 0x{mensaje:X}")),
+            ("botones", &botones.join(", ")),
+        ],
     )
 }
 

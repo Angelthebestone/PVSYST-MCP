@@ -5,17 +5,22 @@ use super::ffi::{self, Hwnd};
 use super::ventanas::rect_of;
 use crate::args::opt_i32;
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use serde_json::Value;
 
 /// `dx`/`dy` of the request: a point of the control in px at 96 DPI from its
 /// top-left corner. Both or neither: half a point has no meaning.
-pub(super) fn desplazamiento(args: &Value) -> Result<Option<(i32, i32)>> {
+pub(super) fn desplazamiento(args: &Value, idioma: Idioma) -> Result<Option<(i32, i32)>> {
     match (opt_i32(args, "dx")?, opt_i32(args, "dy")?) {
         (Some(dx), Some(dy)) => Ok(Some((dx, dy))),
         (None, None) => Ok(None),
-        _ => Err(Error::Invalid(
-            "'dx' and 'dy' go together (integers, px at 96 DPI from the control corner)".into(),
-        )),
+        _ => {
+            let juntos = Texto {
+                es: "'dx' y 'dy' van juntos (enteros, px a 96 DPI desde la esquina del control)",
+                en: "'dx' and 'dy' go together (integers, px at 96 DPI from the control corner)",
+            };
+            Err(Error::Invalid(juntos.en_idioma(idioma).into()))
+        }
     }
 }
 
@@ -30,18 +35,20 @@ pub(crate) enum PuntoPedido {
 }
 
 /// The point the request asks for: `objetivo` or `dx`/`dy`, never both.
-pub(super) fn punto_pedido(args: &Value) -> Result<PuntoPedido> {
+pub(super) fn punto_pedido(args: &Value, idioma: Idioma) -> Result<PuntoPedido> {
     let Some(objetivo) = args.get("objetivo") else {
         return Ok(
-            desplazamiento(args)?.map_or(PuntoPedido::Centro, |(dx, dy)| {
+            desplazamiento(args, idioma)?.map_or(PuntoPedido::Centro, |(dx, dy)| {
                 PuntoPedido::EnControl(dx, dy)
             }),
         );
     };
-    if desplazamiento(args)?.is_some() {
-        return Err(Error::Invalid(
-            "'objetivo' y 'dx'/'dy' son dos formas de elegir el punto: pasa solo una".into(),
-        ));
+    if desplazamiento(args, idioma)?.is_some() {
+        let dos_formas = Texto {
+            es: "'objetivo' y 'dx'/'dy' son dos formas de elegir el punto: pasa solo una",
+            en: "'objetivo' and 'dx'/'dy' are two ways of choosing the point: pass only one",
+        };
+        return Err(Error::Invalid(dos_formas.en_idioma(idioma).into()));
     }
     let coordenada = |clave: &str| {
         objetivo
@@ -49,9 +56,11 @@ pub(super) fn punto_pedido(args: &Value) -> Result<PuntoPedido> {
             .and_then(Value::as_i64)
             .and_then(|v| i32::try_from(v).ok())
             .ok_or_else(|| {
-                Error::Invalid(format!(
-                    "'objetivo' de clic_fisico es {{x, y}} en pixeles de pantalla; falta o no es entero '{clave}'"
-                ))
+                let falta = Texto {
+                    es: "'objetivo' de clic_fisico es {x, y} en píxeles de pantalla; falta o no es entero '{clave}'",
+                    en: "'objetivo' of clic_fisico is {x, y} in screen pixels: '{clave}' is missing or not an integer",
+                };
+                Error::Invalid(falta.texto_con(idioma, &[("clave", clave)]))
             })
     };
     Ok(PuntoPedido::EnPantalla(coordenada("x")?, coordenada("y")?))
@@ -59,7 +68,12 @@ pub(super) fn punto_pedido(args: &Value) -> Result<PuntoPedido> {
 
 /// Screen point a physical click on window `r` goes to. A requested screen point
 /// must lie on the window: the desktop is shared.
-fn punto_de_clic_fisico(r: ffi::Rect, dpi: u32, pedido: PuntoPedido) -> Result<(i32, i32)> {
+fn punto_de_clic_fisico(
+    r: ffi::Rect,
+    dpi: u32,
+    pedido: PuntoPedido,
+    idioma: Idioma,
+) -> Result<(i32, i32)> {
     match pedido {
         PuntoPedido::Centro => Ok(((r.left + r.right) / 2, (r.top + r.bottom) / 2)),
         PuntoPedido::EnControl(dx, dy) => Ok((
@@ -71,19 +85,38 @@ fn punto_de_clic_fisico(r: ffi::Rect, dpi: u32, pedido: PuntoPedido) -> Result<(
         {
             Ok((x, y))
         }
-        PuntoPedido::EnPantalla(x, y) => Err(Error::Invalid(format!(
-            "El punto de pantalla ({x}, {y}) no está sobre la ventana ({}, {})-({}, {}): el escritorio es compartido y no se pulsa fuera de ella",
-            r.left, r.top, r.right, r.bottom
-        ))),
+        PuntoPedido::EnPantalla(x, y) => {
+            let fuera = Texto {
+                es: "El punto de pantalla ({x}, {y}) no está sobre la ventana ({izquierda}, {arriba})-({derecha}, {abajo}): el escritorio es compartido y no se pulsa fuera de ella",
+                en: "The screen point ({x}, {y}) is not on the window ({izquierda}, {arriba})-({derecha}, {abajo}): the desktop is shared and nothing is clicked outside it",
+            };
+            Err(Error::Invalid(fuera.texto_con(
+                idioma,
+                &[
+                    ("x", &x.to_string()),
+                    ("y", &y.to_string()),
+                    ("izquierda", &r.left.to_string()),
+                    ("arriba", &r.top.to_string()),
+                    ("derecha", &r.right.to_string()),
+                    ("abajo", &r.bottom.to_string()),
+                ],
+            )))
+        }
     }
 }
 
-pub(crate) fn clic_fisico_en_control(h: Hwnd, pedido: PuntoPedido) -> Result<()> {
+pub(crate) fn clic_fisico_en_control(h: Hwnd, pedido: PuntoPedido, idioma: Idioma) -> Result<()> {
     let r = rect_of(h);
     if r.right <= r.left {
-        return Err(Error::Gui(format!("Control 0x{h:X} has no rectangle")));
+        let sin_rectangulo = Texto {
+            es: "El control 0x{hwnd} no tiene rectángulo",
+            en: "Control 0x{hwnd} has no rectangle",
+        };
+        return Err(Error::Gui(
+            sin_rectangulo.texto_con(idioma, &[("hwnd", &format!("{h:X}"))]),
+        ));
     }
-    let (x, y) = punto_de_clic_fisico(r, ffi::dpi_de(h), pedido)?;
+    let (x, y) = punto_de_clic_fisico(r, ffi::dpi_de(h), pedido, idioma)?;
     ffi::clic_fisico_en(x, y);
     Ok(())
 }
