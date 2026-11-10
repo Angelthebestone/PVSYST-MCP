@@ -51,7 +51,7 @@ fn rechazar_dry_run(paths: &Paths, args: &Value) -> Result<()> {
     if !crate::args::flag(args, &["dry_run"]) {
         return Ok(());
     }
-    let costo = crate::adapters::ledger::costo_estimado(&paths.workspace, 0);
+    let costo = crate::adapters::ledger::costo_estimado(paths, 0);
     let restantes = costo["restantes"].to_string();
     let espera = crate::projects::gui::horizonte::ESPERA_DESCARGA
         .as_secs()

@@ -199,7 +199,7 @@ fn plan_de_ejecucion(p: &PlanDeEjecucion<'_>) -> Value {
         "dry_run": true,
         "plan": p.plan,
         "sitio_reutilizado": p.sitio_reutilizado,
-        "costo_estimado": ledger::costo_estimado(&p.paths.workspace, p.ejecuciones),
+        "costo_estimado": ledger::costo_estimado(p.paths, p.ejecuciones),
         "siguiente_paso": Texto {
             es: "repite la misma llamada sin dry_run",
             en: "repeat the same call without dry_run",

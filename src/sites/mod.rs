@@ -61,11 +61,11 @@ fn ejecutar<F: FnOnce(Value) -> Value>(
         cli_args.push(format!("-ll:{v}"));
     }
     if flag(args, &[DRY_RUN]) {
-        let ws = workspace_of(paths, args);
+        let del_pedido = paths.con_workspace(workspace_of(paths, args));
         return Ok(json!({
             "dry_run": true,
             "command_line": cli::display_command_line(&paths.cli_exe.to_string_lossy(), &cli_args),
-            "costo_estimado": ledger::costo_estimado(&ws, EJECUCIONES_POR_COMANDO),
+            "costo_estimado": ledger::costo_estimado(&del_pedido, EJECUCIONES_POR_COMANDO),
         }));
     }
     let out = cli::run(

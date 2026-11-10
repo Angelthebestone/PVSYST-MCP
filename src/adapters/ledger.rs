@@ -114,18 +114,15 @@ pub(crate) fn registrar_lic_info(workspace: &Path, stdout: &str) -> Option<Estad
 }
 
 /// Reads the licence state with `lic-info`, which only inspects the licence (no
-/// trial execution), and stores it. Used when the ledger is cold, so the budget is
-/// known before the first run.
-fn refrescar_desde_lic_info(workspace: &Path) -> Option<Estado> {
-    let mut paths = crate::config::Paths::resolve();
-    paths.workspace = workspace.to_path_buf();
+/// trial execution). Nothing is stored: the callers are dry runs, which write no file.
+fn leer_lic_info(paths: &crate::config::Paths) -> Option<Estado> {
     let out = super::cli::run(
-        &paths,
+        paths,
         &["lic-info".to_string()],
         super::cli::timeout_de(&json!({}), super::cli::TIMEOUT_DEFECTO_S),
     )
     .ok()?;
-    registrar_lic_info(workspace, &out.stdout)
+    parsear_lic_info(&out.stdout)
 }
 
 /// Record the counters printed by one CLI run and return the `costo` object for the response.
@@ -159,12 +156,13 @@ pub(crate) fn registrar(workspace: &Path, stdout: &str, ejecuciones_usadas: u32)
 
 /// Trial cost a real run would charge: estimated executions and what the licence
 /// has left. Every dry run reports it so the caller decides without a rehearsal.
-pub(crate) fn costo_estimado(workspace: &Path, ejecuciones: u32) -> Value {
-    // A cold ledger knows nothing: `lic-info` is a read, so it can fill it in
-    // before the first run instead of answering `restantes:null`.
-    let restantes = match estado(workspace) {
+/// `paths.workspace` is the workspace of the call; `paths.cli_exe` answers `lic-info`.
+pub(crate) fn costo_estimado(paths: &crate::config::Paths, ejecuciones: u32) -> Value {
+    // A cold ledger knows nothing: `lic-info` is a read, so it answers the budget
+    // before the first run instead of `restantes:null`.
+    let restantes = match estado(&paths.workspace) {
         Some(e) => e.restantes,
-        None => refrescar_desde_lic_info(workspace).and_then(|e| e.restantes),
+        None => leer_lic_info(paths).and_then(|e| e.restantes),
     };
     json!({ "ejecuciones": ejecuciones, "restantes": restantes })
 }

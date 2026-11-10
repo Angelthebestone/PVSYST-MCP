@@ -54,6 +54,14 @@ impl Paths {
         }
     }
 
+    /// The same configuration on another workspace: the one a call names.
+    pub(crate) fn con_workspace(&self, workspace: PathBuf) -> Paths {
+        Paths {
+            workspace,
+            ..self.clone()
+        }
+    }
+
     /// Construye una instancia para pruebas con rutas aisladas sin acceder al entorno.
     #[cfg(test)]
     #[must_use]

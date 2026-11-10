@@ -58,7 +58,7 @@ pub(crate) fn plan(paths: &Paths, proyecto: &str, variante: &str) -> Value {
             }
             .en_idioma(paths.idioma),
         ],
-        "costo_estimado": crate::adapters::ledger::costo_estimado(&paths.workspace, 0),
+        "costo_estimado": crate::adapters::ledger::costo_estimado(paths, 0),
         "siguiente_paso": crate::idioma::Texto {
             es: "repite sin dry_run y después simula con paginas_reporte incluyendo 'p50p90'",
             en: "repeat without dry_run and then simulate with paginas_reporte including 'p50p90'",

@@ -34,7 +34,7 @@ fn respuesta_dry_run(
     cli_args: &[String],
     prj_path: &Path,
     variant_file: &Path,
-    workspace: &Path,
+    paths: &Paths,
 ) -> Value {
     let variant_exists = variant_file.exists();
     let ejecuciones = preparacion::ejecuciones_previstas(cli_args);
@@ -45,8 +45,8 @@ fn respuesta_dry_run(
         "project_file": prj_path.to_string_lossy(),
         "variant_file": variant_file.to_string_lossy(),
         "variant_file_exists": variant_exists,
-        "workspace": workspace.to_string_lossy(),
-        "costo_estimado": crate::adapters::ledger::costo_estimado(workspace, ejecuciones),
+        "workspace": paths.workspace.to_string_lossy(),
+        "costo_estimado": crate::adapters::ledger::costo_estimado(paths, ejecuciones),
         "max_ejecuciones": ejecuciones,
     })
 }
@@ -107,11 +107,10 @@ pub(crate) fn lanzar_simulacion_seguida(
     let report_pdf = opt_str(&args_con_salidas, &["report_pdf"]);
     let modo_gui = ModoGui::de_bool(flag(args, &["abrir_gui"]));
     if flag(args, &[DRY_RUN]) {
-        let mut respuesta = respuesta_dry_run(&cli_args, &prj_path, &variant_file, &workspace);
-        if let Some(obj) = respuesta.as_object_mut() {
-            obj.insert("output_csv".into(), json!(output_csv));
-            obj.insert("report_pdf".into(), json!(report_pdf));
-        }
+        let pedido = paths.con_workspace(workspace);
+        let mut respuesta = respuesta_dry_run(&cli_args, &prj_path, &variant_file, &pedido);
+        respuesta["output_csv"] = json!(output_csv);
+        respuesta["report_pdf"] = json!(report_pdf);
         anotar_sin_cache(&mut respuesta, args);
         return Ok(respuesta);
     }

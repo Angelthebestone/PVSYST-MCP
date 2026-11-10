@@ -204,7 +204,7 @@ pub(crate) fn ejecutar(
         // A simulation spends a trial execution whether it is asked for here or
         // through `simular`: the rehearsal says what it would cost.
         if es_simulacion {
-            ensayo["costo_estimado"] = crate::adapters::ledger::costo_estimado(&paths.workspace, 1);
+            ensayo["costo_estimado"] = crate::adapters::ledger::costo_estimado(paths, 1);
         }
         return Ok(ensayo);
     }
