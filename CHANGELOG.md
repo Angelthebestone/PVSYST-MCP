@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`gui_observar que:inventario`**: every control of a form as a machine-readable list, hidden
+  children and tab pages that are not shown included (`todos` defaults to `true` here), without
+  switching tab. Each row carries `clase`, `hwnd`, `rect`, `texto`, `visible`, `enabled`, `parent`,
+  `pestana` and `indice_pestana`, `rol`, `indice_clase`, `etiqueta` with `etiqueta_fuente`, `marcado`
+  for check boxes and options and `campo {clase, x, y}` (the 96-DPI anchor `escribir` and `campo`
+  take). Classes nobody classified (`TGridPanel`, `TVirtualStringTree`, custom buttons) are listed
+  with `rol:"other"`. `pestanas` lists the pages with the controls each holds, and flags
+  `creado_al_activar` on a hidden page without windows: VCL may build its controls only when it is
+  first shown, so such a page can look empty until then. At most 500 rows per answer, with `total`
+  and `truncado`.
 - **Configurable client-facing language** via `PVSYST_MCP_IDIOMA` (`es` or `en`, default `en`; also a
   user-configurable option of the mcpb bundle). It selects the language of every client-visible
   string: tool descriptions and titles, schema annotations, recipes (resource and prompts),

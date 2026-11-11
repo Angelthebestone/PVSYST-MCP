@@ -64,7 +64,8 @@ fn lineas_o_nada(params: &ParametrosCaptura, h: Hwnd) -> Result<Vec<LineaOcr>> {
     capturar_lineas_pantalla(params, h)
 }
 
-fn ventana_objetivo(args: &Value) -> Result<Hwnd> {
+/// The window named by `ventana`, or the front-most one of the process.
+pub(crate) fn ventana_objetivo(args: &Value) -> Result<Hwnd> {
     match args.get("ventana").and_then(Value::as_str) {
         Some(_) => hwnd_de(args, "ventana"),
         None => raiz_por_defecto(&ventanas_de(args)?)
