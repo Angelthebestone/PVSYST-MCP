@@ -19,6 +19,9 @@ pub(super) const SIN_RECORTE: &[&str] = &[
     "campos",
     "botones",
     "pestanas",
+    // The inventory caps itself (500 rows, with `total` and `truncado`); `otros` is the form's unclassified controls.
+    "controles",
+    "otros",
     "textos",
     "sin_mapear",
     "resultados",
@@ -31,6 +34,9 @@ const LIMITE_ARRAY_NORMAL: usize = 50;
 const LIMITE_ARRAY_RESUMEN: usize = 13; // 12 calendar months + full year
 const LIMITE_STR_NORMAL: usize = 8000;
 const LIMITE_STR_RESUMEN: usize = 1500;
+/// What a GUI inventory keeps when the caller names no `detalle`: a form has
+/// hundreds of controls, and a summary of 13 would hide most of them.
+const LIMITE_INVENTARIO: (usize, usize) = (500, LIMITE_STR_NORMAL);
 
 /// Size limits (max array items, max string chars) for `detalle`; `None` keeps everything.
 pub(crate) fn limites(args: &Value) -> Option<(usize, usize)> {
@@ -146,17 +152,34 @@ fn pide_todos(r: &Respuesta<'_>, args: &Value) -> bool {
         && args.get("todos").and_then(Value::as_bool) == Some(true)
 }
 
+/// A `gui_observar` call that asks for every control: the inventory, or the raw
+/// list of controls with the hidden ones (`todos:true`).
+fn pide_inventario(r: &Respuesta<'_>, args: &Value) -> bool {
+    let con_ocultos = args.get("todos").and_then(Value::as_bool) == Some(true);
+    r.herramienta == "gui_observar"
+        && (matches!(r.accion, "inventario" | "elementos")
+            || (r.accion == "controles" && con_ocultos))
+}
+
+/// The limits of a call: none for `todos` on `listar objetos`, the inventory's
+/// when it names no `detalle`, else those of `detalle`.
+fn limites_de(r: &Respuesta<'_>, args: &Value) -> Option<(usize, usize)> {
+    if pide_todos(r, args) {
+        return None;
+    }
+    if pide_inventario(r, args) && args.get("detalle").is_none() {
+        return Some(LIMITE_INVENTARIO);
+    }
+    limites(args)
+}
+
 /// Trims the result to `detalle` and adds `elapsed_ms`, `siguiente`, `ignorados`, and, when cut, `truncado`, `hint` and `total`.
 #[expect(
     clippy::too_many_arguments,
     reason = "the decorator needs the answer, the request, its metadata and the language"
 )]
 pub(crate) fn decorar_con(v: &mut Value, args: &Value, r: Respuesta<'_>, idioma: Idioma) {
-    let lim = if pide_todos(&r, args) {
-        None
-    } else {
-        limites(args)
-    };
+    let lim = limites_de(&r, args);
     let total = lim.and_then(|l| total_principal(v, l));
     let truncado = lim.is_some_and(|l| recortar(v, l));
     // A handler knows which of its own arguments the branch it took did not read.

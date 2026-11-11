@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **GUI inventories are not summarised to 13 items.** `gui_observar` with `que:inventario`, `elementos`
+  or `que:controles` with `todos:true` keeps up to 500 rows when the call names no `detalle`, and marks
+  `truncado` with `total` beyond that; `detalle:completo` still keeps everything, and an explicit
+  `resumen` or `normal` is honoured. The lists `controles` and `otros` are never cut by the summary.
+
 ### Added
 - **`gui_observar que:formulario` with `todos:true`** also lists the controls that are not shown (other
   tab pages, hidden panels), and every answer gains `otros`: each control that is neither a button nor a
