@@ -7,10 +7,11 @@ use crate::config::Paths;
 /// GUI-03: «Guardar» with a name that never reached the field wrote nothing and said nothing.
 #[test]
 fn should_refuse_to_save_when_the_name_did_not_reach_the_dialog() {
-    let error = exigir_nombre_escrito("_mcp_QA", "").expect_err("empty field");
+    let error =
+        exigir_nombre_escrito("_mcp_QA", "", crate::idioma::Idioma::Es).expect_err("empty field");
 
     assert!(error.to_string().contains("_mcp_QA"), "{error}");
-    assert!(exigir_nombre_escrito("_mcp_QA", "_mcp_QA").is_ok());
+    assert!(exigir_nombre_escrito("_mcp_QA", "_mcp_QA", crate::idioma::Idioma::Es).is_ok());
 }
 
 fn workspace() -> (tempfile::TempDir, Paths) {

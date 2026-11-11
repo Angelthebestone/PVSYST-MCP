@@ -69,7 +69,16 @@ pub(super) fn punto_pedido(args: &Value, idioma: Idioma) -> Result<PuntoPedido> 
 /// Screen point a physical click on window `r` goes to. A requested screen point
 /// must lie on the window: the desktop is shared.
 fn punto_de_clic_fisico(h: Hwnd, pedido: PuntoPedido, idioma: Idioma) -> Result<(i32, i32)> {
-    let (r, dpi) = (rect_of(h), ffi::dpi_de(h));
+    punto_en_rect((rect_of(h), ffi::dpi_de(h)), pedido, idioma)
+}
+
+/// The same decision over an already measured rectangle, so it can be tested
+/// without a live window.
+fn punto_en_rect(
+    (r, dpi): (ffi::Rect, u32),
+    pedido: PuntoPedido,
+    idioma: Idioma,
+) -> Result<(i32, i32)> {
     match pedido {
         PuntoPedido::Centro => Ok(((r.left + r.right) / 2, (r.top + r.bottom) / 2)),
         PuntoPedido::EnControl(dx, dy) => Ok((

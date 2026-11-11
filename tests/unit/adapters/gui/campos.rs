@@ -7,9 +7,11 @@ use serde_json::json;
 fn should_treat_an_already_closed_window_as_a_trivial_success() {
     let args = json!({"ventana": "TPVModuleForm", "proceso": "PVsyst.exe"});
 
-    let respuesta = esperar_cierre_con(&args, |_| {
-        Err(Error::NotFound("Window 'TPVModuleForm' not found".into()))
-    })
+    let respuesta = esperar_cierre_con(
+        &args,
+        |_| Err(Error::NotFound("Window 'TPVModuleForm' not found".into())),
+        crate::idioma::Idioma::Es,
+    )
     .expect("an already closed window is a success");
 
     assert_eq!(respuesta["cerrado"], true);
@@ -27,7 +29,12 @@ fn should_report_a_wait_that_timed_out_as_partial() {
     use crate::idioma::Idioma;
     use crate::vista_agente::contrato::{construir, Contexto};
 
-    let salida = respuesta_de_espera(0, false, 2000);
+    let salida = json!({
+        "accion": "esperar_cierre",
+        "cerrado": false,
+        "espera_ms": 2000,
+        "error": "TPerspectiveForm sigue abierta tras 2000 ms",
+    });
     let args = json!({});
     let vista = construir(
         &Contexto {
@@ -48,8 +55,12 @@ fn should_report_a_wait_that_timed_out_as_partial() {
 fn should_not_mask_an_error_that_is_not_a_missing_window() {
     let args = json!({"ventana": "x", "proceso": "PVsyst.exe"});
 
-    let error = esperar_cierre_con(&args, |_| Err(Error::Invalid("bad reference".into())))
-        .expect_err("a real error is not a trivial success");
+    let error = esperar_cierre_con(
+        &args,
+        |_| Err(Error::Invalid("bad reference".into())),
+        crate::idioma::Idioma::Es,
+    )
+    .expect_err("a real error is not a trivial success");
 
     assert!(error.to_string().contains("bad reference"));
 }

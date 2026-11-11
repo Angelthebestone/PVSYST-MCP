@@ -29,7 +29,7 @@ fn should_name_the_projects_that_exist_when_leer_misses_one() {
 }
 
 #[test]
-fn should_say_in_spanish_that_the_project_exists_when_crear_duplicates_it() {
+fn should_say_that_the_project_exists_when_crear_duplicates_it() {
     let ws = synthetic_workspace();
     let mut c = servidor(&ws);
 
@@ -39,7 +39,10 @@ fn should_say_in_spanish_that_the_project_exists_when_crear_duplicates_it() {
         json!({ "accion": "crear", "plantilla": "SYNTH_Plant", "nombre_nuevo": "SYNTH_Plant" }),
     ));
 
-    assert!(msg.contains("ya existe"), "mensaje en español: {msg}");
+    assert!(
+        msg.contains("already exists"),
+        "the default language is English: {msg}"
+    );
     assert!(msg.contains("sobrescribir"), "nombra la alternativa: {msg}");
 }
 
@@ -55,7 +58,7 @@ fn should_say_the_call_asked_for_one_variant_when_comparar_gets_only_one() {
     ));
 
     assert!(
-        msg.contains("se pidieron 1"),
+        msg.contains("1 were requested"),
         "el mensaje debe hablar de lo que pidió la llamada, no del proyecto: {msg}"
     );
 }

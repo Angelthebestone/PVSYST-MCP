@@ -57,6 +57,13 @@ pub(crate) fn clic_texto(args: &Value, idioma: Idioma) -> Result<Value> {
 /// happened, but nothing confirms it hit the text the caller read, so the answer
 /// carries `error` and `vista` reports it as partial instead of "ok" (BUG-03).
 fn marcar_sin_ocr(resultado: &mut Value, texto: &str, idioma: Idioma) {
+    if resultado
+        .get("coincidencias")
+        .and_then(Value::as_u64)
+        .is_some_and(|n| n > 0)
+    {
+        return;
+    }
     if let Some(obj) = resultado.as_object_mut() {
         let sin_ocr = Texto {
             es: "El OCR no encontró '{texto}' (coincidencias:0): se pulsó el elemento UIA de ese nombre; comprueba el efecto con gui_observar que:ventanas",

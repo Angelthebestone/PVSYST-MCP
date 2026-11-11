@@ -1,14 +1,16 @@
 use super::{exigir_algun_foco, exigir_foco_en_la_ventana, resolver_foco, Destino};
 use crate::error::Error;
+use crate::idioma::Idioma;
 
 /// BUG-23: `ESC` went out with `foco:false` and `estado:ok` and nothing received it.
 #[test]
 fn should_refuse_the_keys_when_no_control_holds_the_focus_on_the_user_desktop() {
-    let error = exigir_algun_foco(0, Destino::Usuario, 0x10).expect_err("nowhere to deliver");
+    let error =
+        exigir_algun_foco(0, 0x10, Destino::Usuario, Idioma::Es).expect_err("nowhere to deliver");
 
     assert!(error.to_string().contains("0x10"), "{error}");
-    assert!(exigir_algun_foco(0, Destino::Aislado, 0x10).is_ok());
-    assert!(exigir_algun_foco(0x20, Destino::Usuario, 0x10).is_ok());
+    assert!(exigir_algun_foco(0, 0x10, Destino::Aislado, Idioma::Es).is_ok());
+    assert!(exigir_algun_foco(0x20, 0x10, Destino::Usuario, Idioma::Es).is_ok());
 }
 
 #[test]

@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn should_refuse_proyecto_when_pvsyst_is_already_running() {
-    let err = comprobar_proyecto_libre(&json!({"proyecto": "x.PRJ"}))
+    let err = comprobar_proyecto_libre(&json!({"proyecto": "x.PRJ"}), crate::idioma::Idioma::En)
         .unwrap_err()
         .to_string();
     assert!(err.contains("already running"), "{err}");

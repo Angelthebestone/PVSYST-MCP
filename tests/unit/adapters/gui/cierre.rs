@@ -32,7 +32,11 @@ fn should_report_the_parent_that_reopens_after_closing_an_editor() {
 fn should_name_the_confirmation_and_its_buttons_when_a_close_leaves_the_window_open() {
     let botones = vec![(0xE09E0, "Cancelar".into()), (0xE09EA, "No".into())];
 
-    let texto = sigue_abierta("TPerspectiveForm", Some((0xE09D0, botones)));
+    let texto = sigue_abierta(
+        "TPerspectiveForm",
+        Some((0xE09D0, botones)),
+        crate::idioma::Idioma::Es,
+    );
 
     assert!(texto.contains("TMessageForm 0xE09D0"), "{texto}");
     assert!(texto.contains("'No' (0xE09EA)"), "{texto}");

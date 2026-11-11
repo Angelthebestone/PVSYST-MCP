@@ -6,7 +6,7 @@ use crate::vista_agente::contrato::{construir, Contexto};
 #[test]
 fn should_report_a_click_without_ocr_match_as_partial() {
     let mut resultado = json!({ "accion": "clic_texto", "coincidencias": 0 });
-    marcar_sin_ocr(&mut resultado, "NoExiste", 0);
+    marcar_sin_ocr(&mut resultado, "NoExiste", Idioma::Es);
     let args = json!({});
 
     let vista = construir(
@@ -46,7 +46,7 @@ fn should_not_click_through_uia_when_the_index_is_out_of_range() {
 fn should_leave_a_click_with_an_ocr_match_as_it_was() {
     let mut resultado = json!({ "accion": "clic_texto", "coincidencias": 1 });
 
-    marcar_sin_ocr(&mut resultado, "Cerrar", 1);
+    marcar_sin_ocr(&mut resultado, "Cerrar", Idioma::Es);
 
     assert!(resultado.get("error").is_none());
 }
