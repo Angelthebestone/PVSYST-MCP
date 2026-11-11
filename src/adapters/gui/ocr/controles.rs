@@ -1,9 +1,9 @@
 //! What one control of an OCR-inspected form reports: buttons with their
 //! caption, fields with their label and value.
 
-use super::dominio::{asociar_etiqueta, normalizar_etiqueta, LineaOcr};
+use super::dominio::{asociar_etiqueta, normalizar_etiqueta, LineaOcr, ResultadoEtiqueta};
 use crate::adapters::gui::ffi::{self, Hwnd, Rect};
-use crate::adapters::gui::ventanas::rect_of;
+use crate::adapters::gui::inventario::dominio::{Control, FuenteEtiqueta};
 use serde_json::{json, Value};
 
 const BM_GETCHECK: u32 = 0x00F0;
@@ -47,20 +47,6 @@ pub(super) fn rect_json(r: &Rect) -> Value {
     })
 }
 
-struct DatosControl {
-    rect: Rect,
-    estado: ffi::EstadoVentana,
-    texto_raw: String,
-}
-
-fn leer_control(c: Hwnd) -> DatosControl {
-    DatosControl {
-        rect: rect_of(c),
-        estado: ffi::estado_ventana(c),
-        texto_raw: ffi::texto_control(c),
-    }
-}
-
 /// Caption of a button that has none as window text: the OCR words drawn inside it.
 fn texto_dibujado(r: &Rect, lineas: &[LineaOcr]) -> String {
     let caja = Rect {
@@ -83,46 +69,79 @@ fn centro_dentro(palabra: &Rect, caja: &Rect) -> bool {
     x >= caja.left && x <= caja.right && y >= caja.top && y <= caja.bottom
 }
 
-pub(super) fn procesar_boton(c: Hwnd, clase: &str, lineas: &[LineaOcr]) -> Value {
-    let ctrl = leer_control(c);
-    let texto = if ctrl.texto_raw.trim().is_empty() {
-        texto_dibujado(&ctrl.rect, lineas)
-    } else {
-        normalizar_etiqueta(&ctrl.texto_raw)
-    };
-    json!({
-        "hwnd": format!("0x{:X}", c),
-        "clase": clase,
-        "texto": texto,
-        "habilitado": ctrl.estado.habilitada,
-        "rect": rect_json(&ctrl.rect),
-    })
+/// Where the control sits: its visibility, parent and tab page.
+fn ubicar(obj: &mut Value, c: &Control) {
+    if let Some(map) = obj.as_object_mut() {
+        map.insert("visible".into(), json!(c.visible));
+        map.insert("parent".into(), json!(c.parent));
+        map.insert("pestana".into(), json!(c.pestana));
+        map.insert("indice_pestana".into(), json!(c.indice_pestana));
+    }
 }
 
-pub(super) fn procesar_campo(c: Hwnd, clase: &str, lineas: &[LineaOcr]) -> Value {
-    let ctrl = leer_control(c);
-    let asociacion = asociar_etiqueta(&ctrl.rect, lineas);
-    let es_opcion = CLASES_OPCION.contains(&clase);
-    let etiqueta = if es_opcion && !ctrl.texto_raw.trim().is_empty() {
-        Some(normalizar_etiqueta(&ctrl.texto_raw))
+/// `lineas` are the OCR lines of the form: pass none for a control that is not
+/// shown, since the text drawn where it sits belongs to another page.
+pub(super) fn procesar_boton(c: &Control, lineas: &[LineaOcr]) -> Value {
+    let texto = if c.texto.trim().is_empty() {
+        texto_dibujado(&c.rect, lineas)
     } else {
-        asociacion.etiqueta
+        normalizar_etiqueta(&c.texto)
     };
     let mut obj = json!({
-        "hwnd": format!("0x{:X}", c),
-        "clase": clase,
+        "hwnd": c.hwnd,
+        "clase": c.clase,
+        "texto": texto,
+        "habilitado": c.enabled,
+        "rect": rect_json(&c.rect),
+    });
+    ubicar(&mut obj, c);
+    obj
+}
+
+/// The label of a field and where it was read: the caption of an option, else
+/// the OCR text beside it, else the text of a window beside it. A tie between
+/// two OCR candidates is reported as such, not settled by the fallback.
+fn etiqueta_de(
+    c: &Control,
+    asociacion: &ResultadoEtiqueta,
+) -> (Option<String>, Option<FuenteEtiqueta>) {
+    let es_opcion = CLASES_OPCION.contains(&c.clase.as_str());
+    if es_opcion && !c.texto.trim().is_empty() {
+        return (
+            Some(normalizar_etiqueta(&c.texto)),
+            Some(FuenteEtiqueta::TextoDeVentana),
+        );
+    }
+    if asociacion.etiqueta.is_some() {
+        return (asociacion.etiqueta.clone(), Some(FuenteEtiqueta::Ocr));
+    }
+    if asociacion.ambiguo {
+        return (None, None);
+    }
+    (c.etiqueta.clone(), c.etiqueta_fuente)
+}
+
+/// `lineas` as in [`procesar_boton`].
+pub(super) fn procesar_campo(c: &Control, lineas: &[LineaOcr]) -> Value {
+    let asociacion = asociar_etiqueta(&c.rect, lineas);
+    let (etiqueta, fuente) = etiqueta_de(c, &asociacion);
+    let mut obj = json!({
+        "hwnd": c.hwnd,
+        "clase": c.clase,
         "etiqueta": etiqueta,
+        "etiqueta_fuente": fuente,
         "ambiguo": asociacion.ambiguo,
         "candidatos": asociacion.candidatos,
-        "habilitado": ctrl.estado.habilitada,
-        "rect": rect_json(&ctrl.rect),
+        "habilitado": c.enabled,
+        "rect": rect_json(&c.rect),
     });
+    ubicar(&mut obj, c);
     if let Some(map) = obj.as_object_mut() {
-        if CLASES_TEXTO.contains(&clase) {
-            map.insert("valor".into(), json!(ctrl.texto_raw));
+        if CLASES_TEXTO.contains(&c.clase.as_str()) {
+            map.insert("valor".into(), json!(c.texto));
         }
-        if es_opcion {
-            map.insert("marcado".into(), json!(esta_marcado(c)));
+        if CLASES_OPCION.contains(&c.clase.as_str()) {
+            map.insert("marcado".into(), json!(c.marcado));
         }
     }
     obj

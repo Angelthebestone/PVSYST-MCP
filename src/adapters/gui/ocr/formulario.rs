@@ -6,12 +6,13 @@ use super::controles::{es_boton, es_campo, procesar_boton, procesar_campo, rect_
 use super::dominio::LineaOcr;
 use super::segmentacion::segmentar_lineas;
 use crate::adapters::gui::ffi::{self, Hwnd, Rect};
+use crate::adapters::gui::inventario::dominio::{inventariar, Control};
+use crate::adapters::gui::inventario::win32;
 use crate::adapters::gui::uia_paso::raiz_por_defecto;
 use crate::adapters::gui::uia_vista::aplanar;
-use crate::adapters::gui::ventanas::{
-    class_of, hijos_visibles_con_clase, hwnd_de, rect_of, text_of, ventanas_de,
-};
+use crate::adapters::gui::ventanas::{class_of, hwnd_de, rect_of, text_of, ventanas_de};
 use crate::adapters::uia;
+use crate::args::flag;
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
 
@@ -47,14 +48,6 @@ fn extraer_pestanas(
         .collect())
 }
 
-/// Selected tab of the form's (first) page control.
-fn pestana_activa(hijos: &[(Hwnd, String)]) -> Option<usize> {
-    let (pestanas, _) = hijos
-        .iter()
-        .find(|(_, clase)| clase == ffi::CLASE_PESTANAS)?;
-    ffi::pagina_seleccionada(*pestanas)
-}
-
 /// OCR lines of the form; none with `ocr:false`, which skips the capture so
 /// values and buttons come from the controls alone.
 fn lineas_o_nada(params: &ParametrosCaptura, h: Hwnd) -> Result<Vec<LineaOcr>> {
@@ -73,26 +66,46 @@ pub(crate) fn ventana_objetivo(args: &Value) -> Result<Hwnd> {
     }
 }
 
+/// Buttons, fields and everything else, one list each. A control that is not
+/// shown (`todos:true`) is read without OCR: the text drawn where it sits
+/// belongs to the page that is.
 fn clasificar_controles(
-    hijos: &[(Hwnd, String)],
+    controles: &[Control],
     lineas: &[LineaOcr],
     etiquetas: &[LineaOcr],
-) -> (Vec<Value>, Vec<Value>) {
-    let mut campos = Vec::new();
-    let mut botones = Vec::new();
-    for (c, clase) in hijos {
-        if es_boton(clase) {
-            botones.push(procesar_boton(*c, clase, lineas));
-        } else if es_campo(clase) {
-            campos.push(procesar_campo(*c, clase, etiquetas));
+) -> (Vec<Value>, Vec<Value>, Vec<Value>) {
+    let (mut campos, mut botones, mut otros) = (Vec::new(), Vec::new(), Vec::new());
+    for c in controles {
+        let (propias, rotulos) = if c.visible {
+            (lineas, etiquetas)
+        } else {
+            (&[][..], &[][..])
+        };
+        if es_boton(&c.clase) {
+            botones.push(procesar_boton(c, propias));
+        } else if es_campo(&c.clase) {
+            campos.push(procesar_campo(c, rotulos));
+        } else {
+            otros.push(json!(c));
         }
     }
-    (campos, botones)
+    (campos, botones, otros)
+}
+
+/// Captions of the tab items UI Automation lists, in strip order.
+fn nombres_de(pestanas: &[Value]) -> Vec<String> {
+    pestanas
+        .iter()
+        .filter_map(|p| p["nombre"].as_str().map(str::to_string))
+        .collect()
 }
 
 /// Inspects an active GUI form: recognizes all labels via OCR, pairs them with
 /// their interactive controls, and extracts buttons and tab pages. `textos`
 /// lists every caption drawn outside a control (a message box's question).
+/// With `todos:true` the controls that are not shown (other tab pages, hidden
+/// panels) are listed too; `otros` holds every control that is neither a
+/// button nor a field.
 pub(crate) fn formulario(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     ffi::declarar_dpi_por_monitor();
     let h = ventana_objetivo(args)?;
@@ -103,18 +116,21 @@ pub(crate) fn formulario(paths: &crate::config::Paths, args: &Value) -> Result<V
         rect_win: &rect_win,
     };
     let lineas = lineas_o_nada(&params, h)?;
-    let hijos: Vec<(Hwnd, String)> = hijos_visibles_con_clase(h).collect();
-    let rects: Vec<Rect> = hijos
-        .iter()
-        .filter(|(_, clase)| es_boton(clase) || es_campo(clase))
-        .map(|(c, _)| rect_of(*c))
-        .collect();
-    let etiquetas = segmentar_lineas(&lineas, &rects);
-    let (campos, botones) = clasificar_controles(&hijos, &lineas, &etiquetas);
-    let (pestanas, pestanas_error) = match extraer_pestanas(paths, h, pestana_activa(&hijos)) {
+    let nodos = win32::nodos_de(h, flag(args, &["todos"]));
+    let (pestanas, pestanas_error) = match extraer_pestanas(paths, h, win32::pagina_actual(&nodos))
+    {
         Ok(pestanas) => (pestanas, None),
         Err(e) => (Vec::new(), Some(e.to_string())),
     };
+    let inventario = inventariar(&win32::instantanea_con(h, nodos, nombres_de(&pestanas)));
+    let rects: Vec<Rect> = inventario
+        .controles
+        .iter()
+        .filter(|c| c.visible && (es_boton(&c.clase) || es_campo(&c.clase)))
+        .map(|c| c.rect)
+        .collect();
+    let etiquetas = segmentar_lineas(&lineas, &rects);
+    let (campos, botones, otros) = clasificar_controles(&inventario.controles, &lineas, &etiquetas);
     Ok(json!({
         "ventana": format!("0x{:X}", h),
         "titulo": text_of(h),
@@ -126,5 +142,10 @@ pub(crate) fn formulario(paths: &crate::config::Paths, args: &Value) -> Result<V
         "pestanas": pestanas,
         "pestanas_error": pestanas_error,
         "botones": botones,
+        "otros": otros,
     }))
 }
+
+#[cfg(test)]
+#[path = "../../../../tests/unit/adapters/gui/ocr/formulario.rs"]
+mod tests;

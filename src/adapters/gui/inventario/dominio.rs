@@ -135,6 +135,9 @@ pub(crate) enum FuenteEtiqueta {
     /// The control's own window text, or the text of a window next to it.
     #[serde(rename = "window_text")]
     TextoDeVentana,
+    /// Text recognised on a capture of the form.
+    #[serde(rename = "ocr")]
+    Ocr,
 }
 
 /// A control located by its class and its position in the form's 96-DPI layout:

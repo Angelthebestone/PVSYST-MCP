@@ -42,7 +42,7 @@ pub(crate) fn nodos_de(h: Hwnd, todos: bool) -> Vec<NodoWin32> {
 }
 
 /// Page the form's first page control reports as current.
-fn pagina_actual(nodos: &[NodoWin32]) -> Option<usize> {
+pub(crate) fn pagina_actual(nodos: &[NodoWin32]) -> Option<usize> {
     nodos
         .iter()
         .find(|n| n.clase == ffi::CLASE_PESTANAS)
@@ -52,7 +52,15 @@ fn pagina_actual(nodos: &[NodoWin32]) -> Option<usize> {
 /// The form `h` as the domain reads it. `pestanas_uia` is what UI Automation
 /// lists for the tab strip (empty when it could not be read).
 pub(crate) fn instantanea_de(h: Hwnd, todos: bool, pestanas_uia: Vec<String>) -> Instantanea {
-    let nodos = nodos_de(h, todos);
+    instantanea_con(h, nodos_de(h, todos), pestanas_uia)
+}
+
+/// The form `h` with the windows already read.
+pub(crate) fn instantanea_con(
+    h: Hwnd,
+    nodos: Vec<NodoWin32>,
+    pestanas_uia: Vec<String>,
+) -> Instantanea {
     Instantanea {
         seleccionada: pagina_actual(&nodos),
         nodos,

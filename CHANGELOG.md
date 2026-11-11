@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **`gui_observar que:formulario` with `todos:true`** also lists the controls that are not shown (other
+  tab pages, hidden panels), and every answer gains `otros`: each control that is neither a button nor a
+  field (`TPageControl`, `TTabSheet`, `TGridPanel`, `TVirtualStringTree`, custom classes) with its
+  `clase`, `hwnd`, `rect`, `texto`, `visible` and `enabled`. Buttons and fields now carry `visible`,
+  `parent`, `pestana` and `indice_pestana`, and fields carry `etiqueta_fuente` (`ocr` or
+  `window_text`). A control that is not shown is read without OCR, since the text drawn where it sits
+  belongs to the page that is shown; when OCR finds no label, the text of a window beside the field
+  names it.
 - **`gui_observar que:inventario`**: every control of a form as a machine-readable list, hidden
   children and tab pages that are not shown included (`todos` defaults to `true` here), without
   switching tab. Each row carries `clase`, `hwnd`, `rect`, `texto`, `visible`, `enabled`, `parent`,
