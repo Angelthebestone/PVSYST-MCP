@@ -59,6 +59,8 @@ const CLAVE_DE_ENSAYO: &[(&str, &str)] = &[
     ("sitio", "dry_run"),
     ("workspace", "dry_run"),
     ("gui_actuar", "simular"),
+    // `editar` has no rehearsal: its handler refuses the switch before writing.
+    ("editar", "dry_run"),
 ];
 
 pub(super) fn clave_de_ensayo(tool: &str) -> Option<&'static str> {

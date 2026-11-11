@@ -2,7 +2,7 @@
 
 use super::declaracion::con;
 use crate::admin;
-use crate::args::workspace_of;
+use crate::args::{flag, workspace_of};
 use crate::components::{self, pan};
 use crate::config::Paths;
 use crate::error::{Error, Result};
@@ -189,8 +189,14 @@ fn es_proyecto(workspace: &Path, archivo: &str, ext: &str) -> bool {
     ext == "PRJ" || variante || nombre
 }
 
+/// `editar` has no rehearsal: refuse `dry_run` before resolving or writing any file.
 pub(super) fn ejecutar_editar(paths: &Paths, args: &Value) -> Result<Value> {
     let valor = super::workspace::TOOL_EDITAR.accion(args);
+    if flag(args, &["dry_run"]) {
+        return Err(Error::Invalid(format!(
+            "'dry_run' no existe en editar {valor}: esa acción no tiene ensayo y se ejecutaría de verdad. Quita 'dry_run'"
+        )));
+    }
     match valor {
         "campos" if args.get("ediciones").is_some() => lifecycle::editar_variante(paths, args),
         "campos" => objects::editar_objeto(paths, args),
