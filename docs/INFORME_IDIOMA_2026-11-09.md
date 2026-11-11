@@ -4,7 +4,7 @@
 - **HEAD auditado:** `9e4c5e5` (2026-11-09)
 - **Rango principal:** `2f105d3..HEAD` (65 commits). Se amplió a `81b4f59..HEAD` (323 commits) al confirmar el patrón.
 - **Binario probado:** `target/debug/pvsyst-mcp.exe`, toolchain `stable-x86_64-pc-windows-gnu`, sin GUI de PVsyst y sin ejecuciones TRIAL.
-- **Cambios de código:** ninguno. Este informe es el único artefacto.
+- **Estado:** la tabla de §4 describe el estado **antes** de la corrección. Los commits que corrigen los hallazgos se listan en §11.
 
 ## 1. Qué entra en el alcance
 
@@ -205,3 +205,29 @@ Llamadas `tools/call` ejecutadas en ambos idiomas: `listar` (`proyectos`, `archi
 ## 10. Conclusión
 
 El mecanismo de idioma está bien diseñado y bien aplicado en la capa de servidor, pero la promesa del CHANGELOG («toda cadena visible») no se cumple. El bloque `vista` —presente en todas las respuestas— y una parte grande de los adaptadores y del dominio siguen en un solo idioma. Los commits de QA de esta rama no introdujeron el patrón, pero lo repitieron en al menos 20 mensajes nuevos y añadieron una prueba que fija el español. La corrección es mecánica y se puede dividir en las unidades del §8; la de mayor relación impacto/esfuerzo es la primera (`vista`), porque arregla el idioma de todas las respuestas correctas y fallidas a la vez.
+
+## 11. Estado de corrección (actualización 2026-11-09)
+
+Los hallazgos 1–38 se corrigieron en esta rama, en cuatro tandas:
+
+| Commits | Alcance |
+|---|---|
+| `c2f0246` | Bloque `vista` completo: catálogo (~112 entradas), `construccion.rs`, `errores.rs`, `pendiente.rs`, `recorte.rs`, avisos de `vista_agente/vista.rs`. |
+| `d6ca9ff`, `5167456`, `10e5b2b`, `9b10eef`, `57ed7aa`, `8cb142f` | Rechazos y avisos de `adapters/gui/**` y `adapters/uia/**`; `catalogo/aplicacion.rs` se partió en `catalogo/abrir.rs` para no pasar de 300 líneas. |
+| `756771a` | `args.rs`, `adapters/cli/**`, `adapters/http.rs`, `adapters/ledger.rs`, `admin/importacion.rs`, `easy_mode/foto_proyecto.rs`, `horizonte_archivo/**`, `objects/**`, `projects/**`, `simulation/{engineering/comparacion,opciones}.rs`, `workspace/{escritura,lectura}.rs`, `components/resolucion.rs`, `format/**`, `server/tools/workspace_ejecucion.rs`. |
+| `5483ca2` | Mensajes de `horizonte_archivo/dominio.rs` y alineación de los tests existentes con las firmas nuevas; no se creó ningún test. |
+
+Verificación en ejecución, con el binario reconstruido y las mismas llamadas de §9:
+
+- `listar` → `vista.resumen`: «Proyectos del workspace listados.» / «Workspace projects listed.»; `siguiente[].motivo` también cambia.
+- `leer` de un proyecto inexistente: «Proyecto … no encontrado … hay 1: …» / «Project … not found … there are 1: …»; `vista.error.causa_probable` y `que_hacer` cambian.
+- `pvsyst_cli` con `dry_run:null`, `lic-activate` y `opciones` inválidas: español / inglés.
+- `proyecto crear` duplicado y `resultados comparar` con una variante: español / inglés.
+- `editar campos` con una clave inexistente: «Campos que el objeto … no tiene…» / «Fields the object … does not have…».
+- `gui_actuar click` con `texto`: español / inglés.
+- `workspace importar` sin zip y `sitio escribir_horizonte` con un punto: español / inglés.
+- `pvsyst_cli` con el CLI falso fallando: `detected_error` y `vista.avisos` en el idioma pedido.
+
+Gate ejecutado después de la última edición: `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test` (306 unitarias + 34 + 35 + 8 + 2 + 1 + 1 + 2 doc-tests, todas en verde), `python tools/check_deps.py`, `python -m ruff check tools`, `python -m ruff format --check tools`, `python -m mypy --strict tools`, `python -m pytest -q tools`. Sin GUI y sin ejecuciones TRIAL.
+
+Queda pendiente, y así se reporta: las ~150 cadenas de prosa del MCP en `adapters/gui/**`/`uia/**` que la receta no enumeraba (lista en el reporte del subagente GUI), y el defecto de diseño P3 de `Idioma::de_entorno()` en módulos sin `Paths` (se usa donde la firma no permite pasar `paths.idioma`; en producción lee la misma variable). No se creó ningún test nuevo; los tests existentes se ajustaron al idioma por defecto (`en`) o se les pasó `Idioma::Es` para conservar sus aserciones en español.
