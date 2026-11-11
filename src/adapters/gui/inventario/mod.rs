@@ -3,6 +3,7 @@
 //! what exists; `que:formulario` is the human view (labels read by OCR).
 
 pub(crate) mod dominio;
+pub(crate) mod tipos;
 mod uia;
 pub(crate) mod win32;
 
@@ -11,8 +12,9 @@ use crate::adapters::gui::ocr::formulario::ventana_objetivo;
 use crate::adapters::gui::ventanas::{class_of, text_of};
 use crate::config::Paths;
 use crate::error::Result;
-use dominio::{inventariar, Inventario};
+use dominio::inventariar;
 use serde_json::{json, Value};
+use tipos::Inventario;
 
 /// Most controls one answer carries; `total` and `truncado` say what was left out.
 pub(crate) const TOPE_CONTROLES: usize = 500;

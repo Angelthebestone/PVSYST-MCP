@@ -1,4 +1,5 @@
 use super::*;
+use crate::adapters::gui::ffi::Rect;
 
 /// A window `(hwnd, parent)` of class and text `(clase, texto)` at `rect`.
 fn nodo(

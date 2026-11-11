@@ -2,7 +2,7 @@
 //! included. `EnumChildWindows` lists them all, so no tab has to be switched
 //! to see what is on it (switching can trip PVsyst's validation).
 
-use super::dominio::{Instantanea, NodoWin32, Rol};
+use super::tipos::{Instantanea, NodoWin32, Rol};
 use crate::adapters::gui::ffi::{self, Hwnd, GA_PARENT};
 use crate::adapters::gui::ocr::esta_marcado;
 use crate::adapters::gui::ventanas::{class_of, rect_of};

@@ -3,7 +3,7 @@
 
 use super::dominio::{asociar_etiqueta, normalizar_etiqueta, LineaOcr, ResultadoEtiqueta};
 use crate::adapters::gui::ffi::{self, Hwnd, Rect};
-use crate::adapters::gui::inventario::dominio::{Control, FuenteEtiqueta};
+use crate::adapters::gui::inventario::tipos::{Control, FuenteEtiqueta};
 use serde_json::{json, Value};
 
 const BM_GETCHECK: u32 = 0x00F0;

@@ -6,7 +6,8 @@ use super::controles::{es_boton, es_campo, procesar_boton, procesar_campo, rect_
 use super::dominio::LineaOcr;
 use super::segmentacion::segmentar_lineas;
 use crate::adapters::gui::ffi::{self, Hwnd, Rect};
-use crate::adapters::gui::inventario::dominio::{inventariar, Control};
+use crate::adapters::gui::inventario::dominio::inventariar;
+use crate::adapters::gui::inventario::tipos::Control;
 use crate::adapters::gui::inventario::win32;
 use crate::adapters::gui::uia_paso::raiz_por_defecto;
 use crate::adapters::gui::uia_vista::aplanar;
