@@ -160,7 +160,11 @@ fn ejecutar_entorno(paths: &Paths, args: &Value) -> Result<Value> {
             Ok(json!({ "preflight": easy_mode::preflight(paths), "entorno": info_entorno(paths) }))
         }
         "licencia" => admin::licencia(paths, &con(args, "accion", json!("info"))),
-        "licencia_sync" => admin::licencia(paths, &con(args, "accion", json!("sync"))),
+        "licencia_sync" => Ok(comando_licencia_con(
+            "lic-sync",
+            &INSTRUCCIONES_SINCRONIZAR_LICENCIA,
+            paths.idioma,
+        )),
         "licencia_activar" => Ok(comando_licencia("lic-activate -k:<TU_CLAVE>", paths.idioma)),
         "licencia_desactivar" => Ok(comando_licencia(
             "lic-deactivate -c:<TU_CUSTOMER_ID>",
@@ -184,12 +188,20 @@ const INSTRUCCIONES_LICENCIA: Texto = Texto {
     es: "Ejecuta tú este comando en un terminal, sustituyendo el placeholder por tu valor real. Esta tool no activa ni desactiva licencias.",
     en: "Run this command yourself in a terminal, replacing the placeholder with your real value. This tool does not activate or deactivate licences.",
 };
+const INSTRUCCIONES_SINCRONIZAR_LICENCIA: Texto = Texto {
+    es: "Ejecuta este comando tú mismo en una terminal. Esta tool no sincroniza la licencia.",
+    en: "Run this command yourself in a terminal. This tool does not synchronise the licence.",
+};
 
 fn comando_licencia(argumentos: &str, idioma: Idioma) -> Value {
+    comando_licencia_con(argumentos, &INSTRUCCIONES_LICENCIA, idioma)
+}
+
+fn comando_licencia_con(argumentos: &str, instrucciones: &Texto, idioma: Idioma) -> Value {
     json!({
         "ejecutado": false,
         "comando": format!("PVsystCLI.exe {argumentos}"),
-        "instrucciones": INSTRUCCIONES_LICENCIA.en_idioma(idioma)
+        "instrucciones": instrucciones.en_idioma(idioma)
     })
 }
 

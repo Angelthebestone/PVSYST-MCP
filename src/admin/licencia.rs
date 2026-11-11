@@ -1,4 +1,4 @@
-//! Licensing tools: inspect and sync status, generate activation commands.
+//! Licensing tools: inspect status and generate licence commands.
 
 use crate::adapters::cli;
 use crate::args::{flag, DRY_RUN};
@@ -6,8 +6,9 @@ use crate::config::Paths;
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
 
-/// Licensing. `info` and `sync` run the CLI; `activar` and `desactivar` never
-/// execute: they return the command to run with the user's own key or id.
+/// Licensing. `info` runs the CLI; `activar` and `desactivar` never execute:
+/// they return the command to run with the user's own key or id. `lic-sync` is
+/// not handled here: `entorno` returns its command template instead of running it.
 pub(crate) fn licencia(paths: &Paths, args: &Value) -> Result<Value> {
     let accion = args
         .get("accion")
@@ -16,7 +17,6 @@ pub(crate) fn licencia(paths: &Paths, args: &Value) -> Result<Value> {
         .to_lowercase();
     let cli_args: Vec<String> = match accion.as_str() {
         "info" | "estado" => vec!["lic-info".into()],
-        "sync" | "sincronizar" => vec!["lic-sync".into()],
         "activar" | "activate" => {
             return Ok(json!({
                 "accion": "activar",
@@ -33,7 +33,7 @@ pub(crate) fn licencia(paths: &Paths, args: &Value) -> Result<Value> {
         }
         other => {
             return Err(Error::Invalid(format!(
-                "Accion de licencia desconocida '{other}' (info|sync|activar|desactivar)"
+                "Accion de licencia desconocida '{other}' (info|activar|desactivar)"
             )))
         }
     };

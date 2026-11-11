@@ -48,8 +48,8 @@ pub(super) const ENTRADAS: &[Entrada] = &[
         "entorno",
         "licencia_sync",
         Texto {
-            es: "Licencia sincronizada con el servidor de PVsyst.",
-            en: "Licence synchronised with the PVsyst server.",
+            es: "Comando de sincronización preparado; el MCP no sincroniza licencias.",
+            en: "Synchronisation command prepared; the MCP does not synchronise licences.",
         },
     )
     .luego(&[VER_LICENCIA]),

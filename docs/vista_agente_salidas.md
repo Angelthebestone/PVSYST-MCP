@@ -115,7 +115,7 @@ ejecutó la acción real (la mayoría escribe o gasta ejecuciones de prueba).
 | `componente` | `crear_desde_ficha` | Componente creado desde los datos de una ficha técnica. | `? ` | unitaria (catálogo + validación) |
 | `entorno` | `diagnostico` | Diagnóstico del entorno: PVsyst, CLI, workspace y herramientas. | `? `; `entorno accion=licencia` | en vivo: ok |
 | `entorno` | `licencia` | Estado de la licencia de PVsystCLI. | `entorno accion=diagnostico` | en vivo: ok |
-| `entorno` | `licencia_sync` | Licencia sincronizada con el servidor de PVsyst. | `entorno accion=licencia` | unitaria (catálogo + validación) |
+| `entorno` | `licencia_sync` | Comando de sincronización preparado; el MCP no sincroniza licencias. | `entorno accion=licencia` | unitaria (catálogo + validación) |
 | `entorno` | `licencia_activar` | Comando de activación preparado; el MCP no activa licencias. | `entorno accion=licencia` | en vivo: ok |
 | `entorno` | `licencia_desactivar` | Comando de desactivación preparado; el MCP no desactiva licencias. | `entorno accion=licencia` | en vivo: ok |
 | `entorno` | `exportar_logs` | Registros de PVsyst exportados. | `entorno accion=diagnostico` | en vivo: ok |

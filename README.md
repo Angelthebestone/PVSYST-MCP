@@ -83,7 +83,7 @@ and only run the MCP calculation when called with `via: "aproximacion"` and the 
 
 | Tool | Discriminator (default) | Purpose |
 |---|---|---|
-| `entorno` | `accion`: `diagnostico` (default), `licencia`, `licencia_sync`, `licencia_activar`, `licencia_desactivar`, `exportar_logs`, `logs_cli`, `preferencias`, `preferencias_editar` | Environment, licence, logs, PVsyst preferences. `licencia_activar`/`licencia_desactivar` never execute; they return the command template. |
+| `entorno` | `accion`: `diagnostico` (default), `licencia`, `licencia_sync`, `licencia_activar`, `licencia_desactivar`, `exportar_logs`, `logs_cli`, `preferencias`, `preferencias_editar` | Environment, licence, logs, PVsyst preferences. `licencia_sync`/`licencia_activar`/`licencia_desactivar` never execute; they return the command template. |
 | `disenar_sistema` | — | Coordinates + kWp → site, project, sizing, simulation, KPIs in one call. |
 | `listar` | `que`: `proyectos` (default), `componentes`, `modulos`, `archivos`, `objetos` | Lists projects, components, modules (with `pnom_min`/`pnom_max`/`texto` filters), files, objects. |
 | `leer` | type detected from `archivo` | Reads a project, module (`.PAN`), site, meteo, component, PVObject file, or raw file bytes. |

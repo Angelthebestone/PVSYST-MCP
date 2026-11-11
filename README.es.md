@@ -84,7 +84,7 @@ cálculo del MCP con `via: "aproximacion"` y la variable activada.
 
 | Tool | Discriminador (por defecto) | Para qué sirve |
 |---|---|---|
-| `entorno` | `accion`: `diagnostico` (por defecto), `licencia`, `licencia_sync`, `licencia_activar`, `licencia_desactivar`, `exportar_logs`, `logs_cli`, `preferencias`, `preferencias_editar` | Entorno, licencia, logs y preferencias de PVsyst. `licencia_activar`/`licencia_desactivar` nunca ejecutan: devuelven la plantilla del comando. |
+| `entorno` | `accion`: `diagnostico` (por defecto), `licencia`, `licencia_sync`, `licencia_activar`, `licencia_desactivar`, `exportar_logs`, `logs_cli`, `preferencias`, `preferencias_editar` | Entorno, licencia, logs y preferencias de PVsyst. `licencia_sync`/`licencia_activar`/`licencia_desactivar` nunca ejecutan: devuelven la plantilla del comando. |
 | `disenar_sistema` | — | Coordenadas + kWp → sitio, proyecto, dimensionado, simulación y KPIs en una sola llamada. |
 | `listar` | `que`: `proyectos` (por defecto), `componentes`, `modulos`, `archivos`, `objetos` | Lista proyectos, componentes, módulos (con filtros `pnom_min`/`pnom_max`/`texto`), archivos y objetos. |
 | `leer` | tipo detectado desde `archivo` | Lee un proyecto, un módulo (`.PAN`), un sitio, meteo, un componente, un archivo PVObject o bytes crudos. |
