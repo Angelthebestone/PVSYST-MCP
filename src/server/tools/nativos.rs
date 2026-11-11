@@ -2,8 +2,9 @@
 
 use super::declaracion::{Anotaciones, Discriminador, Ejecutor, Herramienta, Sinonimos, TipoDato};
 use crate::adapters::{cli, gui};
+use crate::args::flag;
 use crate::config::Paths;
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::progreso::SeguimientoTarea;
 use crate::projects::gui::lanzar;
 use crate::vista_agente;
@@ -255,7 +256,15 @@ fn ejecutar_observar(paths: &Paths, args: &Value) -> Result<Value> {
     }
 }
 
+/// `gui_actuar` rehearses with `simular`, never with `dry_run`: refuse the foreign
+/// switch before dispatching so no action can have a side effect.
 fn ejecutar_actuar(paths: &Paths, args: &Value) -> Result<Value> {
+    let accion = TOOL_GUI_ACTUAR.accion(args);
+    if flag(args, &["dry_run"]) {
+        return Err(Error::Invalid(format!(
+            "'dry_run' no existe en gui_actuar {accion}: esa acción no tiene ensayo y se ejecutaría de verdad. Quita 'dry_run'"
+        )));
+    }
     // PVsyst ignores a project on its command line: opening it is a project step.
     if lanzar::pide_proyecto(args) {
         return lanzar::lanzar_con_proyecto(paths, args);
