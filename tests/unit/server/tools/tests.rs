@@ -56,7 +56,7 @@ fn should_keep_the_ignored_keys_table_in_sync_with_the_tool_declarations() {
             entrada.accion,
             entrada.clave
         );
-        if let Some(condicion) = entrada.leido_si {
+        for condicion in entrada.leido_si {
             assert!(
                 h.declara(condicion),
                 "{} {}: la condición '{}' no está declarada",

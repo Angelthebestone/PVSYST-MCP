@@ -109,7 +109,7 @@ pub(crate) const TOOL_PROYECTO: Herramienta = Herramienta {
         ("configurar", &["proyecto", "pasos"]),
         ("p50_p90", &["proyecto"]),
     ],
-    consumidos_por_accion: &[],
+    consumidos_por_accion: &[("p50_p90", &["dry_run"])],
     sinonimos: SINONIMOS_PROYECTO,
     ejecutar: Ejecutor::Simple(ejecutar_proyecto),
 };

@@ -139,104 +139,76 @@ impl Herramienta {
     }
 }
 
-/// One declared key an action does not read, and the argument that makes the
-/// handler read it anyway. `leido_si: None` means no argument makes it read.
+/// One declared key an action does not read, and the arguments that make the
+/// handler read it anyway. An empty `leido_si` means no argument makes it read.
 pub(super) struct NoLeido {
     pub(super) herramienta: &'static str,
     pub(super) accion: &'static str,
     pub(super) clave: &'static str,
-    pub(super) leido_si: Option<&'static str>,
+    pub(super) leido_si: &'static [&'static str],
+}
+
+impl NoLeido {
+    const fn new(
+        herramienta: &'static str,
+        accion: &'static str,
+        clave: &'static str,
+        leido_si: &'static [&'static str],
+    ) -> Self {
+        Self {
+            herramienta,
+            accion,
+            clave,
+            leido_si,
+        }
+    }
 }
 
 /// Declared keys an action does not read. The schema is per tool, so a key that
 /// belongs to another action of the same tool reaches the handler and is dropped;
 /// naming it in `ignorados` is the only way the caller learns it was not applied.
 /// Only the gaps measured against the handlers are listed: an action not named
-/// here reads every key it declares, and an entry is removed as soon as its
-/// handler starts reading the key. `leido_si` covers the conditional reads.
+/// here reads every key it declares. `leido_si` covers the conditional reads.
 pub(super) const NO_LEIDOS: &[NoLeido] = &[
-    NoLeido {
-        herramienta: "proyecto",
-        accion: "dimensionar",
-        clave: "n_serie",
-        leido_si: None,
-    },
-    NoLeido {
-        herramienta: "proyecto",
-        accion: "dimensionar",
-        clave: "n_paralelo",
-        leido_si: None,
-    },
-    NoLeido {
-        herramienta: "resultados",
-        accion: "csv",
-        clave: "internet",
-        leido_si: None,
-    },
-    NoLeido {
-        herramienta: "proyecto",
-        accion: "perdidas",
-        clave: "perdida_separada",
-        leido_si: None,
-    },
-    NoLeido {
-        herramienta: "proyecto",
-        accion: "perdidas",
-        clave: "comentario",
-        leido_si: None,
-    },
+    NoLeido::new("proyecto", "dimensionar", "n_serie", &[]),
+    NoLeido::new("proyecto", "dimensionar", "n_paralelo", &[]),
+    NoLeido::new("resultados", "csv", "internet", &[]),
+    NoLeido::new("proyecto", "perdidas", "perdida_separada", &[]),
+    NoLeido::new("proyecto", "perdidas", "comentario", &[]),
     // `ejecutar` builds a batch when `filas` is present and a parameter file when
     // `parametros` is: those keys are read then, and ignored otherwise.
-    NoLeido {
-        herramienta: "simular",
-        accion: "ejecutar",
-        clave: "variables",
-        leido_si: Some("filas"),
-    },
-    NoLeido {
-        herramienta: "simular",
-        accion: "ejecutar",
-        clave: "unidades",
-        leido_si: Some("parametros"),
-    },
+    NoLeido::new("simular", "ejecutar", "variables", &["filas"]),
+    NoLeido::new("simular", "ejecutar", "destino", &["filas", "parametros"]),
+    NoLeido::new("simular", "ejecutar", "descripciones", &["parametros"]),
+    NoLeido::new("simular", "ejecutar", "iniciales", &["parametros"]),
+    NoLeido::new("simular", "ejecutar", "unidades", &["parametros"]),
+    // `con_salidas_por_defecto` honours the output paths, and the batch/parameter
+    // builders resolve their destinations, so the flag is read with any of them.
+    NoLeido::new(
+        "simular",
+        "ejecutar",
+        "permitir_fuera_del_workspace",
+        &["filas", "parametros", "output_csv", "report_pdf"],
+    ),
+    // Keys of the other `simular` actions (`preestimar`, `barrido`, `estado`,
+    // `preparar`) that `ejecutar` never reads.
+    NoLeido::new("simular", "ejecutar", "latitud", &[]),
+    NoLeido::new("simular", "ejecutar", "longitud", &[]),
+    NoLeido::new("simular", "ejecutar", "kwp", &[]),
+    NoLeido::new("simular", "ejecutar", "tilt", &[]),
+    NoLeido::new("simular", "ejecutar", "azimut", &[]),
+    NoLeido::new("simular", "ejecutar", "n", &[]),
+    NoLeido::new("simular", "ejecutar", "trabajo", &[]),
+    NoLeido::new("simular", "ejecutar", "archivo_rvt", &[]),
+    NoLeido::new("simular", "ejecutar", "operacion", &[]),
     // `pvsyst_cli` has no action: `via` is validated by the approximation gate and
     // never changes what the passthrough runs.
-    NoLeido {
-        herramienta: "pvsyst_cli",
-        accion: "",
-        clave: "via",
-        leido_si: None,
-    },
-    NoLeido {
-        herramienta: "workspace",
-        accion: "historial",
-        clave: "proyecto",
-        leido_si: None,
-    },
-    NoLeido {
-        herramienta: "workspace",
-        accion: "historial",
-        clave: "ruta",
-        leido_si: None,
-    },
-    NoLeido {
-        herramienta: "sitio",
-        accion: "convertir_meteo",
-        clave: "output_sit_file",
-        leido_si: None,
-    },
-    NoLeido {
-        herramienta: "sitio",
-        accion: "convertir_meteo",
-        clave: "sit_file",
-        leido_si: None,
-    },
-    NoLeido {
-        herramienta: "sitio",
-        accion: "convertir_meteo",
-        clave: "weather_data_file",
-        leido_si: None,
-    },
+    NoLeido::new("pvsyst_cli", "", "via", &[]),
+    NoLeido::new("workspace", "historial", "proyecto", &[]),
+    NoLeido::new("workspace", "historial", "ruta", &[]),
+    NoLeido::new("sitio", "convertir_meteo", "output_sit_file", &[]),
+    NoLeido::new("sitio", "convertir_meteo", "sit_file", &[]),
+    NoLeido::new("sitio", "convertir_meteo", "weather_data_file", &[]),
 ];
 
 /// Declared keys `accion` of `herramienta` does not read for these `args`.
@@ -246,7 +218,8 @@ fn no_leidos(herramienta: &str, accion: &str, args: &Value) -> Vec<&'static str>
         .filter(|n| n.herramienta == herramienta && n.accion == accion)
         .filter(|n| {
             n.leido_si
-                .is_none_or(|clave| args.get(clave).is_none_or(Value::is_null))
+                .iter()
+                .all(|clave| args.get(*clave).is_none_or(Value::is_null))
         })
         .map(|n| n.clave)
         .collect()
