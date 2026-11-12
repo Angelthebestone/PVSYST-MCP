@@ -74,6 +74,7 @@ pub(crate) const TOOL_SIMULAR: Herramienta = Herramienta {
         valores: &["ejecutar", "preparar", "estado", "preestimar", "barrido"],
     }),
     requeridos_por_accion: &[
+        ("ejecutar", &["proyecto"]),
         ("estado", &["trabajo"]),
         ("preestimar", &["latitud", "longitud", "kwp"]),
         ("barrido", &["latitud", "longitud", "kwp"]),

@@ -38,6 +38,10 @@ const DESC_TIMEOUT: Texto = Texto {
     es: "Segundos antes de matar el proceso (de 1 a 3600). Por defecto 120, y 900 en run-simulation.",
     en: "Seconds before the process is killed (1 to 3600). Defaults to 120, and 900 for run-simulation.",
 };
+const DESC_WEATHER_DATA_FILE: Texto = Texto {
+    es: "CSV mensual que se importa con origen:csv; con origen:coordenadas el sitio se crea desde latitud y longitud.",
+    en: "Monthly CSV imported with origen:csv; with origen:coordenadas the site is created from latitud and longitud.",
+};
 const DESC_DRY_RUN: Texto = Texto {
     es: "true: ensayo, no ejecuta nada y devuelve lo que haría. null no se acepta: ejecutaría de verdad.",
     en: "true: rehearsal, runs nothing and returns what it would do. null is refused: it would run for real.",
@@ -110,6 +114,7 @@ fn descripcion_de_ejecucion(an: &Anotador, clave: &str) -> Option<String> {
     let texto = match clave {
         "timeout_s" => DESC_TIMEOUT,
         "dry_run" => DESC_DRY_RUN,
+        "weather_data_file" => DESC_WEATHER_DATA_FILE,
         _ => return None,
     };
     Some(texto.en_idioma(an.idioma).to_string())

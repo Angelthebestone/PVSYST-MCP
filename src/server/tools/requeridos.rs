@@ -2,6 +2,7 @@
 //! a ready-to-send example, the schema lists the keys each action needs, and
 //! undeclared arguments are reported back instead of being silently dropped.
 
+use super::alternativas;
 use super::declaracion::{extraer_aliases, Herramienta};
 use super::no_leidos::no_leidos;
 use super::redaccion::PREFIJO_REQUERIDOS_POR_ACCION;
@@ -18,13 +19,18 @@ impl Herramienta {
             .filter(|clave| esta_vacio_o_nulo(args, clave))
             .map(|clave| (*clave).to_string())
             .collect();
-        if claves.is_empty() {
-            return Ok(());
+        if !claves.is_empty() {
+            return Err(Error::MissingArgs {
+                claves,
+                ejemplo: self.ejemplo(accion, &todas),
+            });
         }
-        Err(Error::MissingArgs {
-            claves,
-            ejemplo: self.ejemplo(accion, &todas),
-        })
+        match alternativas::de(self.nombre, accion) {
+            Some(alternativa) if !alternativa.satisfecha(args) => {
+                Err(alternativa.falta(Idioma::de_entorno()))
+            }
+            _ => Ok(()),
+        }
     }
 
     /// Adds the per-action required keys of the admitted discriminator values to its description.
@@ -40,6 +46,12 @@ impl Herramienta {
             .iter()
             .filter(|(accion, _)| admitidas.contains(accion))
             .map(|(accion, claves)| format!("{accion} ({})", claves.join(", ")))
+            .chain(
+                alternativas::ALTERNATIVAS
+                    .iter()
+                    .filter(|a| a.herramienta == self.nombre && admitidas.contains(&a.accion))
+                    .map(|a| format!("{} ({})", a.accion, a.descripcion(idioma))),
+            )
             .collect::<Vec<_>>()
             .join("; ");
         if detalle.is_empty() {

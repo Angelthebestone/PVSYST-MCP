@@ -43,7 +43,12 @@ pub(crate) const TOOL_WORKSPACE: Herramienta = Herramienta {
             "restaurar",
         ],
     }),
-    requeridos_por_accion: &[("restaurar", &["id"])],
+    requeridos_por_accion: &[
+        ("crear", &["ruta"]),
+        ("importar", &["zip", "destino"]),
+        ("exportar_proyecto", &["proyecto"]),
+        ("restaurar", &["id"]),
+    ],
     consumidos_por_accion: &[],
     sinonimos: SINONIMOS_WORKSPACE,
     ejecutar: Ejecutor::Simple(ejecutar_workspace),

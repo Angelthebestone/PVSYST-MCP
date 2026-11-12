@@ -46,8 +46,11 @@ pub(crate) const TOOL_COMPONENTE: Herramienta = Herramienta {
         ],
     }),
     requeridos_por_accion: &[
-        ("crear", &["nombre_nuevo", "plantilla"]),
+        ("crear", &["tipo", "nombre_nuevo", "plantilla"]),
         ("editar", &["componente"]),
+        ("borrar", &["componente"]),
+        ("importar", &["origen"]),
+        ("exportar", &["componente", "destino"]),
         ("crear_desde_ficha", &["tipo", "nombre_nuevo", "datos"]),
     ],
     consumidos_por_accion: &[],

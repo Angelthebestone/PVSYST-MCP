@@ -175,6 +175,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`workspace exportar` no longer archives its own temporary**: a `destino` inside the exported tree put
   `<zip>.mcp_tmp_<pid>.zip` (0 bytes) in the archive; both the destination and its temporary are excluded, and
   `workspace importar` names the workspace a relative `zip` was resolved against when it finds nothing.
+- **The schema declares every key an action requires**, so a client that trusts `Required by action` no longer sends
+  a call the handler rejects: `componente crear` (`tipo`), `borrar`/`exportar` (`componente`, `destino`), `importar`
+  (`origen`), `sitio crear` (`latitud`, `longitud`), `sitio convertir_meteo` (its four files), `simular ejecutar`
+  (`proyecto`), `workspace crear` (`ruta`), `importar` (`zip`, `destino`) and `exportar_proyecto` (`proyecto`).
+  Actions that take one of several keys say so and accept any of them: `simular preparar` (`filas` or `parametros`,
+  unless `operacion` selects the RVT manager), `workspace exportar` (`destino` or `permitir_fuera_del_workspace`),
+  `resultados kpis`/`resumen` (`proyecto`, `archivo` or `report_pdf`) and `editar campos` (`archivo`, or
+  `proyecto`+`ediciones`). A missing key now fails with the missing-argument message before the handler runs, and
+  `sitio weather_data_file` documents that it belongs to `origen:csv`.
 
 ### Changed
 - The six `proyecto` actions that edit a variant (storage, pumping, injection limit, losses, economics, tracker) build their answer with one
