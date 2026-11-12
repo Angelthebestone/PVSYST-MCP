@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `resumen` or `normal` is honoured. The lists `controles` and `otros` are never cut by the summary.
 
 ### Added
+- **Known limit of `componente crear_desde_ficha` for a `.PAN`**: it still does not fill the module
+  dimensions (the «sizes» page of `TPVModuleForm`), so PVsyst refuses to save the module. The
+  inventory now shows those controls (`gui_observar que:inventario` on the form, hidden page included,
+  with their `campo {clase, x, y}` anchors), but `components.panels` is not extended: its anchors are
+  measured on a live PVsyst, and none was measured for that page.
 - **`pvsyst://gui` describes its own map** in `metadatos`: `measured_on` (date of the last walk
   recorded in `docs/gui_mapa.json`), `pvsyst_version` it was measured on, `idioma_medido`,
   `windows_total`, `cobertura` (windows with fields mapped, controls without a handle, limits) and
