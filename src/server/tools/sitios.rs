@@ -69,6 +69,16 @@ pub(crate) const TOOL_SITIO: Herramienta = Herramienta {
         ],
     }),
     requeridos_por_accion: &[
+        ("crear", &["latitud", "longitud"]),
+        (
+            "convertir_meteo",
+            &[
+                "input_csv_file",
+                "input_mef_file",
+                "input_sit_file",
+                "output_met_file",
+            ],
+        ),
         ("geometria_solar", &["latitud", "longitud"]),
         ("horizonte_pvgis", &["proyecto"]),
         ("meteo_pvgis", &["latitud", "longitud", "nombre_sitio"]),
