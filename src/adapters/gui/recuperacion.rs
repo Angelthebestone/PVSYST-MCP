@@ -117,7 +117,7 @@ fn proceso_en_fallo(args: &Value) -> Result<(u32, Fallo)> {
         .find_map(|pid| fallo_de(pid).map(|f| (pid, f)))
         .ok_or_else(|| {
             Error::Invalid(
-                "PVsyst shows no failure dialog (madExcept or the instability warning): there is nothing to restart. Use cerrar or lanzar".into(),
+                "PVsyst shows no failure dialog (madExcept crash or the instability warning): reiniciar only applies after a PVsyst failure, so a healthy instance is left alone. Use cerrar and lanzar to start a fresh one".into(),
             )
         })
 }

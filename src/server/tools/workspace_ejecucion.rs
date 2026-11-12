@@ -84,12 +84,18 @@ pub(super) fn ejecutar_leer(paths: &Paths, args: &Value) -> Result<Value> {
             &["tipo", "max_bytes"],
         );
     }
+    let archivo = args
+        .get("archivo")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    let ext = extension_mayuscula(archivo);
     let pide_offset = args.get("offset").and_then(Value::as_u64).is_some();
     let pide_max = args.get("max_bytes").and_then(Value::as_u64).is_some();
     let pide_base64 = crate::args::flag(args, &["base64"]);
     if pide_offset || pide_max || pide_base64 {
+        let resuelto = con_archivo_de_proyecto(paths, args, archivo);
         return rama(
-            crate::workspace::leer_archivo(paths, args),
+            crate::workspace::leer_archivo(paths, &resuelto),
             args,
             &["limite", "tipo"],
         );
@@ -97,11 +103,6 @@ pub(super) fn ejecutar_leer(paths: &Paths, args: &Value) -> Result<Value> {
     if args.get("objeto").is_some() || args.get("plano").is_some() {
         return rama(objects::leer_objeto(paths, args), args, &["limite"]);
     }
-    let archivo = args
-        .get("archivo")
-        .and_then(Value::as_str)
-        .unwrap_or_default();
-    let ext = extension_mayuscula(archivo);
 
     if es_proyecto(&workspace_of(paths, args), archivo, &ext) {
         let completo = args.get("detalle").and_then(Value::as_str) == Some("completo");
@@ -175,6 +176,25 @@ fn despachar_por_extension(paths: &Paths, args: &Value, archivo: &str) -> Result
         _ => objects::leer_objeto(paths, args)
             .or_else(|_| crate::workspace::leer_archivo(paths, args)),
     }
+}
+
+/// The project branch looks a bare project name up under `Projects/`; the
+/// raw-bytes reader resolves against the workspace root, so it must be handed
+/// that same path. A name that already resolves is left untouched.
+fn con_archivo_de_proyecto(paths: &Paths, args: &Value, archivo: &str) -> Value {
+    let workspace = workspace_of(paths, args);
+    if !es_proyecto(&workspace, archivo, &extension_mayuscula(archivo)) {
+        return args.clone();
+    }
+    let alcance = Alcance::de_args(args);
+    if crate::workspace::resolver_ruta(&workspace, archivo, alcance).is_ok_and(|p| p.is_file()) {
+        return args.clone();
+    }
+    let Ok(ruta) = projects::resolve_project_file_con_alcance(&workspace, archivo, alcance) else {
+        return args.clone();
+    };
+    let relativa = ruta.strip_prefix(&workspace).unwrap_or(&ruta);
+    con(args, "archivo", json!(relativa.to_string_lossy()))
 }
 
 fn es_proyecto(workspace: &Path, archivo: &str, ext: &str) -> bool {
