@@ -27,8 +27,8 @@ use crate::args::{flag, opt_str, req_str, workspace_of, DRY_RUN};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::progreso::SeguimientoTarea;
-use serde_json::{json, Value};
-use std::path::Path;
+use serde_json::{json, Map, Value};
+use std::path::{Path, PathBuf};
 
 fn respuesta_dry_run(
     cli_args: &[String],
@@ -89,12 +89,80 @@ pub(crate) fn lanzar_simulacion(paths: &Paths, args: &Value) -> Result<Value> {
     lanzar_simulacion_seguida(paths, args, &seguimiento)
 }
 
+/// Effective workspace of the run, after refusing one PVsystCLI cannot load.
+fn workspace_de_simulacion(paths: &Paths, args: &Value) -> Result<PathBuf> {
+    let workspace = workspace_of(paths, args);
+    exigir_workspace_configurado(paths, &workspace)?;
+    Ok(workspace)
+}
+
+/// `run-simulation` only accepts the workspace configured in PVsyst (`DataPath` in
+/// `PVsyst.ini`); other paths make PVsystCLI crash while loading. The fake CLI used
+/// by the tests is exempt, and an unreadable `DataPath` does not block the run.
+fn exigir_workspace_configurado(paths: &Paths, workspace: &Path) -> Result<()> {
+    if !es_cli_real(paths) {
+        return Ok(());
+    }
+    let Some(configurado) = workspace_configurado() else {
+        return Ok(());
+    };
+    if mismas_rutas(workspace, &configurado) {
+        return Ok(());
+    }
+    Err(Error::Invalid(format!(
+        "PVsystCLI run-simulation solo acepta el workspace configurado en PVsyst (DataPath de PVsyst.ini): '{}'. El workspace pedido es '{}'. Usa el workspace configurado (PVSYST_WORKSPACE o el argumento workspace) o cambia DataPath en PVsyst.",
+        configurado.display(),
+        workspace.display()
+    )))
+}
+
+fn es_cli_real(paths: &Paths) -> bool {
+    paths
+        .cli_exe
+        .file_name()
+        .and_then(|n| n.to_str())
+        .is_some_and(|n| n.eq_ignore_ascii_case("PVsystCLI.exe"))
+}
+
+fn workspace_configurado() -> Option<PathBuf> {
+    let ruta = crate::prefs::ini::ini_path().ok()?;
+    let bytes = crate::prefs::ini::leer(&ruta).ok()?;
+    let (texto, _) = crate::prefs::ini::decodificar(&bytes);
+    let secciones = crate::prefs::ini::parsear(&texto);
+    let valor = valor_ini(&secciones, "System", "DataPath")?;
+    let valor = valor.trim();
+    (!valor.is_empty()).then(|| PathBuf::from(valor))
+}
+
+fn valor_ini(secciones: &Map<String, Value>, seccion: &str, clave: &str) -> Option<String> {
+    let (_, sec) = secciones
+        .iter()
+        .find(|(k, _)| k.eq_ignore_ascii_case(seccion))?;
+    let obj = sec.as_object()?;
+    let (_, valor) = obj.iter().find(|(k, _)| k.eq_ignore_ascii_case(clave))?;
+    valor.as_str().map(str::to_string)
+}
+
+fn mismas_rutas(a: &Path, b: &Path) -> bool {
+    match (a.canonicalize(), b.canonicalize()) {
+        (Ok(a), Ok(b)) => a == b,
+        _ => normalizar_ruta(a) == normalizar_ruta(b),
+    }
+}
+
+fn normalizar_ruta(p: &Path) -> String {
+    p.to_string_lossy()
+        .replace('/', "\\")
+        .trim_end_matches('\\')
+        .to_lowercase()
+}
+
 pub(crate) fn lanzar_simulacion_seguida(
     paths: &Paths,
     args: &Value,
     seguimiento: &SeguimientoTarea<'_>,
 ) -> Result<Value> {
-    let workspace = workspace_of(paths, args);
+    let workspace = workspace_de_simulacion(paths, args)?;
     let (prj_path, stem, variante_up, variant_file) = resolver_datos_proyecto(&workspace, args)?;
     opciones::validar(args)?;
     preparacion::validar_extra_options(args)?;
