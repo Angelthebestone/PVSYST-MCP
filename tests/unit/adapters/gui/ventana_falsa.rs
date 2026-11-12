@@ -165,6 +165,8 @@ impl VentanaFalsa {
     /// A visible form of class `clase` with `hijos`. Class names are registered
     /// on first use and shared by every fake form of the process.
     pub(crate) fn crear(clase: &'static str, titulo: &'static str, hijos: Vec<Hijo>) -> Self {
+        // Windows created before the process turns DPI-aware change scale under a reader.
+        crate::adapters::gui::ffi::declarar_dpi_por_monitor();
         let (envio, recibo) = mpsc::channel();
         let tarea = std::thread::spawn(move || {
             let hwnds = construir(clase, titulo, &hijos);

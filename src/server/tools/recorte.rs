@@ -21,6 +21,7 @@ pub(super) const SIN_RECORTE: &[&str] = &[
     "pestanas",
     // The inventory caps itself (500 rows, with `total` and `truncado`); `otros` is the form's unclassified controls.
     "controles",
+    "elementos",
     "otros",
     "textos",
     "sin_mapear",

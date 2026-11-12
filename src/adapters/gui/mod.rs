@@ -61,7 +61,7 @@ use crate::error::{Error, Result};
 use serde_json::Value;
 
 /// `observar` dispatcher. `que`: ventanas (default) | controles | leer |
-/// capturar | uia | arbol | formulario | inventario | vista | esquema | mensajes | funciones | menus.
+/// capturar | uia | arbol | formulario | inventario | elementos | vista | esquema | mensajes | funciones | menus.
 pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     match args
         .get("que")
@@ -76,6 +76,7 @@ pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Val
         "arbol" => uia_vista::observar_arbol(paths, args),
         "formulario" => ocr::formulario(paths, args),
         "inventario" => inventario::inventario(paths, args),
+        "elementos" => inventario::elementos::elementos(paths, args),
         "funciones" => Ok(catalogo::listar(args)),
         "menus" => {
             menu_por_posicion::listar(ventanas::hwnd_de(args, "ventana")?, paths.idioma)
@@ -89,7 +90,7 @@ pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Val
             Ok(registro_pvsyst::ultimos_mensajes(limite))
         }
         other => Err(Error::Invalid(format!(
-            "Unknown que '{other}' (ventanas|controles|leer|capturar|uia|arbol|formulario|inventario|vista|esquema|mensajes|funciones|menus)"
+            "Unknown que '{other}' (ventanas|controles|leer|capturar|uia|arbol|formulario|inventario|elementos|vista|esquema|mensajes|funciones|menus)"
         ))),
     }
 }

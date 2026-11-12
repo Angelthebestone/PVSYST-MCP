@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `resumen` or `normal` is honoured. The lists `controles` and `otros` are never cut by the summary.
 
 ### Added
+- **`gui_observar que:elementos`** lists the rows, cells and items a control draws itself
+  (`TVirtualStringTree`, grids, lists), which have no window and are not in the inventory. They come
+  from the UI Automation tree under the control named by `ventana` (a control's handle, or a form for
+  all of it): `indice`, `rol`, `nombre`, `rect`, `patrones` (now also `contenedor` and `virtualizado`,
+  the item-container and virtualised-item patterns) and `hwnd` when the element is a window. A control
+  with none is `solo_vision:true`, with the actions that still reach it (`fila`, `menus`/`menu`,
+  `clic_texto`). Only the elements the control has realised are listed: a virtualised row scrolled out
+  of view is not realised through its container. MSAA (`IAccessible`) is not read.
 - **`gui_observar que:ventanas` says whether a click would land**: every window carries `foreground`
   (it is the foreground window), `modal` (it is the dialog that blocks the others; one embedded in the
   form it disables is listed too) and `iconic` (minimised, the name Win32 gives `minimized`), next to

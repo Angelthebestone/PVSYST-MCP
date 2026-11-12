@@ -7,6 +7,7 @@
 //! list, each row saying which API saw it (`fuente`).
 
 pub(crate) mod dominio;
+pub(crate) mod elementos;
 mod etiquetas;
 pub(crate) mod tipos;
 mod uia;

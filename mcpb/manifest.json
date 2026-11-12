@@ -139,6 +139,7 @@
           "valores": {
             "capture": "capturar",
             "controls": "controles",
+            "elements": "elementos",
             "form": "formulario",
             "functions": "funciones",
             "inventory": "inventario",
