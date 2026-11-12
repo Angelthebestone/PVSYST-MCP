@@ -8,6 +8,7 @@ use std::thread::JoinHandle;
 use windows::core::PCWSTR;
 use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::System::Threading::GetCurrentThreadId;
+use windows::Win32::UI::Input::KeyboardAndMouse::EnableWindow;
 use windows::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetMessageW,
     PostThreadMessageW, RegisterClassW, ShowWindow, TranslateMessage, MSG, SW_SHOWNOACTIVATE,
@@ -193,6 +194,14 @@ impl VentanaFalsa {
     /// Handle of window `indice` (0 is the form).
     pub(crate) fn hwnd(&self, indice: usize) -> isize {
         self.hwnds.get(indice).copied().unwrap_or_default()
+    }
+
+    /// Disables the form, as a VCL modal dialog disables the form below it.
+    pub(crate) fn deshabilitar(&self) {
+        // SAFETY: `hwnd(0)` es la ventana creada por este objeto, viva hasta su `Drop`.
+        unsafe {
+            let _ = EnableWindow(HWND(self.hwnd(0) as *mut std::ffi::c_void), false);
+        }
     }
 
     /// The reference `gui_observar` takes for window `indice`.

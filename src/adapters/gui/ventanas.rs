@@ -167,6 +167,24 @@ pub(crate) fn hwnd_de(args: &Value, campo: &str) -> Result<Hwnd> {
         .ok_or_else(|| Error::NotFound(format!("Window '{reference}' not found")))
 }
 
+/// Marks a listed window with what decides whether a click on it lands:
+/// whether it is the foreground window, the modal that blocks the others, and
+/// whether it is minimised (`iconic`, the name Win32 gives `minimized`).
+fn anotar_estado(ventana: &mut Value, primer_plano: Hwnd, modal: Option<Hwnd>) {
+    let hwnd = ventana
+        .get("hwnd")
+        .and_then(Value::as_str)
+        .and_then(|t| Hwnd::from_str_radix(t.strip_prefix("0x")?, 16).ok());
+    let (Some(h), Some(mapa)) = (hwnd, ventana.as_object_mut()) else {
+        return;
+    };
+    mapa.insert("foreground".into(), json!(h == primer_plano));
+    // A modal found among the children is already marked by `agregar_modal`.
+    let ya_modal = mapa.get("modal").and_then(Value::as_bool) == Some(true);
+    mapa.insert("modal".into(), json!(ya_modal || Some(h) == modal));
+    mapa.insert("iconic".into(), json!(ffi::estado_ventana(h).minimizada));
+}
+
 /// Lists the top-level windows of the PVsyst process.
 pub(crate) fn ventanas(args: &Value) -> Result<Value> {
     let pids = target_pids(args)?;
@@ -192,7 +210,12 @@ pub(crate) fn ventanas(args: &Value) -> Result<Value> {
         out.retain(|w| w["visible"].as_bool().unwrap_or(false));
     }
     // The blocking modal is listed once, inside `windows`, marked `modal: true`.
-    modal::agregar_modal(&mut out, modal::modal_de(&pids).map(window_json));
+    let bloqueante = modal::modal_de(&pids);
+    modal::agregar_modal(&mut out, bloqueante.map(window_json));
+    let primer_plano = ffi::primer_plano();
+    for w in &mut out {
+        anotar_estado(w, primer_plano, bloqueante);
+    }
     Ok(json!({
         "processes": pids,
         "count": out.len(),
@@ -240,3 +263,7 @@ pub(crate) fn leer(args: &Value) -> Result<Value> {
         "text": ffi::texto_control(h),
     }))
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/adapters/gui/ventanas.rs"]
+mod tests;

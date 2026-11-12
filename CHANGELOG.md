@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `resumen` or `normal` is honoured. The lists `controles` and `otros` are never cut by the summary.
 
 ### Added
+- **`gui_observar que:ventanas` says whether a click would land**: every window carries `foreground`
+  (it is the foreground window), `modal` (it is the dialog that blocks the others; one embedded in the
+  form it disables is listed too) and `iconic` (minimised, the name Win32 gives `minimized`), next to
+  `visible` and `enabled`.
 - **`gui_observar que:formulario` with `todos:true`** also lists the controls that are not shown (other
   tab pages, hidden panels), and every answer gains `otros`: each control that is neither a button nor a
   field (`TPageControl`, `TTabSheet`, `TGridPanel`, `TVirtualStringTree`, custom classes) with its
