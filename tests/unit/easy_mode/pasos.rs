@@ -12,6 +12,7 @@ fn paso(ok: bool, sit_file: &str) -> PasoSitioSalida {
         annual_ghi_kwh_m2: None,
         reutilizado: false,
         ok,
+        detalle_cli: serde_json::Value::Null,
     }
 }
 

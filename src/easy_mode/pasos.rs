@@ -26,6 +26,8 @@ pub(crate) struct PasoSitioSalida {
     pub(crate) annual_ghi_kwh_m2: Option<f64>,
     pub(crate) reutilizado: bool,
     pub(crate) ok: bool,
+    /// `create_site` envelope of the CLI, kept to explain a failed step.
+    pub(crate) detalle_cli: Value,
 }
 
 /// Output of step 2: project creation from template.
