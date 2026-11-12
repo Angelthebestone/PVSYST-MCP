@@ -29,9 +29,13 @@ fn as_text(v: &Value) -> Option<String> {
 /// Trial executions a `create-site` or `convert-meteo` run spends when it succeeds.
 const EJECUCIONES_POR_COMANDO: u32 = 1;
 
-/// Trial-budget cost of one CLI run: it consumes an execution only when the command succeeded.
+/// Trial-budget cost of one CLI run: a successful command spends one execution, and
+/// so does a failed one whose output carries the TRIAL banner (the CLI had already
+/// started a charged run). A timeout or a crash without the banner spends nothing.
 fn costo_de(ws: &std::path::Path, command: &str, out: &cli::CliOutput) -> Value {
-    let usadas = u32::from(!out.timed_out && cli::classify(command, &out.stdout).0);
+    let exito = cli::classify(command, &out.stdout).0;
+    let banner = ledger::parsear_banner(&out.stdout).is_some();
+    let usadas = u32::from(!out.timed_out && (exito || banner));
     ledger::registrar(ws, &out.stdout, usadas)
 }
 /// First non-empty scalar among `keys`, as text.
