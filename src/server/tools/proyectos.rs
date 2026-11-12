@@ -195,6 +195,8 @@ fn configurar_p50(paths: &Paths, args: &Value) -> Result<Value> {
     let proyecto = proyecto.strip_suffix(".PRJ").unwrap_or(proyecto);
     let variante = crate::args::opt_str(args, &["variante"]).unwrap_or("VC0");
     if crate::args::flag(args, &["dry_run"]) {
+        // A plan for a project or variant that does not exist is not actionable.
+        crate::projects::lifecycle::abrir_variante(paths, args)?;
         return Ok(projects::gui::p50::plan(paths, proyecto, variante));
     }
     projects::gui::p50::configurar(paths, proyecto, variante)
