@@ -1,6 +1,8 @@
 use super::dominio::{buscar, Acceso};
 use super::entradas::funciones;
+use crate::idioma::Idioma;
 use std::collections::HashSet;
+use std::path::Path;
 
 #[test]
 fn should_name_a_catalogued_parent_that_opens_the_host_when_function_requires_one() {
@@ -67,7 +69,8 @@ fn should_reach_every_host_window_without_cycles_when_functions_require_a_parent
 
 #[test]
 fn should_carry_no_user_paths_or_project_names_when_the_window_map_is_published() {
-    let mapa = super::recurso::como_recurso()["mapa"].to_string();
+    let mapa = super::recurso::como_recurso(std::path::Path::new(""), Idioma::default())["mapa"]
+        .to_string();
 
     for patron_prohibido in ["C:\\\\Users", "\\\\Users\\\\", "/Users/", "/home/", "MCP_"] {
         assert!(
@@ -78,5 +81,35 @@ fn should_carry_no_user_paths_or_project_names_when_the_window_map_is_published(
     assert!(
         !mapa.contains("C:\\\\"),
         "el mapa contiene una ruta de disco"
+    );
+}
+
+/// The map is a snapshot: it says when and on which version it was measured, how
+/// much it covers, and warns when the PVsyst the server drives is another one.
+#[test]
+fn should_describe_the_map_and_warn_when_the_running_version_differs() {
+    let mapa = super::recurso::mapa_de_ventanas();
+    let medida = super::recurso::como_recurso(
+        Path::new(r"C:\Program Files\PVsyst8.1.8\PVsyst.exe"),
+        Idioma::En,
+    );
+    let otra = super::recurso::como_recurso(
+        Path::new(r"C:\Program Files\PVsyst8.2.0\PVsyst.exe"),
+        Idioma::En,
+    );
+
+    let meta = &medida["metadatos"];
+    assert_eq!(
+        meta["windows_total"],
+        mapa["ventanas"].as_object().unwrap().len()
+    );
+    assert!(meta["measured_on"].as_str().is_some_and(|f| f.len() == 10));
+    assert_eq!(meta["pvsyst_version"], "8.1.8");
+    assert!(meta["cobertura"]["ventanas_con_campos"].as_u64() > Some(0));
+    assert_eq!(meta["aviso"], serde_json::Value::Null);
+    let aviso = otra["metadatos"]["aviso"].as_str().unwrap();
+    assert!(
+        aviso.contains("8.2.0") && aviso.contains("8.1.8"),
+        "{aviso}"
     );
 }

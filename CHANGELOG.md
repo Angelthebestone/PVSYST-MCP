@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `resumen` or `normal` is honoured. The lists `controles` and `otros` are never cut by the summary.
 
 ### Added
+- **`pvsyst://gui` describes its own map** in `metadatos`: `measured_on` (date of the last walk
+  recorded in `docs/gui_mapa.json`), `pvsyst_version` it was measured on, `idioma_medido`,
+  `windows_total`, `cobertura` (windows with fields mapped, controls without a handle, limits) and
+  `pvsyst_version_en_ejecucion`, read from the install folder of the GUI executable; when the two
+  differ, `aviso` says the tabs, anchors and menu positions may have changed and that the live
+  inventory is what holds.
 - **`gui_observar que:elementos`** lists the rows, cells and items a control draws itself
   (`TVirtualStringTree`, grids, lists), which have no window and are not in the inventory. They come
   from the UI Automation tree under the control named by `ventana` (a control's handle, or a form for

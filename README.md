@@ -121,7 +121,7 @@ and only run the MCP calculation when called with `via: "aproximacion"` and the 
 | `gui_actuar` | `action` → `accion`, `class` → `clase`, `field` → `campo`, `function` → `funcion`, `index` → `indice`, `keys` → `teclas`, `label` → `etiqueta`, `message` → `mensaje`, `name` → `nombre`, `operation` → `operacion`, `process` → `proceso`, `project` → `proyecto`, `role` → `rol`, `text` → `texto`, `title` → `titulo`, `value` → `valor`, `window` → `ventana` | `close_dialog` → `cerrar`, `fill` → `rellenar`, `keys` → `teclas`, `press` → `click`, `select` → `seleccionar`, `type` → `escribir`, `wait` → `esperar`, `write` → `escribir` |
 <!-- alias:fin -->
 
-**Resources** (`resources/list` / `resources/read`): `pvsyst://recetas` (task → tool playbook), `pvsyst://cobertura` (coverage map), `pvsyst://formato` (file formats), `pvsyst://cli` (CLI reference), `pvsyst://gui` (GUI function catalogue and window map). Unknown URIs return JSON-RPC -32602 `Recurso desconocido`.
+**Resources** (`resources/list` / `resources/read`): `pvsyst://recetas` (task → tool playbook), `pvsyst://cobertura` (coverage map), `pvsyst://formato` (file formats), `pvsyst://cli` (CLI reference), `pvsyst://gui` (GUI function catalogue and window map, with `metadatos`: `measured_on`, `pvsyst_version`, `windows_total`, `cobertura`, and a warning when the PVsyst the server drives is another version). Unknown URIs return JSON-RPC -32602 `Recurso desconocido`.
 
 \* The action has an MCP-calculation branch. Its default is PVsyst; `via: "aproximacion"` (and, for the actions that only exist as an approximation, the action itself) requires `PVSYST_MCP_APROXIMACIONES=1`. Without the flag those gate-only actions are hidden from `tools/list`.
 
