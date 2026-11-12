@@ -163,6 +163,14 @@ pub(crate) struct NodoUia {
     pub(crate) solo_vision: bool,
 }
 
+impl NodoUia {
+    /// Whether the element tells anything: a name, something to operate or a
+    /// region only vision reads.
+    pub(super) fn informa(&self) -> bool {
+        !self.nombre.trim().is_empty() || !self.patrones.is_empty() || self.solo_vision
+    }
+}
+
 /// A control located by its class and its position in the form's 96-DPI layout:
 /// the way `gui_actuar accion:escribir` and `campo` address a field.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -238,6 +246,8 @@ pub(crate) struct Pestana {
 pub(crate) struct LecturaUia {
     pub(crate) pestanas: Vec<String>,
     pub(crate) nodos: Vec<NodoUia>,
+    /// The node budget ran out or COM failed mid-tree: elements are missing.
+    pub(crate) truncado: bool,
 }
 
 /// Everything read from a form: its windows and where the form sits.

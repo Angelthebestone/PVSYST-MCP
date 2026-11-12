@@ -8,10 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- **GUI inventories are not summarised to 13 items.** `gui_observar` with `que:inventario`, `elementos`
-  or `que:controles` with `todos:true` keeps up to 500 rows when the call names no `detalle`, and marks
-  `truncado` with `total` beyond that; `detalle:completo` still keeps everything, and an explicit
-  `resumen` or `normal` is honoured. The lists `controles` and `otros` are never cut by the summary.
+- **GUI inventories are not summarised to 13 items.** `que:inventario` and `que:elementos` cap
+  themselves at 500 rows (`total` and `truncado` say what was left out) and their lists `controles`,
+  `elementos` and `otros` are never cut by `detalle`. `que:controles` with `todos:true` keeps up to 500
+  rows when the call names no `detalle`; an explicit `resumen` or `normal` is honoured there.
+- `que:inventario` and `que:elementos` say when the UI Automation tree was cut (`uia_truncado`, and
+  `truncado` in `elementos`), and an element at the depth limit is no longer reported as `solo_vision`
+  just because its children were not walked.
 
 ### Added
 - **Known limit of `componente crear_desde_ficha` for a `.PAN`**: it still does not fill the module

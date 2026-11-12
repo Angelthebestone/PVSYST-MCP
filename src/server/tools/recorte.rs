@@ -153,13 +153,12 @@ fn pide_todos(r: &Respuesta<'_>, args: &Value) -> bool {
         && args.get("todos").and_then(Value::as_bool) == Some(true)
 }
 
-/// A `gui_observar` call that asks for every control: the inventory, or the raw
-/// list of controls with the hidden ones (`todos:true`).
-fn pide_inventario(r: &Respuesta<'_>, args: &Value) -> bool {
-    let con_ocultos = args.get("todos").and_then(Value::as_bool) == Some(true);
+/// The raw list of controls with the hidden ones (`que:controles todos:true`).
+/// `inventario` and `elementos` cap themselves and are in `SIN_RECORTE`.
+fn pide_todos_los_controles(r: &Respuesta<'_>, args: &Value) -> bool {
     r.herramienta == "gui_observar"
-        && (matches!(r.accion, "inventario" | "elementos")
-            || (r.accion == "controles" && con_ocultos))
+        && r.accion == "controles"
+        && args.get("todos").and_then(Value::as_bool) == Some(true)
 }
 
 /// The limits of a call: none for `todos` on `listar objetos`, the inventory's
@@ -168,7 +167,7 @@ fn limites_de(r: &Respuesta<'_>, args: &Value) -> Option<(usize, usize)> {
     if pide_todos(r, args) {
         return None;
     }
-    if pide_inventario(r, args) && args.get("detalle").is_none() {
+    if pide_todos_los_controles(r, args) && args.get("detalle").is_none() {
         return Some(LIMITE_INVENTARIO);
     }
     limites(args)

@@ -13,7 +13,7 @@ fn should_read_tab_order_handles_rectangles_and_vision_only_regions_from_the_tre
         ]
     });
 
-    let lectura = lectura_de(&arbol);
+    let lectura = lectura_de(&arbol, 6);
 
     assert_eq!(lectura.pestanas, ["Datos", "Sistema"]);
     let boton = lectura.nodos.iter().find(|n| n.rol == "button").unwrap();
@@ -28,4 +28,24 @@ fn should_read_tab_order_handles_rectangles_and_vision_only_regions_from_the_tre
         .find(|n| n.nombre == "sin área")
         .unwrap();
     assert!(sin_area.rect.is_none());
+}
+
+/// A leaf at the depth limit has no children because the tree was not walked
+/// below it, not because it draws everything itself.
+#[test]
+fn should_not_call_an_element_at_the_depth_limit_vision_only_and_report_a_cut_tree() {
+    let arbol = json!({
+        "rol": "window", "truncado": true, "hijos": [
+            { "nombre": "", "rol": "pane", "rect": [0, 0, 100, 100], "patrones": [], "hijos": [
+                { "nombre": "", "rol": "pane", "rect": [0, 0, 50, 50], "patrones": [], "hijos": [] },
+            ] },
+        ]
+    });
+
+    let lectura = lectura_de(&arbol, 2);
+
+    assert!(lectura.truncado);
+    let a_distinta_altura: Vec<bool> = lectura.nodos.iter().map(|n| n.solo_vision).collect();
+    assert_eq!(a_distinta_altura, [false, false]);
+    assert!(lectura_de(&arbol, 3).nodos[1].solo_vision);
 }

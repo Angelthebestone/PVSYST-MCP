@@ -32,7 +32,7 @@ fn filas(inventario: &Inventario) -> Vec<Value> {
     win32.chain(solo_uia).collect()
 }
 
-fn respuesta(h: ffi::Hwnd, inventario: &Inventario, uia_error: Option<&str>) -> Value {
+fn respuesta(h: ffi::Hwnd, inventario: &Inventario) -> Value {
     let controles = filas(inventario);
     let total = controles.len();
     json!({
@@ -44,7 +44,6 @@ fn respuesta(h: ffi::Hwnd, inventario: &Inventario, uia_error: Option<&str>) -> 
         "controles": controles.into_iter().take(TOPE_CONTROLES).collect::<Vec<_>>(),
         "total": total,
         "truncado": total > TOPE_CONTROLES,
-        "uia_error": uia_error,
     })
 }
 
@@ -69,10 +68,13 @@ pub(crate) fn inventario(paths: &Paths, args: &Value) -> Result<Value> {
     let h = ventana_objetivo(args)?;
     let todos = args.get("todos").and_then(Value::as_bool).unwrap_or(true);
     let (lectura, uia_error) = lectura_uia(paths, h, args);
+    let uia_truncado = lectura.truncado;
     let instantanea = win32::instantanea_de(h, todos, lectura);
-    Ok(respuesta(
-        h,
-        &inventariar(&instantanea),
-        uia_error.as_deref(),
-    ))
+    let mut respuesta = respuesta(h, &inventariar(&instantanea));
+    if let Some(mapa) = respuesta.as_object_mut() {
+        mapa.insert("uia_error".into(), json!(uia_error));
+        // The UI Automation tree was cut: some elements it sees are not listed.
+        mapa.insert("uia_truncado".into(), json!(uia_truncado));
+    }
+    Ok(respuesta)
 }

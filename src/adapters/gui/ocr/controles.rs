@@ -3,20 +3,11 @@
 
 use super::dominio::{asociar_etiqueta, normalizar_etiqueta, LineaOcr, ResultadoEtiqueta};
 use crate::adapters::gui::ffi::{self, Hwnd, Rect};
-use crate::adapters::gui::inventario::tipos::{Control, FuenteEtiqueta};
+use crate::adapters::gui::inventario::tipos::{Control, FuenteEtiqueta, Rol};
 use serde_json::{json, Value};
 
 const BM_GETCHECK: u32 = 0x00F0;
 const BST_CHECKED: isize = 1;
-
-const CLASES_BOTON: &[&str] = &[
-    "TButton",
-    "TBitBtn",
-    "TPngBitBtn",
-    "TSpeedButton",
-    "TToolButton",
-    "Button",
-];
 
 /// Fields whose text is their value.
 const CLASES_TEXTO: &[&str] = &["TEdit", "TMemo", "TLabeledEdit", "TMaskEdit", "TComboBox"];
@@ -148,7 +139,7 @@ pub(super) fn procesar_campo(c: &Control, lineas: &[LineaOcr]) -> Value {
 }
 
 pub(super) fn es_boton(clase: &str) -> bool {
-    CLASES_BOTON.contains(&clase)
+    Rol::de_clase(clase) == Rol::Boton
 }
 
 pub(super) fn es_campo(clase: &str) -> bool {

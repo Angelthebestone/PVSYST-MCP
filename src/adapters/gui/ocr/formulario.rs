@@ -125,7 +125,7 @@ pub(crate) fn formulario(paths: &crate::config::Paths, args: &Value) -> Result<V
     };
     let uia = LecturaUia {
         pestanas: nombres_de(&pestanas),
-        nodos: Vec::new(),
+        ..LecturaUia::default()
     };
     let inventario = inventariar(&win32::instantanea_con(h, nodos, uia));
     let rects: Vec<Rect> = inventario

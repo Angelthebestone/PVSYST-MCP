@@ -169,11 +169,6 @@ fn pagina_mostrada(nodos: &[NodoWin32]) -> Option<&NodoWin32> {
     }
 }
 
-/// Whether the element tells anything: a name, something to operate or a region only vision reads.
-fn es_informativo(u: &NodoUia) -> bool {
-    !u.nombre.trim().is_empty() || !u.patrones.is_empty() || u.solo_vision
-}
-
 fn fila_uia(u: &NodoUia, rect: Rect, pagina: Option<&NodoWin32>) -> ControlUia {
     let centro = ((rect.left + rect.right) / 2, rect.centro_y());
     let nombre = u.nombre.trim();
@@ -205,7 +200,7 @@ fn solo_uia(instantanea: &Instantanea, arbol: &Arbol<'_>) -> Vec<ControlUia> {
         .uia
         .iter()
         .filter(|u| u.hwnd.is_none_or(|h| !arbol.por_hwnd.contains_key(&h)))
-        .filter(|u| es_informativo(u))
+        .filter(|u| u.informa())
         .filter_map(|u| Some(fila_uia(u, u.rect?, pagina)))
         .collect()
 }

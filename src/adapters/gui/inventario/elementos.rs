@@ -8,7 +8,7 @@
 //! that is scrolled out of view is not listed (its `virtualizado` and
 //! `contenedor` patterns are reported, but it is not realised through them).
 
-use super::tipos::{LecturaUia, NodoUia};
+use super::tipos::LecturaUia;
 use super::{uia, TOPE_CONTROLES};
 use crate::adapters::gui::ffi::{self, Hwnd, Rect};
 use crate::adapters::gui::ventanas::{class_of, hwnd_de, text_of};
@@ -32,16 +32,12 @@ struct Elemento {
     solo_vision: bool,
 }
 
-fn es_elemento(n: &NodoUia) -> bool {
-    n.rect.is_some() && (!n.nombre.trim().is_empty() || !n.patrones.is_empty() || n.solo_vision)
-}
-
-/// The elements of the tree that tell something, numbered in tree order.
+/// The elements of the tree that tell something and have an area, numbered in tree order.
 fn elementos_de(lectura: &LecturaUia) -> Vec<Elemento> {
     lectura
         .nodos
         .iter()
-        .filter(|n| es_elemento(n))
+        .filter(|n| n.informa())
         .filter_map(|n| Some((n, n.rect?)))
         .enumerate()
         .map(|(indice, (n, rect))| Elemento {
@@ -61,16 +57,19 @@ const ALTERNATIVAS: Texto = Texto {
     en: "UI Automation exposes no elements in this control (vision only). Alternatives: gui_actuar accion:fila ventana:<form> clase:<class> indice:<n> (controls with measured geometry), gui_observar que:menus and gui_actuar accion:menu (menus), gui_actuar accion:clic_texto texto:<text> (OCR).",
 };
 
-fn respuesta(h: Hwnd, elementos: Vec<Elemento>, idioma: Idioma) -> Value {
+/// A cut tree (`lectura.truncado`) makes the list incomplete, and an empty one
+/// does not prove the control is vision-only.
+fn respuesta(h: Hwnd, lectura: &LecturaUia, idioma: Idioma) -> Value {
+    let elementos = elementos_de(lectura);
     let total = elementos.len();
-    let solo_vision = elementos.is_empty();
+    let solo_vision = elementos.is_empty() && !lectura.truncado;
     json!({
         "ventana": format!("0x{h:X}"),
         "titulo": text_of(h),
         "clase": class_of(h),
         "elementos": elementos.into_iter().take(TOPE_CONTROLES).collect::<Vec<_>>(),
         "total": total,
-        "truncado": total > TOPE_CONTROLES,
+        "truncado": total > TOPE_CONTROLES || lectura.truncado,
         "solo_vision": solo_vision,
         "alternativas": solo_vision.then(|| ALTERNATIVAS.en_idioma(idioma)),
     })
@@ -82,7 +81,7 @@ pub(crate) fn elementos(paths: &Paths, args: &Value) -> Result<Value> {
     ffi::declarar_dpi_por_monitor();
     let h = hwnd_de(args, "ventana")?;
     let lectura = uia::leer(&paths.estado, h, args)?;
-    Ok(respuesta(h, elementos_de(&lectura), paths.idioma))
+    Ok(respuesta(h, &lectura, paths.idioma))
 }
 
 #[cfg(test)]

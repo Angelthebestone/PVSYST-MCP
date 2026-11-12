@@ -14,7 +14,7 @@ fn should_list_the_rows_of_a_tree_with_name_rect_and_index() {
         ]
     });
 
-    let elementos = elementos_de(&uia::lectura_de(&arbol));
+    let elementos = elementos_de(&uia::lectura_de(&arbol, 6));
 
     let vista: Vec<_> = elementos
         .iter()
