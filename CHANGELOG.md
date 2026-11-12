@@ -182,6 +182,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     not exist (BUG-23); without it the CLI default (`<workspace>/UserData/logs`) is unchanged.
   - A legacy `.MEF` whose binary columns are not decoded is `ok` with the `aviso`, not `parcial` with an invented failure
     (BUG-26): `estado` is `parcial` only when the answer names what failed or differed, not for `completo:false` alone.
+  - `gui_actuar accion:reiniciar` says in its description, README and refusal that it only applies after a PVsyst failure
+    dialog and never restarts a healthy instance (BUG-27).
 
 ### Changed
 - The six `proyecto` actions that edit a variant (storage, pumping, injection limit, losses, economics, tracker) build their answer with one
