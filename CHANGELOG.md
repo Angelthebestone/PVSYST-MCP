@@ -180,6 +180,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     (BUG-13); a name that already resolves keeps its file.
   - `entorno exportar_logs` creates an explicit `carpeta_destino` before calling PVsystCLI, which refuses a folder that does
     not exist (BUG-23); without it the CLI default (`<workspace>/UserData/logs`) is unchanged.
+  - A legacy `.MEF` whose binary columns are not decoded is `ok` with the `aviso`, not `parcial` with an invented failure
+    (BUG-26): `estado` is `parcial` only when the answer names what failed or differed, not for `completo:false` alone.
 
 ### Changed
 - The six `proyecto` actions that edit a variant (storage, pumping, injection limit, losses, economics, tracker) build their answer with one
