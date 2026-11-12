@@ -37,7 +37,7 @@ fn respuesta_dry_run(
     paths: &Paths,
 ) -> Value {
     let variant_exists = variant_file.exists();
-    let ejecuciones = preparacion::ejecuciones_previstas(cli_args);
+    let ejecuciones = preparacion::ejecuciones_previstas(&paths.workspace, cli_args);
     json!({
         "command": "run-simulation",
         "cli_args": cli_args,
