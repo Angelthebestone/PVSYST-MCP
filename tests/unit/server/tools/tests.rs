@@ -20,7 +20,7 @@ mod validacion_tests;
 
 #[test]
 fn should_keep_the_ignored_keys_table_in_sync_with_the_tool_declarations() {
-    for entrada in super::requeridos::NO_LEIDOS {
+    for entrada in super::no_leidos::NO_LEIDOS {
         let h = REGISTRO
             .iter()
             .find(|h| h.nombre == entrada.herramienta)
