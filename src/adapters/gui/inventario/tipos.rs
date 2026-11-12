@@ -130,9 +130,37 @@ pub(crate) enum FuenteEtiqueta {
     /// The control's own window text, or the text of a window next to it.
     #[serde(rename = "window_text")]
     TextoDeVentana,
+    /// The name UI Automation gives the control or the text beside it.
+    #[serde(rename = "uia_name")]
+    NombreUia,
     /// Text recognised on a capture of the form.
     #[serde(rename = "ocr")]
     Ocr,
+}
+
+/// Which API saw a row of the inventory.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+pub(crate) enum Fuente {
+    #[serde(rename = "win32")]
+    Win32,
+    #[serde(rename = "win32+uia")]
+    Fusionada,
+    #[serde(rename = "uia")]
+    Uia,
+}
+
+/// An element of the UI Automation tree. It has a window handle only when it
+/// is a window; the cells, labels and items drawn by the control itself have none.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct NodoUia {
+    pub(crate) hwnd: Option<Hwnd>,
+    pub(crate) nombre: String,
+    pub(crate) rol: String,
+    pub(crate) clase: String,
+    pub(crate) rect: Option<Rect>,
+    pub(crate) patrones: Vec<String>,
+    /// A drawn region with no children: nothing but vision can read inside it.
+    pub(crate) solo_vision: bool,
 }
 
 /// A control located by its class and its position in the form's 96-DPI layout:
@@ -161,10 +189,34 @@ pub(crate) struct Control {
     pub(crate) indice_clase: usize,
     pub(crate) etiqueta: Option<String>,
     pub(crate) etiqueta_fuente: Option<FuenteEtiqueta>,
+    pub(crate) fuente: Fuente,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub(crate) patrones: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) marcado: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) campo: Option<Ancla>,
+}
+
+/// An element only UI Automation sees. Whether it is shown or enabled is not
+/// read, so both are `null`.
+#[derive(Clone, Debug, PartialEq, Serialize)]
+pub(crate) struct ControlUia {
+    pub(crate) clase: String,
+    pub(crate) hwnd: Option<String>,
+    pub(crate) rect: Rect,
+    pub(crate) texto: String,
+    pub(crate) visible: Option<bool>,
+    pub(crate) enabled: Option<bool>,
+    pub(crate) parent: Option<String>,
+    pub(crate) pestana: Option<String>,
+    pub(crate) rol: String,
+    pub(crate) etiqueta: Option<String>,
+    pub(crate) etiqueta_fuente: Option<FuenteEtiqueta>,
+    pub(crate) fuente: Fuente,
+    pub(crate) patrones: Vec<String>,
+    /// Nothing but vision can read inside this region.
+    pub(crate) solo_vision: bool,
 }
 
 /// A tab page of the form with the controls it holds.
@@ -180,6 +232,14 @@ pub(crate) struct Pestana {
     pub(crate) creado_al_activar: bool,
 }
 
+/// What UI Automation reports about a form: the tab captions in strip order
+/// and the elements of its tree.
+#[derive(Debug, Clone, Default)]
+pub(crate) struct LecturaUia {
+    pub(crate) pestanas: Vec<String>,
+    pub(crate) nodos: Vec<NodoUia>,
+}
+
 /// Everything read from a form: its windows and where the form sits.
 #[derive(Debug, Clone)]
 pub(crate) struct Instantanea {
@@ -191,9 +251,13 @@ pub(crate) struct Instantanea {
     pub(crate) pestanas_uia: Vec<String>,
     /// Page the page control reports as current.
     pub(crate) seleccionada: Option<usize>,
+    /// The UI Automation tree of the form; empty when it was not read.
+    pub(crate) uia: Vec<NodoUia>,
 }
 
 pub(crate) struct Inventario {
     pub(crate) controles: Vec<Control>,
+    /// Elements UI Automation sees and Win32 does not.
+    pub(crate) solo_uia: Vec<ControlUia>,
     pub(crate) pestanas: Vec<Pestana>,
 }

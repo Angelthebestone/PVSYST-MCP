@@ -1,15 +1,17 @@
-//! Pure domain of the GUI inventory: which tab page holds each control and what
-//! label it carries. It lists, it does not classify: an unknown class is still
-//! a control, with the role `other`.
+//! Pure domain of the GUI inventory: which tab page holds each control, what
+//! label it carries and what UI Automation adds. It lists, it does not
+//! classify: an unknown class is still a control, with the role `other`.
 //!
 //! The texts are the ones the controls report when they are read; no caption is
 //! written here.
 
+use super::etiquetas::{etiquetar, Candidato, Rotulos};
 use super::tipos::{
-    Ancla, Control, FuenteEtiqueta, Instantanea, Inventario, NodoWin32, Pestana, Rol, CLASE_PAGINA,
+    Ancla, Control, ControlUia, Fuente, FuenteEtiqueta, Instantanea, Inventario, NodoUia,
+    NodoWin32, Pestana, Rol, CLASE_PAGINA,
 };
-use crate::adapters::gui::ffi::Hwnd;
-use crate::adapters::gui::ocr::dominio::{asociar_etiqueta, normalizar_etiqueta, LineaOcr};
+use crate::adapters::gui::ffi::{Hwnd, Rect};
+use crate::adapters::gui::ocr::dominio::normalizar_etiqueta;
 use crate::adapters::gui::posicion::posicion_de_diseno;
 use std::collections::HashMap;
 
@@ -18,8 +20,8 @@ fn hex(h: Hwnd) -> String {
 }
 
 /// Nodes by handle: how a control finds its parents.
-struct Arbol<'a> {
-    por_hwnd: HashMap<Hwnd, &'a NodoWin32>,
+pub(super) struct Arbol<'a> {
+    pub(super) por_hwnd: HashMap<Hwnd, &'a NodoWin32>,
 }
 
 impl<'a> Arbol<'a> {
@@ -31,7 +33,7 @@ impl<'a> Arbol<'a> {
 
     /// The nearest page of a page control that holds `nodo`. A chain longer
     /// than the nodes themselves is a cycle and ends the search.
-    fn pagina_de(&self, nodo: &NodoWin32) -> Option<&'a NodoWin32> {
+    pub(super) fn pagina_de(&self, nodo: &NodoWin32) -> Option<&'a NodoWin32> {
         let sube = |n: &&'a NodoWin32| self.por_hwnd.get(&n.padre).copied();
         std::iter::successors(self.por_hwnd.get(&nodo.padre).copied(), sube)
             .take(self.por_hwnd.len())
@@ -80,49 +82,23 @@ impl Instantanea {
             _ => pagina.visible,
         }
     }
-
-    /// Static texts of a page (or of the form outside any page), as lines to
-    /// pair with the fields beside them.
-    fn rotulos_de(&self, arbol: &Arbol<'_>, pagina: Option<Hwnd>) -> Vec<LineaOcr> {
-        self.nodos
-            .iter()
-            .filter(|n| Rol::de_clase(&n.clase) == Rol::Texto && !n.texto.trim().is_empty())
-            .filter(|n| arbol.pagina_de(n).map(|p| p.hwnd) == pagina)
-            .map(|n| LineaOcr {
-                texto: n.texto.clone(),
-                rect: n.rect,
-                palabras: Vec::new(),
-            })
-            .collect()
-    }
 }
 
-/// The label of `nodo` and where it came from.
-fn etiquetar(
-    nodo: &NodoWin32,
-    rol: Rol,
-    vecinos: &[LineaOcr],
-) -> (Option<String>, Option<FuenteEtiqueta>) {
-    if rol.rotula_con_su_texto() && !nodo.texto.trim().is_empty() {
-        return (
-            Some(normalizar_etiqueta(&nodo.texto)),
-            Some(FuenteEtiqueta::TextoDeVentana),
-        );
-    }
-    if !rol.espera_rotulo_vecino() {
-        return (None, None);
-    }
-    match asociar_etiqueta(&nodo.rect, vecinos).etiqueta {
-        Some(e) => (Some(e), Some(FuenteEtiqueta::TextoDeVentana)),
-        None => (None, None),
-    }
+/// What the rows are built against.
+struct ContextoFila<'a> {
+    arbol: Arbol<'a>,
+    indices: HashMap<Hwnd, usize>,
+    uia_por_hwnd: HashMap<Hwnd, &'a NodoUia>,
+    rotulos: Rotulos,
 }
 
 fn fila(nodo: &NodoWin32, instantanea: &Instantanea, contexto: &ContextoFila<'_>) -> Control {
     let rol = Rol::de_clase(&nodo.clase);
     let pagina = contexto.arbol.pagina_de(nodo);
-    let rotulos = instantanea.rotulos_de(&contexto.arbol, pagina.map(|p| p.hwnd));
-    let (etiqueta, etiqueta_fuente) = etiquetar(nodo, rol, &rotulos);
+    let uia = contexto.uia_por_hwnd.get(&nodo.hwnd).copied();
+    let candidato = Candidato { nodo, rol, uia };
+    let (etiqueta, etiqueta_fuente) =
+        etiquetar(&candidato, pagina.map(|p| p.hwnd), &contexto.rotulos);
     let (x, y) = posicion_de_diseno(instantanea.origen, nodo.rect, instantanea.escala);
     Control {
         clase: nodo.clase.clone(),
@@ -138,6 +114,12 @@ fn fila(nodo: &NodoWin32, instantanea: &Instantanea, contexto: &ContextoFila<'_>
         indice_clase: contexto.indices.get(&nodo.hwnd).copied().unwrap_or(0),
         etiqueta,
         etiqueta_fuente,
+        fuente: if uia.is_some() {
+            Fuente::Fusionada
+        } else {
+            Fuente::Win32
+        },
+        patrones: uia.map(|u| u.patrones.clone()).unwrap_or_default(),
         marcado: nodo.marcado,
         campo: rol.es_rellenable().then(|| Ancla {
             clase: nodo.clase.clone(),
@@ -145,11 +127,6 @@ fn fila(nodo: &NodoWin32, instantanea: &Instantanea, contexto: &ContextoFila<'_>
             y,
         }),
     }
-}
-
-struct ContextoFila<'a> {
-    arbol: Arbol<'a>,
-    indices: HashMap<Hwnd, usize>,
 }
 
 fn pestanas(instantanea: &Instantanea, arbol: &Arbol<'_>) -> Vec<Pestana> {
@@ -177,21 +154,86 @@ fn pestanas(instantanea: &Instantanea, arbol: &Arbol<'_>) -> Vec<Pestana> {
         .collect()
 }
 
-/// Every window of the form as a row, and the tab pages that hold them. O(n log n).
+fn contiene(r: &Rect, (x, y): (i32, i32)) -> bool {
+    x >= r.left && x <= r.right && y >= r.top && y <= r.bottom
+}
+
+/// The page that is shown, when there is exactly one: what UI Automation draws sits on it.
+fn pagina_mostrada(nodos: &[NodoWin32]) -> Option<&NodoWin32> {
+    let mut mostradas = nodos
+        .iter()
+        .filter(|n| n.clase == CLASE_PAGINA && n.visible);
+    match (mostradas.next(), mostradas.next()) {
+        (Some(pagina), None) => Some(pagina),
+        _ => None,
+    }
+}
+
+/// Whether the element tells anything: a name, something to operate or a region only vision reads.
+fn es_informativo(u: &NodoUia) -> bool {
+    !u.nombre.trim().is_empty() || !u.patrones.is_empty() || u.solo_vision
+}
+
+fn fila_uia(u: &NodoUia, rect: Rect, pagina: Option<&NodoWin32>) -> ControlUia {
+    let centro = ((rect.left + rect.right) / 2, rect.centro_y());
+    let nombre = u.nombre.trim();
+    ControlUia {
+        clase: u.clase.clone(),
+        hwnd: u.hwnd.map(hex),
+        rect,
+        texto: u.nombre.clone(),
+        visible: None,
+        enabled: None,
+        parent: None,
+        pestana: pagina
+            .filter(|p| contiene(&p.rect, centro))
+            .map(nombre_de_pagina),
+        rol: u.rol.clone(),
+        etiqueta: (!nombre.is_empty()).then(|| normalizar_etiqueta(nombre)),
+        etiqueta_fuente: (!nombre.is_empty()).then_some(FuenteEtiqueta::NombreUia),
+        fuente: Fuente::Uia,
+        patrones: u.patrones.clone(),
+        solo_vision: u.solo_vision,
+    }
+}
+
+/// The elements UI Automation sees and Win32 has no window for: the cells,
+/// labels and items a control draws itself.
+fn solo_uia(instantanea: &Instantanea, arbol: &Arbol<'_>) -> Vec<ControlUia> {
+    let pagina = pagina_mostrada(&instantanea.nodos);
+    instantanea
+        .uia
+        .iter()
+        .filter(|u| u.hwnd.is_none_or(|h| !arbol.por_hwnd.contains_key(&h)))
+        .filter(|u| es_informativo(u))
+        .filter_map(|u| Some(fila_uia(u, u.rect?, pagina)))
+        .collect()
+}
+
+/// Every window of the form as a row, the tab pages that hold them and the
+/// elements only UI Automation sees. O(n log n).
 pub(crate) fn inventariar(instantanea: &Instantanea) -> Inventario {
+    let arbol = Arbol::de(&instantanea.nodos);
+    let rotulos = Rotulos::de(instantanea, &arbol);
     let contexto = ContextoFila {
-        arbol: Arbol::de(&instantanea.nodos),
         indices: indices_por_clase(&instantanea.nodos),
+        uia_por_hwnd: instantanea
+            .uia
+            .iter()
+            .filter_map(|u| Some((u.hwnd?, u)))
+            .collect(),
+        rotulos,
+        arbol,
     };
-    let controles: Vec<Control> = instantanea
+    let controles = instantanea
         .nodos
         .iter()
         .map(|n| fila(n, instantanea, &contexto))
         .collect();
-    let pestanas = pestanas(instantanea, &contexto.arbol);
     Inventario {
         controles,
-        pestanas,
+        solo_uia: solo_uia(instantanea, &contexto.arbol),
+        pestanas: pestanas(instantanea, &contexto.arbol),
     }
 }
 

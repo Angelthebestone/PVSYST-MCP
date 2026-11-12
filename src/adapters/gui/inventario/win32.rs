@@ -2,7 +2,7 @@
 //! included. `EnumChildWindows` lists them all, so no tab has to be switched
 //! to see what is on it (switching can trip PVsyst's validation).
 
-use super::tipos::{Instantanea, NodoWin32, Rol};
+use super::tipos::{Instantanea, LecturaUia, NodoWin32, Rol};
 use crate::adapters::gui::ffi::{self, Hwnd, GA_PARENT};
 use crate::adapters::gui::ocr::esta_marcado;
 use crate::adapters::gui::ventanas::{class_of, rect_of};
@@ -49,24 +49,21 @@ pub(crate) fn pagina_actual(nodos: &[NodoWin32]) -> Option<usize> {
         .and_then(|n| ffi::pagina_seleccionada(n.hwnd))
 }
 
-/// The form `h` as the domain reads it. `pestanas_uia` is what UI Automation
-/// lists for the tab strip (empty when it could not be read).
-pub(crate) fn instantanea_de(h: Hwnd, todos: bool, pestanas_uia: Vec<String>) -> Instantanea {
-    instantanea_con(h, nodos_de(h, todos), pestanas_uia)
+/// The form `h` as the domain reads it. `uia` is what UI Automation reports
+/// (empty when it could not be read).
+pub(crate) fn instantanea_de(h: Hwnd, todos: bool, uia: LecturaUia) -> Instantanea {
+    instantanea_con(h, nodos_de(h, todos), uia)
 }
 
 /// The form `h` with the windows already read.
-pub(crate) fn instantanea_con(
-    h: Hwnd,
-    nodos: Vec<NodoWin32>,
-    pestanas_uia: Vec<String>,
-) -> Instantanea {
+pub(crate) fn instantanea_con(h: Hwnd, nodos: Vec<NodoWin32>, uia: LecturaUia) -> Instantanea {
     Instantanea {
         seleccionada: pagina_actual(&nodos),
         nodos,
         origen: rect_of(h),
         escala: ffi::escala_de_captura(h),
-        pestanas_uia,
+        pestanas_uia: uia.pestanas,
+        uia: uia.nodos,
     }
 }
 

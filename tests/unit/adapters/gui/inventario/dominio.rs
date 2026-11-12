@@ -36,6 +36,7 @@ fn instantanea(nodos: Vec<NodoWin32>, pestanas_uia: &[&str]) -> Instantanea {
         escala: 1.0,
         pestanas_uia: pestanas_uia.iter().map(ToString::to_string).collect(),
         seleccionada: Some(0),
+        uia: Vec::new(),
     }
 }
 
@@ -121,4 +122,80 @@ fn should_list_unknown_classes_as_other_and_give_fields_an_anchor() {
     };
     assert_eq!(campo.campo, Some(ancla));
     assert_eq!(campo.etiqueta.as_deref(), Some("Largo"));
+}
+
+fn nodo_uia(
+    hwnd: Option<Hwnd>,
+    (rol, nombre): (&str, &str),
+    rect: (i32, i32, i32, i32),
+) -> NodoUia {
+    NodoUia {
+        hwnd,
+        nombre: nombre.into(),
+        rol: rol.into(),
+        clase: String::new(),
+        rect: Some(Rect {
+            left: rect.0,
+            top: rect.1,
+            right: rect.2,
+            bottom: rect.3,
+        }),
+        patrones: vec!["valor".into()],
+        solo_vision: false,
+    }
+}
+
+/// A form with a tree control whose rows are drawn by the control itself (no
+/// window handle) and a label that exists only in UI Automation.
+#[test]
+fn should_merge_ui_automation_into_the_win32_rows_and_add_what_only_it_sees() {
+    let todo = (0, 0, 780, 560);
+    let nodos = vec![
+        nodo((1, 100), ("TVirtualStringTree", ""), (10, 10, 390, 200)),
+        nodo((2, 100), ("TEdit", "12"), (150, 220, 220, 240)),
+        nodo((3, 100), (CLASE_PAGINA, "Datos"), todo),
+    ];
+    let mut instantanea = instantanea(nodos, &[]);
+    instantanea.uia = vec![
+        nodo_uia(
+            Some(2),
+            ("edit", "Núm. de inversores"),
+            (150, 220, 220, 240),
+        ),
+        nodo_uia(None, ("list item", "Proyecto A"), (12, 12, 380, 36)),
+        nodo_uia(None, ("text", "Potencia"), (10, 250, 140, 270)),
+        NodoUia {
+            nombre: String::new(),
+            patrones: Vec::new(),
+            ..nodo_uia(None, ("pane", ""), (0, 0, 0, 0))
+        },
+    ];
+    instantanea
+        .nodos
+        .push(nodo((4, 100), ("TEdit", "0"), (150, 250, 220, 270)));
+
+    let inv = inventariar(&instantanea);
+
+    let edit = inv.controles.iter().find(|c| c.hwnd == "0x2").unwrap();
+    assert_eq!(
+        (edit.fuente, edit.patrones.as_slice()),
+        (Fuente::Fusionada, ["valor".to_string()].as_slice())
+    );
+    assert_eq!(edit.etiqueta.as_deref(), Some("Núm. de inversores"));
+    assert_eq!(edit.etiqueta_fuente, Some(FuenteEtiqueta::NombreUia));
+    let vecino = inv.controles.iter().find(|c| c.hwnd == "0x4").unwrap();
+    assert_eq!(vecino.etiqueta.as_deref(), Some("Potencia"));
+    assert_eq!(vecino.etiqueta_fuente, Some(FuenteEtiqueta::NombreUia));
+    let solo: Vec<_> = inv
+        .solo_uia
+        .iter()
+        .map(|c| (c.rol.as_str(), c.hwnd.clone(), c.fuente))
+        .collect();
+    assert_eq!(
+        solo,
+        [
+            ("list item", None, Fuente::Uia),
+            ("text", None, Fuente::Uia)
+        ]
+    );
 }

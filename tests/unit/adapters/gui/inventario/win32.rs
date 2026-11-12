@@ -89,6 +89,29 @@ fn should_list_the_controls_of_a_tab_that_is_not_shown_without_switching_to_it()
     assert_eq!(por_clase(&visibles, "TComboBox").len(), 1);
 }
 
+/// UI Automation is on by default: its reading adds the `fuente` of every row
+/// and never replaces the Win32 list, so the hidden controls are all still there.
+#[test]
+fn should_keep_the_hidden_controls_when_ui_automation_is_read_too() {
+    let form = formulario_p50();
+    let paths = Paths::para_test(std::env::temp_dir());
+    let args =
+        json!({ "que": "inventario", "ventana": form.referencia(0), "pids": [std::process::id()] });
+
+    let respuesta = observar(&paths, &args).unwrap();
+
+    assert_eq!(respuesta["uia_error"], Value::Null);
+    assert_eq!(por_clase(&respuesta, "TEdit").len(), 10);
+    let fuentes: Vec<_> = respuesta["controles"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|c| c["hwnd"].is_string())
+        .map(|c| c["fuente"].as_str().unwrap())
+        .collect();
+    assert!(fuentes.iter().all(|f| ["win32", "win32+uia"].contains(f)));
+}
+
 #[test]
 fn should_list_the_dimension_controls_of_a_module_form_that_no_schema_maps() {
     // `components.panels` maps the "Datos básicos" page only: the sizes live on another page.

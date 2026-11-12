@@ -7,7 +7,7 @@ use super::dominio::LineaOcr;
 use super::segmentacion::segmentar_lineas;
 use crate::adapters::gui::ffi::{self, Hwnd, Rect};
 use crate::adapters::gui::inventario::dominio::inventariar;
-use crate::adapters::gui::inventario::tipos::Control;
+use crate::adapters::gui::inventario::tipos::{Control, LecturaUia};
 use crate::adapters::gui::inventario::win32;
 use crate::adapters::gui::uia_paso::raiz_por_defecto;
 use crate::adapters::gui::uia_vista::aplanar;
@@ -123,7 +123,11 @@ pub(crate) fn formulario(paths: &crate::config::Paths, args: &Value) -> Result<V
         Ok(pestanas) => (pestanas, None),
         Err(e) => (Vec::new(), Some(e.to_string())),
     };
-    let inventario = inventariar(&win32::instantanea_con(h, nodos, nombres_de(&pestanas)));
+    let uia = LecturaUia {
+        pestanas: nombres_de(&pestanas),
+        nodos: Vec::new(),
+    };
+    let inventario = inventariar(&win32::instantanea_con(h, nodos, uia));
     let rects: Vec<Rect> = inventario
         .controles
         .iter()

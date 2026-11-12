@@ -31,7 +31,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with `rol:"other"`. `pestanas` lists the pages with the controls each holds, and flags
   `creado_al_activar` on a hidden page without windows: VCL may build its controls only when it is
   first shown, so such a page can look empty until then. At most 500 rows per answer, with `total`
-  and `truncado`.
+  and `truncado`. UI Automation is read too (`incluir_uia:false` skips it; `profundidad` and
+  `max_nodos` bound its tree) and lands in the same list: a row says which API saw it (`fuente`:
+  `win32`, `win32+uia` or `uia`), a window gains the `patrones` it supports and, for a field, the name
+  UI Automation gives it (`etiqueta_fuente:"uia_name"`); the cells, labels and items a control draws
+  itself, which have no window, are listed with `hwnd:null`, `visible:null` and `solo_vision:true`
+  when only vision can read inside them. The tab order comes from UI Automation. MSAA (`IAccessible`)
+  is not read.
 - **Configurable client-facing language** via `PVSYST_MCP_IDIOMA` (`es` or `en`, default `en`; also a
   user-configurable option of the mcpb bundle). It selects the language of every client-visible
   string: tool descriptions and titles, schema annotations, recipes (resource and prompts),
