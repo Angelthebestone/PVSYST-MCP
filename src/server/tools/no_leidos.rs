@@ -13,41 +13,36 @@ pub(super) struct NoLeido {
     pub(super) leido_si: &'static [&'static str],
 }
 
-impl NoLeido {
-    const fn new(
-        herramienta: &'static str,
-        accion: &'static str,
-        clave: &'static str,
-        leido_si: &'static [&'static str],
-    ) -> Self {
-        Self {
-            herramienta,
-            accion,
-            clave,
-            leido_si,
+macro_rules! no_leido {
+    ($herramienta:expr, $accion:expr, $clave:expr, $leido_si:expr $(,)?) => {
+        NoLeido {
+            herramienta: $herramienta,
+            accion: $accion,
+            clave: $clave,
+            leido_si: $leido_si,
         }
-    }
+    };
 }
 
 /// Declared keys an action does not read. Only the gaps measured against the
 /// handlers are listed: an action not named here reads every key it declares.
 /// `leido_si` covers the conditional reads.
 pub(super) const NO_LEIDOS: &[NoLeido] = &[
-    NoLeido::new("proyecto", "dimensionar", "n_serie", &[]),
-    NoLeido::new("proyecto", "dimensionar", "n_paralelo", &[]),
-    NoLeido::new("resultados", "csv", "internet", &[]),
-    NoLeido::new("proyecto", "perdidas", "perdida_separada", &[]),
-    NoLeido::new("proyecto", "perdidas", "comentario", &[]),
+    no_leido!("proyecto", "dimensionar", "n_serie", &[]),
+    no_leido!("proyecto", "dimensionar", "n_paralelo", &[]),
+    no_leido!("resultados", "csv", "internet", &[]),
+    no_leido!("proyecto", "perdidas", "perdida_separada", &[]),
+    no_leido!("proyecto", "perdidas", "comentario", &[]),
     // `ejecutar` builds a batch when `filas` is present and a parameter file when
     // `parametros` is: those keys are read then, and ignored otherwise.
-    NoLeido::new("simular", "ejecutar", "variables", &["filas"]),
-    NoLeido::new("simular", "ejecutar", "destino", &["filas", "parametros"]),
-    NoLeido::new("simular", "ejecutar", "descripciones", &["parametros"]),
-    NoLeido::new("simular", "ejecutar", "iniciales", &["parametros"]),
-    NoLeido::new("simular", "ejecutar", "unidades", &["parametros"]),
+    no_leido!("simular", "ejecutar", "variables", &["filas"]),
+    no_leido!("simular", "ejecutar", "destino", &["filas", "parametros"]),
+    no_leido!("simular", "ejecutar", "descripciones", &["parametros"]),
+    no_leido!("simular", "ejecutar", "iniciales", &["parametros"]),
+    no_leido!("simular", "ejecutar", "unidades", &["parametros"]),
     // `con_salidas_por_defecto` honours the output paths, and the batch/parameter
     // builders resolve their destinations, so the flag is read with any of them.
-    NoLeido::new(
+    no_leido!(
         "simular",
         "ejecutar",
         "permitir_fuera_del_workspace",
@@ -55,23 +50,23 @@ pub(super) const NO_LEIDOS: &[NoLeido] = &[
     ),
     // Keys of the other `simular` actions (`preestimar`, `barrido`, `estado`,
     // `preparar`) that `ejecutar` never reads.
-    NoLeido::new("simular", "ejecutar", "latitud", &[]),
-    NoLeido::new("simular", "ejecutar", "longitud", &[]),
-    NoLeido::new("simular", "ejecutar", "kwp", &[]),
-    NoLeido::new("simular", "ejecutar", "tilt", &[]),
-    NoLeido::new("simular", "ejecutar", "azimut", &[]),
-    NoLeido::new("simular", "ejecutar", "n", &[]),
-    NoLeido::new("simular", "ejecutar", "trabajo", &[]),
-    NoLeido::new("simular", "ejecutar", "archivo_rvt", &[]),
-    NoLeido::new("simular", "ejecutar", "operacion", &[]),
+    no_leido!("simular", "ejecutar", "latitud", &[]),
+    no_leido!("simular", "ejecutar", "longitud", &[]),
+    no_leido!("simular", "ejecutar", "kwp", &[]),
+    no_leido!("simular", "ejecutar", "tilt", &[]),
+    no_leido!("simular", "ejecutar", "azimut", &[]),
+    no_leido!("simular", "ejecutar", "n", &[]),
+    no_leido!("simular", "ejecutar", "trabajo", &[]),
+    no_leido!("simular", "ejecutar", "archivo_rvt", &[]),
+    no_leido!("simular", "ejecutar", "operacion", &[]),
     // `pvsyst_cli` has no action: `via` is validated by the approximation gate and
     // never changes what the passthrough runs.
-    NoLeido::new("pvsyst_cli", "", "via", &[]),
-    NoLeido::new("workspace", "historial", "proyecto", &[]),
-    NoLeido::new("workspace", "historial", "ruta", &[]),
-    NoLeido::new("sitio", "convertir_meteo", "output_sit_file", &[]),
-    NoLeido::new("sitio", "convertir_meteo", "sit_file", &[]),
-    NoLeido::new("sitio", "convertir_meteo", "weather_data_file", &[]),
+    no_leido!("pvsyst_cli", "", "via", &[]),
+    no_leido!("workspace", "historial", "proyecto", &[]),
+    no_leido!("workspace", "historial", "ruta", &[]),
+    no_leido!("sitio", "convertir_meteo", "output_sit_file", &[]),
+    no_leido!("sitio", "convertir_meteo", "sit_file", &[]),
+    no_leido!("sitio", "convertir_meteo", "weather_data_file", &[]),
 ];
 
 /// Declared keys an action never reads, grouped per action to keep the table short.

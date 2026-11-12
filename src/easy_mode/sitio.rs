@@ -126,13 +126,7 @@ fn mensaje_sitio_fallido(paso: &PasoSitioSalida) -> String {
         stdout
     };
     let stderr = resumen_salida(detalle, "stderr_tail");
-    let coords = match (
-        detalle.get("latitud").and_then(Value::as_f64),
-        detalle.get("longitud").and_then(Value::as_f64),
-    ) {
-        (Some(lat), Some(lon)) => format!("lat={lat}, lon={lon}"),
-        _ => "coordenadas desconocidas".to_string(),
-    };
+    let coords = coords(detalle);
     let mut mensaje = format!(
         "PVsystCLI no creó el sitio '{site}' (create-site clasificacion={clasificacion}, causa={causa}, exit_code={exit_code}); esperado en '{expected_sit}' para {coords} ({weather}). stdout: {stdout}."
     );
@@ -143,6 +137,17 @@ fn mensaje_sitio_fallido(paso: &PasoSitioSalida) -> String {
         " Revisa la salida de 'sitio crear' con las mismas coordenadas antes de crear el proyecto.",
     );
     mensaje
+}
+
+/// `lat=…, lon=…` from the envelope, or a readable fallback.
+fn coords(detalle: &Value) -> String {
+    match (
+        detalle.get("latitud").and_then(Value::as_f64),
+        detalle.get("longitud").and_then(Value::as_f64),
+    ) {
+        (Some(lat), Some(lon)) => format!("lat={lat}, lon={lon}"),
+        _ => "coordenadas desconocidas".to_string(),
+    }
 }
 
 /// Last non-empty lines of a CLI tail, capped so the error stays readable.
