@@ -40,10 +40,14 @@ pub(crate) struct RutasConversion<'a> {
     pub(crate) met: &'a Path,
 }
 
-/// Run `convertir_meteo`; a CLI rejection (`success:false`) is returned as error.
+/// Run `convertir_meteo`; a CLI rejection (`success:false`) is returned as error
+/// together with the full envelope so the caller can report why it failed.
 /// The workspace travels in the request so the paths resolve where they live.
-pub(crate) fn invocar_cli_conversion(paths: &Paths, r: &RutasConversion<'_>) -> Result<Value> {
-    let v = sites::convertir_meteo(
+pub(crate) fn invocar_cli_conversion(
+    paths: &Paths,
+    r: &RutasConversion<'_>,
+) -> (Result<Value>, Option<Value>) {
+    let v = match sites::convertir_meteo(
         paths,
         &json!({
             "workspace": r.ws.display().to_string(),
@@ -52,15 +56,26 @@ pub(crate) fn invocar_cli_conversion(paths: &Paths, r: &RutasConversion<'_>) -> 
             "input_sit_file": r.sit.display().to_string(),
             "output_met_file": r.met.display().to_string(),
         }),
-    )?;
+    ) {
+        Ok(v) => v,
+        Err(e) => return (Err(e), None),
+    };
     if v.get("success").and_then(Value::as_bool) == Some(false) {
         let motivo = v
             .get("detected_error")
             .and_then(Value::as_str)
             .unwrap_or("convertir_meteo sin éxito");
-        return Err(Error::Cli(motivo.to_string()));
+        return (Err(Error::Cli(motivo.to_string())), Some(v));
     }
-    Ok(v)
+    (Ok(v), None)
+}
+
+/// Outcome of the transactional conversion: the last CLI envelope is kept on
+/// failure so the caller can explain why the `.MET` was not produced.
+pub(crate) struct Conversion {
+    pub(crate) resultado: Result<Value>,
+    pub(crate) contingencia: bool,
+    pub(crate) detalle_cli: Option<Value>,
 }
 
 /// Executes transactional conversion with automatic contingency retry on `NCarFMask`.
@@ -69,7 +84,7 @@ pub(crate) fn convertir_transaccional(
     staging: &StagingMeteo,
     sit: &Path,
     ws: &Path,
-) -> (Result<Value>, bool) {
+) -> Conversion {
     let rutas = RutasConversion {
         ws,
         csv: &staging.csv_path,
@@ -77,13 +92,26 @@ pub(crate) fn convertir_transaccional(
         sit,
         met: &staging.staging_met_path,
     };
-    match invocar_cli_conversion(paths, &rutas) {
-        Ok(v) => (Ok(v), false),
+    let (primero, detalle) = invocar_cli_conversion(paths, &rutas);
+    match primero {
+        Ok(v) => Conversion {
+            resultado: Ok(v),
+            contingencia: false,
+            detalle_cli: None,
+        },
         Err(_) => {
             if let Err(e) = mascara_cero(&staging.mef_path) {
-                (Err(e), false)
-            } else {
-                (invocar_cli_conversion(paths, &rutas), true)
+                return Conversion {
+                    resultado: Err(e),
+                    contingencia: false,
+                    detalle_cli: detalle,
+                };
+            }
+            let (segundo, detalle_segundo) = invocar_cli_conversion(paths, &rutas);
+            Conversion {
+                resultado: segundo,
+                contingencia: true,
+                detalle_cli: detalle_segundo.or(detalle),
             }
         }
     }

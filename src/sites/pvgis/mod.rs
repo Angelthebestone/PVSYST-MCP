@@ -16,7 +16,7 @@ use staging::{ConfiguracionStaging, StagingMeteo};
 
 use std::path::{Path, PathBuf};
 
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
 
 use crate::args::{opt_str, req_numero, req_str, workspace_of};
 
@@ -109,6 +109,7 @@ struct RespuestaMeteoParams<'a> {
     tz: i64,
     contingencia: bool,
     resultado: Result<Value>,
+    detalle_cli: Option<Value>,
 }
 
 fn construir_respuesta_meteo(p: RespuestaMeteoParams<'_>) -> Result<Value> {
@@ -122,15 +123,27 @@ fn construir_respuesta_meteo(p: RespuestaMeteoParams<'_>) -> Result<Value> {
     });
     match p.resultado {
         Ok(v) => {
-            p.staging.commit()?;
+            if let Err(e) = p.staging.commit() {
+                p.staging.rollback();
+                return Err(e);
+            }
             Ok(with(
                 base,
                 json!({ "ok": true, "met": p.staging.final_met_path.display().to_string(), "cli": v }),
             ))
         }
         Err(e) => {
+            let csv_error = p.staging.conservar_csv().err().map(|e| e.to_string());
             p.staging.rollback();
-            Ok(with(base, json!({ "ok": false, "error": e.to_string() })))
+            let mut extra = json!({ "ok": false, "error": e.to_string() });
+            if let Some(cli) = p.detalle_cli {
+                extra = with(extra, diagnostico_cli(&cli));
+                extra = with(extra, json!({ "cli": cli }));
+            }
+            if let Some(err) = csv_error {
+                extra = with(extra, json!({ "csv_error": err }));
+            }
+            Ok(with(base, extra))
         }
     }
 }
@@ -140,6 +153,26 @@ const EJECUCIONES_METEO_PVGIS: u32 = 2;
 
 /// The two PVsystCLI commands of a `meteo_pvgis` call, for the confirmation gate.
 const PLAN_METEO_PVGIS: [&str; 2] = ["create-site (solo si el sitio no existe)", "convert-meteo"];
+
+/// Diagnostic fields of a `convertir_meteo` envelope, copied to the failure answer.
+fn diagnostico_cli(cli: &Value) -> Value {
+    const CAMPOS: [&str; 7] = [
+        "clasificacion",
+        "crash",
+        "detected_error",
+        "command_line",
+        "stdout_tail",
+        "stderr_tail",
+        "exit_code",
+    ];
+    let mut campos = Map::new();
+    for clave in CAMPOS {
+        if let Some(v) = cli.get(clave) {
+            campos.insert(clave.to_string(), v.clone());
+        }
+    }
+    Value::Object(campos)
+}
 
 /// Hourly TMY from PVGIS → CSV + MEF → `.MET` via the CLI with transactional staging.
 pub(crate) fn meteo_pvgis(paths: &Paths, args: &Value) -> Result<Value> {
@@ -185,8 +218,11 @@ pub(crate) fn meteo_pvgis(paths: &Paths, args: &Value) -> Result<Value> {
         return Err(e);
     }
 
-    let (resultado, contingencia) =
-        persistencia::convertir_transaccional(paths, &staging, &sit, &ws);
+    let persistencia::Conversion {
+        resultado,
+        contingencia,
+        detalle_cli,
+    } = persistencia::convertir_transaccional(paths, &staging, &sit, &ws);
     construir_respuesta_meteo(RespuestaMeteoParams {
         staging: &staging,
         sit: &sit,
@@ -194,6 +230,7 @@ pub(crate) fn meteo_pvgis(paths: &Paths, args: &Value) -> Result<Value> {
         tz,
         contingencia,
         resultado,
+        detalle_cli,
     })
 }
 /// The SIT to use when `sit` does not exist: user-specified path is an error; otherwise auto-created.
