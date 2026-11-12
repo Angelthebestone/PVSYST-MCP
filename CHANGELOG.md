@@ -175,6 +175,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`workspace exportar` no longer archives its own temporary**: a `destino` inside the exported tree put
   `<zip>.mcp_tmp_<pid>.zip` (0 bytes) in the archive; both the destination and its temporary are excluded, and
   `workspace importar` names the workspace a relative `zip` was resolved against when it finds nothing.
+- QA of the MCP (`docs/INFORME_PRUEBAS_EXHAUSTIVAS_2026-11-11.md`), each bug reproduced first:
+  - `leer` with `offset`, `max_bytes` or `base64` finds a bare project name under `Projects/` like the project branch does
+    (BUG-13); a name that already resolves keeps its file.
 
 ### Changed
 - The six `proyecto` actions that edit a variant (storage, pumping, injection limit, losses, economics, tracker) build their answer with one
