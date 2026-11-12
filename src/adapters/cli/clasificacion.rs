@@ -110,6 +110,11 @@ const CONFIRMACIONES: [(&str, &str); 7] = [
 ];
 
 pub(crate) fn confirmed(command: &str, stdout: &str) -> bool {
+    // Informative commands (`help`, `version`, `lic-info`) have no success marker:
+    // a non-empty answer without an explicit error is their confirmation.
+    if es_comando_informativo(command) {
+        return !stdout.trim().is_empty() && error_explicito(stdout).is_none();
+    }
     CONFIRMACIONES
         .iter()
         .find(|(nombre, _)| command.eq_ignore_ascii_case(nombre))

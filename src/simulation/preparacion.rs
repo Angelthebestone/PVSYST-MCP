@@ -6,7 +6,7 @@ use crate::args::{flag, opt_str};
 use crate::error::{Error, Result};
 use crate::workspace::{resolver_ruta, Alcance};
 use serde_json::{json, Value};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub(crate) use crate::state::Plan;
 
@@ -159,7 +159,7 @@ pub(crate) fn preparar(args: &Value, workspace: &Path, cli_args: &[String]) -> R
     let ocf = cache::valor(cli_args, "-ocf").map(str::to_string);
     let rpf = cache::valor(cli_args, "-rpf").map(str::to_string);
     let lote = cli_args.iter().any(|a| a.starts_with("-bpf:"));
-    let ejecuciones = ejecuciones_previstas(cli_args);
+    let ejecuciones = ejecuciones_previstas(workspace, cli_args);
     let (clave, advertencia_cache) = if lote || flag(args, &["sin_cache"]) {
         (None, None)
     } else {
@@ -202,14 +202,23 @@ pub(crate) fn preparar(args: &Value, workspace: &Path, cli_args: &[String]) -> R
     }))
 }
 
-const EJECUCIONES_LOTE: u32 = 2;
+const EJECUCIONES_LOTE_FALLBACK: u32 = 2;
 const EJECUCIONES_SIMPLE: u32 = 1;
 
-/// Trial executions one `run-simulation` call is charged: batch runs (`-bpf:`) cost two.
-pub(crate) fn ejecuciones_previstas(cli_args: &[String]) -> u32 {
-    if cli_args.iter().any(|a| a.starts_with("-bpf:")) {
-        EJECUCIONES_LOTE
+/// Trial executions one `run-simulation` call is charged: one per `SIM_` row of the
+/// batch file (`-bpf:`), or the fallback when the file cannot be read.
+pub(crate) fn ejecuciones_previstas(workspace: &Path, cli_args: &[String]) -> u32 {
+    let Some(bpf) = cache::valor(cli_args, "-bpf") else {
+        return EJECUCIONES_SIMPLE;
+    };
+    let path = if Path::new(bpf).is_absolute() {
+        PathBuf::from(bpf)
     } else {
-        EJECUCIONES_SIMPLE
-    }
+        workspace.join(bpf)
+    };
+    let Ok(texto) = std::fs::read_to_string(&path) else {
+        return EJECUCIONES_LOTE_FALLBACK;
+    };
+    let filas = texto.lines().filter(|l| l.starts_with("SIM_")).count();
+    u32::try_from(filas).unwrap_or(EJECUCIONES_LOTE_FALLBACK)
 }
