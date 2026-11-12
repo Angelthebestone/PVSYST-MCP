@@ -1,5 +1,6 @@
 //! Read-only MCP resources: playbooks, coverage map, reference format and the CLI.
 
+use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Value};
@@ -47,7 +48,8 @@ pub(crate) fn list(idioma: Idioma) -> Value {
 
 /// Contents of one resource. Unknown URIs are an `Err` (the server maps it to -32602).
 /// With `aproximaciones` off, the coverage map omits the MCP-approximation actions.
-pub(crate) fn read(uri: &str, aproximaciones: bool, idioma: Idioma) -> Result<Value> {
+pub(crate) fn read(uri: &str, paths: &Paths) -> Result<Value> {
+    let (aproximaciones, idioma) = (paths.aproximaciones, paths.idioma);
     let (mime, text) = match uri {
         "pvsyst://recetas" => (
             "application/json",
@@ -58,7 +60,7 @@ pub(crate) fn read(uri: &str, aproximaciones: bool, idioma: Idioma) -> Result<Va
         "pvsyst://cli" => ("text/markdown", CLI.to_string()),
         "pvsyst://gui" => (
             "application/json",
-            crate::adapters::gui::catalogo::como_recurso().to_string(),
+            crate::adapters::gui::catalogo::como_recurso(&paths.gui_exe, idioma).to_string(),
         ),
         _ => {
             return Err(Error::NotFound(

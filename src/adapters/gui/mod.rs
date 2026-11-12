@@ -26,6 +26,7 @@ pub(crate) mod esperas;
 pub(crate) mod ffi;
 pub(crate) mod fila;
 pub(crate) mod gdi;
+pub(crate) mod inventario;
 pub(crate) mod menu_por_posicion;
 pub(crate) mod modal;
 pub(crate) mod ocr;
@@ -47,6 +48,11 @@ pub(crate) mod ventanas;
 
 pub(crate) use proceso::gui_running;
 
+/// A real window with chosen children, standing in for a PVsyst form in tests.
+#[cfg(test)]
+#[path = "../../../tests/unit/adapters/gui/ventana_falsa.rs"]
+pub(crate) mod ventana_falsa;
+
 /// Lines of PVsyst's own log `que:mensajes` returns when `lineas` is absent.
 const MENSAJES_POR_DEFECTO: usize = 50;
 
@@ -55,7 +61,7 @@ use crate::error::{Error, Result};
 use serde_json::Value;
 
 /// `observar` dispatcher. `que`: ventanas (default) | controles | leer |
-/// capturar | uia | arbol | formulario | vista | esquema | mensajes | funciones | menus.
+/// capturar | uia | arbol | formulario | inventario | elementos | vista | esquema | mensajes | funciones | menus.
 pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     match args
         .get("que")
@@ -69,6 +75,8 @@ pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Val
         "uia" => uia_vista::observar_uia(paths, args),
         "arbol" => uia_vista::observar_arbol(paths, args),
         "formulario" => ocr::formulario(paths, args),
+        "inventario" => inventario::inventario(paths, args),
+        "elementos" => inventario::elementos::elementos(paths, args),
         "funciones" => Ok(catalogo::listar(args)),
         "menus" => {
             menu_por_posicion::listar(ventanas::hwnd_de(args, "ventana")?, paths.idioma)
@@ -82,7 +90,7 @@ pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Val
             Ok(registro_pvsyst::ultimos_mensajes(limite))
         }
         other => Err(Error::Invalid(format!(
-            "Unknown que '{other}' (ventanas|controles|leer|capturar|uia|arbol|formulario|vista|esquema|mensajes|funciones|menus)"
+            "Unknown que '{other}' (ventanas|controles|leer|capturar|uia|arbol|formulario|inventario|elementos|vista|esquema|mensajes|funciones|menus)"
         ))),
     }
 }

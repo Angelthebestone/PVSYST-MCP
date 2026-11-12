@@ -133,6 +133,24 @@ pub(super) const ENTRADAS: &[Entrada] = &[
     .luego(TRAS_VISTA),
     entrada(
         "gui_observar",
+        "inventario",
+        Texto {
+            es: "Inventario de los controles del formulario (ocultos incluidos).",
+            en: "Inventory of the form's controls (hidden ones included).",
+        },
+    )
+    .luego(TRAS_VISTA),
+    entrada(
+        "gui_observar",
+        "elementos",
+        Texto {
+            es: "Elementos de un control (filas, celdas, items) listados.",
+            en: "Elements of a control (rows, cells, items) listed.",
+        },
+    )
+    .luego(TRAS_VISTA),
+    entrada(
+        "gui_observar",
         "vista",
         Texto {
             es: "Formulario leído por claves estables.",

@@ -148,7 +148,7 @@ impl Server {
 
     fn read_resource(&self, params: &Value, id: &Value) -> String {
         let uri = params.get("uri").and_then(Value::as_str).unwrap_or("");
-        match resources::read(uri, self.paths.aproximaciones, self.paths.idioma) {
+        match resources::read(uri, &self.paths) {
             Ok(value) => ok_response(id, &value),
             Err(e) => {
                 tracing::warn!(uri, kind = e.kind(), error = %e, "resource read failed");

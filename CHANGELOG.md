@@ -7,7 +7,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **GUI inventories are not summarised to 13 items.** `que:inventario` and `que:elementos` cap
+  themselves at 500 rows (`total` and `truncado` say what was left out) and their lists `controles`,
+  `elementos` and `otros` are never cut by `detalle`. `que:controles` with `todos:true` keeps up to 500
+  rows when the call names no `detalle`; an explicit `resumen` or `normal` is honoured there.
+- `que:inventario` and `que:elementos` say when the UI Automation tree was cut (`uia_truncado`, and
+  `truncado` in `elementos`), and an element at the depth limit is no longer reported as `solo_vision`
+  just because its children were not walked.
+
 ### Added
+- **Known limit of `componente crear_desde_ficha` for a `.PAN`**: it still does not fill the module
+  dimensions (the «sizes» page of `TPVModuleForm`), so PVsyst refuses to save the module. The
+  inventory now shows those controls (`gui_observar que:inventario` on the form, hidden page included,
+  with their `campo {clase, x, y}` anchors), but `components.panels` is not extended: its anchors are
+  measured on a live PVsyst, and none was measured for that page.
+- **`pvsyst://gui` describes its own map** in `metadatos`: `measured_on` (date of the last walk
+  recorded in `docs/gui_mapa.json`), `pvsyst_version` it was measured on, `idioma_medido`,
+  `windows_total`, `cobertura` (windows with fields mapped, controls without a handle, limits) and
+  `pvsyst_version_en_ejecucion`, read from the install folder of the GUI executable; when the two
+  differ, `aviso` says the tabs, anchors and menu positions may have changed and that the live
+  inventory is what holds.
+- **`gui_observar que:elementos`** lists the rows, cells and items a control draws itself
+  (`TVirtualStringTree`, grids, lists), which have no window and are not in the inventory. They come
+  from the UI Automation tree under the control named by `ventana` (a control's handle, or a form for
+  all of it): `indice`, `rol`, `nombre`, `rect`, `patrones` (now also `contenedor` and `virtualizado`,
+  the item-container and virtualised-item patterns) and `hwnd` when the element is a window. A control
+  with none is `solo_vision:true`, with the actions that still reach it (`fila`, `menus`/`menu`,
+  `clic_texto`). Only the elements the control has realised are listed: a virtualised row scrolled out
+  of view is not realised through its container. MSAA (`IAccessible`) is not read.
+- **`gui_observar que:ventanas` says whether a click would land**: every window carries `foreground`
+  (it is the foreground window), `modal` (it is the dialog that blocks the others; one embedded in the
+  form it disables is listed too) and `iconic` (minimised, the name Win32 gives `minimized`), next to
+  `visible` and `enabled`.
+- **`gui_observar que:formulario` with `todos:true`** also lists the controls that are not shown (other
+  tab pages, hidden panels), and every answer gains `otros`: each control that is neither a button nor a
+  field (`TPageControl`, `TTabSheet`, `TGridPanel`, `TVirtualStringTree`, custom classes) with its
+  `clase`, `hwnd`, `rect`, `texto`, `visible` and `enabled`. Buttons and fields now carry `visible`,
+  `parent`, `pestana` and `indice_pestana`, and fields carry `etiqueta_fuente` (`ocr` or
+  `window_text`). A control that is not shown is read without OCR, since the text drawn where it sits
+  belongs to the page that is shown; when OCR finds no label, the text of a window beside the field
+  names it.
+- **`gui_observar que:inventario`**: every control of a form as a machine-readable list, hidden
+  children and tab pages that are not shown included (`todos` defaults to `true` here), without
+  switching tab. Each row carries `clase`, `hwnd`, `rect`, `texto`, `visible`, `enabled`, `parent`,
+  `pestana` and `indice_pestana`, `rol`, `indice_clase`, `etiqueta` with `etiqueta_fuente`, `marcado`
+  for check boxes and options and `campo {clase, x, y}` (the 96-DPI anchor `escribir` and `campo`
+  take). Classes nobody classified (`TGridPanel`, `TVirtualStringTree`, custom buttons) are listed
+  with `rol:"other"`. `pestanas` lists the pages with the controls each holds, and flags
+  `creado_al_activar` on a hidden page without windows: VCL may build its controls only when it is
+  first shown, so such a page can look empty until then. At most 500 rows per answer, with `total`
+  and `truncado`. UI Automation is read too (`incluir_uia:false` skips it; `profundidad` and
+  `max_nodos` bound its tree) and lands in the same list: a row says which API saw it (`fuente`:
+  `win32`, `win32+uia` or `uia`), a window gains the `patrones` it supports and, for a field, the name
+  UI Automation gives it (`etiqueta_fuente:"uia_name"`); the cells, labels and items a control draws
+  itself, which have no window, are listed with `hwnd:null`, `visible:null` and `solo_vision:true`
+  when only vision can read inside them. The tab order comes from UI Automation. MSAA (`IAccessible`)
+  is not read.
 - **Configurable client-facing language** via `PVSYST_MCP_IDIOMA` (`es` or `en`, default `en`; also a
   user-configurable option of the mcpb bundle). It selects the language of every client-visible
   string: tool descriptions and titles, schema annotations, recipes (resource and prompts),
