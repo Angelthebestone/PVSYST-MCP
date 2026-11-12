@@ -178,6 +178,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - QA of the MCP (`docs/INFORME_PRUEBAS_EXHAUSTIVAS_2026-11-11.md`), each bug reproduced first:
   - `leer` with `offset`, `max_bytes` or `base64` finds a bare project name under `Projects/` like the project branch does
     (BUG-13); a name that already resolves keeps its file.
+  - `entorno exportar_logs` creates an explicit `carpeta_destino` before calling PVsystCLI, which refuses a folder that does
+    not exist (BUG-23); without it the CLI default (`<workspace>/UserData/logs`) is unchanged.
 
 ### Changed
 - The six `proyecto` actions that edit a variant (storage, pumping, injection limit, losses, economics, tracker) build their answer with one
