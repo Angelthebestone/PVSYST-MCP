@@ -4,6 +4,7 @@
 use super::pasos::{abrir, campos, con_descarte, escribir, hijo_n, ventana};
 use crate::adapters::gui::conduccion::{esperar_cierre, Formulario};
 use crate::adapters::gui::ffi;
+use crate::adapters::gui::rotulos::pvsyst::CERRAR_OBJETO;
 use crate::error::{Error, Result};
 use crate::escena_3d::ObjetoPedido;
 use std::time::Duration;
@@ -20,7 +21,7 @@ pub(super) fn crear(objeto: &ObjetoPedido) -> Result<()> {
     con_descarte(&dialogo, || {
         elegir_forma(&dialogo, objeto)?;
         rellenar(&dialogo, objeto)?;
-        dialogo.pulsar("Cerrar objeto")
+        dialogo.pulsar(CERRAR_OBJETO)
     })?;
     if esperar_cierre(dialogo.h, ESPERA_CIERRE) {
         return Ok(());

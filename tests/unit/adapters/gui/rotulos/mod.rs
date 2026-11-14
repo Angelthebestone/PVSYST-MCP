@@ -3,17 +3,17 @@
 
 use super::dialogos::{CANCELAR, OK};
 use super::pvsyst::GESTION_ENERGIA;
-use super::{Idioma, Rotulo};
+use super::{IdiomaGui, Rotulo};
 use crate::adapters::gui::conduccion::Formulario;
 use crate::adapters::gui::ventana_falsa::{Hijo, VentanaFalsa};
 
 /// The same project window with its buttons written in `idioma`: only the texts differ.
-fn ventana_de_proyecto(idioma: Idioma) -> VentanaFalsa {
+fn ventana_de_proyecto(idioma: IdiomaGui) -> VentanaFalsa {
     let (sistema, energia, cancelar) = match idioma {
-        Idioma::Es => ("Sistema", "Gestión de la energía", "Cancelar"),
-        Idioma::En => ("System", "Energy management", "Cancel"),
-        Idioma::Fr => ("Système", "Gestion de l'énergie", "Annuler"),
-        Idioma::De => ("System", "Energiemanagement", "Abbrechen"),
+        IdiomaGui::Es => ("Sistema", "Gestión de la energía", "Cancelar"),
+        IdiomaGui::En => ("System", "Energy management", "Cancel"),
+        IdiomaGui::Fr => ("Système", "Gestion de l'énergie", "Annuler"),
+        IdiomaGui::De => ("System", "Energiemanagement", "Abbrechen"),
     };
     VentanaFalsa::crear(
         "TProjectForm",
@@ -29,7 +29,7 @@ fn ventana_de_proyecto(idioma: Idioma) -> VentanaFalsa {
 
 #[test]
 fn should_find_the_same_button_whatever_language_pvsyst_is_in() {
-    for idioma in Idioma::TODOS {
+    for idioma in IdiomaGui::TODOS {
         let ventana = ventana_de_proyecto(idioma);
         let formulario = Formulario::de(ventana.hwnd(0));
 
@@ -44,7 +44,7 @@ fn should_find_the_same_button_whatever_language_pvsyst_is_in() {
 
 #[test]
 fn should_still_find_a_button_by_a_plain_caption_and_name_what_it_looked_for() {
-    let ventana = ventana_de_proyecto(Idioma::En);
+    let ventana = ventana_de_proyecto(IdiomaGui::En);
     let formulario = Formulario::de(ventana.hwnd(0));
 
     assert!(formulario.hijo("System").is_ok());
@@ -59,14 +59,14 @@ const AUSENTE: Rotulo<'static> = Rotulo::nuevo("Ausente", ("Missing", "Absent", 
 
 #[test]
 fn should_know_which_language_a_window_is_in_from_its_captions() {
-    let textos = |idioma: Idioma| match idioma {
-        Idioma::Es => vec!["OK", "Cancelar", "Guardar", "Sistema"],
-        Idioma::En => vec!["OK", "Cancel", "Save", "Horizon"],
-        Idioma::Fr => vec!["OK", "Annuler", "Enregistrer", "Système"],
-        Idioma::De => vec!["OK", "Abbrechen", "Speichern", "Horizont"],
+    let textos = |idioma: IdiomaGui| match idioma {
+        IdiomaGui::Es => vec!["OK", "Cancelar", "Guardar", "Sistema"],
+        IdiomaGui::En => vec!["OK", "Cancel", "Save", "Horizon"],
+        IdiomaGui::Fr => vec!["OK", "Annuler", "Enregistrer", "Système"],
+        IdiomaGui::De => vec!["OK", "Abbrechen", "Speichern", "Horizont"],
     };
-    for idioma in Idioma::TODOS {
-        assert_eq!(Idioma::por_textos(textos(idioma)), Some(idioma));
+    for idioma in IdiomaGui::TODOS {
+        assert_eq!(IdiomaGui::por_textos(textos(idioma)), Some(idioma));
     }
 }
 
@@ -74,17 +74,17 @@ fn should_know_which_language_a_window_is_in_from_its_captions() {
 fn should_not_guess_a_language_from_captions_that_prove_nothing() {
     // "OK" reads the same in all four, and "Sistema" belongs to Spanish while
     // "Cancel" belongs to English: a tie is not an answer.
-    assert_eq!(Idioma::por_textos(["OK", "texto libre"]), None);
-    assert_eq!(Idioma::por_textos(["Sistema", "Cancel"]), None);
-    assert_eq!(Idioma::por_textos([]), None);
+    assert_eq!(IdiomaGui::por_textos(["OK", "texto libre"]), None);
+    assert_eq!(IdiomaGui::por_textos(["Sistema", "Cancel"]), None);
+    assert_eq!(IdiomaGui::por_textos([]), None);
 }
 
 #[test]
 fn should_read_the_language_name_pvsyst_writes_in_its_ini() {
-    assert_eq!(Idioma::de_nombre("Spanish"), Some(Idioma::Es));
-    assert_eq!(Idioma::de_nombre(" english "), Some(Idioma::En));
-    assert_eq!(Idioma::de_nombre("French"), Some(Idioma::Fr));
-    assert_eq!(Idioma::de_nombre("German"), Some(Idioma::De));
+    assert_eq!(IdiomaGui::de_nombre("Spanish"), Some(IdiomaGui::Es));
+    assert_eq!(IdiomaGui::de_nombre(" english "), Some(IdiomaGui::En));
+    assert_eq!(IdiomaGui::de_nombre("French"), Some(IdiomaGui::Fr));
+    assert_eq!(IdiomaGui::de_nombre("German"), Some(IdiomaGui::De));
     // Italian is a PVsyst language the captions do not cover.
-    assert_eq!(Idioma::de_nombre("Italian"), None);
+    assert_eq!(IdiomaGui::de_nombre("Italian"), None);
 }

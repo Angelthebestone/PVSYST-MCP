@@ -11,6 +11,13 @@ pub(crate) enum ErrorFila {
         anfitrion: String,
         medidas: String,
     },
+    #[error("{clase} of {anfitrion} is titled '{titulo}' and the measured one '{esperado}': the title is the caption PVsyst writes in its own language (gui_observar que:idioma), and the other windows of that class were not measured")]
+    TituloDistinto {
+        clase: String,
+        anfitrion: String,
+        titulo: String,
+        esperado: String,
+    },
     #[error("The control shows no row: it is {alto_px} px high at 96 DPI")]
     SinFilasVisibles { alto_px: i32 },
     #[error(
@@ -53,6 +60,7 @@ impl ErrorFila {
         matches!(
             self,
             Self::ClaseSinGeometria { .. }
+                | Self::TituloDistinto { .. }
                 | Self::SinFilasVisibles { .. }
                 | Self::PocasFilas { .. }
                 | Self::FueraDeRango { .. }

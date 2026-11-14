@@ -69,7 +69,6 @@ pub(crate) fn read(uri: &str, paths: &Paths) -> Result<Value> {
     Ok(json!({ "contents": [{ "uri": uri, "mimeType": mime, "text": text }] }))
 }
 
-/// Machine-readable coverage map: PVsyst area -> how the MCP covers it.
 /// The GUI map, compared with the PVsyst that runs: its version and the language
 /// of its windows (read from the open windows, else from `PVsyst.ini`).
 fn gui(paths: &Paths) -> Value {
@@ -82,6 +81,7 @@ fn gui(paths: &Paths) -> Value {
     crate::adapters::gui::catalogo::como_recurso(&vivo, paths.idioma)
 }
 
+/// Machine-readable coverage map: PVsyst area -> how the MCP covers it.
 fn cobertura(aproximaciones: bool) -> Value {
     let mut mapa = mapa_de_cobertura();
     if !aproximaciones {

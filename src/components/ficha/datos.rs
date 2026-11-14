@@ -1,6 +1,8 @@
 //! A component datasheet: the fields PVsyst's window takes, their validation and the
 //! values to type. Pure: no GUI and no files.
 
+use crate::adapters::gui::rotulos::pvsyst::{INVERSOR_DE_RED, MODULOS_PV};
+use crate::adapters::gui::rotulos::Rotulo;
 use crate::error::{Error, Result};
 use crate::idioma::Texto;
 use crate::vista_agente::clave_para_archivo;
@@ -10,7 +12,8 @@ use serde_json::{json, Map, Value};
 /// by the keys of the entity's schema (`gui_actuar accion:rellenar`), so no
 /// coordinate lives here; a datasheet key is the entity field's `clave_archivo`.
 pub(super) struct Tipo {
-    pub(super) boton_base: &'static str,
+    /// Button of the database window that opens the list, in each language it is known in.
+    pub(super) boton_base: Rotulo<'static>,
     pub(super) formulario: &'static str,
     pub(super) entidad: &'static str,
     pub(super) carpeta: &'static str,
@@ -33,7 +36,7 @@ const POTENCIA_EN_KW: Texto = Texto {
 };
 
 const MODULO: Tipo = Tipo {
-    boton_base: "Módulos PV",
+    boton_base: MODULOS_PV,
     formulario: "TPVModuleForm",
     entidad: "components.panels",
     carpeta: "PVmodules",
@@ -61,7 +64,7 @@ const MODULO: Tipo = Tipo {
 };
 
 pub(super) const INVERSOR: Tipo = Tipo {
-    boton_base: "Inversor de red",
+    boton_base: INVERSOR_DE_RED,
     formulario: "TGridInverterForm",
     entidad: "components.inverters",
     carpeta: "Inverters",

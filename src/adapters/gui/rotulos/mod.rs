@@ -16,14 +16,14 @@ use std::fmt;
 
 /// The language of PVsyst's user interface that the captions cover.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum Idioma {
+pub(crate) enum IdiomaGui {
     Es,
     En,
     Fr,
     De,
 }
 
-impl Idioma {
+impl IdiomaGui {
     pub(crate) const TODOS: [Self; 4] = [Self::Es, Self::En, Self::Fr, Self::De];
     /// The languages whose captions were measured on a live PVsyst.
     pub(crate) const MEDIDOS: [Self; 1] = [Self::Es];
@@ -68,8 +68,8 @@ impl Idioma {
 }
 
 /// The only language in which `texto` is a known caption.
-fn idioma_unico(texto: &str) -> Option<Idioma> {
-    let mut idiomas = Idioma::TODOS
+fn idioma_unico(texto: &str) -> Option<IdiomaGui> {
+    let mut idiomas = IdiomaGui::TODOS
         .into_iter()
         .filter(|i| todos().any(|r| r.en_idioma(*i) == texto));
     match (idiomas.next(), idiomas.next()) {
@@ -114,20 +114,22 @@ impl<'a> Rotulo<'a> {
         }
     }
 
-    pub(crate) fn en_idioma(&self, idioma: Idioma) -> &'a str {
+    pub(crate) fn en_idioma(&self, idioma: IdiomaGui) -> &'a str {
         match idioma {
-            Idioma::Es => self.es,
-            Idioma::En => self.en,
-            Idioma::Fr => self.fr,
-            Idioma::De => self.de,
+            IdiomaGui::Es => self.es,
+            IdiomaGui::En => self.en,
+            IdiomaGui::Fr => self.fr,
+            IdiomaGui::De => self.de,
         }
     }
 
     /// The wordings by language code when the caption has more than one, else `None`.
     pub(crate) fn por_idioma(&self) -> Option<serde_json::Value> {
-        let traducido = Idioma::TODOS.iter().any(|i| self.en_idioma(*i) != self.es);
+        let traducido = IdiomaGui::TODOS
+            .iter()
+            .any(|i| self.en_idioma(*i) != self.es);
         traducido.then(|| {
-            let pares = Idioma::TODOS.map(|i| (i.codigo(), self.en_idioma(i)));
+            let pares = IdiomaGui::TODOS.map(|i| (i.codigo(), self.en_idioma(i)));
             serde_json::json!(pares
                 .into_iter()
                 .collect::<std::collections::BTreeMap<_, _>>())
@@ -136,7 +138,7 @@ impl<'a> Rotulo<'a> {
 
     /// Whether `texto` is this caption in any language, exactly.
     pub(crate) fn coincide(&self, texto: &str) -> bool {
-        Idioma::TODOS.iter().any(|i| self.en_idioma(*i) == texto)
+        IdiomaGui::TODOS.iter().any(|i| self.en_idioma(*i) == texto)
     }
 }
 
@@ -149,7 +151,7 @@ impl<'a> From<&'a str> for Rotulo<'a> {
 /// The distinct wordings, for an error that names what was looked for.
 impl fmt::Display for Rotulo<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let textos = Idioma::TODOS.map(|i| self.en_idioma(i));
+        let textos = IdiomaGui::TODOS.map(|i| self.en_idioma(i));
         let distintos: Vec<&str> = textos
             .iter()
             .enumerate()

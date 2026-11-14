@@ -2,13 +2,13 @@
 //! the warning the caller gets when captions cannot be trusted.
 
 use super::{nombre_en_ini, Lectura};
-use crate::adapters::gui::rotulos::Idioma;
-use crate::idioma::Idioma as IdiomaCliente;
+use crate::adapters::gui::rotulos::IdiomaGui;
+use crate::idioma::Idioma;
 
 /// The two `Language` keys PVsyst's ini has: the one that counts is the dialogs'.
 const INI: &str = "[Print]\r\nLanguage=English\r\n[Preferences]\r\nDialog Language=Spanish\r\n";
 
-fn lectura(ini: Option<&str>, ventanas: Option<Idioma>) -> Lectura {
+fn lectura(ini: Option<&str>, ventanas: Option<IdiomaGui>) -> Lectura {
     Lectura {
         ini: ini.map(str::to_string),
         ventanas,
@@ -24,7 +24,7 @@ fn should_read_the_dialog_language_and_not_the_print_language_of_the_ini() {
 
 #[test]
 fn should_trust_the_open_windows_over_the_ini_and_say_when_they_differ() {
-    let respuesta = lectura(Some("Spanish"), Some(Idioma::En)).como_json(IdiomaCliente::En);
+    let respuesta = lectura(Some("Spanish"), Some(IdiomaGui::En)).como_json(Idioma::En);
 
     assert_eq!(respuesta["idioma_gui"], "en");
     assert_eq!(respuesta["fuente"], "ventanas");
@@ -38,7 +38,7 @@ fn should_trust_the_open_windows_over_the_ini_and_say_when_they_differ() {
 
 #[test]
 fn should_read_the_language_from_the_ini_when_no_window_is_open() {
-    let respuesta = lectura(Some("Spanish"), None).como_json(IdiomaCliente::En);
+    let respuesta = lectura(Some("Spanish"), None).como_json(Idioma::En);
 
     assert_eq!(respuesta["idioma_gui"], "es");
     assert_eq!(respuesta["fuente"], "PVsyst.ini");
@@ -52,7 +52,7 @@ fn should_read_the_language_from_the_ini_when_no_window_is_open() {
 
 #[test]
 fn should_warn_that_captions_are_inferred_for_a_language_never_measured() {
-    let respuesta = lectura(Some("English"), None).como_json(IdiomaCliente::Es);
+    let respuesta = lectura(Some("English"), None).como_json(Idioma::Es);
 
     assert_eq!(respuesta["idioma_gui"], "en");
     let aviso = respuesta["aviso"].as_str().unwrap_or_default();
@@ -64,7 +64,7 @@ fn should_warn_that_captions_are_inferred_for_a_language_never_measured() {
 
 #[test]
 fn should_name_the_language_the_captions_do_not_cover_and_the_way_around_it() {
-    let respuesta = lectura(Some("Italian"), None).como_json(IdiomaCliente::En);
+    let respuesta = lectura(Some("Italian"), None).como_json(Idioma::En);
 
     assert_eq!(respuesta["idioma_gui"], serde_json::Value::Null);
     assert_eq!(

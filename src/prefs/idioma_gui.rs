@@ -7,10 +7,10 @@
 
 use super::ini::{decodificar, ini_path, leer, parsear};
 use crate::adapters::gui::idioma_gui;
-use crate::adapters::gui::rotulos::Idioma;
+use crate::adapters::gui::rotulos::IdiomaGui;
 use crate::config::Paths;
 use crate::error::Result;
-use crate::idioma::{Idioma as IdiomaCliente, Texto};
+use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Value};
 
 const SECCION: &str = "Preferences";
@@ -38,7 +38,7 @@ pub(crate) struct Lectura {
     /// `Dialog Language` of `PVsyst.ini`, as written.
     pub(crate) ini: Option<String>,
     /// What the captions of the open windows say.
-    pub(crate) ventanas: Option<Idioma>,
+    pub(crate) ventanas: Option<IdiomaGui>,
 }
 
 impl Lectura {
@@ -54,13 +54,13 @@ impl Lectura {
         }
     }
 
-    fn idioma_del_ini(&self) -> Option<Idioma> {
-        self.ini.as_deref().and_then(Idioma::de_nombre)
+    fn idioma_del_ini(&self) -> Option<IdiomaGui> {
+        self.ini.as_deref().and_then(IdiomaGui::de_nombre)
     }
 
     /// The language to trust: the open windows over the file, which PVsyst
     /// rewrites only when it exits.
-    pub(crate) fn idioma(&self) -> Option<Idioma> {
+    pub(crate) fn idioma(&self) -> Option<IdiomaGui> {
         self.ventanas.or_else(|| self.idioma_del_ini())
     }
 
@@ -82,7 +82,7 @@ impl Lectura {
     }
 
     /// What the caller should know before relying on captions, or `None`.
-    fn aviso(&self, idioma_cliente: IdiomaCliente) -> Option<String> {
+    fn aviso(&self, idioma_cliente: Idioma) -> Option<String> {
         let texto = |t: Texto, vars: &[(&str, &str)]| t.texto_con(idioma_cliente, vars);
         let nombre = self.ini.as_deref().unwrap_or_default();
         let Some(idioma) = self.idioma() else {
@@ -97,22 +97,23 @@ impl Lectura {
                 &[("ini", nombre), ("ventanas", idioma.codigo())],
             ));
         }
-        (!Idioma::MEDIDOS.contains(&idioma))
+        (!IdiomaGui::MEDIDOS.contains(&idioma))
             .then(|| texto(SIN_MEDIR, &[("idioma", idioma.codigo())]))
     }
 
-    pub(crate) fn como_json(&self, idioma_cliente: IdiomaCliente) -> Value {
-        let codigos = |idiomas: &[Idioma]| idiomas.iter().map(|i| i.codigo()).collect::<Vec<_>>();
+    pub(crate) fn como_json(&self, idioma_cliente: Idioma) -> Value {
+        let codigos =
+            |idiomas: &[IdiomaGui]| idiomas.iter().map(|i| i.codigo()).collect::<Vec<_>>();
         json!({
-            "idioma_gui": self.idioma().map(Idioma::codigo),
+            "idioma_gui": self.idioma().map(IdiomaGui::codigo),
             "fuente": self.fuente(),
             "nombre_en_ini": self.ini,
-            "idioma_en_ventanas": self.ventanas.map(Idioma::codigo),
-            "idiomas_con_rotulos": codigos(&Idioma::TODOS),
-            "idiomas_medidos": codigos(&Idioma::MEDIDOS),
+            "idioma_en_ventanas": self.ventanas.map(IdiomaGui::codigo),
+            "idiomas_con_rotulos": codigos(&IdiomaGui::TODOS),
+            "idiomas_medidos": codigos(&IdiomaGui::MEDIDOS),
             "idioma_mensajes_mcp": match idioma_cliente {
-                IdiomaCliente::Es => "es",
-                IdiomaCliente::En => "en",
+                Idioma::Es => "es",
+                Idioma::En => "en",
             },
             "aviso": self.aviso(idioma_cliente),
             "nota": NOTA.en_idioma(idioma_cliente),

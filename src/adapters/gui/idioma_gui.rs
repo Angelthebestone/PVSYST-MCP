@@ -7,7 +7,7 @@
 
 use super::ffi::{self, Hwnd};
 use super::proceso::pids_pvsyst;
-use super::rotulos::Idioma;
+use super::rotulos::IdiomaGui;
 use super::ventanas::{enum_windows_de, text_of, visible};
 
 /// The texts of window `h` and of every window inside it, hidden ones included.
@@ -20,14 +20,14 @@ fn textos_de(h: Hwnd) -> Vec<String> {
 }
 
 /// The language the captions of `ventanas` betray: all of them vote together.
-fn de_ventanas(ventanas: impl IntoIterator<Item = Hwnd>) -> Option<Idioma> {
+fn de_ventanas(ventanas: impl IntoIterator<Item = Hwnd>) -> Option<IdiomaGui> {
     let textos: Vec<String> = ventanas.into_iter().flat_map(textos_de).collect();
-    Idioma::por_textos(textos.iter().map(String::as_str))
+    IdiomaGui::por_textos(textos.iter().map(String::as_str))
 }
 
 /// The language of the running PVsyst, from its visible windows. `None` when
 /// PVsyst is not running or the captions prove nothing.
-pub(crate) fn en_ejecucion() -> Option<Idioma> {
+pub(crate) fn en_ejecucion() -> Option<IdiomaGui> {
     de_ventanas(
         pids_pvsyst()
             .into_iter()

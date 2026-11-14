@@ -56,6 +56,12 @@ pub(crate) const IMPORTAR_DESDE_WEB: Rotulo<'static> = Rotulo::nuevo(
     ),
 );
 
+/// The button of the elementary-object dialog of the 3D scene that adds the object.
+pub(crate) const CERRAR_OBJETO: Rotulo<'static> = Rotulo::nuevo(
+    "Cerrar objeto",
+    ("Close object", "Fermer l'objet", "Objekt schließen"),
+);
+
 pub(super) const TABLA: &[Rotulo<'static>] = &[
     INICIO_RED,
     INICIO_AISLADO,
@@ -69,4 +75,5 @@ pub(super) const TABLA: &[Rotulo<'static>] = &[
     GESTION_ENERGIA,
     LEER_IMPORTAR,
     IMPORTAR_DESDE_WEB,
+    CERRAR_OBJETO,
 ];

@@ -65,11 +65,28 @@ pub(crate) fn geometria_de(control: &Control<'_>) -> Result<&'static Geometria, 
     TABLAS
         .iter()
         .find(|g| g.corresponde_a(control))
-        .ok_or_else(|| ErrorFila::ClaseSinGeometria {
+        .ok_or_else(|| sin_geometria(control))
+}
+
+/// A control of a measured class and host whose title differs is told apart from
+/// one that was never measured: the title depends on PVsyst's language.
+fn sin_geometria(control: &Control<'_>) -> ErrorFila {
+    let del_titulo = TABLAS.iter().find(|g| {
+        g.clase == control.clase && g.anfitrion == control.anfitrion && g.titulo_anfitrion.is_some()
+    });
+    match del_titulo.and_then(|g| g.titulo_anfitrion) {
+        Some(esperado) => ErrorFila::TituloDistinto {
+            clase: control.clase.to_string(),
+            anfitrion: control.anfitrion.to_string(),
+            titulo: control.titulo.to_string(),
+            esperado: esperado.to_string(),
+        },
+        None => ErrorFila::ClaseSinGeometria {
             clase: control.clase.to_string(),
             anfitrion: control.anfitrion.to_string(),
             medidas: medidas(),
-        })
+        },
+    }
 }
 
 fn medidas() -> String {

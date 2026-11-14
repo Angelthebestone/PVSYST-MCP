@@ -5,7 +5,7 @@
 use crate::adapters::gui::conduccion::Formulario;
 use crate::adapters::gui::ffi;
 use crate::adapters::gui::rotulos::dialogos::{GUARDAR, GUARDAR_COMO, NUEVO, OK};
-use crate::adapters::gui::rotulos::pvsyst::{BASES_DE_DATOS, INVERSOR_DE_RED, MODULOS_PV};
+use crate::adapters::gui::rotulos::pvsyst::BASES_DE_DATOS;
 use crate::adapters::gui::rotulos::Rotulo;
 use crate::adapters::gui::sesion_pvsyst::Sesion;
 use crate::adapters::gui::ventanas::class_of;
@@ -22,15 +22,6 @@ const FORMULARIO_GUARDAR_COMPONENTE: &str = "TSaveComponentForm";
 const FORMULARIO_GUARDAR_OBJETO: &str = "TSaveObjPVForm";
 const FORMULARIO_BASE_DATOS: &str = "TDatabaseForm";
 const FORMULARIO_ELECCION_OBJETO: &str = "TChoixObjetPVForm";
-
-/// The button of the database window that opens the list of `t`. The datasheet
-/// type names it by its Spanish caption, which keys the caption table.
-fn boton_de_base(t: &Tipo) -> Rotulo<'static> {
-    [MODULOS_PV, INVERSOR_DE_RED]
-        .into_iter()
-        .find(|r| r.es == t.boton_base)
-        .unwrap_or(Rotulo::igual(t.boton_base))
-}
 
 const PAUSA_FOCO: Duration = Duration::from_millis(300);
 
@@ -102,7 +93,7 @@ pub(crate) fn crear(
     let sesion = Sesion::abrir(paths)?;
     sesion.ejecutar(|s| {
         s.inicio.pulsar(BASES_DE_DATOS)?;
-        s.esperar(FORMULARIO_BASE_DATOS)?.pulsar(boton_de_base(t))?;
+        s.esperar(FORMULARIO_BASE_DATOS)?.pulsar(t.boton_base)?;
         s.esperar(FORMULARIO_ELECCION_OBJETO)?.pulsar(NUEVO)?;
         let f = s.esperar(t.formulario)?;
         rellenar(paths, t, &valores_de(t, datos, nombre))?;

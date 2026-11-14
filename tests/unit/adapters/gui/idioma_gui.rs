@@ -3,12 +3,12 @@
 use super::de_ventanas;
 use crate::adapters::gui::rotulos::dialogos::{CANCELAR, GUARDAR};
 use crate::adapters::gui::rotulos::pvsyst::BASES_DE_DATOS;
-use crate::adapters::gui::rotulos::Idioma;
+use crate::adapters::gui::rotulos::IdiomaGui;
 use crate::adapters::gui::ventana_falsa::{Hijo, VentanaFalsa};
 
 #[test]
 fn should_tell_the_language_of_a_form_from_its_buttons() {
-    for idioma in Idioma::TODOS {
+    for idioma in IdiomaGui::TODOS {
         let form = VentanaFalsa::crear(
             "THomeForm",
             "PVsyst",
