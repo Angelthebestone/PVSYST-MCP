@@ -8,6 +8,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **`gui_actuar` no longer answers success to a click that cannot land (4.1 of the exhaustive test report).**
+  `clic_fisico`, `clic_texto`, `fila` (and `activar`) restore a minimised window and bring it to the front
+  before acting, and fail with an error that names the window when `IsIconic` is still true; a physical
+  click on a window at (-32000, -32000) used to report success. Every refusal for a window a modal
+  dialog disables (`click`, `clic_fisico`, `clic_texto`, `fila`, `teclas`, `uia_invocar`, `escribir`, menus)
+  now says `modal: <class> <hwnd>` (`TDEMOForm`, `TMessageForm`, `TChoixObjetPVForm`, `TDatabaseForm`,
+  madExcept and standard dialogs alike), not only the class. Checked live on 8.1.8: a minimised `THomeForm`
+  and a minimised `TToolsForm` were restored and clicked, and `TDEMOForm` and `TDatabaseForm` were named.
+- **`click`, `clic_fisico` and `mensaje` by title or class refuse a name that several visible controls
+  share** and list them (`0x… (host class)`), instead of pressing whichever the enumeration listed first:
+  `ventana:"OK"` could press the OK of another window, and `ventana:"TPngBitBtn"` the first of 19. A hwnd,
+  a window name and a name with a single control resolve as before.
+- **`fila` says it only selects, and can open.** The answer carries `abierta:false`; `abrir:true`
+  (alias `confirmar:true`) presses Enter on the selected row and answers `abierta` with the windows it
+  opened or closed (`efecto`), plus a warning when nothing happened. Checked live: row 19 of
+  `TProjectLoadForm` with `abrir:true` closed the form and opened `TProjectForm`.
+- **`clic_texto` verifies its effect.** It compares the windows of the process and a capture of the
+  window before and after the click and answers `verificado` and `efecto`; a click that opened, closed
+  and repainted nothing answers `verificado:false` with a warning. Checked live: the text of a label
+  gave `verificado:false`, «Herramientas» gave `verificado:true` with `TToolsForm` opened.
+  Ceiling: whole-window pixel diff, so an animation reads as a change.
+- **`TProjectLoadForm`'s OK is not broken (4.1-11).** The click on its `TPngBitBtn` works (mouse
+  messages): it loads the project of the *selected* row, and with no row selected it closes the form
+  without loading, which is what typing a name in the search box and pressing OK did. Documented in the
+  `fila` description and READMEs; no mechanism change.
 - **A successful PVsystCLI run is no longer blamed for the crash of the command before it.** The crash detector read every Admin log modified in the 2 s before the run, so a `lic-info` that had just crashed made the next `convert-meteo` answer `success:true` with a `crash` field. It now looks only at logs created since the run started. Checked live while verifying BUG-07: with a deliberately invalid date, `convertir_meteo` reports `Invalid date Line` and `costo.ejecuciones:1`, and the documented Hawaii example converts and also costs 1.
 - **`sitio crear`, `sitio convertir_meteo`, `sitio meteo_pvgis` and `disenar_sistema` refuse a workspace PVsyst does not have configured (BUG-05, 07, 08)**: PVsystCLI `create-site` and `convert-meteo` crash with `Instruction privilégiée` on any workspace other than the `DataPath` of `PVsyst.ini`, the same cause as `simular ejecutar` (BUG-06). The check that `simular` already had is shared and runs before the NASA lookup, the PVGIS download and any file is written, dry runs included. Checked live: the same `sitio crear` crashed on a temporary workspace and created the site on the configured one.
 - **The server no longer needs PVsyst's windows to be in Spanish to press its own buttons.** The
@@ -33,6 +58,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   just because its children were not walked.
 
 ### Added
+- **`fila texto:"…"` verifies the row, not only its highlighted band.** The row is read by OCR (case,
+  accents and punctuation ignored) and a highlighted row holding another element is an error that says
+  what it holds. The answer carries `texto_verificado` and `texto_fila`. Checked live on the project tree:
+  row 19 with `texto:"QA41_A"` passed, row 12 with the same text was refused. OCR misreads some glyphs
+  («Oddand»): use a short distinctive text.
 - **`componente crear_desde_ficha` of a `.PAN` fills the module size (BUG-14)**: `components.panels`
   gains `longitud_mm`, `anchura_mm`, `espesor_mm` and `peso_kg` (page «Dimensiones y tecnología», anchors
   read live on PVsyst 8.1.8 with `gui_observar que:inventario`), saved by PVsyst as `Height`, `Width`,
