@@ -6,6 +6,9 @@
 //! `gui_actuar accion:menu`.
 
 use crate::adapters::gui::catalogo::dominio::{Efecto, Funcion, VENTANA_INICIO};
+use crate::adapters::gui::rotulos::pvsyst::{
+    BASES_DE_DATOS, INICIO_AISLADO, INICIO_BOMBEO, INICIO_RED,
+};
 
 const DISENO: &str = "TDimensForm";
 const PROYECTO: &str = "TProjectForm";
@@ -122,14 +125,11 @@ pub(super) const FUNCIONES: &[Funcion] = &[
         71,
     )
     .abre("TParamEditForm"),
-    Funcion::boton(
-        "inicio.conectado_a_la_red",
-        VENTANA_INICIO,
-        "Conectado a la red",
-    ),
-    Funcion::boton("inicio.independiente", VENTANA_INICIO, "Independiente"),
-    Funcion::boton("inicio.bombeo", VENTANA_INICIO, "Bombeo"),
-    Funcion::boton("inicio.bases_de_datos", VENTANA_INICIO, "Bases de datos").abre("TDatabaseForm"),
+    Funcion::boton_en_idiomas("inicio.conectado_a_la_red", VENTANA_INICIO, INICIO_RED),
+    Funcion::boton_en_idiomas("inicio.independiente", VENTANA_INICIO, INICIO_AISLADO),
+    Funcion::boton_en_idiomas("inicio.bombeo", VENTANA_INICIO, INICIO_BOMBEO),
+    Funcion::boton_en_idiomas("inicio.bases_de_datos", VENTANA_INICIO, BASES_DE_DATOS)
+        .abre("TDatabaseForm"),
     Funcion::boton("inicio.herramientas", VENTANA_INICIO, "Herramientas").abre("TToolsForm"),
     Funcion::boton("inicio.datos_medidos", VENTANA_INICIO, "Datos medidos").abre("TDamMainForm"),
     Funcion::boton("inicio.administrar_espacio", VENTANA_INICIO, "Administrar")

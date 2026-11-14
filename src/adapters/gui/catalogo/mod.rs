@@ -11,7 +11,7 @@ mod recurso;
 
 pub(crate) use abrir::abrir;
 pub(crate) use aplicacion::{listar, menu};
-pub(crate) use recurso::{como_recurso, mapa_de_ventanas};
+pub(crate) use recurso::{como_recurso, mapa_de_ventanas, EnEjecucion};
 
 /// Keys of the catalogue functions that open window class `clase`, in catalogue
 /// order. O(n) in the number of catalogued functions.

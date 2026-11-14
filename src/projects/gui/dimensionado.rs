@@ -3,14 +3,13 @@
 //! inverter count, and warns about the electrical window.
 
 use super::relleno::{rellenar, valor};
-use super::rotulos::{rotulos_dimensionado, RotulosDimensionado};
+use super::rotulos::FORMULARIO_SISTEMA;
 use super::{abrir_sesion, contar, objeto, ProyectoEnPvsyst};
-use crate::adapters::gui::rotulos::Idioma;
+use crate::adapters::gui::rotulos::dialogos::OK;
+use crate::adapters::gui::rotulos::pvsyst::SISTEMA as BOTON_SISTEMA;
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
-
-const ROTULOS: RotulosDimensionado = rotulos_dimensionado(Idioma::Es);
 
 /// The System window as the agent view describes it (`gui_observar que:esquema`).
 const SISTEMA: &str = "variante.system";
@@ -33,15 +32,15 @@ pub(crate) fn dimensionar(
                 "La variante tiene {subconjuntos} subconjuntos: el pre-dimensionado de PVsyst trabaja uno a uno; pasa n_mod_serie y n_strings"
             )));
         }
-        p.ventana.pulsar(ROTULOS.sistema)?;
-        let sistema = s.esperar(ROTULOS.formulario_sistema)?;
+        p.ventana.pulsar(BOTON_SISTEMA)?;
+        let sistema = s.esperar(FORMULARIO_SISTEMA)?;
         let pedido = json!({ "usar_potencia_planeada": true, "potencia_planeada_kwp": kwp });
         let formulario = rellenar(paths, &sistema, (SISTEMA, pedido))?;
         let propuesta = json!({
             "n_mod_serie": valor(&formulario, "n_modulos_serie"),
             "n_strings": valor(&formulario, "n_cadenas"),
         });
-        sistema.pulsar(ROTULOS.ok)?;
+        sistema.pulsar(OK)?;
         s.aceptar_mensajes();
         let raiz = p.guardar_variante()?;
         Ok(respuesta(&raiz, kwp, &propuesta, &s.mensajes()))

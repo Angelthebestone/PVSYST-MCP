@@ -10,6 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **A successful PVsystCLI run is no longer blamed for the crash of the command before it.** The crash detector read every Admin log modified in the 2 s before the run, so a `lic-info` that had just crashed made the next `convert-meteo` answer `success:true` with a `crash` field. It now looks only at logs created since the run started. Checked live while verifying BUG-07: with a deliberately invalid date, `convertir_meteo` reports `Invalid date Line` and `costo.ejecuciones:1`, and the documented Hawaii example converts and also costs 1.
 - **`sitio crear`, `sitio convertir_meteo`, `sitio meteo_pvgis` and `disenar_sistema` refuse a workspace PVsyst does not have configured (BUG-05, 07, 08)**: PVsystCLI `create-site` and `convert-meteo` crash with `Instruction privilégiée` on any workspace other than the `DataPath` of `PVsyst.ini`, the same cause as `simular ejecutar` (BUG-06). The check that `simular` already had is shared and runs before the NASA lookup, the PVGIS download and any file is written, dry runs included. Checked live: the same `sitio crear` crashed on a temporary workspace and created the site on the configured one.
+- **The server no longer needs PVsyst's windows to be in Spanish to press its own buttons.** The
+  captions the MCP's steps press (`OK`, `Cancelar`, `Cerrar`, `Guardar como`, `Bases de datos`,
+  `Sistema`, `Horizonte`, `Gestión de la energía`…) are one table in `adapters/gui/rotulos` with the
+  Spanish, English, French and German wording, and a button is found by its caption in any of them.
+  Only the Spanish wording was measured on a live PVsyst (8.1.8); English, French and German are
+  inferred and still to be measured. `proyecto p50_p90` no longer reads the tab caption or «Activo»:
+  it shows the page by index (the third, confirmed by a control only that page has, and searching the
+  other tabs if the order differs) and ticks the check box by class and position.
+- **Catalogued buttons are found by caption in any language they are known in**: `gui_observar que:funciones`
+  lists the wordings of such a button under `destino.titulos`; a button measured in Spanish only keeps
+  `destino.titulo` alone, and its not-found error says to read `que:idioma` and `que:inventario` and press
+  it by `hwnd`. A host window whose catalogue title differs from the one open (the component choosers
+  share a class and differ by a title PVsyst translates) is reported as open under another title, not
+  as closed.
 - **GUI inventories are not summarised to 13 items.** `que:inventario` and `que:elementos` cap
   themselves at 500 rows (`total` and `truncado` say what was left out) and their lists `controles`,
   `elementos` and `otros` are never cut by `detalle`. `que:controles` with `todos:true` keeps up to 500
@@ -27,6 +41,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   size is not defined: it vetoes the tab change); `Depth` and `Weight` are optional. Checked live on
   8.1.8 through `gui_actuar rellenar`, all four fields read back `ok`. The Comercial page has no
   required field. Fixture: `tests/fixtures/vista_agente/Modulo_con_dimensiones_8_1_8.PAN`.
+- **`docs/gui_mapa.json` separates structure from text.** Every page records `indice_pestana` (the
+  position of its tab in the page control, from 0), and the map's `nota` says that classes, field
+  classes and tab indexes hold in any PVsyst language while titles, tab names, labels and caption texts
+  are in the map's `idioma` (`es`). Per-control `ancla`, `rol` and UI Automation `patron` were not
+  measured and are listed under `limites`; they come from `que:inventario` on the open window.
+- **Label chain, as it stands.** A label is read from the control's own window text, then the name UI
+  Automation gives it, then the text of a window beside it, then the text UI Automation draws beside it
+  (`etiqueta_fuente`: `window_text`, `uia_name`); `que:formulario` adds the OCR reading. UI Automation
+  `LabeledBy` and MSAA `accName` are not read.
+- **`gui_observar que:idioma`** says the language PVsyst's own windows are written in: from the
+  captions of the open windows (they win: a language changed from the menu reaches the ini only when
+  PVsyst exits) and from `[Preferences] Dialog Language` of `PVsyst.ini`. It lists the languages the
+  server has captions for (`es`, `en`, `fr`, `de`) and the one measured on a live PVsyst (`es`), and
+  warns when the ini and the windows disagree, when PVsyst is in a language without captions, or when
+  its captions are inferred. It is not `PVSYST_MCP_IDIOMA`, which only changes the MCP's messages.
+- **`pvsyst://gui` compares languages, not only versions**: `metadatos.idioma_en_ejecucion` is the
+  language of the running PVsyst, and `aviso` says the texts of the map (titles, tabs, labels) will
+  not match when it differs from `idioma_medido`, while classes, tab indexes and positions still hold.
 - **`pvsyst://gui` describes its own map** in `metadatos`: `measured_on` (date of the last walk
   recorded in `docs/gui_mapa.json`), `pvsyst_version` it was measured on, `idioma_medido`,
   `windows_total`, `cobertura` (windows with fields mapped, controls without a handle, limits) and

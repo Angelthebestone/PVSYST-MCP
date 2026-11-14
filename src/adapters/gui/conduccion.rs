@@ -8,6 +8,7 @@
 
 use super::ffi::{self, Hwnd};
 use super::posicion;
+use super::rotulos::Rotulo;
 use super::sondeo::{esperar_mientras, sondear_hasta};
 use super::ventanas::{class_of, enum_windows_de, pid_of, rect_of, text_of, visible};
 use crate::error::{Error, Result};
@@ -102,10 +103,12 @@ impl Formulario {
             .filter(|c| visible(*c))
     }
 
-    /// The visible child whose caption is exactly `rotulo`. O(n) in the children.
-    pub(crate) fn hijo(&self, rotulo: &str) -> Result<Hwnd> {
+    /// The visible child whose caption is exactly `rotulo`, in any language the
+    /// caption is known in. O(n) in the children.
+    pub(crate) fn hijo<'r>(&self, rotulo: impl Into<Rotulo<'r>>) -> Result<Hwnd> {
+        let rotulo = rotulo.into();
         self.hijos_visibles()
-            .find(|c| text_of(*c) == rotulo)
+            .find(|c| rotulo.coincide(&text_of(*c)))
             .ok_or_else(|| {
                 Error::Gui(format!(
                     "'{rotulo}' is not in '{}' of PVsyst",
@@ -115,14 +118,14 @@ impl Formulario {
     }
 
     /// Whether the captioned control exists and is enabled.
-    pub(crate) fn habilitado(&self, rotulo: &str) -> bool {
+    pub(crate) fn habilitado<'r>(&self, rotulo: impl Into<Rotulo<'r>>) -> bool {
         self.hijo(rotulo)
             .is_ok_and(|c| ffi::estado_ventana(c).habilitada)
     }
 
     /// Clicks the button captioned `rotulo` with the mechanism its class needs
     /// (`BM_CLICK` for standard buttons, mouse messages for `TPngBitBtn`).
-    pub(crate) fn pulsar(&self, rotulo: &str) -> Result<()> {
+    pub(crate) fn pulsar<'r>(&self, rotulo: impl Into<Rotulo<'r>>) -> Result<()> {
         let b = self.hijo(rotulo)?;
         super::acciones::clic_por_mensajes(b)?;
         std::thread::sleep(PAUSA_ACCION);
@@ -131,7 +134,7 @@ impl Formulario {
 
     /// Clicks the radio button or check box captioned `rotulo` with the mouse,
     /// so the form runs the same handlers as for a user.
-    pub(crate) fn elegir(&self, rotulo: &str) -> Result<()> {
+    pub(crate) fn elegir<'r>(&self, rotulo: impl Into<Rotulo<'r>>) -> Result<()> {
         let c = self.hijo(rotulo)?;
         self.clic_en_control(c);
         Ok(())
@@ -238,14 +241,27 @@ impl Formulario {
         Ok(())
     }
 
+    fn control_de_paginas(&self) -> Result<Hwnd> {
+        self.hijos_visibles()
+            .find(|c| class_of(*c) == ffi::CLASE_PESTANAS)
+            .ok_or_else(|| Error::Gui(format!("'{}' has no tab pages", self.titulo())))
+    }
+
+    /// Number of tab pages of the form's (first) page control.
+    pub(crate) fn paginas(&self) -> Result<usize> {
+        ffi::paginas_de(self.control_de_paginas()?).ok_or_else(|| {
+            Error::Gui(format!(
+                "PVsyst did not say how many tab pages '{}' has",
+                self.titulo()
+            ))
+        })
+    }
+
     /// Shows tab page `indice` of the form's (first) page control. PVsyst may veto
     /// the change while the current page has invalid fields, so the selected tab
     /// is read back and a refusal is an error.
     pub(crate) fn pagina(&self, indice: usize) -> Result<()> {
-        let pc = self
-            .hijos_visibles()
-            .find(|c| class_of(*c) == ffi::CLASE_PESTANAS)
-            .ok_or_else(|| Error::Gui(format!("'{}' has no tab pages", self.titulo())))?;
+        let pc = self.control_de_paginas()?;
         let total = ffi::paginas_de(pc).unwrap_or(usize::MAX);
         ffi::exigir_indice_pagina(indice, total, &self.titulo())?;
         ffi::mostrar_pagina(pc, indice)?;

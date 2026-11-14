@@ -3,6 +3,7 @@
 
 use crate::adapters::gui::conduccion::{esperar, Formulario};
 use crate::adapters::gui::ffi::{self, Hwnd};
+use crate::adapters::gui::rotulos::dialogos::{CANCELAR, NO};
 use crate::adapters::gui::ventanas::{class_of, hwnd_de, rect_of, visible};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
@@ -26,14 +27,14 @@ pub(super) fn con_descarte<T>(dialogo: &Formulario, paso: impl FnOnce() -> Resul
 
 /// Best effort: the step error is what the caller reports.
 pub(super) fn descartar(dialogo: &Formulario) {
-    if dialogo.pulsar("Cancelar").is_err() {
+    if dialogo.pulsar(CANCELAR).is_err() {
         tracing::warn!(clase = %dialogo.clase(), "no se pudo cancelar el diálogo tras un fallo");
         return;
     }
     let Ok(pregunta) = esperar(dialogo.pid(), "TMessageForm", ESPERA_PREGUNTA) else {
         return;
     };
-    if let Err(error) = pregunta.pulsar("No") {
+    if let Err(error) = pregunta.pulsar(NO) {
         tracing::warn!(%error, "no se pudo responder «No» a «¿conservar modificaciones?» tras un fallo");
     }
 }

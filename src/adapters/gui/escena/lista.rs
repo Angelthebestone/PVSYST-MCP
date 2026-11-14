@@ -5,6 +5,7 @@
 use super::pasos::{abrir, escribir, hijo_n, hijos, ventana};
 use crate::adapters::gui::conduccion::Formulario;
 use crate::adapters::gui::ffi::{self, Hwnd};
+use crate::adapters::gui::rotulos::dialogos::CERRAR;
 use crate::adapters::gui::sondeo::sondear_hasta;
 use crate::adapters::gui::ventanas::rect_of;
 use crate::error::{Error, Result};
@@ -39,7 +40,7 @@ pub(super) fn fijar(objetos: &[ObjetoPedido], primera: usize) -> Result<()> {
         .iter()
         .enumerate()
         .try_for_each(|(i, o)| fijar_objeto(&lista, primera + i, o));
-    let cierre = lista.pulsar("Cerrar");
+    let cierre = lista.pulsar(CERRAR);
     resultado.and(cierre)
 }
 

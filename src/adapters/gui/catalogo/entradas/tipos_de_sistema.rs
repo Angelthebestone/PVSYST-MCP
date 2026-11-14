@@ -4,6 +4,7 @@
 //! on the PVsyst demo projects.
 
 use crate::adapters::gui::catalogo::dominio::Funcion;
+use crate::adapters::gui::rotulos::pvsyst::SISTEMA;
 
 const HOST: &str = "TProjectForm";
 
@@ -18,13 +19,13 @@ pub(super) const FUNCIONES: &[Funcion] = &[
     Funcion::boton("variante.necesidades_agua", HOST, "Necesidades de agua")
         .abre("TWaterUseForm")
         .nota("requiere un proyecto de tipo sistema de bombeo abierto"),
-    Funcion::boton("variante.sistema_independiente", HOST, "Sistema")
+    Funcion::boton_en_idiomas("variante.sistema_independiente", HOST, SISTEMA)
         .abre("TSystemeBattForm")
         .nota("requiere un proyecto de tipo sistema independiente abierto"),
-    Funcion::boton("variante.sistema_bombeo", HOST, "Sistema")
+    Funcion::boton_en_idiomas("variante.sistema_bombeo", HOST, SISTEMA)
         .abre("TSystemPumpingForm")
         .nota("requiere un proyecto de tipo sistema de bombeo abierto"),
-    Funcion::boton("variante.sistema_red_cc", HOST, "Sistema")
+    Funcion::boton_en_idiomas("variante.sistema_red_cc", HOST, SISTEMA)
         .abre("TSystemegridDCForm")
         .nota("requiere un proyecto de tipo sistema de red CC abierto"),
 ];

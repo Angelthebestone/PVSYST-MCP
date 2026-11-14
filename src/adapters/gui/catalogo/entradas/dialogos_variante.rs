@@ -4,6 +4,7 @@
 //! ones that opened nothing say why in `nota`.
 
 use crate::adapters::gui::catalogo::dominio::Funcion;
+use crate::adapters::gui::rotulos::pvsyst::LEER_IMPORTAR;
 
 pub(super) const FUNCIONES: &[Funcion] = &[
     Funcion::boton("variante.orientacion.detalles_y_grafico", "TOrientationForm", "Detalles y gráfico")
@@ -53,7 +54,7 @@ pub(super) const FUNCIONES: &[Funcion] = &[
     Funcion::boton("variante.autoconsumo.carga", "TUserNeedsForm", "Carga")
         .abre("TChoixObjetPVForm")
         .requiere("variante.autoconsumo"),
-    Funcion::boton("variante.horizonte.leer_importar", "THorizonForm", "Leer / Importar")
+    Funcion::boton_en_idiomas("variante.horizonte.leer_importar", "THorizonForm", LEER_IMPORTAR)
         .abre("TImportHorizonForm")
         .requiere("variante.horizonte")
         .en_pagina(0),

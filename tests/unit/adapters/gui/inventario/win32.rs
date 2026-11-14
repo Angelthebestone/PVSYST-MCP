@@ -28,7 +28,22 @@ fn por_clase<'a>(respuesta: &'a Value, clase: &str) -> Vec<&'a Value> {
         .collect()
 }
 
-const PAGINA_P50: &str = "Estimación P50 - P90";
+/// The three tabs of the energy window as PVsyst writes them in each language:
+/// the structure is the same, only the texts change.
+const PAGINAS_POR_IDIOMA: [[&str; 3]; 4] = [
+    [
+        "Conexión a la red",
+        "Estimación P50 - P90",
+        "Parámetros heredados",
+    ],
+    ["Grid connection", "P50 - P90 estimate", "Legacy parameters"],
+    [
+        "Connexion au réseau",
+        "Estimation P50 - P90",
+        "Paramètres hérités",
+    ],
+    ["Netzanschluss", "P50 - P90 Schätzung", "Geerbte Parameter"],
+];
 const PAGINA: (i32, i32, i32, i32) = (0, 20, 780, 560);
 
 /// A page of the page control (window 1) with the caption it shows on its tab.
@@ -38,12 +53,13 @@ fn pagina(texto: &'static str) -> Hijo {
 
 /// `TSystemeAddForm` with the P50-P90 page hidden behind the shown one: the 21
 /// check boxes and edits of that page, read without switching to it.
-fn formulario_p50() -> VentanaFalsa {
+fn formulario_p50(nombres: [&'static str; 3]) -> VentanaFalsa {
+    let [conexion, p50, heredados] = nombres;
     let mut hijos = vec![
         Hijo::de("TPageControl", (0, 0, 780, 560)),
-        pagina("Conexión a la red"),
-        pagina(PAGINA_P50).oculto(),
-        pagina("Parámetros heredados").oculto(),
+        pagina(conexion),
+        pagina(p50).oculto(),
+        pagina(heredados).oculto(),
         Hijo::de("TComboBox", (20, 40, 200, 60)).en(2),
     ];
     for fila in 0..11 {
@@ -59,41 +75,48 @@ fn formulario_p50() -> VentanaFalsa {
     VentanaFalsa::crear("TSystemeAddForm", "Gestión de la energía", hijos)
 }
 
+/// The P50-P90 page is found by what it holds, whatever language its tabs are
+/// written in: the 21 check boxes and edits come with the page they sit on.
 #[test]
 fn should_list_the_controls_of_a_tab_that_is_not_shown_without_switching_to_it() {
-    let form = formulario_p50();
+    for nombres in PAGINAS_POR_IDIOMA {
+        let form = formulario_p50(nombres);
 
-    let respuesta = inventario(&form, &json!({}));
+        let respuesta = inventario(&form, &json!({}));
 
-    let casillas = por_clase(&respuesta, "TCheckBox");
-    let edits = por_clase(&respuesta, "TEdit");
-    assert_eq!((casillas.len(), edits.len()), (11, 10));
-    for c in casillas.iter().chain(&edits) {
-        assert_eq!(c["pestana"], PAGINA_P50);
-        assert_eq!(c["visible"], false);
-        assert_eq!(c["parent"], form.referencia(3));
-        assert!(c["hwnd"].is_string() && c["rect"]["right"].as_i64() > c["rect"]["left"].as_i64());
+        let casillas = por_clase(&respuesta, "TCheckBox");
+        let edits = por_clase(&respuesta, "TEdit");
+        assert_eq!((casillas.len(), edits.len()), (11, 10), "{nombres:?}");
+        for c in casillas.iter().chain(&edits) {
+            assert_eq!(c["pestana"], nombres[1]);
+            assert_eq!(c["visible"], false);
+            assert_eq!(c["parent"], form.referencia(3));
+            assert!(
+                c["hwnd"].is_string() && c["rect"]["right"].as_i64() > c["rect"]["left"].as_i64()
+            );
+        }
+        let pagina = respuesta["pestanas"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|p| p["hwnd"] == form.referencia(3))
+            .unwrap();
+        assert_eq!(pagina["nombre"], nombres[1]);
+        assert_eq!(pagina["controles"].as_array().unwrap().len(), 21);
+        assert_eq!(pagina["seleccionada"], false);
+        assert_eq!(respuesta["truncado"], false);
+        // Only the shown controls when asked: the combo of the first page.
+        let visibles = inventario(&form, &json!({ "todos": false }));
+        assert!(por_clase(&visibles, "TCheckBox").is_empty());
+        assert_eq!(por_clase(&visibles, "TComboBox").len(), 1);
     }
-    let pagina = respuesta["pestanas"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|p| p["nombre"] == PAGINA_P50)
-        .unwrap();
-    assert_eq!(pagina["controles"].as_array().unwrap().len(), 21);
-    assert_eq!(pagina["seleccionada"], false);
-    assert_eq!(respuesta["truncado"], false);
-    // Only the shown controls when asked: the combo of the first page.
-    let visibles = inventario(&form, &json!({ "todos": false }));
-    assert!(por_clase(&visibles, "TCheckBox").is_empty());
-    assert_eq!(por_clase(&visibles, "TComboBox").len(), 1);
 }
 
 /// UI Automation is on by default: its reading adds the `fuente` of every row
 /// and never replaces the Win32 list, so the hidden controls are all still there.
 #[test]
 fn should_keep_the_hidden_controls_when_ui_automation_is_read_too() {
-    let form = formulario_p50();
+    let form = formulario_p50(PAGINAS_POR_IDIOMA[0]);
     let paths = Paths::para_test(std::env::temp_dir());
     let args =
         json!({ "que": "inventario", "ventana": form.referencia(0), "pids": [std::process::id()] });
@@ -151,35 +174,45 @@ fn should_list_the_dimension_controls_of_a_module_form_that_no_schema_maps() {
     assert_eq!(panel[0]["visible"], false);
 }
 
+/// «Núm. de inversores» three times on the system form: in any language the three
+/// carry the same label, and class, index and handle are what tell them apart.
 #[test]
 fn should_tell_three_fields_with_the_same_label_apart_by_class_index_and_handle() {
-    let mut hijos = Vec::new();
-    for fila in 0..3 {
-        let arriba = 40 + fila * 30;
-        let rotulo = Hijo::de("TStaticText", (10, arriba, 140, arriba + 20));
-        hijos.push(rotulo.con_texto("Núm. de inversores"));
-        hijos.push(Hijo::de("TEdit", (150, arriba, 220, arriba + 20)).con_texto("1"));
+    let etiquetas = [
+        "Núm. de inversores",
+        "No. of inverters",
+        "Nb. d'onduleurs",
+        "Anzahl Wechselrichter",
+    ];
+    for etiqueta in etiquetas {
+        let mut hijos = Vec::new();
+        for fila in 0..3 {
+            let arriba = 40 + fila * 30;
+            let rotulo = Hijo::de("TStaticText", (10, arriba, 140, arriba + 20));
+            hijos.push(rotulo.con_texto(etiqueta));
+            hijos.push(Hijo::de("TEdit", (150, arriba, 220, arriba + 20)).con_texto("1"));
+        }
+        let form = VentanaFalsa::crear("TSystemegridForm", "Sistema", hijos);
+
+        let respuesta = inventario(&form, &json!({}));
+
+        let edits = por_clase(&respuesta, "TEdit");
+        assert_eq!(edits.len(), 3, "{etiqueta}");
+        assert!(edits.iter().all(|c| c["etiqueta"] == etiqueta));
+        assert!(edits.iter().all(|c| c["etiqueta_fuente"] == "window_text"));
+        let mut indices: Vec<_> = edits
+            .iter()
+            .map(|c| c["indice_clase"].as_u64().unwrap())
+            .collect();
+        indices.sort_unstable();
+        assert_eq!(indices, [0, 1, 2]);
+        let mut hwnds: Vec<_> = edits.iter().map(|c| c["hwnd"].as_str().unwrap()).collect();
+        hwnds.dedup();
+        assert_eq!(hwnds.len(), 3);
+        let alturas: Vec<_> = edits
+            .iter()
+            .map(|c| c["campo"]["y"].as_i64().unwrap())
+            .collect();
+        assert!(alturas.windows(2).all(|p| p[0] != p[1]));
     }
-    let form = VentanaFalsa::crear("TSystemegridForm", "Sistema", hijos);
-
-    let respuesta = inventario(&form, &json!({}));
-
-    let edits = por_clase(&respuesta, "TEdit");
-    assert_eq!(edits.len(), 3);
-    assert!(edits.iter().all(|c| c["etiqueta"] == "Núm. de inversores"));
-    assert!(edits.iter().all(|c| c["etiqueta_fuente"] == "window_text"));
-    let mut indices: Vec<_> = edits
-        .iter()
-        .map(|c| c["indice_clase"].as_u64().unwrap())
-        .collect();
-    indices.sort_unstable();
-    assert_eq!(indices, [0, 1, 2]);
-    let mut hwnds: Vec<_> = edits.iter().map(|c| c["hwnd"].as_str().unwrap()).collect();
-    hwnds.dedup();
-    assert_eq!(hwnds.len(), 3);
-    let alturas: Vec<_> = edits
-        .iter()
-        .map(|c| c["campo"]["y"].as_i64().unwrap())
-        .collect();
-    assert!(alturas.windows(2).all(|p| p[0] != p[1]));
 }

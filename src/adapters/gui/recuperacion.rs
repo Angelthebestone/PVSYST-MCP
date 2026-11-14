@@ -9,7 +9,8 @@ use super::ffi::{self, pids_de_ejecutable, Hwnd};
 use super::ocr::captura_ocr::lineas_vivas;
 use super::ocr::ubicacion::plegar;
 use super::proceso::lanzar;
-use super::rotulos::{rotulos_recuperacion, Idioma, RotulosRecuperacion};
+use super::rotulos::dialogos::{AVISO_INESTABLE, NO, REINICIAR};
+use super::rotulos::Rotulo;
 use super::sondeo::{esperar_mientras, sondear_hasta};
 use super::ventanas::{class_of, hijo_visible_con_texto, target_pids};
 use crate::error::{Error, Result};
@@ -18,7 +19,6 @@ use std::time::Duration;
 
 const INICIO: &str = "THomeForm";
 const EJECUTABLE: &str = "PVsyst.exe";
-const ROTULOS: RotulosRecuperacion = rotulos_recuperacion(Idioma::Es);
 const ESPERA_SALIDA: Duration = Duration::from_secs(20);
 /// Time a forced kill gets to take effect before the process counts as alive.
 const ESPERA_TRAS_KILL: Duration = Duration::from_secs(5);
@@ -34,10 +34,10 @@ enum Fallo {
 }
 
 fn es_aviso_inestable(ventana: Hwnd) -> bool {
-    hijo_visible_con_texto(ventana, ROTULOS.boton_salir).is_some()
+    hijo_visible_con_texto(ventana, NO).is_some()
         && lineas_vivas(ventana).is_ok_and(|lineas| {
             let texto = plegar(&lineas.iter().map(|l| l.texto.as_str()).collect::<String>());
-            ROTULOS.aviso_inestable.iter().any(|p| texto.contains(p))
+            AVISO_INESTABLE.iter().any(|p| texto.contains(p))
         })
 }
 
@@ -82,7 +82,7 @@ fn nueva_instancia(anterior: u32) -> Reaparicion {
     .unwrap_or_else(|| nuevo.map_or(Reaparicion::Ninguna, Reaparicion::SinInicio))
 }
 
-fn pulsar(ventana: Hwnd, rotulo: &str) -> Result<()> {
+fn pulsar(ventana: Hwnd, rotulo: Rotulo<'_>) -> Result<()> {
     let boton = hijo_visible_con_texto(ventana, rotulo)
         .ok_or_else(|| Error::Gui(format!("The failure dialog has no '{rotulo}' button")))?;
     clic_por_mensajes(boton)
@@ -96,11 +96,11 @@ struct Salida {
 
 fn salir_del_fallo(fallo: &Fallo) -> Result<Salida> {
     match *fallo {
-        Fallo::Excepcion(h) => pulsar(h, ROTULOS.boton_reiniciar).map(|()| Salida {
+        Fallo::Excepcion(h) => pulsar(h, REINICIAR).map(|()| Salida {
             via: "madExcept",
             pvsyst_se_reinicia: true,
         }),
-        Fallo::Inestable(h) => pulsar(h, ROTULOS.boton_salir).map(|()| Salida {
+        Fallo::Inestable(h) => pulsar(h, NO).map(|()| Salida {
             via: "aviso_inestable",
             pvsyst_se_reinicia: false,
         }),

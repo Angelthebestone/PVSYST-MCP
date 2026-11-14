@@ -143,6 +143,7 @@
             "form": "formulario",
             "functions": "funciones",
             "inventory": "inventario",
+            "language": "idioma",
             "messages": "mensajes",
             "read": "leer",
             "schema": "esquema",

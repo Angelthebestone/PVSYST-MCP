@@ -1,5 +1,6 @@
 use super::dominio::{buscar, Acceso};
 use super::entradas::funciones;
+use super::recurso::EnEjecucion;
 use crate::idioma::Idioma;
 use std::collections::HashSet;
 use std::path::Path;
@@ -69,8 +70,7 @@ fn should_reach_every_host_window_without_cycles_when_functions_require_a_parent
 
 #[test]
 fn should_carry_no_user_paths_or_project_names_when_the_window_map_is_published() {
-    let mapa = super::recurso::como_recurso(std::path::Path::new(""), Idioma::default())["mapa"]
-        .to_string();
+    let mapa = super::recurso::como_recurso(&vivo("", None), Idioma::default())["mapa"].to_string();
 
     for patron_prohibido in ["C:\\\\Users", "\\\\Users\\\\", "/Users/", "/home/", "MCP_"] {
         assert!(
@@ -84,17 +84,24 @@ fn should_carry_no_user_paths_or_project_names_when_the_window_map_is_published(
     );
 }
 
+fn vivo<'a>(gui_exe: &'a str, idioma_gui: Option<&'a str>) -> EnEjecucion<'a> {
+    EnEjecucion {
+        gui_exe: Path::new(gui_exe),
+        idioma_gui,
+    }
+}
+
 /// The map is a snapshot: it says when and on which version it was measured, how
 /// much it covers, and warns when the PVsyst the server drives is another one.
 #[test]
 fn should_describe_the_map_and_warn_when_the_running_version_differs() {
     let mapa = super::recurso::mapa_de_ventanas();
     let medida = super::recurso::como_recurso(
-        Path::new(r"C:\Program Files\PVsyst8.1.8\PVsyst.exe"),
+        &vivo(r"C:\Program Files\PVsyst8.1.8\PVsyst.exe", None),
         Idioma::En,
     );
     let otra = super::recurso::como_recurso(
-        Path::new(r"C:\Program Files\PVsyst8.2.0\PVsyst.exe"),
+        &vivo(r"C:\Program Files\PVsyst8.2.0\PVsyst.exe", None),
         Idioma::En,
     );
 
@@ -112,4 +119,110 @@ fn should_describe_the_map_and_warn_when_the_running_version_differs() {
         aviso.contains("8.2.0") && aviso.contains("8.1.8"),
         "{aviso}"
     );
+}
+
+/// The map's texts are in the language it was measured in: a PVsyst running in
+/// another one is told so, and the same language is not.
+#[test]
+fn should_warn_when_the_running_pvsyst_speaks_another_language_than_the_map() {
+    let exe = r"C:\Program Files\PVsyst8.1.8\PVsyst.exe";
+    let mapa = super::recurso::mapa_de_ventanas();
+    let medido = mapa["idioma"].as_str().unwrap();
+
+    let igual = super::recurso::como_recurso(&vivo(exe, Some(medido)), Idioma::En);
+    let ingles = super::recurso::como_recurso(&vivo(exe, Some("en")), Idioma::En);
+    let italiano = super::recurso::como_recurso(&vivo(exe, Some("Italian")), Idioma::Es);
+
+    assert_eq!(igual["metadatos"]["aviso"], serde_json::Value::Null);
+    assert_eq!(ingles["metadatos"]["idioma_en_ejecucion"], "en");
+    let aviso = ingles["metadatos"]["aviso"].as_str().unwrap();
+    assert!(
+        aviso.contains("'en'") && aviso.contains(&format!("'{medido}'")),
+        "{aviso}"
+    );
+    let aviso = italiano["metadatos"]["aviso"].as_str().unwrap();
+    assert!(
+        aviso.contains("'Italian'") && aviso.contains("estructural"),
+        "{aviso}"
+    );
+}
+
+/// A button of the catalogue is found by its caption in any language it is known
+/// in; one measured in Spanish only says so, and the agent presses it by `hwnd`.
+#[test]
+fn should_press_a_catalogued_button_by_its_caption_in_any_language_it_is_known_in() {
+    let traducida = buscar(funciones(), "variante.gestion_energia")[0];
+    let solo_es = buscar(funciones(), "variante.orientacion")[0];
+
+    let Acceso::Boton { titulo } = traducida.acceso else {
+        panic!("variante.gestion_energia is a button");
+    };
+
+    for texto in ["Gestión de la energía", "Energy management"] {
+        assert!(titulo.coincide(texto), "{texto}");
+    }
+    assert_eq!(
+        traducida.a_json()["destino"]["titulos"]["en"],
+        "Energy management"
+    );
+    assert_eq!(solo_es.a_json()["destino"]["titulo"], "Orientación");
+    assert_eq!(
+        solo_es.a_json()["destino"]["titulos"],
+        serde_json::Value::Null
+    );
+}
+
+/// The component choosers share a class and differ by a title PVsyst writes in its
+/// own language: a chooser open under another title is not reported as "not open".
+#[test]
+fn should_say_the_title_is_language_dependent_when_the_host_is_open_under_another_one() {
+    use crate::adapters::gui::ventana_falsa::VentanaFalsa;
+
+    let abierta = VentanaFalsa::crear("TChoixObjetPVForm", "Choosing a PV module", Vec::new());
+
+    let con_otro_titulo = super::abrir::sin_ventana(
+        Idioma::En,
+        ("TChoixObjetPVForm", Some("Eligiendo un módulo FV")),
+        &[abierta.hwnd(0)],
+    );
+    let cerrada = super::abrir::sin_ventana(Idioma::En, ("TChoixObjetPVForm", None), &[]);
+
+    let texto = con_otro_titulo.to_string();
+    assert!(
+        texto.contains("Choosing a PV module") && texto.contains("Eligiendo un módulo FV"),
+        "{texto}"
+    );
+    assert!(texto.contains("que:idioma"), "{texto}");
+    assert!(cerrada.to_string().contains("is not open"), "{cerrada}");
+}
+
+/// What is stable across PVsyst languages is recorded as structure: every page of
+/// the map says the position of its tab, so a caller never needs the tab's name.
+#[test]
+fn should_record_the_tab_index_of_every_page_of_the_window_map() {
+    let mapa = super::recurso::mapa_de_ventanas();
+    let instancias = mapa["ventanas"]
+        .as_object()
+        .unwrap()
+        .iter()
+        .flat_map(|(clase, v)| {
+            v["instancias"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(move |i| (clase, i))
+        });
+    let mut paginas = 0;
+
+    for (clase, instancia) in instancias {
+        let nombres = instancia["pestanas"].as_array().unwrap();
+        for pagina in instancia["paginas"].as_array().unwrap() {
+            let esperado = nombres.iter().position(|n| *n == pagina["pestana"]);
+            let registrado = pagina["indice_pestana"].as_u64().map(|i| i as usize);
+            assert_eq!(registrado, esperado, "{clase}: {}", pagina["pestana"]);
+            paginas += 1;
+        }
+    }
+    assert!(paginas > 0);
+    assert!(mapa["nota"].as_str().unwrap().contains("indice_pestana"));
 }

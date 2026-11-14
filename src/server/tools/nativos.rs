@@ -5,6 +5,7 @@ use crate::adapters::{cli, gui};
 use crate::args::flag;
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::prefs;
 use crate::progreso::SeguimientoTarea;
 use crate::projects::gui::lanzar;
 use crate::vista_agente;
@@ -100,6 +101,7 @@ pub(crate) const TOOL_GUI_OBSERVAR: Herramienta = Herramienta {
             "mensajes",
             "funciones",
             "menus",
+            "idioma",
         ],
     }),
     requeridos_por_accion: &[],
@@ -132,6 +134,7 @@ const SINONIMOS_GUI_OBSERVAR: Sinonimos = Sinonimos {
         ("schema", "esquema"),
         ("messages", "mensajes"),
         ("functions", "funciones"),
+        ("language", "idioma"),
     ],
 };
 
@@ -257,6 +260,8 @@ fn ejecutar_observar(paths: &Paths, args: &Value) -> Result<Value> {
     match args.get("que").and_then(Value::as_str) {
         Some("vista") => vista_agente::vista(paths, args),
         Some("esquema") => vista_agente::listar_esquemas(args),
+        // The language of PVsyst's windows is read from its ini and its open windows.
+        Some("idioma") => prefs::idioma_gui::observar(paths),
         _ => gui::observar(paths, args),
     }
 }

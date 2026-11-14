@@ -1,6 +1,7 @@
 //! What the catalogue says about each PVsyst function: how to open it, what it
 //! does to the user's data and which window it is expected to show.
 
+use crate::adapters::gui::rotulos::Rotulo;
 use crate::args::opt_u32;
 use crate::error::{Error, Result};
 use crate::idioma::{Idioma, Texto};
@@ -19,8 +20,9 @@ pub(crate) enum Acceso {
     /// ids of a secondary form's menu change with the instance, so its id is
     /// read from the open popup at run time (`gui_observar que:menus`).
     MenuPosicion { menu: u8, item: u8 },
-    /// Button of the host form, identified by its caption in the Spanish interface.
-    Boton { titulo: &'static str },
+    /// Button of the host form, identified by its caption: in any language the
+    /// caption is known in, and in Spanish alone when it was only measured there.
+    Boton { titulo: Rotulo<'static> },
 }
 
 /// What invoking the function can do beyond opening a window.
@@ -104,13 +106,24 @@ impl Funcion {
         Self::nueva(clave, etiqueta, Acceso::MenuPosicion { menu, item })
     }
 
-    /// Button of `ventana` whose caption is `titulo`.
+    /// Button of `ventana` whose caption was measured in Spanish only: a PVsyst
+    /// in another language does not find it by caption (`que:inventario` and a
+    /// click by `hwnd` still reach it).
     pub(crate) const fn boton(
         clave: &'static str,
         ventana: &'static str,
         titulo: &'static str,
     ) -> Self {
-        Self::nueva(clave, titulo, Acceso::Boton { titulo }).en(ventana)
+        Self::boton_en_idiomas(clave, ventana, Rotulo::igual(titulo))
+    }
+
+    /// Button of `ventana` whose caption is `titulo` in each language it is known in.
+    pub(crate) const fn boton_en_idiomas(
+        clave: &'static str,
+        ventana: &'static str,
+        titulo: Rotulo<'static>,
+    ) -> Self {
+        Self::nueva(clave, titulo.es, Acceso::Boton { titulo }).en(ventana)
     }
     /// Records the class of the window the function was seen to open.
     pub(crate) const fn abre(mut self, clase: &'static str) -> Self {
@@ -162,7 +175,10 @@ impl Funcion {
             Acceso::MenuPosicion { menu, item } => {
                 ("menu_posicion", json!({ "menu": menu, "item": item }))
             }
-            Acceso::Boton { titulo } => ("boton", json!({ "titulo": titulo })),
+            Acceso::Boton { titulo } => (
+                "boton",
+                json!({ "titulo": titulo.es, "titulos": titulo.por_idioma() }),
+            ),
         };
         json!({
             "clave": self.clave,
