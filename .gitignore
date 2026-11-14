@@ -27,3 +27,17 @@ CLAUDE.md
 /npm/vendor/
 /npm/LICENSE
 /npm/NOTICE
+# Test reports, reviews and analyses: kept on disk, never committed.
+/INFORME_*.md
+docs/INFORME_*
+docs/ERRORES_*
+docs/HALLAZGOS_*
+docs/REVISION_*
+docs/capturas_*/
+# Agent and QA working folders: local only.
+.qa/
+.t3/
+.codex/
+.cursor/
+.gemini/
+.aider*
