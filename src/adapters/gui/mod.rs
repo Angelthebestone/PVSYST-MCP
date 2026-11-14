@@ -165,7 +165,7 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
             acciones::invocar(args, paths.idioma)
         }
         "teclas" => teclado::teclas(args, paths.idioma),
-        "fila" => fila::fila(args),
+        "fila" => fila::fila(args, paths.idioma),
         "funcion" => catalogo::abrir(args),
         "menu" => catalogo::menu(args),
         "escena" if flag(args, &["simular"]) => crate::escena_3d::pedir_escena(args),

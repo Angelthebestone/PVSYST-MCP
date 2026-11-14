@@ -94,6 +94,7 @@ fn cargar(sesion: &Sesion, proyecto: &Formulario, prj: &str) -> Result<()> {
     let arbol = lista.unico("TVirtualStringTree")?;
     crate::adapters::gui::fila::fila(
         &json!({ "ventana": format!("0x{arbol:X}"), "indice": PRIMERA_FILA }),
+        crate::idioma::Idioma::de_entorno(),
     )?;
     lista.pulsar(OK)?;
     sesion.aceptar_mensajes();
