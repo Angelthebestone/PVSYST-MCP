@@ -195,3 +195,34 @@ fn should_say_the_title_is_language_dependent_when_the_host_is_open_under_anothe
     assert!(texto.contains("que:idioma"), "{texto}");
     assert!(cerrada.to_string().contains("is not open"), "{cerrada}");
 }
+
+/// What is stable across PVsyst languages is recorded as structure: every page of
+/// the map says the position of its tab, so a caller never needs the tab's name.
+#[test]
+fn should_record_the_tab_index_of_every_page_of_the_window_map() {
+    let mapa = super::recurso::mapa_de_ventanas();
+    let instancias = mapa["ventanas"]
+        .as_object()
+        .unwrap()
+        .iter()
+        .flat_map(|(clase, v)| {
+            v["instancias"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(move |i| (clase, i))
+        });
+    let mut paginas = 0;
+
+    for (clase, instancia) in instancias {
+        let nombres = instancia["pestanas"].as_array().unwrap();
+        for pagina in instancia["paginas"].as_array().unwrap() {
+            let esperado = nombres.iter().position(|n| *n == pagina["pestana"]);
+            let registrado = pagina["indice_pestana"].as_u64().map(|i| i as usize);
+            assert_eq!(registrado, esperado, "{clase}: {}", pagina["pestana"]);
+            paginas += 1;
+        }
+    }
+    assert!(paginas > 0);
+    assert!(mapa["nota"].as_str().unwrap().contains("indice_pestana"));
+}

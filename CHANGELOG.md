@@ -31,6 +31,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   just because its children were not walked.
 
 ### Added
+- **`docs/gui_mapa.json` separates structure from text.** Every page records `indice_pestana` (the
+  position of its tab in the page control, from 0), and the map's `nota` says that classes, field
+  classes and tab indexes hold in any PVsyst language while titles, tab names, labels and caption texts
+  are in the map's `idioma` (`es`). Per-control `ancla`, `rol` and UI Automation `patron` were not
+  measured and are listed under `limites`; they come from `que:inventario` on the open window.
+- **Label chain, as it stands.** A label is read from the control's own window text, then the name UI
+  Automation gives it, then the text of a window beside it, then the text UI Automation draws beside it
+  (`etiqueta_fuente`: `window_text`, `uia_name`); `que:formulario` adds the OCR reading. UI Automation
+  `LabeledBy` and MSAA `accName` are not read.
 - **`gui_observar que:idioma`** says the language PVsyst's own windows are written in: from the
   captions of the open windows (they win: a language changed from the menu reaches the ini only when
   PVsyst exits) and from `[Preferences] Dialog Language` of `PVsyst.ini`. It lists the languages the
