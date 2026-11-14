@@ -199,6 +199,7 @@ pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
         ("pagina", &["indice"]),
         ("fila", &["ventana", "indice"]),
         ("esperar_cierre", &["ventana"]),
+        ("uia_invocar", &["ventana", "operacion"]),
         ("funcion", &["funcion"]),
         ("menu", &["ventana"]),
         ("campo", &["etiqueta", "valor"]),

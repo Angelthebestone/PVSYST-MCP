@@ -26,3 +26,28 @@ fn should_reject_a_string_when_the_property_is_boolean() {
         "error must name the property, expected type and received type: {msg}"
     );
 }
+
+/// `tools/list` and the boundary check agree on what `menu` and `uia_invocar` need.
+#[test]
+fn should_require_an_id_or_a_menu_and_item_for_the_menu_action() {
+    let paths = Paths::para_test(std::env::temp_dir());
+    let err = call(
+        &paths,
+        "gui_actuar",
+        &json!({ "accion": "menu", "ventana": "THomeForm" }),
+    )
+    .expect_err("menu without id or position");
+    let msg = err.to_string();
+    assert!(
+        msg.contains("id") && msg.contains("menu") && msg.contains("item"),
+        "{msg}"
+    );
+
+    let err = call(
+        &paths,
+        "gui_actuar",
+        &json!({ "accion": "uia_invocar", "ventana": "THomeForm" }),
+    )
+    .expect_err("uia_invocar without operacion");
+    assert!(err.to_string().contains("operacion"), "{err}");
+}

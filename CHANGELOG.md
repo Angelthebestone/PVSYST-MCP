@@ -87,6 +87,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Contract, size measurements and the tool × action matrix: `docs/vista_agente_salidas.md`.
 
 ### Fixed
+- More findings of the same QA round:
+  - **BUG-19**: `gui_actuar accion:campo` takes `indice` (from 0, top to bottom) and `clase` to pick one
+    of several fields that share a label (the three «Núm. de inversores»); the error for an ambiguous
+    label now says so.
+  - **BUG-15**: `uia_invocar` refuses a form that a modal dialog disables and names the dialog, instead of
+    waiting 10 s and answering about another window (`paso` is unchanged: it can target the modal).
+  - **BUG-17**: `entorno licencia` asks `lic-info` once more when PVsystCLI answers it with nothing.
+  - **BUG-20 and the GUI rows of BUG-12**: the schema of `gui_actuar` lists what `menu` needs (`id`, or
+    `menu` and `item`) and that `uia_invocar` needs `ventana` and `operacion`.
 - Four findings of the exhaustive QA of 2026-11-11 (`docs/INFORME_PRUEBAS_EXHAUSTIVAS_2026-11-11.md`):
   - **BUG-22**: `proyecto p50_p90` lists its ten stored fields in `vista.campos`; a nested object of up to
     ten scalars is a group of values (the twelve months of a year stay a table).

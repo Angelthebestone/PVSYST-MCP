@@ -4,6 +4,7 @@
 use super::acciones::escritorio_interactivo;
 use super::esperas::{esperar_ventana, EsperarParams};
 use super::ffi::{self, Hwnd, BM_CLICK};
+use super::modal;
 use super::teclado::teclas;
 use super::ventanas::{class_of, hwnd_de, resolve, sin_ventana, ventanas_de, visible};
 use crate::adapters::uia;
@@ -18,6 +19,9 @@ const STEP_VERIFY_TIMEOUT_MS: u64 = 5000;
 
 pub(crate) fn uia_invocar(args: &Value) -> Result<Value> {
     let h = hwnd_de(args, "ventana")?;
+    // A modal disables the form under it and the pattern call then waits for
+    // the modal to close: name the dialog now instead of timing out after 10 s.
+    modal::exigir_habilitada(h, modal::PARA_ACTUAR)?;
     let operacion = req_str(
         args,
         &["operacion"],
@@ -185,3 +189,7 @@ pub(crate) fn paso(args: &Value, idioma: Idioma) -> Result<Value> {
     };
     Ok(json!({ "via": via, "objetivo": objetivo, "verificado": verificado }))
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/adapters/gui/uia_paso.rs"]
+mod tests;

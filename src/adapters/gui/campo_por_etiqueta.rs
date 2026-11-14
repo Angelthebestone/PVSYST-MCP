@@ -5,9 +5,9 @@
 use super::acciones::clic_por_mensajes;
 use super::conduccion::Formulario;
 use super::ffi::{self, Hwnd};
-use super::ocr::seleccion::{campo_por_etiqueta, valor_logico, CampoEtiquetado};
+use super::ocr::seleccion::{campo_por_etiqueta, valor_logico, CampoEtiquetado, Desambiguador};
 use super::ocr::{self, esta_marcado};
-use crate::args::req_str;
+use crate::args::{opt_u32, req_str};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
 
@@ -23,6 +23,16 @@ fn hwnd_de_texto(texto: &str) -> Result<Hwnd> {
         .ok_or_else(|| Error::Gui(format!("Invalid window identifier: '{texto}'")))
 }
 
+/// One side of the `rect` a form answer gives a field (0 when it is missing).
+fn lado(campo: &Value, lado: &str) -> i32 {
+    campo
+        .get("rect")
+        .and_then(|r| r.get(lado))
+        .and_then(Value::as_i64)
+        .and_then(|v| i32::try_from(v).ok())
+        .unwrap_or(0)
+}
+
 fn campos_de(ficha: &Value) -> Result<Vec<CampoEtiquetado>> {
     ficha["campos"]
         .as_array()
@@ -33,6 +43,7 @@ fn campos_de(ficha: &Value) -> Result<Vec<CampoEtiquetado>> {
                 hwnd: hwnd_de_texto(c["hwnd"].as_str().unwrap_or_default())?,
                 clase: c["clase"].as_str().unwrap_or_default().to_string(),
                 etiqueta: c["etiqueta"].as_str().map(str::to_string),
+                posicion: (lado(c, "top"), lado(c, "left")),
             })
         })
         .collect()
@@ -96,8 +107,9 @@ fn error_sin_etiqueta(motivo: &str, vista: &Value) -> Error {
     Error::NotFound(format!("{motivo}. {}", sugerencia_de_relleno(vista)))
 }
 
-/// Sets the field labelled `etiqueta` of the target form to `valor`. When no
-/// label matches, `vista_de` reads the window so the error can suggest `rellenar`.
+/// Sets the field labelled `etiqueta` of the target form to `valor`. `clase` and
+/// `indice` pick one of several fields that share the label. When no label
+/// matches, `vista_de` reads the window so the error can suggest `rellenar`.
 pub(crate) fn campo(
     paths: &crate::config::Paths,
     args: &Value,
@@ -107,7 +119,11 @@ pub(crate) fn campo(
     let valor = req_str(args, &["valor"], "value to set")?;
     let ficha = ocr::formulario(paths, args)?;
     let campos = campos_de(&ficha)?;
-    let elegido = match campo_por_etiqueta(&campos, etiqueta) {
+    let como = Desambiguador {
+        clase: args.get("clase").and_then(Value::as_str),
+        indice: opt_u32(args, "indice")?.map(|i| i as usize),
+    };
+    let elegido = match campo_por_etiqueta(&campos, etiqueta, como) {
         Ok(elegido) => elegido,
         Err(Error::NotFound(motivo)) => {
             let vista = vista_de(paths, args).unwrap_or(Value::Null);

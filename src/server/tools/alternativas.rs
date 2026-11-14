@@ -70,6 +70,13 @@ pub(super) const ALTERNATIVAS: &[Alternativa] = &[
         salvo_si: &[],
         grupos: &[&["archivo"], &["proyecto", "ediciones"]],
     },
+    Alternativa {
+        herramienta: "gui_actuar",
+        accion: "menu",
+        // A command by its `id`, or by position: `menu` and `item` (and `subitem`).
+        salvo_si: &[],
+        grupos: &[&["id"], &["menu", "item"]],
+    },
 ];
 
 /// The alternatives of `accion` for `herramienta`, if it has any.

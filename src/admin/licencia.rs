@@ -41,11 +41,13 @@ pub(crate) fn licencia(paths: &Paths, args: &Value) -> Result<Value> {
         return Ok(json!({ "dry_run": true, "accion": accion,
             "command_line": cli::display_command_line(&paths.cli_exe.to_string_lossy(), &cli_args) }));
     }
-    let out = cli::run(
-        paths,
-        &cli_args,
-        cli::timeout_de(args, cli::TIMEOUT_DEFECTO_S),
-    )?;
+    let timeout = cli::timeout_de(args, cli::TIMEOUT_DEFECTO_S);
+    let mut out = cli::run(paths, &cli_args, timeout)?;
+    // PVsystCLI answered `lic-info` with nothing once while the GUI was open
+    // and fine on the next calls: ask again once before reporting an empty answer.
+    if out.stdout.trim().is_empty() {
+        out = cli::run(paths, &cli_args, timeout)?;
+    }
     // `lic-info` is the only read that knows the licence mode: keep the trial
     // budget in the ledger in step with it.
     if accion == "info" || accion == "estado" {
