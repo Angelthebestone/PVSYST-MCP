@@ -3,20 +3,21 @@
 //! the message boxes PVsyst raises. Everything the form computes and saves is
 //! done by PVsyst itself.
 //!
-//! Positions are client coordinates measured at 96 DPI on PVsyst 8.1.7 and are
-//! scaled to the window's DPI.
+//! Positions are px at 96 DPI from the corner of the window rectangle, the same
+//! ones `gui_observar que:vista` publishes (see [`super::posicion`]).
 
 use super::ffi::{self, Hwnd};
+use super::posicion;
+use super::rotulos::Rotulo;
 use super::sondeo::{esperar_mientras, sondear_hasta};
 use super::ventanas::{class_of, enum_windows_de, pid_of, rect_of, text_of, visible};
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use std::time::Duration;
 
 const SONDEO: Duration = Duration::from_millis(200);
 /// Lets the VCL form react (recalculate, open the next form) after an input.
 const PAUSA_ACCION: Duration = Duration::from_millis(400);
-/// How far (px at 96 DPI) a measured position may be from a control's edge.
-const TOLERANCIA_PX: i32 = 6;
 /// Default time a form gets to appear.
 pub(crate) const ESPERA_FORMULARIO: Duration = Duration::from_secs(15);
 
@@ -28,35 +29,13 @@ pub(crate) struct Campo {
     pub(crate) y: i32,
 }
 
-impl Campo {
-    pub(crate) const fn edit(x: i32, y: i32) -> Self {
-        Self {
-            clase: "TEdit",
-            x,
-            y,
-        }
-    }
-    pub(crate) const fn combo(x: i32, y: i32) -> Self {
-        Self {
-            clase: "TComboBox",
-            x,
-            y,
-        }
-    }
-    pub(crate) const fn opcion(x: i32, y: i32) -> Self {
-        Self {
-            clase: "TRadioButton",
-            x,
-            y,
-        }
-    }
-}
-
 /// A visible top-level PVsyst form.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Formulario {
     pub(crate) h: Hwnd,
     dpi: u32,
+    /// Client-facing language of the messages this form raises.
+    idioma: Idioma,
 }
 
 /// Visible top-level windows of process `pid`, front-most first.
@@ -75,7 +54,7 @@ pub(crate) fn esperar(pid: u32, clase: &str, espera: Duration) -> Result<Formula
     .map(Formulario::de)
     .ok_or_else(|| {
         Error::Gui(format!(
-            "PVsyst no abrió '{clase}' en {} s",
+            "PVsyst did not open '{clase}' in {} s",
             espera.as_secs()
         ))
     })
@@ -87,10 +66,18 @@ pub(crate) fn esperar_cierre(h: Hwnd, espera: Duration) -> bool {
 }
 
 impl Formulario {
+    /// A form for a caller that carries no `Idioma` (`vista_agente`): the
+    /// environment is the same source `Paths` reads.
     pub(crate) fn de(h: Hwnd) -> Self {
+        Self::con_idioma(h, Idioma::de_entorno())
+    }
+
+    /// A form driven by a call that knows the client's language.
+    pub(crate) fn con_idioma(h: Hwnd, idioma: Idioma) -> Self {
         Self {
             h,
             dpi: ffi::dpi_de(h),
+            idioma,
         }
     }
 
@@ -116,27 +103,29 @@ impl Formulario {
             .filter(|c| visible(*c))
     }
 
-    /// The visible child whose caption is exactly `rotulo`. O(n) in the children.
-    pub(crate) fn hijo(&self, rotulo: &str) -> Result<Hwnd> {
+    /// The visible child whose caption is exactly `rotulo`, in any language the
+    /// caption is known in. O(n) in the children.
+    pub(crate) fn hijo<'r>(&self, rotulo: impl Into<Rotulo<'r>>) -> Result<Hwnd> {
+        let rotulo = rotulo.into();
         self.hijos_visibles()
-            .find(|c| text_of(*c) == rotulo)
+            .find(|c| rotulo.coincide(&text_of(*c)))
             .ok_or_else(|| {
                 Error::Gui(format!(
-                    "'{rotulo}' no está en '{}' de PVsyst",
+                    "'{rotulo}' is not in '{}' of PVsyst",
                     self.titulo()
                 ))
             })
     }
 
     /// Whether the captioned control exists and is enabled.
-    pub(crate) fn habilitado(&self, rotulo: &str) -> bool {
+    pub(crate) fn habilitado<'r>(&self, rotulo: impl Into<Rotulo<'r>>) -> bool {
         self.hijo(rotulo)
             .is_ok_and(|c| ffi::estado_ventana(c).habilitada)
     }
 
     /// Clicks the button captioned `rotulo` with the mechanism its class needs
     /// (`BM_CLICK` for standard buttons, mouse messages for `TPngBitBtn`).
-    pub(crate) fn pulsar(&self, rotulo: &str) -> Result<()> {
+    pub(crate) fn pulsar<'r>(&self, rotulo: impl Into<Rotulo<'r>>) -> Result<()> {
         let b = self.hijo(rotulo)?;
         super::acciones::clic_por_mensajes(b)?;
         std::thread::sleep(PAUSA_ACCION);
@@ -145,32 +134,44 @@ impl Formulario {
 
     /// Clicks the radio button or check box captioned `rotulo` with the mouse,
     /// so the form runs the same handlers as for a user.
-    pub(crate) fn elegir(&self, rotulo: &str) -> Result<()> {
+    pub(crate) fn elegir<'r>(&self, rotulo: impl Into<Rotulo<'r>>) -> Result<()> {
         let c = self.hijo(rotulo)?;
         self.clic_en_control(c);
         Ok(())
     }
 
-    /// The control of `campo.clase` at the measured position.
+    /// The control of `campo.clase` at the position `vista` publishes: px at 96
+    /// DPI from the corner of the window rectangle, not of its client area.
     pub(crate) fn control(&self, campo: Campo) -> Result<Hwnd> {
-        let (ox, oy) = ffi::origen_cliente(self.h);
-        let (x, y) = (ox + self.escalar(campo.x), oy + self.escalar(campo.y));
-        let tol = self.escalar(TOLERANCIA_PX);
-        self.hijos_visibles()
+        let candidatos = self
+            .hijos_visibles()
             .filter(|c| class_of(*c) == campo.clase)
-            .find(|c| {
-                let r = rect_of(*c);
-                r.left - tol <= x && x <= r.right + tol && r.top - tol <= y && y <= r.bottom + tol
-            })
-            .ok_or_else(|| {
-                Error::Gui(format!(
-                    "No hay {} en ({}, {}) de '{}': ¿cambió la versión de PVsyst?",
-                    campo.clase,
-                    campo.x,
-                    campo.y,
-                    self.titulo()
-                ))
-            })
+            .map(|c| (c, rect_of(c)));
+        posicion::control_en(
+            (rect_of(self.h), ffi::escala_de_captura(self.h)),
+            (campo.x, campo.y),
+            candidatos,
+        )
+        .ok_or_else(|| {
+            let ausente = Texto {
+                es: "No hay {clase} en ({x}, {y}) de '{titulo}': ¿cambió la versión de PVsyst?",
+                en: "No {clase} at ({x}, {y}) of '{titulo}': did the PVsyst version change?",
+            };
+            Error::Gui(ausente.texto_con(
+                self.idioma,
+                &[
+                    ("clase", campo.clase),
+                    ("x", &campo.x.to_string()),
+                    ("y", &campo.y.to_string()),
+                    ("titulo", &self.titulo()),
+                ],
+            ))
+        })
+    }
+
+    /// Clicks control `c` of this form with the mouse (check boxes and options).
+    pub(crate) fn marcar_en(&self, c: Hwnd) {
+        self.clic_en_control(c);
     }
 
     fn clic_en_control(&self, c: Hwnd) {
@@ -181,12 +182,12 @@ impl Formulario {
     }
 
     /// The only visible control of class `clase` on the form.
-    fn unico(&self, clase: &str) -> Result<Hwnd> {
+    pub(crate) fn unico(&self, clase: &str) -> Result<Hwnd> {
         let mut it = self.hijos_visibles().filter(|c| class_of(*c) == clase);
         match (it.next(), it.next()) {
             (Some(c), None) => Ok(c),
             _ => Err(Error::Gui(format!(
-                "'{}' no tiene un único {clase}",
+                "'{}' does not have a single {clase}",
                 self.titulo()
             ))),
         }
@@ -202,7 +203,7 @@ impl Formulario {
     }
 
     /// Clicks at `(dx, dy)` (px at 96 DPI) from the top-left corner of the
-    /// form's only control of class `clase` (e.g. the first row of a list).
+    /// form's only control of class `clase` (e.g. a cell of a list).
     pub(crate) fn clic_en_unico(&self, clase: &str, (dx, dy): (i32, i32)) -> Result<()> {
         let r = rect_of(self.unico(clase)?);
         ffi::traer_al_frente(self.h);
@@ -227,23 +228,12 @@ impl Formulario {
         Ok(())
     }
 
-    pub(crate) fn leer(&self, campo: Campo) -> Result<String> {
-        self.control(campo).map(ffi::texto_control)
-    }
-
-    /// Clicks the unlabeled option (radio button) at `campo`.
-    pub(crate) fn marcar(&self, campo: Campo) -> Result<()> {
-        let c = self.control(campo)?;
-        self.clic_en_control(c);
-        Ok(())
-    }
-
     /// Picks the first item of the combo at `campo` that starts with `prefijo`.
     pub(crate) fn seleccionar(&self, campo: Campo, prefijo: &str) -> Result<()> {
         let c = self.control(campo)?;
         if !ffi::elegir_en_combo(c, prefijo)? {
             return Err(Error::Invalid(format!(
-                "PVsyst no ofrece '{prefijo}' en esa lista de '{}'",
+                "PVsyst offers no '{prefijo}' in that list of '{}' (items are matched by prefix, not by substring)",
                 self.titulo()
             )));
         }
@@ -251,38 +241,31 @@ impl Formulario {
         Ok(())
     }
 
+    fn control_de_paginas(&self) -> Result<Hwnd> {
+        self.hijos_visibles()
+            .find(|c| class_of(*c) == ffi::CLASE_PESTANAS)
+            .ok_or_else(|| Error::Gui(format!("'{}' has no tab pages", self.titulo())))
+    }
+
+    /// Number of tab pages of the form's (first) page control.
+    pub(crate) fn paginas(&self) -> Result<usize> {
+        ffi::paginas_de(self.control_de_paginas()?).ok_or_else(|| {
+            Error::Gui(format!(
+                "PVsyst did not say how many tab pages '{}' has",
+                self.titulo()
+            ))
+        })
+    }
+
     /// Shows tab page `indice` of the form's (first) page control. PVsyst may veto
     /// the change while the current page has invalid fields, so the selected tab
     /// is read back and a refusal is an error.
     pub(crate) fn pagina(&self, indice: usize) -> Result<()> {
-        let pc = self
-            .hijos_visibles()
-            .find(|c| class_of(*c) == ffi::CLASE_PESTANAS)
-            .ok_or_else(|| Error::Gui(format!("'{}' no tiene pestañas", self.titulo())))?;
+        let pc = self.control_de_paginas()?;
         let total = ffi::paginas_de(pc).unwrap_or(usize::MAX);
         ffi::exigir_indice_pagina(indice, total, &self.titulo())?;
         ffi::mostrar_pagina(pc, indice)?;
         std::thread::sleep(PAUSA_ACCION);
         ffi::exigir_cambio_de_pestana(indice, ffi::pagina_seleccionada(pc))
-    }
-
-    /// Clicks a point of a toolbar (`TActionToolBar`), the only way to reach
-    /// its actions: the `n`-th toolbar wider than 500 px, top to bottom.
-    pub(crate) fn clic_barra(&self, n: usize, x: i32) -> Result<()> {
-        const ANCHO_BARRA_MIN_PX: i32 = 500;
-        let mut barras: Vec<ffi::Rect> = self
-            .hijos_visibles()
-            .filter(|c| class_of(*c) == "TActionToolBar")
-            .map(rect_of)
-            .filter(|r| r.right - r.left >= self.escalar(ANCHO_BARRA_MIN_PX))
-            .collect();
-        barras.sort_by_key(|r| r.top);
-        let r = barras
-            .get(n)
-            .ok_or_else(|| Error::Gui(format!("'{}' no tiene esa barra", self.titulo())))?;
-        ffi::traer_al_frente(self.h);
-        ffi::clic_fisico_en(r.left + self.escalar(x), (r.top + r.bottom) / 2);
-        std::thread::sleep(PAUSA_ACCION);
-        Ok(())
     }
 }

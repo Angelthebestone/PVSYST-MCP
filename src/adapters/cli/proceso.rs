@@ -3,13 +3,14 @@
 //! Gestiona el ciclo de vida del subproceso, la captura con límite de memoria,
 //! la cancelación cooperativa y la publicación de avance.
 
-use super::captura::{crear_sink, es_truncado, texto_sink, Sink};
-use super::linea_comando::{display_command_line, requerir_cli, timeout_de, TIMEOUT_DEFECTO_S};
+use super::captura::{crear_sink, es_truncado, esperar_lector, texto_sink, Sink};
+use super::clasificacion::es_comando_informativo;
+use super::entrada;
+use super::linea_comando::{display_command_line, requerir_cli, timeout_de_comando};
 use super::salida_json::output_json;
-use crate::args::{flag, req_str, DRY_RUN};
 use crate::config::Paths;
 use crate::error::{Error, Result};
-use crate::format::value_text;
+use crate::idioma::{Idioma, Texto};
 use crate::progreso::SeguimientoTarea;
 pub(crate) use crate::state::CliOutput;
 use serde_json::{json, Value};
@@ -17,6 +18,15 @@ use std::process::{Child, Command, Stdio};
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
+
+const NO_ARRANCA: Texto = Texto {
+    es: "No se pudo lanzar {exe}: {e}. Configura PVSYST_CLI.",
+    en: "Failed to launch {exe}: {e}. Set PVSYST_CLI.",
+};
+const CANCELADO: Texto = Texto {
+    es: "Comando cancelado por el cliente",
+    en: "Command cancelled by the client",
+};
 
 /// Intervalo de sondeo activo para el estado de finalización del subproceso.
 const INTERVALO_ESPERA_PROCESO: Duration = Duration::from_millis(50);
@@ -26,6 +36,9 @@ const SIN_PROGRESO: f64 = -1.0;
 
 /// Cantidad de bytes ya escaneados en la ronda anterior.
 const SIN_BYTES_ESCANEADOS: usize = 0;
+
+/// Plazo para que los lectores lleguen al EOF una vez terminado el proceso.
+const PLAZO_LECTORES: Duration = Duration::from_secs(5);
 
 /// Parámetros de ejecución agrupados para cumplir con el límite de parámetros.
 pub(crate) struct ParametrosEjecucion<'a> {
@@ -66,17 +79,18 @@ pub(crate) fn run_seguido(params: &ParametrosEjecucion<'_>) -> Result<CliOutput>
 
 pub(crate) fn run_inner(params: &ParametrosEjecucion<'_>, out_sink: &Sink) -> Result<CliOutput> {
     requerir_cli(params.paths)?;
-    let mut child = Command::new(&params.paths.cli_exe)
+    let inicio = std::time::SystemTime::now();
+    let mut orden = Command::new(&params.paths.cli_exe);
+    orden
         .args(params.cli_args)
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(|e| {
-            Error::io(
-                format!("Failed to launch {}", params.paths.cli_exe.display()),
-                e,
-            )
-        })?;
+        .stderr(Stdio::piped());
+    // A relative output path (`-ocf:rel.csv`) belongs to the workspace, not to the
+    // working directory the server happened to be started from.
+    if params.paths.workspace.is_dir() {
+        orden.current_dir(&params.paths.workspace);
+    }
+    let mut child = lanzar(&mut orden, params.paths)?;
 
     let err_sink = crear_sink();
     let reader_out = super::captura::drain(child.stdout.take(), Arc::clone(out_sink), "stdout");
@@ -84,17 +98,23 @@ pub(crate) fn run_inner(params: &ParametrosEjecucion<'_>, out_sink: &Sink) -> Re
 
     let espera = EsperaProceso {
         timeout: params.timeout,
+        idioma: params.paths.idioma,
         sink: out_sink,
         seguimiento: params.seguimiento,
     };
     let resultado = esperar_proceso(&mut child, &espera);
-    reader_out
-        .join()
-        .map_err(|_| Error::Cli("Hilo lector de stdout terminó con pánico".to_string()))??;
-    reader_err
-        .join()
-        .map_err(|_| Error::Cli("Hilo lector de stderr terminó con pánico".to_string()))??;
+    let fin_lectura = Instant::now() + PLAZO_LECTORES;
+    esperar_lector(reader_out, (out_sink, "stdout"), fin_lectura)?;
+    esperar_lector(reader_err, (&err_sink, "stderr"), fin_lectura)?;
     let (exit_code, timed_out) = resultado?;
+
+    let comando = params.cli_args.first().map_or("", String::as_str);
+    // A crashed worker thread leaves no trace in stdout, only in the Admin log.
+    let crash = if es_comando_informativo(comando) {
+        None
+    } else {
+        super::crash::crash_desde(inicio)
+    };
 
     Ok(CliOutput {
         exit_code,
@@ -108,14 +128,40 @@ pub(crate) fn run_inner(params: &ParametrosEjecucion<'_>, out_sink: &Sink) -> Re
         timeout_s: params.timeout.as_secs(),
         stdout_truncado: es_truncado(out_sink)?,
         stderr_truncado: es_truncado(&err_sink)?,
+        crash,
+    })
+}
+
+/// Starts PVsystCLI, naming the executable and the OS error when it cannot.
+fn lanzar(orden: &mut Command, paths: &Paths) -> Result<Child> {
+    orden.spawn().map_err(|e| {
+        Error::Cli(NO_ARRANCA.texto_con(
+            paths.idioma,
+            &[
+                ("exe", &paths.cli_exe.to_string_lossy()),
+                ("e", &e.to_string()),
+            ],
+        ))
     })
 }
 
 /// What one wait loop needs: the deadline, the captured stdout and the tracker.
 struct EsperaProceso<'a> {
     timeout: Duration,
+    idioma: Idioma,
     sink: &'a Sink,
     seguimiento: &'a SeguimientoTarea<'a>,
+}
+
+/// Kills and reaps the child on every early exit, so no PVsystCLI is left running.
+/// `kill` fails only when the process already ended, which is what is wanted.
+fn terminar(child: &mut Child) {
+    if let Err(e) = child.kill() {
+        tracing::debug!(error = %e, "PVsystCLI ya había terminado");
+    }
+    if let Err(e) = child.wait() {
+        tracing::warn!(error = %e, "no se pudo recoger el estado de PVsystCLI");
+    }
 }
 
 fn esperar_proceso(child: &mut Child, espera: &EsperaProceso<'_>) -> Result<(Option<i32>, bool)> {
@@ -124,24 +170,25 @@ fn esperar_proceso(child: &mut Child, espera: &EsperaProceso<'_>) -> Result<(Opt
     let mut bytes_escaneados = SIN_BYTES_ESCANEADOS;
     loop {
         if espera.seguimiento.esta_cancelado() {
-            let _ = child.kill();
-            let _ = child.wait();
-            return Err(Error::Cli("Simulación cancelada por el cliente".into()));
+            terminar(child);
+            return Err(Error::Cli(CANCELADO.en_idioma(espera.idioma).to_string()));
         }
-        if let Some(status) = child
-            .try_wait()
-            .map_err(|e| Error::io("Waiting for PVsystCLI", e))?
-        {
-            return Ok((status.code(), false));
+        match child.try_wait() {
+            Ok(Some(status)) => return Ok((status.code(), false)),
+            Ok(None) => {}
+            Err(e) => {
+                terminar(child);
+                return Err(Error::io("Waiting for PVsystCLI", e));
+            }
         }
         if Instant::now() >= deadline {
-            let _ = child.kill();
-            let _ = child.wait();
+            terminar(child);
             return Ok((None, true));
         }
-        // Solo se copia el stdout acumulado cuando el lector añadió bytes nuevos.
+        // Solo se copia el stdout acumulado cuando hay quien escuche el avance y el
+        // lector añadió bytes nuevos: sin reporter, copiar era O(n²) para nada.
         let longitud = super::captura::longitud_sink(espera.sink);
-        if longitud != bytes_escaneados {
+        if espera.seguimiento.informa_progreso() && longitud != bytes_escaneados {
             bytes_escaneados = longitud;
             let avance = texto_sink(espera.sink)
                 .ok()
@@ -158,38 +205,48 @@ fn esperar_proceso(child: &mut Child, espera: &EsperaProceso<'_>) -> Result<(Opt
     }
 }
 
-/// Ejecuta cualquier comando con argumentos en crudo (passthrough de `pvsyst_cli`).
-pub(crate) fn ejecutar(paths: &Paths, args: &Value) -> Result<Value> {
-    let comando = req_str(
-        args,
-        &["comando"],
-        "e.g. \"help\", \"version\", \"lic-info\"",
-    )?;
-
-    let mut cli_args: Vec<String> = vec![comando.to_string()];
-    if let Some(opts) = args.get("opciones").and_then(Value::as_array) {
-        for o in opts {
-            if let Some(s) = o.as_str() {
-                cli_args.push(s.to_string());
-            }
+/// Ejecuta cualquier comando con argumentos en crudo (passthrough de `pvsyst_cli`),
+/// atendiendo la cancelación del cliente como cualquier otra ejecución larga.
+pub(crate) fn ejecutar(
+    paths: &Paths,
+    args: &Value,
+    seguimiento: &SeguimientoTarea<'_>,
+) -> Result<Value> {
+    let entrada = entrada::leer(args, paths.idioma)?;
+    let es_simulacion = entrada.es_simulacion();
+    let timeout = timeout_de_comando(args, &entrada.comando, paths.idioma)?;
+    if entrada.dry_run {
+        let mut ensayo = json!({
+            "dry_run": true,
+            "command_line": display_command_line(&paths.cli_exe.to_string_lossy(), &entrada.cli_args),
+            "timeout_s": timeout.as_secs(),
+        });
+        // A simulation spends a trial execution whether it is asked for here or
+        // through `simular`: the rehearsal says what it would cost.
+        if es_simulacion {
+            ensayo["costo_estimado"] = crate::adapters::ledger::costo_estimado(paths, 1);
         }
+        return Ok(ensayo);
     }
-    if let Some(opts) = args.get("opciones").and_then(Value::as_object) {
-        for (k, v) in opts {
-            let val = value_text(v);
-            let flag = k.trim_start_matches('-');
-            cli_args.push(format!("--{flag}:{val}"));
-        }
+    let out = run_seguido(&ParametrosEjecucion {
+        paths,
+        cli_args: &entrada.cli_args,
+        timeout,
+        seguimiento,
+    })?;
+    let mut respuesta = output_json(
+        &out,
+        &entrada.comando,
+        &json!({ "command": entrada.comando }),
+    );
+    if es_simulacion {
+        respuesta["costo"] = crate::adapters::ledger::registrar(&paths.workspace, &out.stdout, 1);
     }
-
-    let dry_run = flag(args, &[DRY_RUN]);
-    let command_line = display_command_line(&paths.cli_exe.to_string_lossy(), &cli_args);
-    if dry_run {
-        return Ok(json!({ "dry_run": true, "command_line": command_line }));
+    if entrada.detalle_completo {
+        // The tail stays flagged as cut: `stdout` is what has the whole answer.
+        respuesta["stdout"] = json!(out.stdout);
     }
-    requerir_cli(paths)?;
-    let out = run(paths, &cli_args, timeout_de(args, TIMEOUT_DEFECTO_S))?;
-    Ok(output_json(&out, comando, &json!({ "command": comando })))
+    Ok(respuesta)
 }
 
 #[cfg(test)]

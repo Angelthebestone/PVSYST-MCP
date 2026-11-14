@@ -3,10 +3,7 @@
 use super::super::dominio::{basica, solo_acciones, Ventana};
 
 pub(super) const VENTANAS: &[Ventana] = &[
-    solo_acciones(
-        "TProjectForm",
-        "Ventana del proyecto: botones y menús, sin campos propios.",
-    ),
+    basica("TProjectForm").con_esquema("proyecto.ventana"),
     basica("TProjectLoadForm"),
     basica("TVCManageForm"),
     solo_acciones(
@@ -15,10 +12,10 @@ pub(super) const VENTANAS: &[Ventana] = &[
     ),
     basica("TDimensSituationForm"),
     basica("TSummaryForm"),
-    basica("TOrientationForm"),
+    basica("TOrientationForm").con_esquema("variante.orientation"),
     solo_acciones("TOrientManageForm", "En vivo no muestra campos de texto, listas desplegables ni casillas legibles por handle (cosecha del 2026-10-27): se maneja con sus botones y clic_texto."),
     basica("TOrientToolForm"),
-    basica("TSystemegridForm"),
+    basica("TSystemegridForm").con_esquema("variante.system"),
     basica("TSystemegridDCForm"),
     basica("TSystemeBattForm"),
     basica("TSystemeAddForm"),

@@ -13,14 +13,23 @@
 
 mod cliente_mcp;
 
+#[path = "cli_fake/clasificacion.rs"]
+mod clasificacion;
+
 #[path = "cli_fake/ejecucion.rs"]
 mod ejecucion;
 
 #[path = "cli_fake/encadenado.rs"]
 mod encadenado;
 
+#[path = "cli_fake/entrada.rs"]
+mod entrada;
+
 #[path = "cli_fake/resultados.rs"]
 mod resultados;
 
 #[path = "cli_fake/entorno.rs"]
 mod entorno;
+
+#[path = "cli_fake/diseno.rs"]
+mod diseno;

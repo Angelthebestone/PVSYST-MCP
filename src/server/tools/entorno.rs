@@ -8,14 +8,21 @@ use crate::admin;
 use crate::config::Paths;
 use crate::easy_mode;
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use crate::prefs;
 use serde_json::{json, Value};
 
 pub(crate) const TOOL_ENTORNO: Herramienta = Herramienta {
     nombre: "entorno",
-    descripcion: "Entorno PVsyst: diagnostico, licencia, logs y preferencias. / EN: PVsyst environment: diagnostics, licence, logs and preferences.",
+    descripcion: crate::idioma::Texto {
+        es: "Entorno PVsyst: diagnostico, licencia, logs y preferencias.",
+        en: "PVsyst environment: diagnostics, licence, logs and preferences.",
+    },
     anotaciones: Anotaciones {
-        titulo: "Entorno / Environment",
+        titulo: crate::idioma::Texto {
+            es: "Entorno",
+            en: "Environment",
+        },
         es_solo_lectura: false,
         es_destructiva: false,
         es_idempotente: false,
@@ -48,6 +55,7 @@ pub(crate) const TOOL_ENTORNO: Herramienta = Herramienta {
         ],
     }),
     requeridos_por_accion: &[("preferencias_editar", &["seccion", "clave", "valor"])],
+    consumidos_por_accion: &[],
     sinonimos: SINONIMOS_ENTORNO,
     ejecutar: Ejecutor::Simple(ejecutar_entorno),
 };
@@ -76,9 +84,9 @@ const SINONIMOS_ENTORNO: Sinonimos = Sinonimos {
 
 pub(crate) const TOOL_DISENAR_SISTEMA: Herramienta = Herramienta {
     nombre: "disenar_sistema",
-    descripcion: "E2E en una llamada: coordenadas + kWp (red o aislado) -> sitio -> proyecto -> dimensionado -> simulacion -> KPIs. / EN: End-to-end in one call: coordinates + kWp (grid or stand-alone) -> site -> project -> sizing -> simulation -> KPIs.",
+    descripcion: crate::idioma::Texto { es: "E2E en una llamada: coordenadas + kWp (red o aislado) -> sitio -> proyecto -> dimensionado -> simulacion -> KPIs. El modulo es 'modulo' si se pasa, si no el de la plantilla, si no el primer .PAN disponible (con o sin extension .PAN). n_mod_serie y n_strings son obligatorios: sin ambos la llamada se rechaza antes de gastar nada. Un proyecto que dejo una llamada anterior con los mismos parametros se reutiliza en vez de rehacerse: proyecto_reutilizado:true con proyecto_comparable:false significa que la llamada no pidio modulo, inversor ni serie/cadenas, asi que no habia nada que comparar. synthetic_weather necesita Meteonorm: sin el, la llamada se rechaza antes de gastar una ejecucion de prueba.", en: "End-to-end in one call: coordinates + kWp (grid or stand-alone) -> site -> project -> sizing -> simulation -> KPIs. The module is 'modulo' when given, else the template's, else the first .PAN available (with or without the .PAN extension). n_mod_serie and n_strings are required: without both the call is refused before spending anything. A project an earlier call left behind with the same parameters is reused instead of rebuilt: proyecto_reutilizado:true with proyecto_comparable:false means the call asked for no module, inverter or string layout, so there was nothing to compare. synthetic_weather needs Meteonorm: without it the call is refused before spending a trial execution." },
     anotaciones: Anotaciones {
-        titulo: "Diseñar sistema / Design system",
+        titulo: crate::idioma::Texto { es: "Diseñar sistema", en: "Design system" },
         es_solo_lectura: false,
         es_destructiva: true,
         es_idempotente: false,
@@ -111,6 +119,7 @@ pub(crate) const TOOL_DISENAR_SISTEMA: Herramienta = Herramienta {
         ("report_pdf", TipoDato::String),
         ("sobrescribir", TipoDato::Boolean),
         ("synthetic_weather", TipoDato::Boolean),
+        ("dry_run", TipoDato::Boolean),
         ("confirmar", TipoDato::Boolean),
         ("via", TipoDato::String),
         ("permitir_fuera_del_workspace", TipoDato::Boolean),
@@ -119,6 +128,7 @@ pub(crate) const TOOL_DISENAR_SISTEMA: Herramienta = Herramienta {
     requeridos: &["latitud", "longitud", "kwp"],
     discriminador: None,
     requeridos_por_accion: &[],
+    consumidos_por_accion: &[],
     sinonimos: SINONIMOS_DISENAR_SISTEMA,
     ejecutar: Ejecutor::Simple(ejecutar_disenar_sistema),
 };
@@ -150,24 +160,48 @@ fn ejecutar_entorno(paths: &Paths, args: &Value) -> Result<Value> {
             Ok(json!({ "preflight": easy_mode::preflight(paths), "entorno": info_entorno(paths) }))
         }
         "licencia" => admin::licencia(paths, &con(args, "accion", json!("info"))),
-        "licencia_sync" => admin::licencia(paths, &con(args, "accion", json!("sync"))),
-        "licencia_activar" => Ok(comando_licencia("lic-activate -k:<TU_CLAVE>")),
-        "licencia_desactivar" => Ok(comando_licencia("lic-deactivate -c:<TU_CUSTOMER_ID>")),
+        "licencia_sync" => Ok(comando_licencia_con(
+            "lic-sync",
+            &INSTRUCCIONES_SINCRONIZAR_LICENCIA,
+            paths.idioma,
+        )),
+        "licencia_activar" => Ok(comando_licencia("lic-activate -k:<TU_CLAVE>", paths.idioma)),
+        "licencia_desactivar" => Ok(comando_licencia(
+            "lic-deactivate -c:<TU_CUSTOMER_ID>",
+            paths.idioma,
+        )),
         "exportar_logs" => admin::exportar_logs(paths, args),
-        "logs_cli" => prefs::logs_cli(paths, args),
-        "preferencias" => prefs::preferencias(paths, args),
+        "logs_cli" => prefs::logs_cli(args),
+        "preferencias" => prefs::preferencias(args),
         "preferencias_editar" => prefs::preferencias_editar(args),
-        _ => Err(Error::Invalid(format!(
-            "Valor '{valor}' no soportado para entorno"
-        ))),
+        _ => Err(Error::Invalid(
+            ACCION_NO_SOPORTADA.texto_con(paths.idioma, &[("valor", valor)]),
+        )),
     }
 }
 
-fn comando_licencia(argumentos: &str) -> Value {
+const ACCION_NO_SOPORTADA: Texto = Texto {
+    es: "Valor '{valor}' no soportado para entorno",
+    en: "Value '{valor}' not supported for entorno",
+};
+const INSTRUCCIONES_LICENCIA: Texto = Texto {
+    es: "Ejecuta tú este comando en un terminal, sustituyendo el placeholder por tu valor real. Esta tool no activa ni desactiva licencias.",
+    en: "Run this command yourself in a terminal, replacing the placeholder with your real value. This tool does not activate or deactivate licences.",
+};
+const INSTRUCCIONES_SINCRONIZAR_LICENCIA: Texto = Texto {
+    es: "Ejecuta este comando tú mismo en una terminal. Esta tool no sincroniza la licencia.",
+    en: "Run this command yourself in a terminal. This tool does not synchronise the licence.",
+};
+
+fn comando_licencia(argumentos: &str, idioma: Idioma) -> Value {
+    comando_licencia_con(argumentos, &INSTRUCCIONES_LICENCIA, idioma)
+}
+
+fn comando_licencia_con(argumentos: &str, instrucciones: &Texto, idioma: Idioma) -> Value {
     json!({
         "ejecutado": false,
         "comando": format!("PVsystCLI.exe {argumentos}"),
-        "instrucciones": "Ejecuta este comando tú mismo en una terminal, sustituyendo el marcador por tu dato real. Esta tool no activa ni desactiva licencias."
+        "instrucciones": instrucciones.en_idioma(idioma)
     })
 }
 

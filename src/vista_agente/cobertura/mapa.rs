@@ -1,6 +1,6 @@
 //! What the observed window map says about each window class.
 
-use crate::gui_catalogo::mapa_de_ventanas;
+use crate::adapters::gui::catalogo::mapa_de_ventanas;
 use serde_json::Value;
 use std::collections::{BTreeMap, HashMap};
 use std::sync::OnceLock;
@@ -69,6 +69,23 @@ pub(super) fn resumir(ventana: &Value) -> ResumenMapa {
         campos,
         botones,
     }
+}
+
+/// What opened each instance of `clase` that the map recorded under `titulo`: classes shared by
+/// several windows (`TChoixObjetPVForm` has 15) are told apart by their title. Empty when the
+/// map has no instance with that title.
+pub(crate) fn abierta_con(clase: &str, titulo: &str) -> Vec<String> {
+    mapa_de_ventanas()
+        .get("ventanas")
+        .and_then(|v| v.get(clase))
+        .and_then(|v| v.get("instancias"))
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter(|i| i.get("titulo").and_then(Value::as_str) == Some(titulo))
+        .filter_map(|i| i.get("abierta_con").and_then(Value::as_str))
+        .map(str::to_string)
+        .collect()
 }
 
 /// Every window class of `docs/gui_mapa.json`, by class name. The map never

@@ -5,9 +5,15 @@ use super::dominio::{validar_puntos, Horizonte, PuntoHorizonte};
 use crate::args::{missing, req_str, workspace_of};
 use crate::config::{data_ro, Alcance, Paths};
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
+use crate::workspace::{primer_existente_en_bases, primer_existente_en_workspace};
 use serde_json::{json, Value};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+/// Folder PVsyst reads horizons from: a `.HOR` lives there, whatever folder the
+/// caller wrote in the name.
+const CARPETA_HORIZONTES: &str = "Shadings";
 
 /// Reads and decodes a `.HOR` file, returning its structured horizon representation.
 pub(crate) fn leer_horizonte(paths: &Paths, args: &Value) -> Result<Value> {
@@ -63,52 +69,65 @@ pub(crate) fn escribir_horizonte(paths: &Paths, args: &Value) -> Result<Value> {
 
 fn resolver_archivo_horizonte(paths: &Paths, args: &Value, nombre: &str) -> Result<PathBuf> {
     let ws = workspace_of(paths, args);
-    let alcance = Alcance::de_args(args);
-
     let candidatas = [
         nombre.to_string(),
-        format!("Shadings/{nombre}"),
-        format!("Shadings/{nombre}.HOR"),
+        format!("{CARPETA_HORIZONTES}/{nombre}"),
+        format!("{CARPETA_HORIZONTES}/{nombre}.HOR"),
         format!("{nombre}.HOR"),
     ];
-    for c in &candidatas {
-        if let Ok(p) = crate::workspace::resolver_ruta(&ws, c, alcance) {
-            if p.is_file() {
-                return Ok(p);
-            }
-        }
+    if let Some(p) = primer_existente_en_workspace(&ws, &candidatas, Alcance::de_args(args))? {
+        return Ok(p);
     }
-
-    let ro_base = data_ro().join("PVsyst8.1_Data").join("Shadings");
-    let ro_candidatas = [
-        ro_base.join(nombre),
-        ro_base.join(format!("{nombre}.HOR")),
-        data_ro().join("Shadings").join(nombre),
+    let ro = data_ro();
+    let bases = [
+        ro.join("PVsyst8.1_Data").join("Shadings"),
+        ro.join("Shadings"),
     ];
-    for p in &ro_candidatas {
-        if p.is_file() {
-            return Ok(p.clone());
-        }
-    }
-    Err(Error::NotFound(format!(
-        "Archivo de horizonte '{nombre}' no encontrado"
-    )))
+    let nombres = [nombre.to_string(), format!("{nombre}.HOR")];
+    primer_existente_en_bases(&bases, &nombres).ok_or_else(|| {
+        Error::NotFound(
+            HORIZONTE_NO_ENCONTRADO.texto_con(Idioma::de_entorno(), &[("nombre", nombre)]),
+        )
+    })
 }
 
+const HORIZONTE_NO_ENCONTRADO: Texto = Texto {
+    es: "Archivo de horizonte '{nombre}' no encontrado",
+    en: "Horizon file '{nombre}' not found",
+};
+const ARCHIVO_INVALIDO: Texto = Texto {
+    es: "'archivo' debe nombrar un archivo: '{nombre}'",
+    en: "'archivo' must name a file: '{nombre}'",
+};
+const PUNTO_SIN_AZIMUT: Texto = Texto {
+    es: "Punto de horizonte sin campo numérico 'azimut'",
+    en: "Horizon point without a numeric 'azimut' field",
+};
+const PUNTO_SIN_ALTURA: Texto = Texto {
+    es: "Punto de horizonte sin campo numérico 'altura'",
+    en: "Horizon point without a numeric 'altura' field",
+};
+
+/// Destination of a written horizon: `<workspace>/Shadings/<name>.HOR`.
+///
+/// Only the file name of `nombre` is used: `Sites/X.HOR` used to create a folder
+/// `Shadings/Sites`, which is not where PVsyst looks for a horizon.
 fn resolver_destino_escritura(paths: &Paths, args: &Value, nombre: &str) -> Result<PathBuf> {
     let ws = workspace_of(paths, args);
     let alcance = Alcance::de_args(args);
-    let con_ext = if nombre.to_ascii_uppercase().ends_with(".HOR") {
-        nombre.to_string()
+    let archivo = Path::new(nombre)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or_else(|| {
+            Error::Invalid(ARCHIVO_INVALIDO.texto_con(paths.idioma, &[("nombre", nombre)]))
+        })?;
+    crate::workspace::validar_nombre(archivo)?;
+    let con_ext = if archivo.to_ascii_uppercase().ends_with(".HOR") {
+        archivo.to_string()
     } else {
-        format!("{nombre}.HOR")
+        format!("{archivo}.HOR")
     };
-    let relativa = if con_ext.starts_with("Shadings/") || con_ext.starts_with("Shadings\\") {
-        con_ext
-    } else {
-        format!("Shadings/{con_ext}")
-    };
-    crate::workspace::resolver_ruta(&ws, &relativa, alcance)
+    crate::workspace::resolver_ruta(&ws, &format!("{CARPETA_HORIZONTES}/{con_ext}"), alcance)
 }
 
 fn parsear_puntos_json(arr: &[Value]) -> Result<Vec<PuntoHorizonte>> {
@@ -119,14 +138,14 @@ fn parsear_puntos_json(arr: &[Value]) -> Result<Vec<PuntoHorizonte>> {
                 .or_else(|| v.get("azimut_grados"))
                 .and_then(Value::as_f64)
                 .ok_or_else(|| {
-                    Error::Invalid("Punto de horizonte sin campo numérico 'azimut'".into())
+                    Error::Invalid(PUNTO_SIN_AZIMUT.en_idioma(Idioma::de_entorno()).to_string())
                 })?;
             let altura = v
                 .get("altura")
                 .or_else(|| v.get("altura_grados"))
                 .and_then(Value::as_f64)
                 .ok_or_else(|| {
-                    Error::Invalid("Punto de horizonte sin campo numérico 'altura'".into())
+                    Error::Invalid(PUNTO_SIN_ALTURA.en_idioma(Idioma::de_entorno()).to_string())
                 })?;
             Ok(PuntoHorizonte::de_grados(azimut, altura))
         })

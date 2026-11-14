@@ -17,10 +17,10 @@ fn acepta_paso(paths: &Paths, tool: &str, argumentos: &Value) -> bool {
     let Some(h) = herramienta(tool) else {
         return false;
     };
-    h.preparar_args(argumentos)
+    h.preparar_args(argumentos, paths.idioma)
         .and_then(|efectivos| {
             aproximadas::exigir(paths, tool, h.accion(&efectivos))?;
-            h.validar(&efectivos, paths.aproximaciones)
+            h.validar(&efectivos, paths)
         })
         .is_ok()
 }
@@ -90,13 +90,14 @@ fn claves_validas(h: &Herramienta, accion: &str, error: &Error) -> Vec<String> {
 pub(crate) fn vista_de_error(solicitud: &Solicitud<'_>, error: &Error) -> Option<Value> {
     let h = herramienta(solicitud.name)?;
     let efectivos = h
-        .preparar_args(solicitud.args)
+        .preparar_args(solicitud.args, solicitud.paths.idioma)
         .unwrap_or_else(|_| solicitud.args.clone());
     let accion = h.accion(&efectivos);
     let contexto = Contexto {
         tool: solicitud.name,
         accion,
         args: &efectivos,
+        idioma: solicitud.paths.idioma,
     };
     let mut vista = desde_error(&contexto, error, claves_validas(h, accion, error));
     solo_ejecutables(solicitud.paths, &mut vista);
@@ -110,10 +111,6 @@ mod tests;
 #[cfg(test)]
 #[path = "../../../tests/unit/server/tools/ensayo_tests.rs"]
 mod tests_ensayo;
-
-#[cfg(test)]
-#[path = "../../../tests/unit/server/tools/claves_tests.rs"]
-mod tests_claves;
 
 #[cfg(test)]
 #[path = "../../../tests/unit/server/tools/pendiente_tests.rs"]

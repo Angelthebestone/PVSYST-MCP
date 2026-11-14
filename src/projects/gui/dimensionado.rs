@@ -2,22 +2,17 @@
 //! a planned power, PVsyst chooses the modules in series, the strings and the
 //! inverter count, and warns about the electrical window.
 
-use super::rotulos::{rotulos_dimensionado, RotulosDimensionado};
-use super::{contar, objeto, ProyectoEnPvsyst};
-use crate::adapters::gui::conduccion::Campo;
-use crate::adapters::gui::rotulos::Idioma;
-use crate::adapters::gui::sesion_pvsyst::Sesion;
+use super::relleno::{rellenar, valor};
+use super::rotulos::FORMULARIO_SISTEMA;
+use super::{abrir_sesion, contar, objeto, ProyectoEnPvsyst};
+use crate::adapters::gui::rotulos::dialogos::OK;
+use crate::adapters::gui::rotulos::pvsyst::SISTEMA as BOTON_SISTEMA;
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
 
-const ROTULOS: RotulosDimensionado = rotulos_dimensionado(Idioma::Es);
-
-/// "Planned power" option and field of the pre-sizing help.
-const OPCION_POTENCIA: Campo = Campo::opcion(1044, 73);
-const POTENCIA_PLANEADA: Campo = Campo::edit(1080, 73);
-const MODULOS_SERIE: Campo = Campo::edit(468, 486);
-const CADENAS: Campo = Campo::edit(468, 514);
+/// The System window as the agent view describes it (`gui_observar que:esquema`).
+const SISTEMA: &str = "variante.system";
 /// PVsyst sizes one sub-array per pre-sizing; several need one each.
 const UN_SUBCONJUNTO: usize = 1;
 
@@ -28,7 +23,7 @@ pub(crate) fn dimensionar(
     variante: &str,
     kwp: f64,
 ) -> Result<Value> {
-    let sesion = Sesion::abrir(paths)?;
+    let sesion = abrir_sesion(paths)?;
     sesion.ejecutar(|s| {
         let p = ProyectoEnPvsyst::abrir(s, paths, proyecto, variante)?;
         let subconjuntos = contar(&p.leer_variante()?, "pvSubArray");
@@ -37,19 +32,28 @@ pub(crate) fn dimensionar(
                 "La variante tiene {subconjuntos} subconjuntos: el pre-dimensionado de PVsyst trabaja uno a uno; pasa n_mod_serie y n_strings"
             )));
         }
-        p.ventana.pulsar(ROTULOS.sistema)?;
-        let sistema = s.esperar(ROTULOS.formulario_sistema)?;
-        sistema.marcar(OPCION_POTENCIA)?;
-        sistema.escribir(POTENCIA_PLANEADA, &format!("{kwp}"))?;
+        p.ventana.pulsar(BOTON_SISTEMA)?;
+        let sistema = s.esperar(FORMULARIO_SISTEMA)?;
+        let pedido = json!({ "usar_potencia_planeada": true, "potencia_planeada_kwp": kwp });
+        let formulario = rellenar(paths, &sistema, (SISTEMA, pedido))?;
         let propuesta = json!({
-            "n_mod_serie": sistema.leer(MODULOS_SERIE)?,
-            "n_strings": sistema.leer(CADENAS)?,
+            "n_mod_serie": valor(&formulario, "n_modulos_serie"),
+            "n_strings": valor(&formulario, "n_cadenas"),
         });
-        sistema.pulsar(ROTULOS.ok)?;
+        sistema.pulsar(OK)?;
         s.aceptar_mensajes();
         let raiz = p.guardar_variante()?;
         Ok(respuesta(&raiz, kwp, &propuesta, &s.mensajes()))
     })
+}
+
+/// Whether the saved value is not the one PVsyst proposed in the form (compared as
+/// numbers; a proposal the form did not show cannot be compared).
+fn difiere(propuesto: &Value, guardado: Option<&str>) -> bool {
+    if !matches!(propuesto, Value::Number(_) | Value::String(_)) {
+        return false;
+    }
+    crate::format::numero_json(propuesto) != guardado.and_then(crate::format::numero_texto)
 }
 
 fn respuesta(
@@ -63,7 +67,22 @@ fn respuesta(
     let realizado = raiz
         .find_deep("PNomSizing")
         .and_then(|v| v.trim().parse::<f64>().ok());
-    json!({
+    let mut errores: Vec<String> = [("n_mod_serie", "NModSerie"), ("n_strings", "NStringCh")]
+        .iter()
+        .filter(|(p, g)| difiere(&propuesta[*p], campo(g).as_deref()))
+        .map(|(p, g)| {
+            format!(
+                "PVsyst guardó {g}={:?}, distinto de lo propuesto ({p}={})",
+                campo(g),
+                propuesta[*p]
+            )
+        })
+        .collect();
+    if realizado.is_none() {
+        errores
+            .push("La variante guardada no tiene PNomSizing: no se sabe el kWp realizado".into());
+    }
+    let mut salida = json!({
         "origen": "pvsyst",
         "metodo": "pre-dimensionado de PVsyst (ventana Sistema, potencia planeada)",
         "kwp_planeado": kwp,
@@ -76,5 +95,14 @@ fn respuesta(
             "PNomSizing": raiz.find_deep("PNomSizing"),
         },
         "avisos_pvsyst": avisos,
-    })
+    });
+    if !errores.is_empty() {
+        salida["completo"] = json!(false);
+        salida["errores"] = json!(errores);
+    }
+    salida
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/projects/gui/dimensionado.rs"]
+mod tests;

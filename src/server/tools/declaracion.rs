@@ -1,10 +1,14 @@
 //! MCP tool declarations: schemas, property types and discriminator rules.
 //! Boundary validation lives in [`validacion`].
 
+use super::redaccion::DESCRIPCION_WORKSPACE;
 use crate::config::Paths;
 use crate::error::Result;
+use crate::idioma::{Idioma, Texto};
 use crate::progreso::SeguimientoTarea;
 use serde_json::{json, Map, Value};
+
+mod anotador;
 
 /// JSON Schema types supported in tool property declarations.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -111,7 +115,7 @@ pub(crate) enum Ejecutor {
 
 /// MCP behaviour hints and display title for one tool.
 pub(crate) struct Anotaciones {
-    pub(crate) titulo: &'static str,
+    pub(crate) titulo: Texto,
     pub(crate) es_solo_lectura: bool,
     pub(crate) es_destructiva: bool,
     pub(crate) es_idempotente: bool,
@@ -124,15 +128,24 @@ pub(crate) struct Sinonimos {
     pub(crate) valores: &'static [(&'static str, &'static str)],
 }
 
+/// What the schema annotators need beyond the property itself: the tool being
+/// described and the language to write the annotations in.
+pub(crate) struct Anotador<'a> {
+    pub(crate) herramienta: &'a Herramienta,
+    pub(crate) idioma: Idioma,
+}
+
 /// A consolidated MCP tool declaration coupling schema, validation, and handler.
 pub(crate) struct Herramienta {
     pub(crate) nombre: &'static str,
-    pub(crate) descripcion: &'static str,
+    pub(crate) descripcion: Texto,
     pub(crate) anotaciones: Anotaciones,
     pub(crate) propiedades: &'static [(&'static str, TipoDato)],
     pub(crate) requeridos: &'static [&'static str],
     pub(crate) discriminador: Option<Discriminador>,
     pub(crate) requeridos_por_accion: &'static [(&'static str, &'static [&'static str])],
+    /// Keys an action reads although the tool declares them for another action.
+    pub(crate) consumidos_por_accion: &'static [(&'static str, &'static [&'static str])],
     pub(crate) sinonimos: Sinonimos,
     pub(crate) ejecutar: Ejecutor,
 }
@@ -144,20 +157,24 @@ impl Herramienta {
     }
 
     /// Builds the MCP tool schema exposed to clients in `tools/list`.
-    pub(crate) fn esquema(&self) -> Value {
+    pub(crate) fn esquema(&self, idioma: Idioma) -> Value {
+        let an = Anotador {
+            herramienta: self,
+            idioma,
+        };
         let mut props = Map::new();
 
         for &(clave, tipo) in self.propiedades {
             let mut prop_val = tipo.esquema_json();
-            anotar_workspace_si_aplica(&mut prop_val, clave);
-            super::restricciones_esquema::anotar_restricciones(&mut prop_val, self.nombre, clave);
-            self.anotar_alias_propiedad(&mut prop_val, clave);
+            anotar_workspace_si_aplica(&mut prop_val, clave, idioma);
+            super::restricciones_esquema::anotar_restricciones(&an, &mut prop_val, clave);
+            an.propiedad(&mut prop_val, clave);
             props.insert(clave.to_string(), prop_val);
         }
 
         if let Some(disc) = &self.discriminador {
             let mut prop = construir_prop_discriminador(disc, &self.sinonimos);
-            self.anotar_alias_discriminador(&mut prop, disc);
+            an.discriminador(&mut prop, disc);
             props.insert(disc.campo.to_string(), prop);
         }
 
@@ -170,10 +187,10 @@ impl Herramienta {
         self.anotar_requisitos(&mut entrada);
         json!({
             "name": self.nombre,
-            "title": self.anotaciones.titulo,
-            "description": self.descripcion,
+            "title": self.anotaciones.titulo.en_idioma(idioma),
+            "description": self.descripcion.en_idioma(idioma),
             "annotations": {
-                "title": self.anotaciones.titulo,
+                "title": self.anotaciones.titulo.en_idioma(idioma),
                 "readOnlyHint": self.anotaciones.es_solo_lectura,
                 "destructiveHint": self.anotaciones.es_destructiva,
                 "idempotentHint": self.anotaciones.es_idempotente,
@@ -181,58 +198,6 @@ impl Herramienta {
             },
             "inputSchema": entrada,
         })
-    }
-
-    fn anotar_alias_propiedad(&self, prop_val: &mut Value, clave: &str) {
-        let aliases = extraer_aliases(self.sinonimos.argumentos, clave);
-        if aliases.is_empty() {
-            return;
-        }
-        let Some(obj) = prop_val.as_object_mut() else {
-            return;
-        };
-        let alias_str = format!("(alias: {})", aliases.join(", "));
-        let mut desc = match obj.get("description").and_then(Value::as_str) {
-            Some(prev) => format!("{prev} {alias_str}"),
-            None => format!("{clave} {alias_str}"),
-        };
-        if self.requeridos.contains(&clave) {
-            desc.push_str(SUFIJO_REQUERIDO);
-        }
-        obj.insert("description".to_string(), json!(desc));
-    }
-
-    pub(crate) fn anotar_alias_discriminador(&self, prop: &mut Value, disc: &Discriminador) {
-        let Some(obj) = prop.as_object_mut() else {
-            return;
-        };
-        let valores_texto = obj
-            .get("enum")
-            .and_then(Value::as_array)
-            .into_iter()
-            .flatten()
-            .filter_map(Value::as_str)
-            .filter(|val| disc.valores.contains(val))
-            .map(|val| formatear_valor_con_aliases(val, &self.sinonimos))
-            .collect::<Vec<_>>()
-            .join(", ");
-
-        let arg_aliases = extraer_aliases(self.sinonimos.argumentos, disc.campo);
-
-        let mut desc = if arg_aliases.is_empty() {
-            format!("Valores: {valores_texto}")
-        } else {
-            format!(
-                "{} (alias: {}). Valores: {valores_texto}",
-                disc.campo,
-                arg_aliases.join(", ")
-            )
-        };
-        if disc.defecto.is_none() && !arg_aliases.is_empty() {
-            desc.push_str(SUFIJO_REQUERIDO);
-        }
-        obj.insert("description".to_string(), json!(desc));
-        self.anotar_requeridos_por_accion(prop);
     }
 }
 
@@ -248,19 +213,17 @@ pub(crate) fn con(args: &Value, clave: &str, valor: Value) -> Value {
     copia
 }
 
-fn anotar_workspace_si_aplica(prop_val: &mut Value, clave: &str) {
+fn anotar_workspace_si_aplica(prop_val: &mut Value, clave: &str, idioma: Idioma) {
     if clave != "workspace" {
         return;
     }
     if let Some(obj) = prop_val.as_object_mut() {
         obj.insert(
             "description".to_string(),
-            json!("Ruta del workspace que reemplaza la raíz de confinamiento para esta llamada. Requiere cliente MCP de confianza."),
+            json!(DESCRIPCION_WORKSPACE.en_idioma(idioma)),
         );
     }
 }
-
-const SUFIJO_REQUERIDO: &str = " Requerido.";
 
 /// Discriminator schema: canonical values plus their aliases, so a client that
 /// validates enums accepts the alias spellings `preparar_args` normalizes.
@@ -276,15 +239,6 @@ fn construir_prop_discriminador(disc: &Discriminador, sinonimos: &Sinonimos) -> 
         obj.insert("default".to_string(), json!(defecto));
     }
     prop
-}
-
-fn formatear_valor_con_aliases(val: &str, sinonimos: &Sinonimos) -> String {
-    let aliases = extraer_aliases(sinonimos.valores, val);
-    if aliases.is_empty() {
-        val.to_string()
-    } else {
-        format!("{val} (alias: {})", aliases.join(", "))
-    }
 }
 
 pub(crate) fn extraer_aliases<'a>(tabla: &[(&'a str, &'a str)], canonico: &str) -> Vec<&'a str> {

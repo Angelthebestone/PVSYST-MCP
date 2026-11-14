@@ -2,245 +2,74 @@
 //! PVsyst's own component windows. PVsyst fits the one-diode model (RShunt,
 //! RSerie, Gamma...) or builds the efficiency profile, and saves the file.
 
-use crate::adapters::gui::conduccion::{Campo, Formulario};
-use crate::adapters::gui::rotulos::Idioma;
+use crate::adapters::gui::conduccion::Formulario;
+use crate::adapters::gui::ffi;
+use crate::adapters::gui::rotulos::dialogos::{GUARDAR, GUARDAR_COMO, NUEVO, OK};
+use crate::adapters::gui::rotulos::pvsyst::BASES_DE_DATOS;
+use crate::adapters::gui::rotulos::Rotulo;
 use crate::adapters::gui::sesion_pvsyst::Sesion;
+use crate::adapters::gui::ventanas::class_of;
+use crate::components::ficha::datos::{avisos_de_unidades, tipo_de, validar, valores_de, Tipo};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::object;
 use serde_json::{json, Map, Value};
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
-/// Declarative captions and form classes for PVsyst component creation.
-struct RotulosFicha {
-    ok: &'static str,
-    formulario_guardar_componente: &'static str,
-    guardar_como: &'static str,
-    formulario_guardar_objeto: &'static str,
-    guardar: &'static str,
-    bases_de_datos: &'static str,
-    formulario_base_datos: &'static str,
-    formulario_eleccion_objeto: &'static str,
-    nuevo: &'static str,
-}
+/// Window classes of the component creation flow: the same in every language of PVsyst.
+const FORMULARIO_GUARDAR_COMPONENTE: &str = "TSaveComponentForm";
+const FORMULARIO_GUARDAR_OBJETO: &str = "TSaveObjPVForm";
+const FORMULARIO_BASE_DATOS: &str = "TDatabaseForm";
+const FORMULARIO_ELECCION_OBJETO: &str = "TChoixObjetPVForm";
 
-const fn rotulos_ficha(idioma: Idioma) -> RotulosFicha {
-    match idioma {
-        Idioma::Es => RotulosFicha {
-            ok: "OK",
-            formulario_guardar_componente: "TSaveComponentForm",
-            guardar_como: "Guardar como",
-            formulario_guardar_objeto: "TSaveObjPVForm",
-            guardar: "Guardar",
-            bases_de_datos: "Bases de datos",
-            formulario_base_datos: "TDatabaseForm",
-            formulario_eleccion_objeto: "TChoixObjetPVForm",
-            nuevo: "Nuevo",
-        },
-    }
-}
+const PAUSA_FOCO: Duration = Duration::from_millis(300);
 
-const ROTULOS: RotulosFicha = rotulos_ficha(Idioma::Es);
-
-/// One datasheet value: its key in the PVsyst file and where it is typed.
-struct Entrada {
-    clave: &'static str,
-    campo: Campo,
-    pagina: usize,
-}
-
-const fn e(clave: &'static str, x: i32, y: i32, pagina: usize) -> Entrada {
-    Entrada {
-        clave,
-        campo: Campo::edit(x, y),
-        pagina,
-    }
-}
-
-/// What differs between creating a module and an inverter.
-struct Tipo {
-    boton_base: &'static str,
-    formulario: &'static str,
-    carpeta: &'static str,
-    extension: &'static str,
-    nombre_archivo: Campo,
-    entradas: &'static [Entrada],
-    obligatorias: &'static [&'static str],
-    leidas: &'static [&'static str],
-}
-
-const MODULO: Tipo = Tipo {
-    boton_base: "Módulos PV",
-    formulario: "TPVModuleForm",
-    carpeta: "PVmodules",
-    extension: "PAN",
-    nombre_archivo: Campo::edit(243, 79),
-    entradas: &[
-        e("Model", 243, 53, 0),
-        e("Manufacturer", 621, 53, 0),
-        e("PNom", 130, 157, 0),
-        e("Isc", 250, 279, 0),
-        e("Voc", 493, 279, 0),
-        e("Imp", 250, 303, 0),
-        e("Vmp", 493, 303, 0),
-        e("muISC", 250, 327, 0),
-        e("NCelS", 493, 327, 0),
-    ],
-    obligatorias: &[
-        "Model",
-        "Manufacturer",
-        "PNom",
-        "Technol",
-        "Isc",
-        "Voc",
-        "Imp",
-        "Vmp",
-        "NCelS",
-    ],
-    leidas: &[
-        "PNom", "Isc", "Voc", "Imp", "Vmp", "NCelS", "RShunt", "RSerie", "Gamma", "muGamma",
-        "Technol",
-    ],
-};
-
-/// Technology list of the module window.
-const TECNOLOGIA: Campo = Campo::combo(166, 189);
-
-const INVERSOR: Tipo = Tipo {
-    boton_base: "Inversor de red",
-    formulario: "TGridInverterForm",
-    carpeta: "Inverters",
-    extension: "OND",
-    nombre_archivo: Campo::edit(241, 84),
-    entradas: &[
-        e("Model", 241, 58, 0),
-        e("Manufacturer", 621, 58, 0),
-        e("VMppMin", 286, 171, 0),
-        e("VMPPMax", 286, 267, 0),
-        e("VAbsMax", 286, 291, 0),
-        e("PSeuil", 240, 332, 0),
-        e("VOutConv", 546, 250, 0),
-        e("PNomConv", 545, 275, 0),
-        e("PMaxOUT", 545, 299, 0),
-        e("EfficMax", 493, 105, 1),
-        e("EfficEuro", 493, 132, 1),
-    ],
-    obligatorias: &[
-        "Model",
-        "Manufacturer",
-        "PNomConv",
-        "VMppMin",
-        "VMPPMax",
-        "VAbsMax",
-        "PSeuil",
-        "EfficMax",
-        "EfficEuro",
-        "MonoTri",
-    ],
-    leidas: &[
-        "PNomConv",
-        "PMaxOUT",
-        "VMppMin",
-        "VMPPMax",
-        "VAbsMax",
-        "PSeuil",
-        "EfficMax",
-        "EfficEuro",
-        "MonoTri",
-    ],
-};
-
-/// Grid phases as PVsyst names them in the file and in the window.
-const FASES: [(&str, &str); 3] = [
-    ("Mono", "Monofásico"),
-    ("Tri", "Trifásico"),
-    ("Bi", "Bifásico"),
-];
-
-fn tipo_de(tipo: &str) -> Result<&'static Tipo> {
-    match tipo.to_ascii_uppercase().as_str() {
-        "PAN" => Ok(&MODULO),
-        "OND" => Ok(&INVERSOR),
-        otro => Err(Error::Invalid(format!(
-            "tipo '{otro}' no soportado: PAN u OND"
-        ))),
-    }
-}
-
-fn texto(datos: &Map<String, Value>, clave: &str) -> Option<String> {
-    datos.get(clave).map(|v| match v {
-        Value::String(s) => s.clone(),
-        otro => otro.to_string(),
-    })
-}
-
-fn validar(t: &Tipo, datos: &Map<String, Value>) -> Result<()> {
-    let faltan: Vec<&str> = t
-        .obligatorias
-        .iter()
-        .copied()
-        .filter(|k| !datos.contains_key(*k))
-        .collect();
-    let conocidas =
-        |k: &str| t.obligatorias.contains(&k) || t.entradas.iter().any(|en| en.clave == k);
-    let extra: Vec<&String> = datos.keys().filter(|k| !conocidas(k)).collect();
-    if faltan.is_empty() && extra.is_empty() {
-        return Ok(());
-    }
-    Err(Error::Invalid(format!(
-        "Datos de la ficha: faltan {faltan:?}; no admitidos {extra:?}. PVsyst los pide en su ventana de componente"
-    )))
-}
-
-fn rellenar(t: &Tipo, f: &Formulario, datos: &Map<String, Value>, archivo: &str) -> Result<()> {
-    f.escribir(t.nombre_archivo, archivo)?;
-    for pagina in [0, 1] {
-        let de_pagina: Vec<&Entrada> = t.entradas.iter().filter(|en| en.pagina == pagina).collect();
-        if de_pagina.iter().all(|en| !datos.contains_key(en.clave)) {
-            continue;
-        }
-        f.pagina(pagina)?;
-        for en in de_pagina {
-            if let Some(v) = texto(datos, en.clave) {
-                f.escribir(en.campo, &v)?;
-            }
-        }
-    }
-    f.pagina(0)?;
-    opciones(f, datos)
-}
-
-/// Lists and options: module technology, inverter phases and frequency.
-fn opciones(f: &Formulario, datos: &Map<String, Value>) -> Result<()> {
-    if let Some(tec) = texto(datos, "Technol") {
-        f.seleccionar(TECNOLOGIA, &tec)?;
-    }
-    if let Some(fases) = texto(datos, "MonoTri") {
-        let rotulo = FASES
-            .iter()
-            .find(|(k, _)| k.eq_ignore_ascii_case(&fases))
-            .map(|(_, r)| *r)
-            .ok_or_else(|| Error::Invalid(format!("MonoTri '{fases}': Mono, Tri o Bi")))?;
-        f.elegir(rotulo)?;
-    }
-    Ok(())
+/// Types the datasheet; a field that failed or reads back differently stops before saving.
+fn rellenar(paths: &Paths, t: &Tipo, valores: &Map<String, Value>) -> Result<()> {
+    let pedido = json!({ "entidad": t.entidad, "valores": valores, "ventana": t.formulario });
+    // A value PVsyst limited or did not take must not end up saved in the component.
+    crate::vista_agente::rellenar_exacto(paths, &pedido).map(|_| ())
 }
 
 fn guardar(s: &Sesion, f: &Formulario) -> Result<()> {
-    f.pulsar(ROTULOS.ok)?;
-    let confirmar = s
-        .esperar(ROTULOS.formulario_guardar_componente)
-        .map_err(|_| {
-            Error::Invalid(format!(
-                "PVsyst no acepta el componente: revisa la ficha (la ventana '{}' sigue abierta)",
-                f.titulo()
-            ))
-        })?;
-    confirmar.pulsar(ROTULOS.guardar_como)?;
-    s.esperar(ROTULOS.formulario_guardar_objeto)?
-        .pulsar(ROTULOS.guardar)?;
+    f.pulsar(OK)?;
+    let confirmar = s.esperar(FORMULARIO_GUARDAR_COMPONENTE).map_err(|_| {
+        Error::Invalid(format!(
+            "PVsyst no acepta el componente: revisa la ficha (la ventana '{}' sigue abierta)",
+            f.titulo()
+        ))
+    })?;
+    pulsar_al_frente(&confirmar, GUARDAR_COMO)?;
+    let destino = s.esperar(FORMULARIO_GUARDAR_OBJETO)?;
+    pulsar_al_frente(&destino, GUARDAR)?;
     s.aceptar_mensajes();
     Ok(())
+}
+
+/// A click on these dialogs is ignored unless they are in front and hold the
+/// focus: the file-name field takes it (the save dialog of a scene needed the same).
+/// The focus is tried twice; if it still is not there the click is sent anyway (it has worked
+/// without a confirmed focus) but the miss is logged, so a click PVsyst ignores leaves a trace.
+fn pulsar_al_frente(dialogo: &Formulario, rotulo: Rotulo<'_>) -> Result<()> {
+    let campo = ffi::enum_children(dialogo.h)
+        .into_iter()
+        .find(|c| class_of(*c) == "TEdit");
+    let con_foco = match campo {
+        Some(c) => ffi::traer_y_focar(c, PAUSA_FOCO) || ffi::traer_y_focar(c, PAUSA_FOCO),
+        None => {
+            ffi::traer_al_frente(dialogo.h);
+            true
+        }
+    };
+    if !con_foco {
+        tracing::warn!(
+            ventana = dialogo.h,
+            rotulo = %rotulo,
+            "el diálogo no quedó delante ni con el foco: PVsyst puede ignorar el clic"
+        );
+    }
+    dialogo.pulsar(rotulo)
 }
 
 /// Creates the component in PVsyst and returns what PVsyst saved.
@@ -263,20 +92,22 @@ pub(crate) fn crear(
     }
     let sesion = Sesion::abrir(paths)?;
     sesion.ejecutar(|s| {
-        s.inicio.pulsar(ROTULOS.bases_de_datos)?;
-        s.esperar(ROTULOS.formulario_base_datos)?
-            .pulsar(t.boton_base)?;
-        s.esperar(ROTULOS.formulario_eleccion_objeto)?
-            .pulsar(ROTULOS.nuevo)?;
+        s.inicio.pulsar(BASES_DE_DATOS)?;
+        s.esperar(FORMULARIO_BASE_DATOS)?.pulsar(t.boton_base)?;
+        s.esperar(FORMULARIO_ELECCION_OBJETO)?.pulsar(NUEVO)?;
         let f = s.esperar(t.formulario)?;
-        rellenar(t, &f, datos, &archivo)?;
+        rellenar(paths, t, &valores_de(t, datos, nombre))?;
         guardar(s, &f)?;
         let avisos = s.mensajes();
-        leer_guardado(t, &destino, &avisos)
+        leer_guardado(t, &destino, (datos, &avisos))
     })
 }
 
-fn leer_guardado(t: &Tipo, destino: &Path, avisos: &[String]) -> Result<Value> {
+fn leer_guardado(
+    t: &Tipo,
+    destino: &Path,
+    (enviados, avisos): (&Map<String, Value>, &[String]),
+) -> Result<Value> {
     if !destino.exists() {
         return Err(Error::Gui(format!(
             "PVsyst no guardó {}",
@@ -284,17 +115,29 @@ fn leer_guardado(t: &Tipo, destino: &Path, avisos: &[String]) -> Result<Value> {
         )));
     }
     let bytes = crate::workspace::leer_bytes(destino)?;
-    let raiz = object::parse_first(&String::from_utf8_lossy(&bytes))
+    let raiz = object::parse_completo(&String::from_utf8_lossy(&bytes), destino)?
+        .into_iter()
+        .next()
         .ok_or_else(|| Error::Format("El archivo guardado no es un PVObject".into()))?;
     let valores: Map<String, Value> = t
         .leidas
         .iter()
         .filter_map(|k| raiz.find_deep(k).map(|v| ((*k).to_string(), json!(v))))
         .collect();
-    Ok(json!({
+    let diferencias = super::contraste::diferencias(&raiz, t.leidas, enviados);
+    let mut salida = json!({
         "origen": "pvsyst",
         "archivo": destino.display().to_string(),
         "valores_pvsyst": valores,
         "avisos_pvsyst": avisos,
-    }))
+    });
+    let avisos_ficha = avisos_de_unidades(t, enviados);
+    if !avisos_ficha.is_empty() {
+        salida["avisos_ficha"] = json!(avisos_ficha);
+    }
+    if !diferencias.is_empty() {
+        salida["completo"] = json!(false);
+        salida["diferencias_con_la_ficha"] = Value::Array(diferencias);
+    }
+    Ok(salida)
 }

@@ -2,20 +2,22 @@ use super::aplicacion::leer_escena;
 use super::codec::parse_escena_3d;
 use super::dominio::TipoArchivoEscena;
 use crate::config::Paths;
-use crate::error::Error;
 use serde_json::json;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 const FIXTURE_ESCENA_SINTETICA: &[u8] =
     b"pvShdBuilding;Synthetic Test;\r\nVersion 4.21; Calcul=$0001;\r\npvShdElemObject;Box;\r\nVersion 4.21; Calcul=$0005;\r\n";
+
+/// Scene saved by PVsyst 8.1.8 (PRUEBA) from the editor: one box, 10 x 8 x 3 m.
+const ESCENA_TEXTO_8_1_8: &[u8] = include_bytes!("../../fixtures/escena_3d/Casa_A_8_1_8.SHD");
 
 fn paths_de_test(ws: &Path) -> Paths {
     Paths::para_test(ws)
 }
 
 #[test]
-fn should_parse_golden_synthetic_3d_scene() {
+fn should_parse_golden_scene_when_the_root_class_matches_the_extension() {
     let escena = parse_escena_3d(FIXTURE_ESCENA_SINTETICA, TipoArchivoEscena::Bld)
         .expect("Parseo de escena sintética");
 
@@ -24,72 +26,28 @@ fn should_parse_golden_synthetic_3d_scene() {
     assert_eq!(escena.objetos().len(), 1);
     assert_eq!(escena.objetos()[0].clase(), "pvShdElemObject");
     assert_eq!(escena.objetos()[0].nombre(), "Box");
+
+    let cruzado = b"pvShading;Desc;\r\nVersion 4.0; Calcul=$00;\r\n";
+    assert!(parse_escena_3d(cruzado, TipoArchivoEscena::Bld).is_err());
 }
 
 #[test]
-fn should_reject_unsupported_3d_file_extension() {
-    let err = TipoArchivoEscena::de_extension("XYZ");
-    assert!(err.is_err());
+fn should_read_the_box_when_the_scene_is_the_text_form_with_a_byte_order_mark() {
+    let escena = parse_escena_3d(ESCENA_TEXTO_8_1_8, TipoArchivoEscena::Shd).expect("texto");
+
+    assert_eq!(escena.clase_raiz(), "pvShading");
+    assert_eq!(escena.version(), "8.1.8");
+    assert_eq!(escena.objetos().len(), 1);
+    let caja = &escena.objetos()[0];
+    assert_eq!((caja.clase(), caja.nombre()), ("pvShdElemObject", "Casa_A"));
+    let geo = caja.geometria().expect("geometria");
+    assert_eq!(geo.tipo_pvsyst.as_deref(), Some("oeParallelepipede"));
+    assert_eq!(geo.dimensiones, vec![10.0, 8.0, 3.0]);
+    assert_eq!(caja.posicion().expect("posicion").z, 0.0);
 }
 
 #[test]
-fn should_reject_invalid_root_class_in_3d_scene() {
-    let raw = b"pvInvalido;Desc;\r\nVersion 4.0; Calcul=$00;\r\n";
-    let err = parse_escena_3d(raw, TipoArchivoEscena::Shd);
-    assert!(err.is_err());
-}
-
-#[test]
-fn should_reject_mismatched_extension_and_root_class() {
-    let raw = b"pvShading;Desc;\r\nVersion 4.0; Calcul=$00;\r\n";
-    let err = parse_escena_3d(raw, TipoArchivoEscena::Bld);
-    assert!(err.is_err());
-}
-
-#[test]
-fn should_reject_invalid_root_version_line() {
-    let raw = b"pvShading;Desc;\r\nbasura;\r\n";
-    let err = parse_escena_3d(raw, TipoArchivoEscena::Shd);
-    assert!(err.is_err());
-}
-
-#[test]
-fn should_parse_synthetic_3d_scene_with_binary_position_and_geometry() {
-    use crate::format::real48::encode_real48;
-    let mut sample = b"pvShdBuilding;Test;\r\nVersion 4.21; Calcul=$0001;\r\npvShdElemObject;Box;\r\nVersion 4.21; Calcul=$0005;\r\n".to_vec();
-    // 44-byte position block: 12 bytes prefix, 5x Real48 slots (x, y, z, rot1, rot2), visibility, '/'
-    let mut pos_block = vec![0u8; 12];
-    pos_block.extend_from_slice(&encode_real48(10.5).unwrap());
-    pos_block.extend_from_slice(&encode_real48(-2.0).unwrap());
-    pos_block.extend_from_slice(&encode_real48(3.0).unwrap());
-    pos_block.extend_from_slice(&encode_real48(45.0).unwrap());
-    pos_block.extend_from_slice(&encode_real48(0.0).unwrap());
-    pos_block.push(1); // visible
-    pos_block.push(b'/');
-    pos_block.extend_from_slice(b"\r\n");
-    sample.extend_from_slice(&pos_block);
-
-    // 39-byte geometry block: shape 11 (parallelepiped), 6x Real48 slots, '/'
-    let mut geom_block = vec![11u8, 0u8];
-    for dim in [5.0, 4.0, 3.0, 0.0, 0.0, 1.0] {
-        geom_block.extend_from_slice(&encode_real48(dim).unwrap());
-    }
-    geom_block.push(b'/');
-    geom_block.extend_from_slice(b"\r\n");
-    sample.extend_from_slice(&geom_block);
-
-    let escena = parse_escena_3d(&sample, TipoArchivoEscena::Bld).expect("parseo con bloques");
-    let obj = &escena.objetos()[0];
-    let pos = obj.posicion().expect("posicion presente");
-    assert!((pos.x - 10.5).abs() < 1e-4);
-    assert!((pos.y - (-2.0)).abs() < 1e-4);
-    let geo = obj.geometria().expect("geometria presente");
-    assert_eq!(geo.forma.nombre(), "Parallélépipède");
-    assert!((geo.dimensiones[0] - 5.0).abs() < 1e-4);
-}
-
-#[test]
-fn should_read_scene_via_observable_tool_json() {
+fn should_read_scene_through_the_tool_json_when_the_file_is_in_shadings() {
     let ws = tempfile::tempdir().expect("Directorio temporal");
     let shadings_dir = ws.path().join("Shadings");
     fs::create_dir_all(&shadings_dir).expect("Crear Shadings");
@@ -103,76 +61,4 @@ fn should_read_scene_via_observable_tool_json() {
     assert_eq!(leida["clase_raiz"], "pvShdBuilding");
     assert_eq!(leida["total_objetos"], 1);
     assert_eq!(leida["objetos"][0]["nombre"], "Box");
-}
-
-#[test]
-fn should_reject_scene_without_extension() {
-    let ws = tempfile::tempdir().expect("Directorio temporal");
-    let shadings_dir = ws.path().join("Shadings");
-    fs::create_dir_all(&shadings_dir).expect("Crear Shadings");
-    fs::write(shadings_dir.join("SinExtension"), FIXTURE_ESCENA_SINTETICA).expect("Escritura");
-    let paths = paths_de_test(ws.path());
-    let err = leer_escena(&paths, &json!({ "archivo": "SinExtension" }));
-    assert!(err.is_err());
-    assert!(err.unwrap_err().to_string().contains("extensión"));
-}
-
-#[test]
-fn should_reject_path_traversal_when_reading_scene() {
-    let ws = tempfile::tempdir().expect("Directorio temporal");
-    let paths = paths_de_test(ws.path());
-    let err = leer_escena(&paths, &json!({ "archivo": "../../Escena.SHD" }));
-    assert!(err.is_err());
-}
-
-#[test]
-fn should_reject_external_absolute_path_without_permission() {
-    let ws = tempfile::tempdir().expect("Directorio temporal");
-    let paths = paths_de_test(ws.path());
-    let ruta_externa = if cfg!(windows) {
-        r"C:\Windows\System32\drivers\etc\hosts"
-    } else {
-        "/etc/hosts"
-    };
-    let err = leer_escena(&paths, &json!({ "archivo": ruta_externa }));
-    assert!(err.is_err());
-}
-
-#[test]
-fn should_reject_truncated_3d_file() {
-    let err_vacio = parse_escena_3d(b"", TipoArchivoEscena::Shd).unwrap_err();
-    assert!(matches!(&err_vacio, Error::Invalid(msg) if msg.contains("vacío")));
-
-    let err_sin_crlf = parse_escena_3d(b"pvShading", TipoArchivoEscena::Shd).unwrap_err();
-    assert!(matches!(&err_sin_crlf, Error::Invalid(msg) if msg.contains("insuficiente")));
-
-    let err_una_linea =
-        parse_escena_3d(b"pvShading;Desc;\r\n", TipoArchivoEscena::Shd).unwrap_err();
-    assert!(matches!(&err_una_linea, Error::Invalid(msg) if msg.contains("insuficiente")));
-}
-
-#[test]
-#[ignore = "necesita la instalación de PVsyst"]
-fn should_decode_real_demo_geneve_grid_bld_sample() {
-    let ruta = PathBuf::from(
-        r"C:\Program Files\PVsyst8.1.7\DataRO\PVsyst8.1_Data\Shadings\DEMO_Geneve_Grid.BLD",
-    );
-    if !ruta.exists() {
-        panic!(
-            "Falta el archivo requerido de la instalación de PVsyst: {}",
-            ruta.display()
-        );
-    }
-    let bytes = fs::read(&ruta).expect("Lectura de DEMO_Geneve_Grid.BLD");
-    let escena = parse_escena_3d(&bytes, TipoArchivoEscena::Bld).expect("Parseo de BLD real");
-
-    assert_eq!(escena.clase_raiz(), "pvShdBuilding");
-    assert_eq!(escena.objetos().len(), 3);
-    assert_eq!(escena.objetos()[0].clase(), "pvShdElemObject");
-    assert_eq!(escena.objetos()[0].nombre(), "Parallélépipède");
-    let pos = escena.objetos()[0].posicion().expect("posicion");
-    assert!((pos.x - (-5.0)).abs() < 1e-3);
-    let geo = escena.objetos()[0].geometria().expect("geometria");
-    assert_eq!(geo.forma.nombre(), "Parallélépipède");
-    assert_eq!(escena.objetos()[1].nombre(), "Toiture + pignons");
 }

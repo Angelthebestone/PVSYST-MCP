@@ -4,7 +4,6 @@
 
 use crate::adapters::gui::gui_running;
 use crate::args::{opt_str, req_str};
-use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::history::{escribir_atomico, raiz_usuario, snapshot_usuario};
 use serde_json::{json, Map, Value};
@@ -20,6 +19,8 @@ pub(crate) enum Codificacion {
     Utf16Le,
     Utf8Bom,
     Utf8,
+    /// No BOM and not valid UTF-8: a Windows ANSI file, read byte for byte.
+    Latin1,
 }
 
 pub(crate) fn ini_path() -> Result<PathBuf> {
@@ -47,28 +48,46 @@ pub(crate) fn decodificar(bytes: &[u8]) -> (String, Codificacion) {
             Codificacion::Utf8Bom,
         );
     }
-    (
-        String::from_utf8_lossy(bytes).into_owned(),
-        Codificacion::Utf8,
-    )
+    match std::str::from_utf8(bytes) {
+        Ok(texto) => (texto.to_owned(), Codificacion::Utf8),
+        Err(_) => (
+            crate::format::decodificar_latin1(bytes),
+            Codificacion::Latin1,
+        ),
+    }
 }
 
-pub(crate) fn codificar(texto: &str, cod: Codificacion) -> Vec<u8> {
+pub(crate) fn codificar(texto: &str, cod: Codificacion) -> Result<Vec<u8>> {
     match cod {
         Codificacion::Utf16Le => {
             let mut out = BOM_UTF16LE.to_vec();
             for unidad in texto.encode_utf16() {
                 out.extend_from_slice(&unidad.to_le_bytes());
             }
-            out
+            Ok(out)
         }
         Codificacion::Utf8Bom => {
             let mut out = BOM_UTF8.to_vec();
             out.extend_from_slice(texto.as_bytes());
-            out
+            Ok(out)
         }
-        Codificacion::Utf8 => texto.as_bytes().to_vec(),
+        Codificacion::Utf8 => Ok(texto.as_bytes().to_vec()),
+        Codificacion::Latin1 => crate::format::codificar_latin1(texto).ok_or_else(|| {
+            Error::Invalid("El valor tiene caracteres que PVsyst.ini (ANSI) no admite".into())
+        }),
     }
+}
+
+/// Decodes `bytes` only if encoding the text again gives the same bytes back: a file
+/// with an odd UTF-16 tail or invalid sequences would lose them when rewritten.
+pub(crate) fn decodificar_sin_perdida(bytes: &[u8]) -> Result<(String, Codificacion)> {
+    let (texto, cod) = decodificar(bytes);
+    if codificar(&texto, cod)? == bytes {
+        return Ok((texto, cod));
+    }
+    Err(Error::Format(
+        "PVsyst.ini tiene bytes que no se pueden reescribir sin perderlos: no se edita".into(),
+    ))
 }
 
 pub(crate) fn seccion_protegida(seccion: &str) -> bool {
@@ -159,7 +178,7 @@ pub(crate) fn reemplazar_clave(
 /// Without `seccion` returns only the key count per section, so routine calls
 /// stay small; pass `seccion` to see its keys and values.
 /// Pass `clave` together with `seccion` to return only that key.
-pub(crate) fn preferencias(_paths: &Paths, args: &Value) -> Result<Value> {
+pub(crate) fn preferencias(args: &Value) -> Result<Value> {
     let ruta = ini_path()?;
     let (texto, _) = decodificar(&leer(&ruta)?);
     let mut secciones = parsear(&texto);
@@ -179,9 +198,11 @@ pub(crate) fn preferencias(_paths: &Paths, args: &Value) -> Result<Value> {
         if let Some(pedida) = clave_pedida {
             valor = filtrar_clave(&valor, pedida)?;
         }
+        let n_claves = valor.as_object().map_or(0, Map::len);
         secciones = Map::from_iter([(clave, valor)]);
         return Ok(json!({
             "archivo": ruta.display().to_string(),
+            "n_claves": n_claves,
             "secciones": secciones,
         }));
     }
@@ -189,8 +210,13 @@ pub(crate) fn preferencias(_paths: &Paths, args: &Value) -> Result<Value> {
         .into_iter()
         .map(|(k, v)| (k, Value::from(v.as_object().map_or(0, Map::len))))
         .collect();
+    // The counts are the answer's own values: without them `vista.campos` is empty,
+    // because `archivo` is a path (a text too long to be a value) and the section
+    // table is a table, not a group of values.
+    let n_secciones = conteo.len();
     Ok(json!({
         "archivo": ruta.display().to_string(),
+        "n_secciones": n_secciones,
         "secciones": conteo,
     }))
 }
@@ -226,11 +252,11 @@ pub(crate) fn preferencias_editar(args: &Value) -> Result<Value> {
         )));
     }
     let ruta = ini_path()?;
-    let (texto, cod) = decodificar(&leer(&ruta)?);
+    let (texto, cod) = decodificar_sin_perdida(&leer(&ruta)?)?;
     let nuevo = reemplazar_clave(&texto, seccion, clave, valor)?;
     let historial_id = snapshot_usuario(std::slice::from_ref(&ruta), "preferencias_editar")?;
     let historial_dir = raiz_usuario()?.join(&historial_id);
-    escribir_atomico(&ruta, &codificar(&nuevo, cod))?;
+    escribir_atomico(&ruta, &codificar(&nuevo, cod)?)?;
     Ok(json!({
         "ok": true,
         "archivo": ruta.display().to_string(),

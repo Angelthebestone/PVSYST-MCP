@@ -80,6 +80,7 @@ pub(crate) fn vista_de_ventana(h: Hwnd, registro: &Ventana, titulo: &str) -> Val
         "tipo": registro.cobertura.nombre(),
         "ventana": format!("0x{h:X}"),
         "titulo": titulo,
+        "abierta_con": super::mapa::abierta_con(registro.clase, titulo),
     });
     let Some(obj) = mapa.as_object_mut() else {
         return mapa;

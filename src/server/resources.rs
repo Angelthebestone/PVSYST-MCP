@@ -1,42 +1,84 @@
 //! Read-only MCP resources: playbooks, coverage map, reference format and the CLI.
 
+use crate::adapters::gui::catalogo::EnEjecucion;
+use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Value};
 
 const FORMATO: &str = include_str!("../../docs/pvsyst_format.md");
 const CLI: &str = include_str!("../../PVSYST_CLI_REFERENCE.md");
 
+const NOMBRE_RECETAS: Texto = Texto {
+    es: "Recetas",
+    en: "Recipes",
+};
+const NOMBRE_COBERTURA: Texto = Texto {
+    es: "Cobertura",
+    en: "Coverage",
+};
+const NOMBRE_FORMATO: Texto = Texto {
+    es: "Formato de archivos PVsyst",
+    en: "PVsyst file format",
+};
+const NOMBRE_CLI: Texto = Texto {
+    es: "Referencia PVsystCLI",
+    en: "PVsystCLI reference",
+};
+const NOMBRE_GUI: Texto = Texto {
+    es: "Mapa de la GUI de PVsyst",
+    en: "PVsyst GUI map",
+};
+const RECURSO_DESCONOCIDO: Texto = Texto {
+    es: "Recurso desconocido: {uri}",
+    en: "Unknown resource: {uri}",
+};
+
 /// Catalogue returned by `resources/list`.
-pub(crate) fn list() -> Value {
+pub(crate) fn list(idioma: Idioma) -> Value {
     json!({
         "resources": [
-            { "uri": "pvsyst://recetas", "name": "Recetas", "mimeType": "application/json" },
-            { "uri": "pvsyst://cobertura", "name": "Cobertura", "mimeType": "application/json" },
-            { "uri": "pvsyst://formato", "name": "Formato de archivos PVsyst", "mimeType": "text/markdown" },
-            { "uri": "pvsyst://cli", "name": "Referencia PVsystCLI", "mimeType": "text/markdown" },
-            { "uri": "pvsyst://gui", "name": "Mapa de la GUI de PVsyst", "mimeType": "application/json" }
+            { "uri": "pvsyst://recetas", "name": NOMBRE_RECETAS.en_idioma(idioma), "mimeType": "application/json" },
+            { "uri": "pvsyst://cobertura", "name": NOMBRE_COBERTURA.en_idioma(idioma), "mimeType": "application/json" },
+            { "uri": "pvsyst://formato", "name": NOMBRE_FORMATO.en_idioma(idioma), "mimeType": "text/markdown" },
+            { "uri": "pvsyst://cli", "name": NOMBRE_CLI.en_idioma(idioma), "mimeType": "text/markdown" },
+            { "uri": "pvsyst://gui", "name": NOMBRE_GUI.en_idioma(idioma), "mimeType": "application/json" }
         ]
     })
 }
 
 /// Contents of one resource. Unknown URIs are an `Err` (the server maps it to -32602).
 /// With `aproximaciones` off, the coverage map omits the MCP-approximation actions.
-pub(crate) fn read(uri: &str, aproximaciones: bool) -> Result<Value> {
+pub(crate) fn read(uri: &str, paths: &Paths) -> Result<Value> {
+    let (aproximaciones, idioma) = (paths.aproximaciones, paths.idioma);
     let (mime, text) = match uri {
         "pvsyst://recetas" => (
             "application/json",
-            super::recetas::como_recurso(aproximaciones).to_string(),
+            super::recetas::como_recurso(aproximaciones, idioma).to_string(),
         ),
         "pvsyst://cobertura" => ("application/json", cobertura(aproximaciones).to_string()),
         "pvsyst://formato" => ("text/markdown", FORMATO.to_string()),
         "pvsyst://cli" => ("text/markdown", CLI.to_string()),
-        "pvsyst://gui" => (
-            "application/json",
-            crate::gui_catalogo::como_recurso().to_string(),
-        ),
-        _ => return Err(Error::NotFound(format!("Recurso desconocido: {uri}"))),
+        "pvsyst://gui" => ("application/json", gui(paths).to_string()),
+        _ => {
+            return Err(Error::NotFound(
+                RECURSO_DESCONOCIDO.texto_con(idioma, &[("uri", uri)]),
+            ))
+        }
     };
     Ok(json!({ "contents": [{ "uri": uri, "mimeType": mime, "text": text }] }))
+}
+
+/// The GUI map, compared with the PVsyst that runs: its version and the language
+/// of its windows (read from the open windows, else from `PVsyst.ini`).
+fn gui(paths: &Paths) -> Value {
+    let lectura = crate::prefs::idioma_gui::Lectura::actual();
+    let codigo = lectura.codigo_o_nombre();
+    let vivo = EnEjecucion {
+        gui_exe: &paths.gui_exe,
+        idioma_gui: codigo.as_deref(),
+    };
+    crate::adapters::gui::catalogo::como_recurso(&vivo, paths.idioma)
 }
 
 /// Machine-readable coverage map: PVsyst area -> how the MCP covers it.
@@ -110,7 +152,7 @@ fn mapa_de_cobertura() -> Value {
             { "area": "Shadings/horizon (.HOR/.SHD/.BLD/.SHO)", "tools": ["leer", "editar", "escribir_archivo"] },
             { "area": "Losses, IAM, thermal, quality", "tools": ["editar campos", "editar"] },
             { "area": "Models/templates (.LOD/.SPL/.SFI/.RVT)", "tools": ["leer", "editar", "escribir_archivo"] },
-            { "area": "Simulation (single, batch, synthetic, param override)", "tools": ["simular ejecutar", "pvsyst_cli"] },
+            { "area": "Simulation (single, batch, synthetic, param override)", "tools": ["simular ejecutar", "pvsyst_cli"], "notes": "pvsyst_cli run-simulation is the raw passthrough: it records the trial cost in the ledger but uses neither the simulation cache nor the confirmation gate." },
             { "area": "Comparison with measured data (variants CMx)", "tools": ["leer", "editar", "gui_actuar"], "notes": "PVsystCLI cannot simulate CMx variants (verified: 'Simulation cannot be run: the orientation is not defined'); run them from the GUI." },
             { "area": "Batch / parametric runs", "tools": ["simular preparar", "simular ejecutar"], "notes": "filas -> batch CSV (-bpf); every row is one PVsyst run." },
             { "area": "Advanced/hidden parameter override", "tools": ["simular preparar", "simular ejecutar"], "notes": "parametros -> Param_Modif.dat (-ipf)." },

@@ -3,6 +3,8 @@
 //! Lee los logs generados durante la ejecución de simulaciones y extrae
 //! los mensajes de error/aviso sin duplicados ni ruido de licencias.
 
+use crate::format::decodificar_texto_flexible;
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::BufRead;
 use std::path::{Path, PathBuf};
@@ -91,32 +93,51 @@ fn procesar_linea(acum: &mut AcumuladorAvisos, linea: &str) {
         return;
     }
     let msg = extraer_mensaje(linea);
-    if !msg.is_empty() && !acum.otros_avisos.iter().any(|m| m == msg) {
+    if !msg.is_empty() {
         acum.otros_avisos.push(msg.to_string());
     }
 }
 
+/// Error summary first, then the other warnings that are not already in it.
 fn ensamblar_avisos(acum: AcumuladorAvisos) -> Vec<String> {
     let mut out = acum.resumen_errores;
-    for aviso in acum.otros_avisos {
-        if !out.contains(&aviso) {
-            out.push(aviso);
-        }
-    }
+    let mut vistos: HashSet<String> = out.iter().cloned().collect();
+    agregar_sin_repetir(&mut out, &mut vistos, acum.otros_avisos);
     out
 }
 
-/// Parsea un stream de log línea a línea sin alocaciones intermedias en bucle.
+/// Appends the messages not seen yet, keeping their order. O(n) with the set.
+fn agregar_sin_repetir(
+    destino: &mut Vec<String>,
+    vistos: &mut HashSet<String>,
+    nuevos: impl IntoIterator<Item = String>,
+) {
+    for m in nuevos {
+        if vistos.insert(m.clone()) {
+            destino.push(m);
+        }
+    }
+}
+
+/// Parsea un stream de log línea a línea. Cada línea se decodifica por separado
+/// (UTF-8, o Latin-1/cp1252 si no lo es): un byte acentuado no corta el resto del log.
 pub(crate) fn parsear_log<R: BufRead>(mut reader: R) -> Vec<String> {
     let mut acum = AcumuladorAvisos::default();
-    let mut linea = String::new();
-
-    while reader.read_line(&mut linea).unwrap_or(0) > 0 {
-        let limpia = linea.trim_end_matches(['\r', '\n']);
-        procesar_linea(&mut acum, limpia);
-        linea.clear();
+    let mut bytes = Vec::new();
+    loop {
+        bytes.clear();
+        match reader.read_until(b'\n', &mut bytes) {
+            Ok(0) => break,
+            Ok(_) => {
+                let linea = decodificar_texto_flexible(&bytes);
+                procesar_linea(&mut acum, linea.trim_end_matches(['\r', '\n']));
+            }
+            Err(e) => {
+                tracing::warn!(error = %e, "log de PVsystCLI ilegible desde este punto");
+                break;
+            }
+        }
     }
-
     ensamblar_avisos(acum)
 }
 
@@ -166,16 +187,13 @@ pub(crate) fn avisos_simulacion(inicio: SystemTime) -> Vec<String> {
     }
     let archivos = archivos_recientes(&dir, inicio);
     let mut todos = Vec::new();
+    let mut vistos = HashSet::new();
     for ruta in archivos {
         let Ok(file) = File::open(&ruta) else {
             continue;
         };
         let avisos = parsear_log(std::io::BufReader::new(file));
-        for a in avisos {
-            if !todos.contains(&a) {
-                todos.push(a);
-            }
-        }
+        agregar_sin_repetir(&mut todos, &mut vistos, avisos);
     }
     todos
 }

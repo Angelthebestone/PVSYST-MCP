@@ -3,25 +3,32 @@
 
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 
 use crate::progreso::SeguimientoTarea;
 use crate::vista_agente::contrato::{exigir_ensayo_soportado, Contexto};
-use declaracion::Ejecutor;
+use declaracion::{Anotador, Ejecutor};
 use serde_json::{json, Value};
 use std::time::Instant;
 
+mod alias;
+mod alternativas;
 mod aproximadas;
 pub(crate) mod componentes;
+mod configurar;
 pub(crate) mod declaracion;
 pub(crate) mod entorno;
 pub(crate) mod nativos;
+mod no_leidos;
 pub(crate) mod proyectos;
 pub(crate) mod recorte;
+mod redaccion;
 mod requeridos;
 mod restricciones_esquema;
 pub(crate) mod resultados;
 pub(crate) mod simulacion;
 pub(crate) mod sitios;
+mod tipos;
 pub(crate) mod validacion;
 mod vista;
 pub(crate) mod workspace;
@@ -40,6 +47,15 @@ pub(crate) fn es_aproximacion(tool: &str, accion: &str) -> bool {
 }
 
 /// Consolidated registry of every tool exposed by the MCP server.
+const TOOL_DESCONOCIDA: Texto = Texto {
+    es: "Tool desconocida '{name}'",
+    en: "Unknown tool '{name}'",
+};
+const ARGS_NO_OBJETO: Texto = Texto {
+    es: "Los argumentos deben ser un objeto JSON",
+    en: "Arguments must be a JSON object",
+};
+
 static REGISTRO: &[Herramienta] = &[
     entorno::TOOL_ENTORNO,
     entorno::TOOL_DISENAR_SISTEMA,
@@ -64,25 +80,29 @@ pub(crate) fn list(paths: &Paths) -> Vec<Value> {
     REGISTRO
         .iter()
         .map(|h| {
-            let mut esquema = h.esquema();
+            let mut esquema = h.esquema(paths.idioma);
             if !paths.aproximaciones {
-                filtrar_aproximaciones(h, &mut esquema);
+                filtrar_aproximaciones(h, &mut esquema, paths.idioma);
             }
             esquema
         })
         .collect()
 }
 
-fn filtrar_aproximaciones(h: &Herramienta, esquema: &mut Value) {
+fn filtrar_aproximaciones(h: &'static Herramienta, esquema: &mut Value, idioma: Idioma) {
+    let an = Anotador {
+        herramienta: h,
+        idioma,
+    };
     if let Some(disc) = &h.discriminador {
         aproximadas::ocultar(h, disc.campo, esquema);
         if let Some(prop) = esquema.pointer_mut(&format!("/inputSchema/properties/{}", disc.campo))
         {
-            h.anotar_alias_discriminador(prop, disc);
+            an.discriminador(prop, disc);
         }
     }
-    aproximadas::ocultar_via(esquema);
-    aproximadas::ocultar_descripcion(h.nombre, esquema);
+    aproximadas::ocultar_via(esquema, idioma);
+    aproximadas::ocultar_descripcion(h.nombre, esquema, idioma);
     aproximadas::ocultar_propiedades(h.nombre, esquema);
 }
 
@@ -101,15 +121,17 @@ pub(crate) fn call_seguido(solicitud: &Solicitud<'_>) -> Result<Value> {
     let args = solicitud.args;
     let seguimiento = solicitud.seguimiento;
     let Some(h) = REGISTRO.iter().find(|h| h.nombre == name) else {
-        return Err(Error::NotFound(format!("Unknown tool '{name}'")));
+        return Err(Error::NotFound(
+            TOOL_DESCONOCIDA.texto_con(paths.idioma, &[("name", name)]),
+        ));
     };
 
     if !args.is_object() && !args.is_null() {
-        return Err(Error::Invalid("Arguments must be a JSON object".into()));
+        return Err(Error::Invalid(ARGS_NO_OBJETO.texto_con(paths.idioma, &[])));
     }
 
     let t0 = Instant::now();
-    let args_efectivos = h.preparar_args(args)?;
+    let args_efectivos = h.preparar_args(args, paths.idioma)?;
     let accion_candidata = h
         .discriminador
         .as_ref()
@@ -122,25 +144,28 @@ pub(crate) fn call_seguido(solicitud: &Solicitud<'_>) -> Result<Value> {
         .unwrap_or_default();
     aproximadas::exigir(paths, name, accion_candidata)?;
     exigir_ensayo_soportado(name, accion_candidata, &args_efectivos)?;
-    let accion = h.validar(&args_efectivos, paths.aproximaciones)?;
+    let accion = h.validar(&args_efectivos, paths)?;
     let mut v = match h.ejecutar {
         Ejecutor::Simple(ejecutar) => ejecutar(paths, &args_efectivos)?,
         Ejecutor::Seguido(ejecutar) => ejecutar(paths, &args_efectivos, seguimiento)?,
     };
-    aproximadas::marcar(name, &accion, &mut v);
+    if let Some(ap) = aproximadas::de(name, &accion) {
+        crate::aproximaciones::marcar(&mut v, ap, paths.idioma);
+    }
 
     let ms = u64::try_from(t0.elapsed().as_millis()).unwrap_or(u64::MAX);
     let respuesta = recorte::Respuesta {
         herramienta: name,
         accion: &accion,
         ms,
-        ignorados: h.desconocidos(&args_efectivos),
+        ignorados: h.desconocidos(&args_efectivos, &accion),
     };
-    recorte::decorar(&mut v, args, respuesta);
+    recorte::decorar_con(&mut v, args, respuesta, paths.idioma);
     let contexto = Contexto {
         tool: name,
         accion: &accion,
         args: &args_efectivos,
+        idioma: paths.idioma,
     };
     vista::anadir_vista(paths, &contexto, &mut v);
 
@@ -179,34 +204,4 @@ fn pares_a_objeto(pares: &[(&str, &str)]) -> Value {
         obj.insert(alias.to_string(), json!(canonico));
     }
     Value::Object(obj)
-}
-
-#[cfg(test)]
-pub(crate) fn generar_bloque_alias_markdown() -> String {
-    let mut out = String::from("<!-- alias:inicio -->\n| Herramienta / Tool | Argumentos (alias → canónico) | Valores (alias → canónico) |\n|---|---|---|\n");
-    for h in con_sinonimos() {
-        let args_str = formatear_pares_markdown(h.sinonimos.argumentos);
-        let vals_str = formatear_pares_markdown(h.sinonimos.valores);
-
-        out.push_str(&format!(
-            "| `{}` | {} | {} |\n",
-            h.nombre, args_str, vals_str
-        ));
-    }
-    out.push_str("<!-- alias:fin -->");
-    out
-}
-
-#[cfg(test)]
-fn formatear_pares_markdown(pares: &[(&str, &str)]) -> String {
-    if pares.is_empty() {
-        "—".to_string()
-    } else {
-        let mut items: Vec<String> = pares
-            .iter()
-            .map(|(a, c)| format!("`{a}` → `{c}`"))
-            .collect();
-        items.sort();
-        items.join(", ")
-    }
 }

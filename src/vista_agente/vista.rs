@@ -8,10 +8,33 @@ use super::plan::es_valido;
 use super::ventana::ventana_de;
 use crate::adapters::gui::ffi;
 use crate::adapters::gui::ocr;
-use crate::adapters::gui::ventanas::{class_of, compact_default, hwnd_de, text_of};
+use crate::adapters::gui::ventanas::{
+    class_of, compact_default, hwnd_de, text_of, ventanas_de, visible,
+};
 use crate::args::{flag, opt_str};
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Value};
+
+/// The shapes of the 3D editor are described by their own catalogue, not by a form.
+const FORMAS_3D: &str = "escena_3d.formas";
+
+const SIN_VENTANAS: Texto = Texto {
+    es: "ninguna ventana de PVsyst abierta; esquemas con gui_observar que:esquema",
+    en: "no PVsyst window is open; schemas with gui_observar que:esquema",
+};
+const VENTANAS_SIN_ESQUEMA: Texto = Texto {
+    es: "ninguna de las ventanas abiertas ({clases}) tiene esquema de campos; se leen con gui_observar que:controles, y los esquemas existentes se listan con que:esquema",
+    en: "none of the open windows ({clases}) has a field schema; they are read with gui_observar que:controles, and the existing schemas are listed with que:esquema",
+};
+const CAMPOS_NO_VISIBLES: Texto = Texto {
+    es: "la ventana no muestra los campos del esquema: hay otra pestaña activa",
+    en: "the window does not show the schema fields: another tab is active",
+};
+const INCLUIR_UIA_NO_APLICA: Texto = Texto {
+    es: "'incluir_uia' no aplica a 'vista': use gui_observar que:controles incluir_uia:true o que:uia",
+    en: "'incluir_uia' does not apply to 'vista': use gui_observar que:controles incluir_uia:true or que:uia",
+};
 
 fn campo_json(campo: &CampoEsquema, vivo: Option<&CampoVivo>) -> Value {
     let mut map = serde_json::Map::new();
@@ -21,6 +44,9 @@ fn campo_json(campo: &CampoEsquema, vivo: Option<&CampoVivo>) -> Value {
     map.insert("clave_archivo".into(), json!(campo.clave_archivo));
     map.insert("editable".into(), json!(campo.es_editable()));
     map.insert("tipo".into(), json!(campo.tipo.nombre()));
+    if let Some(casilla) = campo.depende_de {
+        map.insert("depende_de".into(), json!(casilla));
+    }
     let Some(vivo) = vivo else {
         map.insert("presente".into(), json!(false));
         return Value::Object(map);
@@ -61,6 +87,8 @@ fn sin_mapear(ent: &Entidad, vivos: &[CampoVivo]) -> Vec<Value> {
                 "valor": v.texto,
                 "habilitado": v.habilitado,
                 "hwnd": format!("0x{:X}", v.hwnd),
+                "x": v.posicion.x,
+                "y": v.posicion.y,
             })
         })
         .collect()
@@ -95,10 +123,42 @@ fn entidad_pedida(args: &Value) -> Result<Option<&'static Entidad>> {
     if args.get("ventana").is_some() {
         return Ok(de_formulario(&class_of(hwnd_de(args, "ventana")?)));
     }
+    // One enumeration for every entity, and a failed one is an error, not "nothing open".
+    let clases: Vec<String> = ventanas_de(args)?
+        .into_iter()
+        .filter(|h| visible(*h))
+        .map(class_of)
+        .collect();
     Ok(todas()
         .iter()
         .copied()
-        .find(|e| ventana_de(args, e).is_ok()))
+        .find(|e| clases.iter().any(|c| c == e.formulario)))
+}
+
+/// Windows that exist only to host the others: never what a caller means by "the open window".
+const AUXILIARES: [&str; 2] = ["TApplication", "THintWindow"];
+
+/// Why `vista` has no entity: nothing is open, or what is open (named) has no schema (BUG-17:
+/// «ninguna ventana conocida abierta» with the home screen on screen).
+fn aviso_sin_entidad(args: &Value, idioma: Idioma) -> Result<String> {
+    let clases: Vec<String> = if args.get("ventana").is_some() {
+        vec![class_of(hwnd_de(args, "ventana")?)]
+    } else {
+        ventanas_de(args)?
+            .into_iter()
+            .filter(|h| visible(*h))
+            .map(class_of)
+            .filter(|c| !AUXILIARES.contains(&c.as_str()))
+            .collect()
+    };
+    Ok(texto_sin_entidad(&clases, idioma))
+}
+
+fn texto_sin_entidad(clases: &[String], idioma: Idioma) -> String {
+    if clases.is_empty() {
+        return SIN_VENTANAS.en_idioma(idioma).to_string();
+    }
+    VENTANAS_SIN_ESQUEMA.texto_con(idioma, &[("clases", &clases.join(", "))])
 }
 
 /// A registered window without a schema: its fields by position, or why it is capture-only.
@@ -118,17 +178,14 @@ fn vista_de_ventana_registrada(args: &Value) -> Result<Option<Value>> {
 pub(crate) fn vista(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     if args.get("incluir_uia").is_some() {
         return Err(Error::Invalid(
-            "'incluir_uia' no aplica a 'vista': use gui_observar que:controles incluir_uia:true o que:uia".into(),
+            INCLUIR_UIA_NO_APLICA.en_idioma(paths.idioma).to_string(),
         ));
     }
     let Some(ent) = entidad_pedida(args)? else {
         if let Some(vista) = vista_de_ventana_registrada(args)? {
             return Ok(vista);
         }
-        return Ok(json!({
-            "entidad": null,
-            "aviso": "ninguna ventana conocida abierta; esquemas con gui_observar que:esquema",
-        }));
+        return Ok(json!({ "entidad": null, "aviso": aviso_sin_entidad(args, paths.idioma)? }));
     };
     let h = ventana_de(args, ent)?;
     let vivos = campos_vivos(h);
@@ -145,7 +202,7 @@ pub(crate) fn vista(paths: &crate::config::Paths, args: &Value) -> Result<Value>
     if presentes == 0 {
         map.insert(
             "aviso".into(),
-            json!("la ventana no muestra los campos del esquema: hay otra pestaña activa"),
+            json!(CAMPOS_NO_VISIBLES.en_idioma(paths.idioma)),
         );
     }
     if flag(args, &["ocr"]) {
@@ -160,6 +217,9 @@ pub(crate) fn vista(paths: &crate::config::Paths, args: &Value) -> Result<Value>
 /// `gui_observar que:esquema`: every entity and its fields, or only the one
 /// named by `entidad`; an unknown key is an error, not the whole schema.
 pub(crate) fn listar_esquemas(args: &Value) -> Result<Value> {
+    if opt_str(args, &["entidad"]) == Some(FORMAS_3D) {
+        return Ok(crate::escena_3d::esquema_de_formas());
+    }
     let elegidas: Vec<&Entidad> = match opt_str(args, &["entidad"]) {
         Some(clave) => vec![entidad(clave)?],
         None => todas().to_vec(),
@@ -180,6 +240,11 @@ pub(crate) fn listar_esquemas(args: &Value) -> Result<Value> {
     let sin_filtro = opt_str(args, &["entidad"]).is_none();
     if let (true, Some(obj)) = (sin_filtro, esquemas.as_object_mut()) {
         obj.insert("cobertura".into(), cobertura::listar_ventanas());
+        obj.insert("otras_entidades".into(), json!([FORMAS_3D]));
     }
     Ok(esquemas)
 }
+
+#[cfg(test)]
+#[path = "../../tests/unit/vista_agente/vista.rs"]
+mod tests;

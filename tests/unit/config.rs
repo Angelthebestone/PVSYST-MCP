@@ -1,24 +1,23 @@
 use super::*;
 
 #[test]
-fn should_be_unset_when_variable_is_absent() {
-    assert_eq!(valor_de_entorno_util(None), None);
-}
+fn should_list_installs_newest_first_when_the_folders_hold_several_versions() {
+    let raiz = tempfile::tempdir().expect("carpeta temporal");
+    for nombre in [
+        "PVsyst8.1.8",
+        "PVsyst8.1.10",
+        "PVsyst8.1_Data",
+        "PVsyst9.0.1",
+        "Otro",
+    ] {
+        std::fs::create_dir(raiz.path().join(nombre)).expect("carpeta de prueba");
+    }
 
-#[test]
-fn should_be_unset_when_variable_is_empty() {
-    assert_eq!(valor_de_entorno_util(Some(OsString::from(""))), None);
-}
+    let halladas = instalaciones_en(&[raiz.path().to_path_buf()]);
 
-#[test]
-fn should_be_unset_when_variable_is_only_whitespace() {
-    assert_eq!(valor_de_entorno_util(Some(OsString::from("  "))), None);
-}
-
-#[test]
-fn should_return_path_when_variable_has_a_value() {
-    assert_eq!(
-        valor_de_entorno_util(Some(OsString::from(r"C:\PVsyst8.1_Data"))),
-        Some(PathBuf::from(r"C:\PVsyst8.1_Data"))
-    );
+    let nombres: Vec<_> = halladas
+        .iter()
+        .filter_map(|p| p.file_name()?.to_str())
+        .collect();
+    assert_eq!(nombres, ["PVsyst8.1.10", "PVsyst8.1.8"]);
 }

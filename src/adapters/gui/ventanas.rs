@@ -1,8 +1,12 @@
 //! Window enumeration, identification and inspection via Win32.
 
 use super::ffi::{self, enum_children, enum_windows, pids_de_ejecutable, Hwnd, Rect};
+use super::modal;
+pub(crate) use super::resolucion::resolve;
+use super::rotulos::Rotulo;
 use crate::args::{flag, req_str};
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Value};
 
 const TEXT_BUFFER_LEN: usize = 512;
@@ -52,9 +56,11 @@ pub(crate) fn visible(h: Hwnd) -> bool {
     ffi::estado_ventana(h).visible
 }
 
-/// The first visible child of `h` whose caption is exactly `texto`.
-pub(crate) fn hijo_visible_con_texto(h: Hwnd, texto: &str) -> Option<Hwnd> {
-    hijos_visibles(h).find(|c| text_of(*c) == texto)
+/// The first visible child of `h` whose caption is exactly `rotulo`, in any of
+/// the languages the caption is known in.
+pub(crate) fn hijo_visible_con_texto<'a>(h: Hwnd, rotulo: impl Into<Rotulo<'a>>) -> Option<Hwnd> {
+    let rotulo = rotulo.into();
+    hijos_visibles(h).find(|c| rotulo.coincide(&text_of(*c)))
 }
 
 pub(crate) fn hijos_visibles(parent: Hwnd) -> impl Iterator<Item = Hwnd> {
@@ -134,9 +140,15 @@ pub(crate) fn target_pids(args: &Value) -> Result<Vec<u32>> {
     };
     let pids = pids_de_ejecutable(&name);
     if pids.is_empty() && args.get("proceso").is_none() {
-        return Err(Error::Gui(format!(
-            "Process '{name}' is not running. Launch the PVsyst GUI first (or pass 'proceso')."
-        )));
+        // `hwnd_de`/`ventanas_de` are also called from `vista_agente`, which carries
+        // no `Idioma`: the environment is the same source `Paths` reads.
+        let no_arranca = Texto {
+            es: "El proceso '{name}' no está en ejecución. Lanza la GUI de PVsyst primero (o pasa 'proceso').",
+            en: "Process '{name}' is not running. Launch the PVsyst GUI first (or pass 'proceso').",
+        };
+        return Err(Error::Gui(
+            no_arranca.texto_con(Idioma::de_entorno(), &[("name", &name)]),
+        ));
     }
     Ok(pids)
 }
@@ -150,64 +162,43 @@ pub(crate) fn ventanas_de(args: &Value) -> Result<Vec<Hwnd>> {
         .collect())
 }
 
+const SIN_VENTANA: Texto = Texto {
+    es: "No se encontró la ventana '{ventana}'",
+    en: "Window '{ventana}' not found",
+};
+
+/// "Window not found" in the client's language.
+pub(crate) fn sin_ventana(referencia: &str) -> String {
+    SIN_VENTANA.texto_con(Idioma::de_entorno(), &[("ventana", referencia)])
+}
+
 /// Resolves the window named by the argument `campo` within the target process.
 pub(crate) fn hwnd_de(args: &Value, campo: &str) -> Result<Hwnd> {
     let scoped = ventanas_de(args)?;
     let reference = req_str(args, &[campo], "hwnd, class or title")?;
-    resolve(&scoped, reference)
-        .ok_or_else(|| Error::NotFound(format!("Window '{reference}' not found")))
+    resolve(&scoped, reference).ok_or_else(|| Error::NotFound(sin_ventana(reference)))
 }
 
-fn matches(win: &Value, needle: &str) -> bool {
-    let n = needle.to_lowercase();
-    win["title"]
-        .as_str()
-        .unwrap_or("")
-        .to_lowercase()
-        .contains(&n)
-        || win["class"]
-            .as_str()
-            .unwrap_or("")
-            .to_lowercase()
-            .contains(&n)
-}
-
-/// Resolve a window reference: `0xHEX`, else class/title substring among the
-/// target process' top windows, then among all controls.
-pub(crate) fn resolve(haystack: &[Hwnd], reference: &str) -> Option<Hwnd> {
-    let hex_val = reference
-        .strip_prefix("0x")
-        .or_else(|| reference.strip_prefix("0X"))
-        .and_then(|hex| isize::from_str_radix(hex, 16).ok());
-    if let Some(v) = hex_val {
-        if ffi::es_ventana(v) {
-            return Some(v);
-        }
-    }
-    let mut fallback: Option<Hwnd> = None;
-    for &h in haystack {
-        if !matches(&window_json(h), reference) {
-            continue;
-        }
-        if visible(h) {
-            return Some(h);
-        }
-        fallback.get_or_insert(h);
-    }
-    for c in haystack.iter().flat_map(|&h| enum_children(h)) {
-        if !matches(&window_json(c), reference) {
-            continue;
-        }
-        if visible(c) {
-            return Some(c);
-        }
-        fallback.get_or_insert(c);
-    }
-    fallback
+/// Marks a listed window with what decides whether a click on it lands:
+/// whether it is the foreground window, the modal that blocks the others, and
+/// whether it is minimised (`iconic`, the name Win32 gives `minimized`).
+fn anotar_estado(ventana: &mut Value, primer_plano: Hwnd, modal: Option<Hwnd>) {
+    let hwnd = ventana
+        .get("hwnd")
+        .and_then(Value::as_str)
+        .and_then(|t| Hwnd::from_str_radix(t.strip_prefix("0x")?, 16).ok());
+    let (Some(h), Some(mapa)) = (hwnd, ventana.as_object_mut()) else {
+        return;
+    };
+    mapa.insert("foreground".into(), json!(h == primer_plano));
+    // A modal found among the children is already marked by `agregar_modal`.
+    let ya_modal = mapa.get("modal").and_then(Value::as_bool) == Some(true);
+    mapa.insert("modal".into(), json!(ya_modal || Some(h) == modal));
+    mapa.insert("iconic".into(), json!(ffi::estado_ventana(h).minimizada));
 }
 
 /// Lists the top-level windows of the PVsyst process.
-pub(crate) fn ventanas(_paths: &crate::config::Paths, args: &Value) -> Result<Value> {
+pub(crate) fn ventanas(args: &Value) -> Result<Value> {
     let pids = target_pids(args)?;
     let compact = compact_default(args);
     let all = enum_windows();
@@ -230,6 +221,13 @@ pub(crate) fn ventanas(_paths: &crate::config::Paths, args: &Value) -> Result<Va
     if visible_only {
         out.retain(|w| w["visible"].as_bool().unwrap_or(false));
     }
+    // The blocking modal is listed once, inside `windows`, marked `modal: true`.
+    let bloqueante = modal::modal_de(&pids);
+    modal::agregar_modal(&mut out, bloqueante.map(window_json));
+    let primer_plano = ffi::primer_plano();
+    for w in &mut out {
+        anotar_estado(w, primer_plano, bloqueante);
+    }
     Ok(json!({
         "processes": pids,
         "count": out.len(),
@@ -237,7 +235,7 @@ pub(crate) fn ventanas(_paths: &crate::config::Paths, args: &Value) -> Result<Va
     }))
 }
 
-pub(crate) fn controles(_paths: &crate::config::Paths, args: &Value) -> Result<Value> {
+pub(crate) fn controles(args: &Value) -> Result<Value> {
     let scoped = ventanas_de(args)?;
     let reference = args
         .get("ventana")
@@ -245,7 +243,7 @@ pub(crate) fn controles(_paths: &crate::config::Paths, args: &Value) -> Result<V
         .map(std::string::ToString::to_string);
     let roots: Vec<Hwnd> = match &reference {
         Some(r) => {
-            vec![resolve(&scoped, r).ok_or_else(|| Error::Gui(format!("Window '{r}' not found")))?]
+            vec![resolve(&scoped, r).ok_or_else(|| Error::Gui(sin_ventana(r)))?]
         }
         None => scoped,
     };
@@ -267,11 +265,17 @@ pub(crate) fn controles(_paths: &crate::config::Paths, args: &Value) -> Result<V
     Ok(json!({ "count": controls.len(), "controls": controls }))
 }
 
-pub(crate) fn leer(_paths: &crate::config::Paths, args: &Value) -> Result<Value> {
+pub(crate) fn leer(args: &Value) -> Result<Value> {
     let h = hwnd_de(args, "ventana")?;
+    // `GetWindowText` answers a control of another process with its name
+    // («CommentEdit»); `WM_GETTEXT` returns what the control shows (GUI-10).
     Ok(json!({
         "hwnd": format!("0x{:X}", h),
         "class": class_of(h),
-        "text": text_of(h),
+        "text": ffi::texto_control(h),
     }))
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/adapters/gui/ventanas.rs"]
+mod tests;

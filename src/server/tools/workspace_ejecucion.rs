@@ -2,10 +2,16 @@
 
 use super::declaracion::con;
 use crate::admin;
-use crate::args::workspace_of;
+use crate::args::{flag, workspace_of};
 use crate::components::{self, pan};
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::idioma::Texto;
+
+const ACCION_DESCONOCIDA: Texto = Texto {
+    es: "Valor '{valor}' no soportado para workspace",
+    en: "Value '{valor}' not supported for workspace",
+};
 use crate::history;
 use crate::objects;
 use crate::projects::{self, lifecycle};
@@ -28,49 +34,93 @@ pub(super) fn ejecutar_workspace(paths: &Paths, args: &Value) -> Result<Value> {
                 .and_then(|n| usize::try_from(n).ok());
             Ok(history::listar(&workspace_of(paths, args), n.unwrap_or(20)))
         }
-        "restaurar" => history::restaurar(
-            &workspace_of(paths, args),
-            args.get("id").and_then(Value::as_str).unwrap_or_default(),
-            Alcance::de_args(args),
-        ),
-        _ => Err(Error::Invalid(format!(
-            "Valor '{valor}' no soportado para workspace"
-        ))),
+        "restaurar" => {
+            let workspace = workspace_of(paths, args);
+            history::restaurar(&history::PeticionRestauracion {
+                ws: &workspace,
+                id: args.get("id").and_then(Value::as_str).unwrap_or_default(),
+                alcance: Alcance::de_args(args),
+                dry_run: crate::args::flag(args, &["dry_run"]),
+            })
+        }
+        _ => Err(Error::Invalid(
+            ACCION_DESCONOCIDA.texto_con(paths.idioma, &[("valor", valor)]),
+        )),
     }
 }
 
 pub(super) fn ejecutar_escribir_archivo(paths: &Paths, args: &Value) -> Result<Value> {
-    crate::workspace::escribir_archivo(paths, args)
+    crate::workspace::escribir_archivo(paths, args, crate::meteo_mef::validar_mef)
+}
+
+/// Declared `leer` keys the chosen branch does not read, so the answer names them
+/// instead of letting the caller believe they were applied.
+fn anotar_no_leidos(resultado: &mut Value, args: &Value, no_leidos: &[&str]) {
+    let presentes: Vec<&str> = no_leidos
+        .iter()
+        .copied()
+        .filter(|clave| args.get(*clave).is_some_and(|v| !v.is_null()))
+        .collect();
+    if presentes.is_empty() {
+        return;
+    }
+    if let Some(obj) = resultado.as_object_mut() {
+        obj.insert("ignorados".into(), json!(presentes));
+    }
+}
+
+/// Runs one `leer` branch and marks the declared keys that branch ignores.
+fn rama(resultado: Result<Value>, args: &Value, no_leidos: &[&str]) -> Result<Value> {
+    let mut v = resultado?;
+    anotar_no_leidos(&mut v, args, no_leidos);
+    Ok(v)
 }
 
 pub(super) fn ejecutar_leer(paths: &Paths, args: &Value) -> Result<Value> {
     if args.get("serie").and_then(Value::as_bool) == Some(true) {
-        return crate::serie_horaria::leer_serie(paths, args);
-    }
-    let pide_offset = args.get("offset").and_then(Value::as_u64).is_some();
-    let pide_max = args.get("max_bytes").and_then(Value::as_u64).is_some();
-    let pide_base64 = crate::args::flag(args, &["base64"]);
-    if pide_offset || pide_max || pide_base64 {
-        return crate::workspace::leer_archivo(paths, args);
-    }
-    if args.get("objeto").is_some() || args.get("plano").is_some() {
-        return objects::leer_objeto(paths, args);
+        return rama(
+            crate::serie_horaria::leer_serie(paths, args),
+            args,
+            &["tipo", "max_bytes"],
+        );
     }
     let archivo = args
         .get("archivo")
         .and_then(Value::as_str)
         .unwrap_or_default();
     let ext = extension_mayuscula(archivo);
+    let pide_offset = args.get("offset").and_then(Value::as_u64).is_some();
+    let pide_max = args.get("max_bytes").and_then(Value::as_u64).is_some();
+    let pide_base64 = crate::args::flag(args, &["base64"]);
+    if pide_offset || pide_max || pide_base64 {
+        let resuelto = con_archivo_de_proyecto(paths, args, archivo);
+        return rama(
+            crate::workspace::leer_archivo(paths, &resuelto),
+            args,
+            &["limite", "tipo"],
+        );
+    }
+    if args.get("objeto").is_some() || args.get("plano").is_some() {
+        return rama(objects::leer_objeto(paths, args), args, &["limite"]);
+    }
 
     if es_proyecto(&workspace_of(paths, args), archivo, &ext) {
         let completo = args.get("detalle").and_then(Value::as_str) == Some("completo");
         let con_proyecto = con(args, "proyecto", json!(archivo));
-        return projects::leer_proyecto(paths, &con(&con_proyecto, "completo", json!(completo)));
+        return rama(
+            projects::leer_proyecto(paths, &con(&con_proyecto, "completo", json!(completo))),
+            args,
+            &["limite", "tipo"],
+        );
     }
     if es_archivo_divisas(paths, args, archivo) {
-        return crate::divisas::leer_divisas(paths, args);
+        return rama(crate::divisas::leer_divisas(paths, args), args, &["limite"]);
     }
-    despachar_por_extension(paths, args, archivo)
+    rama(
+        despachar_por_extension(paths, args, archivo),
+        args,
+        &["limite"],
+    )
 }
 
 fn es_archivo_divisas(paths: &Paths, args: &Value, archivo: &str) -> bool {
@@ -128,9 +178,30 @@ fn despachar_por_extension(paths: &Paths, args: &Value, archivo: &str) -> Result
     }
 }
 
+/// The project branch looks a bare project name up under `Projects/`; the
+/// raw-bytes reader resolves against the workspace root, so it must be handed
+/// that same path. A name that already resolves is left untouched.
+fn con_archivo_de_proyecto(paths: &Paths, args: &Value, archivo: &str) -> Value {
+    let workspace = workspace_of(paths, args);
+    if !es_proyecto(&workspace, archivo, &extension_mayuscula(archivo)) {
+        return args.clone();
+    }
+    let alcance = Alcance::de_args(args);
+    if crate::workspace::resolver_ruta(&workspace, archivo, alcance).is_ok_and(|p| p.is_file()) {
+        return args.clone();
+    }
+    let Ok(ruta) = projects::resolve_project_file_con_alcance(&workspace, archivo, alcance) else {
+        return args.clone();
+    };
+    let relativa = ruta.strip_prefix(&workspace).unwrap_or(&ruta);
+    con(args, "archivo", json!(relativa.to_string_lossy()))
+}
+
 fn es_proyecto(workspace: &Path, archivo: &str, ext: &str) -> bool {
     let variante = ext.len() == 3 && (ext.starts_with("VC") || ext.starts_with("CM"));
+    // Only a plain name is looked up: a path would turn this into an existence oracle.
     let nombre = ext.is_empty()
+        && crate::workspace::es_relativa_simple(Path::new(archivo))
         && workspace
             .join("Projects")
             .join(format!("{archivo}.PRJ"))
@@ -138,8 +209,14 @@ fn es_proyecto(workspace: &Path, archivo: &str, ext: &str) -> bool {
     ext == "PRJ" || variante || nombre
 }
 
+/// `editar` has no rehearsal: refuse `dry_run` before resolving or writing any file.
 pub(super) fn ejecutar_editar(paths: &Paths, args: &Value) -> Result<Value> {
     let valor = super::workspace::TOOL_EDITAR.accion(args);
+    if flag(args, &["dry_run"]) {
+        return Err(Error::Invalid(format!(
+            "'dry_run' no existe en editar {valor}: esa acción no tiene ensayo y se ejecutaría de verdad. Quita 'dry_run'"
+        )));
+    }
     match valor {
         "campos" if args.get("ediciones").is_some() => lifecycle::editar_variante(paths, args),
         "campos" => objects::editar_objeto(paths, args),
@@ -147,7 +224,7 @@ pub(super) fn ejecutar_editar(paths: &Paths, args: &Value) -> Result<Value> {
         "eliminar_objeto" => projects::anadir::eliminar_objeto_archivo(paths, args),
         "rvt" | "plantilla_rvt" => crate::plantilla_variables::gestionar_rvt(paths, args),
         _ => Err(Error::Invalid(format!(
-            "Valor '{valor}' no soportado para editar"
+            "Value '{valor}' not supported for editar"
         ))),
     }
 }
@@ -161,7 +238,7 @@ pub(super) fn ejecutar_listar(paths: &Paths, args: &Value) -> Result<Value> {
         "archivos" => crate::workspace::listar_archivos(paths, args),
         "objetos" => objects::listar_objetos(paths, args),
         _ => Err(Error::Invalid(format!(
-            "Valor '{valor}' no soportado para listar"
+            "Value '{valor}' not supported for listar"
         ))),
     }
 }
@@ -173,3 +250,7 @@ fn extension_mayuscula(archivo: &str) -> String {
         .unwrap_or("")
         .to_ascii_uppercase()
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/server/tools/workspace_ejecucion.rs"]
+mod tests;

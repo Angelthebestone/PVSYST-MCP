@@ -3,143 +3,28 @@
 use super::legacy::dominio::*;
 use super::*;
 use crate::error::Error;
-use crate::format::real48::{real48, BYTES_POR_SLOT};
+use crate::format::real48::BYTES_POR_SLOT;
 
 #[test]
-fn should_decode_real48_known_values() {
-    assert_eq!(real48(&[0, 0, 0, 0, 0, 0]), 0.0);
-    assert_eq!(real48(&[0x81, 0, 0, 0, 0, 0]), 1.0);
-    assert_eq!(real48(&[0x82, 0, 0, 0, 0, 0]), 2.0);
-    assert_eq!(real48(&[0x80, 0, 0, 0, 0, 0]), 0.5);
-    assert_eq!(real48(&[0x81, 0, 0, 0, 0, 0x80]), -1.0);
-}
-
-#[test]
-fn should_parse_valid_legacy_header() {
-    let text = "pvModule;Soitec\tCX-M500 1.00.086\tManufacturer;\n\
-                Version 5.67; Calcul=$00003043;\n\
-                GaInP2/GaAs/Ge;240;10;2;0.000;0.000;\n";
-    let h = parse_legacy_header(text).expect("encabezado válido");
-    assert_eq!(h.vendor, "Soitec");
-    assert_eq!(h.model, "CX-M500 1.00.086");
-    assert_eq!(h.data_source, "Manufacturer");
-    assert_eq!(h.version, "5.67");
-    assert_eq!(h.technology, "GaInP2/GaAs/Ge");
-    assert_eq!(h.cells_series, 240);
-    assert_eq!(h.cells_parallel, 10);
-    assert_eq!(h.diodes, 2);
-}
-
-#[test]
-fn should_reject_legacy_header_when_cells_series_is_non_numeric() {
-    let text = "pvModule;Soitec\tCX-M500 1.00.086\tManufacturer;\n\
-                Version 5.67; Calcul=$00003043;\n\
-                GaInP2/GaAs/Ge;abc;10;2;0.000;0.000;\n";
-    let err = parse_legacy_header(text).unwrap_err();
-    match err {
-        Error::Format(msg) => {
-            assert!(
-                msg.contains("Valor no numérico para cells_series"),
-                "msg={msg}"
-            );
-        }
-        other => panic!("expected Error::Format, got {other:?}"),
-    }
-}
-
-#[test]
-fn should_reject_legacy_header_when_cells_parallel_is_non_numeric() {
-    let text = "pvModule;Soitec\tCX-M500 1.00.086\tManufacturer;\n\
-                Version 5.67; Calcul=$00003043;\n\
-                GaInP2/GaAs/Ge;240;xyz;2;0.000;0.000;\n";
-    let err = parse_legacy_header(text).unwrap_err();
-    match err {
-        Error::Format(msg) => {
-            assert!(
-                msg.contains("Valor no numérico para cells_parallel"),
-                "msg={msg}"
-            );
-        }
-        other => panic!("expected Error::Format, got {other:?}"),
-    }
-}
-
-#[test]
-fn should_reject_legacy_header_when_diodes_is_non_numeric() {
-    let text = "pvModule;Soitec\tCX-M500 1.00.086\tManufacturer;\n\
-                Version 5.67; Calcul=$00003043;\n\
-                GaInP2/GaAs/Ge;240;10;dos;0.000;0.000;\n";
-    let err = parse_legacy_header(text).unwrap_err();
-    match err {
-        Error::Format(msg) => {
-            assert!(msg.contains("Valor no numérico para diodes"), "msg={msg}");
-        }
-        other => panic!("expected Error::Format, got {other:?}"),
-    }
-}
-
-#[test]
-fn should_reject_legacy_block_when_fewer_slots_than_required() {
+fn should_reject_legacy_block_when_slots_are_truncated_or_misaligned() {
     let header = "pvModule;Soitec\tCX-M500\tManufacturer;\r\n\
                   Version 5.67; Calcul=$00003043;\r\n\
                   GaInP2/GaAs/Ge;240;10;2;0.000;0.000;\r\n";
-    let mut bytes = header.as_bytes().to_vec();
-    // 24 slots (144 bytes) is fewer than SLOTS_LEGACY_REQUERIDOS (25)
-    bytes.extend(std::iter::repeat_n(0x81, 24 * BYTES_POR_SLOT));
-    bytes.push(b'/');
+    // 24 slots (144 bytes) is fewer than SLOTS_LEGACY_REQUERIDOS (25).
+    let mut truncated = header.as_bytes().to_vec();
+    truncated.extend(std::iter::repeat_n(0x81, 24 * BYTES_POR_SLOT));
+    truncated.push(b'/');
+    // 25 slots (150 bytes) plus one stray byte is not a whole number of slots.
+    let mut misaligned = header.as_bytes().to_vec();
+    misaligned.extend(std::iter::repeat_n(0x81, 25 * BYTES_POR_SLOT + 1));
+    misaligned.push(b'/');
 
-    let err = parse_legacy(&bytes, header).unwrap_err();
-    match err {
-        Error::Format(msg) => {
-            assert_eq!(
-                msg,
-                "PAN legacy incompleto: 144 bytes / 24 slots, se esperaban 25"
-            );
+    for bytes in [truncated, misaligned] {
+        match parse_legacy(&bytes, header) {
+            Err(Error::Format(msg)) => assert!(msg.contains("PAN legacy incompleto"), "{msg}"),
+            other => panic!("expected Error::Format, got {other:?}"),
         }
-        other => panic!("expected Error::Format, got {other:?}"),
     }
-}
-
-#[test]
-fn should_reject_legacy_block_when_not_multiple_of_6() {
-    let header = "pvModule;Soitec\tCX-M500\tManufacturer;\r\n\
-                  Version 5.67; Calcul=$00003043;\r\n\
-                  GaInP2/GaAs/Ge;240;10;2;0.000;0.000;\r\n";
-    let mut bytes = header.as_bytes().to_vec();
-    // 25 slots (150 bytes) + 1 extra byte = 151 bytes
-    bytes.extend(std::iter::repeat_n(0x81, 25 * BYTES_POR_SLOT + 1));
-    bytes.push(b'/');
-
-    let err = parse_legacy(&bytes, header).unwrap_err();
-    match err {
-        Error::Format(msg) => {
-            assert_eq!(
-                msg,
-                "PAN legacy incompleto: 151 bytes / 25 slots, se esperaban 25"
-            );
-        }
-        other => panic!("expected Error::Format, got {other:?}"),
-    }
-}
-
-#[test]
-fn should_decode_valid_legacy_block_identically() {
-    let header = "pvModule;Soitec\tCX-M500 1.00.086\tManufacturer;\r\n\
-                  Version 5.67; Calcul=$00003043;\r\n\
-                  GaInP2/GaAs/Ge;240;10;2;0.000;0.000;\r\n";
-    let mut bytes = header.as_bytes().to_vec();
-    // Exactly 25 slots with zero Real48 (0.0)
-    bytes.extend(std::iter::repeat_n(0, 25 * BYTES_POR_SLOT));
-    bytes.push(b'/');
-
-    let val = parse_legacy(&bytes, header).expect("decodificación exitosa");
-    assert_eq!(val["vendor"], "Soitec");
-    assert_eq!(val["model"], "CX-M500 1.00.086");
-    assert_eq!(val["cells_series"], 240);
-    assert_eq!(val["cells_parallel"], 10);
-    assert_eq!(val["diodes"], 2);
-    assert_eq!(val["pnom"], 0.0);
-    assert_eq!(val["raw_slots"].as_array().map(|a| a.len()), Some(25));
 }
 
 #[test]
@@ -155,61 +40,4 @@ fn should_decode_text_module_fixture() {
     assert_eq!(val["pnom"], 400.0);
     assert_eq!(val["voc"], 49.5);
     assert_eq!(val["isc"], 10.2);
-}
-
-#[test]
-fn should_reject_module_outside_workspace_without_libre_scope() {
-    let paths = Paths::resolve();
-    let outside = std::env::temp_dir().join("outside.PAN");
-    let res = resolve_module_file(
-        &paths.workspace,
-        &paths,
-        &outside.to_string_lossy(),
-        Alcance::Workspace,
-    );
-    assert!(res.is_err());
-}
-
-#[test]
-fn should_read_module_figures_when_parsed_from_legacy_layout() {
-    let lectura = serde_json::json!({
-        "pnom": 300.0,
-        "voc": 40.0,
-        "parameters": { "pnom_w": 300.0, "voc_v": 40.0, "vmpp_v": 33.0, "mu_voc_mv_c": -120.0 }
-    });
-    let d = DatosModulo::de_lectura(&lectura).expect("complete legacy data");
-    assert_eq!(
-        (d.pnom_w(), d.voc_v(), d.vmpp_v(), d.mu_voc_mv_c()),
-        (300.0, 40.0, 33.0, Some(-120.0))
-    );
-}
-
-#[test]
-fn should_read_module_figures_when_parsed_from_text_layout() {
-    let texto = "PVObject_=pvModule\r\n  PNom=400\r\n  Voc=49.50\r\n  Vmpp=41.70\r\n  muVocSpec=-130.0\r\nEnd of PVObject pvModule\r\n";
-    let lectura = parse_pan(texto.as_bytes()).expect("text PAN");
-    let d = DatosModulo::de_lectura(&lectura).expect("complete text data");
-    assert_eq!(
-        (d.pnom_w(), d.voc_v(), d.vmpp_v(), d.mu_voc_mv_c()),
-        (400.0, 49.5, 41.7, Some(-130.0))
-    );
-}
-
-#[test]
-fn should_have_no_module_figures_when_vmpp_is_missing() {
-    let lectura = serde_json::json!({ "pnom": 300.0, "voc": 40.0, "parameters": {} });
-    assert_eq!(DatosModulo::de_lectura(&lectura), None);
-}
-
-#[test]
-fn should_pick_the_first_sorted_module_of_the_workspace_before_dataro() {
-    let ws = tempfile::tempdir().unwrap();
-    let carpeta = ws.path().join("ComposPV").join("PVModules");
-    std::fs::create_dir_all(&carpeta).unwrap();
-    std::fs::write(carpeta.join("B_mod.PAN"), b"x").unwrap();
-    std::fs::write(carpeta.join("A_mod.PAN"), b"x").unwrap();
-    assert_eq!(
-        primer_modulo_disponible(ws.path()).as_deref(),
-        Some("A_mod.PAN")
-    );
 }

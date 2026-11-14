@@ -2,8 +2,12 @@
 //! a ready-to-send example, the schema lists the keys each action needs, and
 //! undeclared arguments are reported back instead of being silently dropped.
 
+use super::alternativas;
 use super::declaracion::{extraer_aliases, Herramienta};
+use super::no_leidos::no_leidos;
+use super::redaccion::PREFIJO_REQUERIDOS_POR_ACCION;
 use crate::error::{Error, Result};
+use crate::idioma::Idioma;
 use serde_json::{json, Map, Value};
 
 impl Herramienta {
@@ -15,17 +19,22 @@ impl Herramienta {
             .filter(|clave| esta_vacio_o_nulo(args, clave))
             .map(|clave| (*clave).to_string())
             .collect();
-        if claves.is_empty() {
-            return Ok(());
+        if !claves.is_empty() {
+            return Err(Error::MissingArgs {
+                claves,
+                ejemplo: self.ejemplo(accion, &todas),
+            });
         }
-        Err(Error::MissingArgs {
-            claves,
-            ejemplo: self.ejemplo(accion, &todas),
-        })
+        match alternativas::de(self.nombre, accion) {
+            Some(alternativa) if !alternativa.satisfecha(args) => {
+                Err(alternativa.falta(Idioma::de_entorno()))
+            }
+            _ => Ok(()),
+        }
     }
 
     /// Adds the per-action required keys of the admitted discriminator values to its description.
-    pub(crate) fn anotar_requeridos_por_accion(&self, prop: &mut Value) {
+    pub(crate) fn anotar_requeridos_por_accion(&self, prop: &mut Value, idioma: Idioma) {
         let admitidas: Vec<&str> = prop["enum"]
             .as_array()
             .into_iter()
@@ -37,13 +46,20 @@ impl Herramienta {
             .iter()
             .filter(|(accion, _)| admitidas.contains(accion))
             .map(|(accion, claves)| format!("{accion} ({})", claves.join(", ")))
+            .chain(
+                alternativas::ALTERNATIVAS
+                    .iter()
+                    .filter(|a| a.herramienta == self.nombre && admitidas.contains(&a.accion))
+                    .map(|a| format!("{} ({})", a.accion, a.descripcion(idioma))),
+            )
             .collect::<Vec<_>>()
             .join("; ");
         if detalle.is_empty() {
             return;
         }
         let previo = prop["description"].as_str().unwrap_or_default().to_owned();
-        prop["description"] = json!(format!("{previo} Requeridos por acción: {detalle}."));
+        let prefijo = PREFIJO_REQUERIDOS_POR_ACCION.en_idioma(idioma);
+        prop["description"] = json!(format!("{previo}{prefijo}{detalle}."));
     }
 
     /// Top-level `required` keeps the keys without aliases. Each aliased required key
@@ -77,15 +93,29 @@ impl Herramienta {
         json!({ "anyOf": alternativas })
     }
 
-    /// Argument keys the tool does not declare; the handler would never read them.
-    pub(crate) fn desconocidos(&self, args: &Value) -> Vec<String> {
+    /// Argument keys the handler never looks at: the ones the tool does not declare
+    /// and the declared ones `accion` does not read.
+    pub(crate) fn desconocidos(&self, args: &Value, accion: &str) -> Vec<String> {
         let Value::Object(mapa) = args else {
             return Vec::new();
         };
+        let consumidos = self.consumidos(accion);
+        let no_leidos = no_leidos(self.nombre, accion, args);
         mapa.keys()
-            .filter(|clave| !self.declara(clave))
+            .filter(|clave| {
+                no_leidos.contains(&clave.as_str())
+                    || (!self.declara(clave) && !consumidos.contains(&clave.as_str()))
+            })
             .cloned()
             .collect()
+    }
+
+    /// Keys `accion` reads that the tool declares for its other actions only.
+    fn consumidos(&self, accion: &str) -> &'static [&'static str] {
+        self.consumidos_por_accion
+            .iter()
+            .find(|(acc, _)| *acc == accion)
+            .map_or(&[], |(_, claves)| *claves)
     }
 
     /// Every required key of `accion`: the tool-wide ones first, then the action's own.

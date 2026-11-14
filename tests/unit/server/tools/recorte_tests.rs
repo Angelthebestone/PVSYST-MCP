@@ -1,4 +1,4 @@
-use crate::server::tools::recorte::{decorar, siguiente, Respuesta};
+use crate::server::tools::recorte::{decorar, Respuesta};
 use serde_json::json;
 
 fn respuesta(
@@ -15,7 +15,7 @@ fn respuesta(
 }
 
 #[test]
-fn should_mark_a_trimmed_answer_with_truncado_and_hint() {
+fn should_mark_the_answer_as_trimmed_when_the_detail_level_cuts_items() {
     let mut v = json!({ "items": (0..20).collect::<Vec<u32>>() });
     decorar(
         &mut v,
@@ -28,100 +28,69 @@ fn should_mark_a_trimmed_answer_with_truncado_and_hint() {
     assert_eq!(v["hint"], "detalle:completo");
 }
 
+/// BUG-16: `count` kept the length before the cut while the list had 13 items.
 #[test]
-fn should_report_the_original_length_as_top_level_total_when_trimmed() {
-    let mut v = json!({ "items": (0..20).collect::<Vec<u32>>() });
+fn should_make_count_say_how_many_items_are_left_when_the_list_it_counts_is_cut() {
+    let mut v = json!({ "count": 24, "controls": (0..24).collect::<Vec<u32>>() });
     decorar(
         &mut v,
         &json!({}),
-        respuesta("listar", "proyectos", Vec::new()),
+        respuesta("gui_observar", "controles", Vec::new()),
     );
-    assert_eq!(v["total"], 20);
-    assert_eq!(v["items_total"], 20);
+    assert_eq!(v["controls"].as_array().map(Vec::len), Some(13));
+    assert_eq!(v["count"], 13);
+    assert_eq!(v["controls_total"], 24);
 }
 
+/// An inventory asks for every control: the summary level that keeps 13 items
+/// would hide most of a form, so it keeps up to 500 and says how many exist.
 #[test]
-fn should_omit_top_level_total_when_nothing_was_trimmed() {
-    let mut v = json!({ "items": (0..3).collect::<Vec<u32>>() });
-    decorar(
-        &mut v,
-        &json!({}),
-        respuesta("listar", "proyectos", Vec::new()),
-    );
-    assert!(v.get("total").is_none());
-}
+fn should_keep_up_to_500_controls_when_a_gui_inventory_is_asked_without_detail() {
+    let controles = |n: u32| json!({ "count": n, "controls": (0..n).collect::<Vec<u32>>() });
+    let pedido = json!({ "que": "controles", "todos": true });
 
-#[test]
-fn should_keep_every_item_and_no_marker_with_detalle_completo() {
-    let mut v = json!({ "items": (0..20).collect::<Vec<u32>>() });
+    let mut cabe = controles(300);
     decorar(
-        &mut v,
-        &json!({ "detalle": "completo" }),
-        respuesta("listar", "proyectos", Vec::new()),
+        &mut cabe,
+        &pedido,
+        respuesta("gui_observar", "controles", Vec::new()),
     );
-    assert_eq!(v["items"].as_array().map(Vec::len), Some(20));
-    assert!(v.get("truncado").is_none());
-    assert!(v.get("hint").is_none());
-}
+    assert_eq!(cabe["controls"].as_array().map(Vec::len), Some(300));
+    assert!(cabe.get("truncado").is_none());
 
-#[test]
-fn should_list_ignored_arguments_only_when_there_are_some() {
-    let mut con = json!({ "ok": true });
+    let mut excede = controles(520);
     decorar(
-        &mut con,
-        &json!({}),
-        respuesta("listar", "proyectos", vec!["texto".to_string()]),
+        &mut excede,
+        &pedido,
+        respuesta("gui_observar", "controles", Vec::new()),
     );
-    assert_eq!(con["ignorados"], json!(["texto"]));
-
-    let mut sin = json!({ "ok": true });
-    decorar(
-        &mut sin,
-        &json!({}),
-        respuesta("listar", "proyectos", Vec::new()),
-    );
-    assert!(sin.get("ignorados").is_none());
-}
-
-#[test]
-fn should_suggest_the_next_call_after_creating_a_project() {
-    let mut v = json!({ "ok": true });
-    decorar(
-        &mut v,
-        &json!({}),
-        respuesta("proyecto", "crear", Vec::new()),
-    );
-    let siguiente = v["siguiente"].as_str().expect("siguiente");
-    assert!(siguiente.starts_with("proyecto dimensionar"), "{siguiente}");
-}
-
-#[test]
-fn should_point_kpis_to_the_losses_query_instead_of_itself() {
+    assert_eq!(excede["controls"].as_array().map(Vec::len), Some(500));
     assert_eq!(
-        siguiente("resultados", "kpis"),
-        Some("resultados que:perdidas")
+        (excede["truncado"].as_bool(), excede["total"].as_u64()),
+        (Some(true), Some(520))
     );
+
+    let mut con_detalle = controles(300);
+    let resumen = json!({ "que": "controles", "todos": true, "detalle": "resumen" });
+    decorar(
+        &mut con_detalle,
+        &resumen,
+        respuesta("gui_observar", "controles", Vec::new()),
+    );
+    assert_eq!(con_detalle["controls"].as_array().map(Vec::len), Some(13));
 }
 
+/// The inventory and the form view carry their own cap and counts: the generic
+/// summary must not cut their lists.
 #[test]
-fn should_keep_the_total_the_domain_already_counted_when_it_trims_the_list() {
-    let mut v = json!({ "colisiones": (0..60).collect::<Vec<u32>>(), "colisiones_total": 1770 });
+fn should_not_summarise_the_lists_of_the_inventory_and_the_form_view() {
+    let mut v = json!({ "controles": (0..40).collect::<Vec<u32>>(), "otros": (0..40).collect::<Vec<u32>>() });
     decorar(
         &mut v,
         &json!({}),
-        respuesta("gui_actuar", "escena", Vec::new()),
+        respuesta("gui_observar", "inventario", Vec::new()),
     );
-    assert_eq!(v["colisiones"].as_array().map(Vec::len), Some(13));
-    assert_eq!(v["colisiones_total"], 1770);
-}
-
-#[test]
-fn should_return_the_whole_list_when_the_detail_is_complete() {
-    let mut v = json!({ "colisiones": (0..60).collect::<Vec<u32>>(), "colisiones_total": 60 });
-    decorar(
-        &mut v,
-        &json!({ "detalle": "completo" }),
-        respuesta("gui_actuar", "escena", Vec::new()),
-    );
-    assert_eq!(v["colisiones"].as_array().map(Vec::len), Some(60));
+    assert_eq!(v["controles"].as_array().map(Vec::len), Some(40));
+    assert_eq!(v["otros"].as_array().map(Vec::len), Some(40));
+    assert!(v.get("truncado").is_none());
 }

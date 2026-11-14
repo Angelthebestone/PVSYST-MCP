@@ -1,106 +1,140 @@
-For any AI or human agent. This is law. Optimized for high-quality, maintainable, efficient systems in any language.
+Law for every agent, AI or human, that changes this repository. A rule here is checked by a tool or by a reviewer. "I thought it was fine" is not a defense.
 
+When rules collide, the earlier one wins: **correct > proven > simple > fast > elegant**.
 
-### 1. ARCHITECTURE & MODULARITY
+## 0. THE PRODUCT
 
-**The Golden Rule: Package by Feature, NEVER by Type.**
+`pvsyst-mcp` is a Rust MCP server that operates PVsyst 8.1 through its data files, its CLI and its GUI. Three constraints outrank everything else in this file:
 
-- **FORBIDDEN:** `src/utils/`, `src/helpers/`, `src/common/`, `src/models/`, `src/controllers/`, `src/managers/`. If you create `utils`, you failed to name the domain.
-- **REQUIRED - Screaming Architecture:** src/
-billing/ # Business capability
-domain/ # Pure business logic, zero dependencies
-application/ # Use cases / Services
-infrastructure/ # DB, API clients, adapters
-presentation/ # HTTP handlers, CLI
-users/
-- **Dependency Rule:** `domain` -> knows nothing. `application` -> depends on domain ports. `infrastructure` -> implements ports. Dependencies point INWARD.
-- **Principles:** SOLID, High Cohesion / Low Coupling, Composition over Inheritance, Law of Demeter (no `a.b().c().d()`), Immutability by default.
-- **File Size:** Max 300 lines. One concept per file. If file needs `And` in its name, split it.
-- **No God Objects, No Singletons with mutable state.**
-### 2. NAMING - Architecture is Naming
+- **PVsyst does the physics.** Never reimplement the simulation engine. Every figure the server returns comes from PVsyst.
+- **No decompilation, no vendor data.** No `PVsyst.exe`, licence file or component database enters the repo. Format knowledge comes from files the user owns and from the installed documentation.
+- **stdout is the MCP protocol.** One stray byte breaks every client. Log to stderr with `tracing`.
 
-- **Folders = Business Nouns:** `orders/`, `payments/` GOOD. `misc/` BAD.
-- **Files = Domain Concepts:** `order_validator`, `payment_processor` GOOD. `helper`, `util`, `manager` BAD.
-- **Functions = Verbs + Intent:** `calculateTotalWithTax()` GOOD. `doCalc()`, `process()`, `handle()` BAD.
-- **Booleans = Questions:** `isPaid`, `hasAccess`, `canCheckout`.
-- **Constants:** No magic numbers. `if status == 2` FORBIDDEN. `if status == OrderStatus.PAID` REQUIRED.
-- **Consistency:** `getUser` OR `fetchUser`, never both. `snake_case` or `camelCase` per language, but consistent.
+## 1. HOW TO WORK
 
-### 3. CODE QUALITY & ANTI-DRY
+Every task goes through these six steps, in order. Skipping one is a defect in the work, even when the diff is right.
 
-- **DRY - Zero Tolerance for Duplication:** 3 lines duplicated twice = extract to domain function.
-- **KISS & YAGNI:** Don't abstract prematurely. Don't build for "future". Simplest solution that satisfies behavior wins.
-- **Functions:** Max 3 params (else use DTO), Max 1 indent level (use guard clauses `if !valid { return err }`), Cyclomatic Complexity < 10.
-- **No `else` hell, no nested loops > 2 levels.**
+1. **Understand.** Read the code the change touches and every caller of what you edit. State the goal and the smallest change that meets it before you write anything.
+2. **Reproduce or specify.** A bug gets a failing test or a recorded reproduction first. A feature gets its data shape (types, states, file format fields) first. No reproduction means no fix.
+3. **Fix the cause.** Trace the symptom to the first place the system went wrong and fix it there. A guard at the symptom is a second bug.
+4. **Change the minimum.** The diff contains what the task needs. No drive-by refactors, no reformatting of untouched code, no "while I was here".
+5. **Prove it.** Run the scoped check for the unit, and the full gate when the phase ends (section 8). Show the output. For behavior PVsyst observes, prove it against the real artifact: a file PVsyst opens, a CLI run, a GUI window. "It compiles" proves nothing.
+6. **Report honestly.** Say what you ran, what passed, what failed, what you skipped and why. Label each claim as measured, inferred or guessed.
 
-### 4. EFFICIENCY & PERFORMANCE
+**Stop and ask** only for a product decision no experiment can settle, or before an irreversible action. Anything you can observe by running something, you run.
 
-- **Choose Data Structures Consciously:** Default to O(1) lookups (Map/Set). Document Big O in comment for any core logic.
-- **Resource Efficiency:** No allocations in hot loops, no N+1 queries, use `with_capacity`, connection pools, streaming for large datasets.
-- **No Premature Optimization, but No Pessimization:** Measure before optimizing. Add performance budget: p95 < 200ms for API, no O(n^2) in request path.
-- **Concurrency:** Atomics > Mutex for counters. No `Mutex` inside async. No blocking IO (`sleep`, `fs.readSync`) in async path. Use `spawn_blocking`.
-- **Idempotency:** All operations that can be retried MUST be idempotent.
+## 2. HOW TO SPLIT WORK
 
-### 5. DATA & API DESIGN
+- **One unit = one concern = one commit = one check.** A unit ends in a command whose output proves it. If you cannot name that command, the unit is not defined yet.
+- **Size.** A unit touches one feature module and fits in a diff a reviewer reads in ten minutes, roughly 300 changed lines. Bigger means split.
+- **Order.** Delete dead weight first. Then types and data shapes. Then pure domain logic with its tests. Then adapters and wiring. Then docs. Each step leaves its scoped check green.
+- **Refactor and behavior never share a commit.** A refactor commit changes no test expectations. A behavior commit moves no code.
+- **Parallel work shares nothing.** Two agents never edit the same file, branch or fixture at the same time. Use one worktree per agent, or run them in sequence. Only one agent drives the PVsyst GUI at a time, because it is a single instance.
+- **Delegate by difficulty.** Mechanical, well-specified units go to the cheap worker. Cross-cutting design, file-format inference and anything ambiguous stay with the strongest model. A brief states the goal, the files, the check that proves it, and what is out of scope.
+- **The orchestrator owns the result.** Read the delegate's diff and rerun its check yourself. A delegate's "done" is a claim, not evidence.
+- **Author and reviewer differ.** Nontrivial changes get a review from a different model or person than the one that wrote them.
+- **Live PVsyst runs cost trial executions.** Use `dry_run` and the hermetic fixtures first. Spend a live run only on what the fake CLI cannot prove, and say how many you spent.
 
-- **API Design:** REST must be resource-oriented, paginated (`cursor` not `offset`), versioned (`/v1/`), and idempotent (`Idempotency-Key`). Use DTOs, never expose domain entities directly.
-- **Data Modeling:** Model invariants in types, not in comments. Use value objects. DB schema changes require migrations, never manual edits.
-- **Configuration - 12 Factor:** No hardcoded config. Use env vars. Config fails fast on startup.
-- **Feature Flags:** New behavior behind flags, not `if` branches commented.
+## 3. ARCHITECTURE
 
-### 6. ERROR HANDLING, SECURITY, OBSERVABILITY
+**Package by feature, never by type.**
 
-- **Errors:** Typed domain errors `Result<T, DomainError>`. Library = `thiserror`, App = `anyhow` with context. NEVER `panic!`, `unwrap()` in lib, empty `catch`.
-- **Security - OWASP:** Validate all inputs at boundary. No secrets in code/logs. No SQL/NoSQL injection (use parameterized queries). Principle of Least Privilege. Run `cargo audit` / `npm audit`.
-- **Observability:** No `print`. Use structured logging `tracing`/`pino`. Log context `{orderId, userId}`, not strings. Metrics for business events, traces for request flow. Never log PII.
+- **Forbidden modules:** `utils`, `helpers`, `common`, `models`, `managers`, `misc`. If you reach for one, you have not named the domain yet.
+- **A module is a PVsyst business area:** `bombeo/`, `perdidas/`, `seguidores/`, `sites/`. Inside it, `dominio.rs` holds pure logic and `aplicacion.rs` holds use cases. Names follow `docs/convencion_nombres.md`.
+- **Dependencies point inward** to `format/`, the pure core with no I/O. Adapters (`adapters/cli`, `adapters/gui`, `adapters/uia`) implement what the features need. `tools/check_deps.py` checks the graph and it must pass.
+- **Limits:** a file holds one concept in at most 300 lines. A function has at most 50 lines, 3 parameters, 1 boolean parameter and 3 nesting levels. Clippy enforces the function limits. Over the file limit, split into a directory module.
+- **No god objects. No mutable global state.** Composition over inheritance. Immutable by default.
 
-### 7. TESTING - THE MOST IMPORTANT SECTION
+## 4. DATA AND TYPES
 
-**TEST BEHAVIOR, NOT IMPLEMENTATION. THIS IS LAW.**
+- **Name the data shape before the logic.** Types first, then functions over them.
+- **Make illegal states unrepresentable.** An enum replaces a pair of booleans. A newtype replaces a bare `String` or `f64` that carries a unit or an identity.
+- **Parse at the boundary, trust inside.** MCP arguments, PVsyst files and CLI output are parsed into typed values once, at the edge. Inner code does not revalidate.
+- **Edits to PVsyst files preserve every byte they do not own.** Encoding, CRLF line endings, unknown keys and field order survive a round trip. A round-trip test proves it.
+- **No magic numbers.** A flag bit, an offset or a PVsyst code gets a named constant and a note saying where it was measured.
+- **Retryable operations are idempotent.** Running a tool call twice leaves the same workspace as running it once.
 
-- **FORBIDDEN:** Testing private methods, asserting `mockRepo.save.calledOnce`, testing internal state.
-- **REQUIRED:** Test public observable behavior: `Given [state] When [action] Then [observable output/side effect]`.
+## 5. CODE QUALITY
 
-**Testing Matrix:**
-- **Unit:** Domain logic only. Fast, deterministic, no IO. Use Given-When-Then: `should_reject_order_when_cart_empty`
-- **Integration:** Test Port + Adapter (e.g., Real DB via testcontainers, Real API client). Verify wiring.
-- **Contract/E2E:** Critical user flows only.
+- **Simplest thing that satisfies the behavior.** No abstraction with one implementation. No configuration for a value that never changes. No code for a future nobody asked for.
+- **One source of truth for each fact.** A format rule, a unit conversion or a PVsyst limit lives in one place. Extract on the second copy of the same knowledge. Lines that merely look alike are not duplication.
+- **Guard clauses over nesting.** Return early. No `else` ladders.
+- **Names carry intent.** Functions are verbs with intent (`calcular_perdida_ohmica`, not `process`). Booleans are questions (`es_bifacial`). One verb per concept across the codebase.
+- **Standard library before a dependency.** A new crate needs a reason a reviewer would accept, and `deny.toml` must still pass.
+- **No pessimization.** Pick the data structure on purpose. No quadratic scan over component databases or hourly series. Measure before you optimize, and report the before and after.
 
-**Rules:** Tests must be deterministic, isolated, < 100ms for unit. No `sleep`, no network in unit tests. Use Fakes, not excessive Mocks.
+## 6. ERRORS, SECURITY, LOGGING
 
-### 8. DEPENDENCIES & TOOLING
+- **Typed errors** from `src/error.rs`, with context that names the file, the key and the value. An error that lists valid alternatives tells the calling agent what to do next.
+- **Never `unwrap`, `expect`, `panic!`, `todo!` or indexing that can panic in production paths.** Never swallow an error. Every `unsafe` block carries a `// SAFETY:` justification.
+- **Validate every input at the boundary.** Paths stay inside the workspace. No secrets, licence contents or personal data in code, logs, fixtures or commits.
+- **Structured logs to stderr** with `tracing`, with fields rather than interpolated strings. No `println!`, `eprintln!` or `dbg!`.
+- **Never fail silently toward the agent.** An ignored argument is reported as ignored. A refused action names the reason and the alternative.
 
-- **No new dependency for a 10-line problem.** Check stdlib first.
-- **Lockfiles committed.** Minimal dependency tree.
-- **Devex:** `format`, `lint`, `typecheck`, `test` must pass before done.
+## 7. TESTING
 
-### 9. DOCUMENTATION & GIT
+**Test behavior, not implementation.**
 
-- **Comments explain WHY, not WHAT.** If WHAT needs comment, rename.
-- **Public API:** Must have docstring with runnable example.
-- **Git:** Conventional Commits `feat:`, `fix:`, `refactor:`. Small atomic PRs. One PR = One concern. PR explains WHY, not WHAT.
+- **Assert what a user of the code observes:** the return value, the file on disk, the MCP response. Given state, when action, then observable result.
+- **Forbidden:** testing private functions, asserting call counts on mocks, asserting internal state, tests that pass when the behavior is broken.
+- **Few tests, each one earning its place.** A test exists because a behavior a user depends on would break without it. Not because a function, a branch or a line exists.
+- **One behavior, one test.** Before you add a test, look for the one that already covers that behavior and extend it. A change that alters no observable behavior adds no test: a rename, a refactor, a moved file, a log line, a doc.
+- **Forbidden:** one test per function, one test per small change, a new test for each input when a table of cases in one test does the job, tests that restate the implementation, tests for getters, constructors or trivial conversions.
+- **A bug fix ships one test:** the one that failed before the fix. A feature ships the tests of its behaviors: the main path, plus the error and edge cases that a user can actually reach. Not every combination.
+- **Prefer the outermost level that is still fast.** A test through the MCP tool or the public function of a feature is worth more than five tests of its internals.
+- **Deleting a test is a valid change.** A test that duplicates another, or that breaks on every refactor while the behavior stays the same, is deleted, and the commit says why.
+- **Layers:** unit tests cover pure domain behavior, sit beside the module and run in under 100 ms. Integration tests in `tests/` run against `tests/fixtures/workspace` and `fake_pvsystcli`. Tests that need a real PVsyst are `#[ignore]` and run on purpose.
+- **Deterministic and isolated.** No `sleep`, no network, no shared temp paths, no dependence on test order. Fakes over mocks.
+- **Fixtures are CRLF on purpose.** Do not re-encode `tests/fixtures/workspace/**`.
+- **Never weaken a test to make it pass.** A changed expectation is justified in the commit message.
 
-### 10. DEFINITION OF DONE & SELF-REVIEW CHECKLIST
+## 8. THE GATE
 
-Before you say "done", check:
+Test time must not become the bottleneck. There are two levels, and each has its moment.
 
-- [ ] Package by Feature respected? No `utils/`?
-- [ ] Naming screams business intent? No `manager`, `data`, `helper`?
-- [ ] No duplication? No magic numbers?
-- [ ] DRY, KISS, SOLID respected? File < 300 lines? Function < 50 lines?
-- [ ] Efficiency: Big O considered? No N+1? No blocking in async?
-- [ ] Errors typed with context? No `unwrap`/`panic` in prod?
-- [ ] Security: inputs validated? No secrets?
-- [ ] Tests verify BEHAVIOR (input->output) not implementation (mock calls)? Happy + Error + Edge covered?
-- [ ] `fmt`, `lint`, `test`, `audit` green?
-- [ ] No debug logs left?
+**Scoped check, after each unit.** Run only what the unit touched. Do not run the whole suite after every edit.
 
-### 11. PROHIBITED
+```powershell
+cargo check
+cargo test --lib <module>::          # unit tests of the module you changed
+cargo test --test <name>             # its integration binary, e.g. bombeo, perdidas
+pytest -q tools/<file>               # only when you touched tools/
+```
 
-1. Creating `utils`, `common`, `helpers` folders.
-2. `any`, `Object`, `interface{}` to bypass types.
-3. `console.log` / `println!` debug code.
-4. Copy-paste instead of reusing domain.
-5. Testing implementation details.
-6. God files, God functions, boolean trap `do(true, false)`.
+A new behavior with no test covering it gets one in the same unit. A change to `format/`, `error.rs`, `server/` or anything many modules depend on has no narrow scope: run the full gate.
 
+**Full gate, once per phase.** Run it when a phase or the whole plan is finished, and always before a push. It is what CI runs.
+
+```powershell
+cargo fmt --check
+cargo clippy --all-targets -- -D warnings
+cargo test
+python tools/check_deps.py
+ruff check tools; ruff format --check tools; mypy --strict tools; pytest -q tools
+```
+
+`scripts/verificar.ps1` runs the Rust steps with timeouts and cleans up orphan PVsyst processes. If the full gate fails at the end of a phase, the phase is not done: fix it before starting the next one. A lint is fixed, never silenced. An `#[allow]` needs a comment with the reason.
+
+## 9. DOCS AND GIT
+
+- **Comments explain why, never what.** If the what needs a comment, rename. Match the language of the file you touch.
+- **Public API carries a docstring.** When the tool surface, an environment variable or a requirement changes, `README.md` changes in the same commit. Behavior changes get a `CHANGELOG.md` entry under `## [Unreleased]`.
+- **Conventional Commits:** `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`. The message says why.
+- **No AI co-author trailers.**
+- **Commit and push without asking.** Commit each unit once its scoped check is green. Push once the full gate is green. No permission is needed for either.
+- **Ask first** only for what cannot be undone: force-push, deleting a branch or a tag, rewriting pushed history, publishing a release.
+
+## 10. DEFINITION OF DONE
+
+- [ ] The goal is met, and I can name the evidence that shows it.
+- [ ] The cause is fixed, not the symptom. A bug has the test that failed before the fix.
+- [ ] The diff contains only this concern. Refactor and behavior are in separate commits.
+- [ ] Types model the domain. No boolean pairs, magic numbers or bare primitives carrying units.
+- [ ] No module named `utils`, `helpers` or `common`. Files at most 300 lines, functions at most 50.
+- [ ] No `unwrap`, `panic!` or print in production paths. Errors are typed and carry context.
+- [ ] PVsyst file edits preserve bytes they do not own, proven by a round-trip test.
+- [ ] Tests assert observable behavior. I added only the tests a new behavior needs, and none for changes that alter no behavior.
+- [ ] Each unit passed its scoped check. The full gate in section 8 is green, and I ran it after the last edit of the phase.
+- [ ] The work is committed, and pushed after the full gate.
+- [ ] README and CHANGELOG match the new behavior.
+- [ ] My report says what I ran, what I skipped, and how many trial executions I spent.

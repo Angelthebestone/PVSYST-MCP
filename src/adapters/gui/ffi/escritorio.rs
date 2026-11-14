@@ -29,7 +29,7 @@ const FLAGS_CREACION_DEFECTO: u32 = 0;
 /// Decisión de diseño (§4b.5): Un contexto explícito no es viable aquí porque el modo de aislamiento
 /// es una propiedad inmutable del proceso fijada al inicio mediante `PVSYST_MCP_ESCRITORIO`.
 /// Propagar un parámetro `ContextoGui` requeriría modificar decenas de firmas en capas ajenas a FFI
-/// (`src/adapters/gui/**`, `src/gui_catalogo/**`, `src/vista_agente/**`), violando la separación modular.
+/// (`src/adapters/gui/**`, `src/adapters/gui/catalogo/**`, `src/vista_agente/**`), violando la separación modular.
 /// `AtomicBool` ofrece acceso O(1) seguro y sin contención entre hilos.
 static AISLADO: AtomicBool = AtomicBool::new(false);
 /// Modo de aislamiento del escritorio Win32.

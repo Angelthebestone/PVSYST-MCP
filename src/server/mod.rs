@@ -31,6 +31,7 @@ mod tools;
 
 use crate::config::Paths;
 use crate::error::Error;
+use crate::idioma::{Idioma, Texto};
 use crate::progreso::SeguimientoTarea;
 use respuesta::{err_response, error_de_herramienta, ok_response, resultado_de_herramienta};
 use serde_json::{json, Value};
@@ -104,8 +105,13 @@ impl Server {
     }
 
     fn process_notification(&self, method: &str, params: &Value) {
-        if method == "tools/call" {
-            let _ = self.ejecutar_herramienta(params, &SeguimientoTarea::inerte());
+        if method != "tools/call" {
+            return;
+        }
+        // A notification gets no answer, so a failed call would otherwise vanish.
+        let resultado = self.ejecutar_herramienta(params, &SeguimientoTarea::inerte());
+        if resultado.get("isError") == Some(&Value::Bool(true)) {
+            tracing::warn!(method, "tools/call recibido como notificación falló");
         }
     }
 
@@ -122,21 +128,27 @@ impl Server {
             "logging/setLevel" | "completion/complete" | "ping" => reply(json!({})),
             "tools/list" => reply(json!({ "tools": tools::list(&self.paths) })),
             "tools/call" => reply(self.ejecutar_herramienta(params, &SeguimientoTarea::inerte())),
-            "resources/list" => reply(resources::list()),
+            "resources/list" => reply(resources::list(self.paths.idioma)),
             "resources/read" => Some(self.read_resource(params, id)),
             "resources/templates/list" => reply(json!({ "resourceTemplates": [] })),
-            "prompts/list" => reply(recetas::listar_prompts(self.paths.aproximaciones)),
-            "prompts/get" => match recetas::obtener_prompt(params, self.paths.aproximaciones) {
-                Ok(value) => reply(value),
-                Err(e) => Some(err_response(id, -32602, &e.to_string())),
-            },
+            "prompts/list" => reply(recetas::listar_prompts(
+                self.paths.aproximaciones,
+                self.paths.idioma,
+            )),
+            "prompts/get" => {
+                match recetas::obtener_prompt(params, self.paths.aproximaciones, self.paths.idioma)
+                {
+                    Ok(value) => reply(value),
+                    Err(e) => Some(err_response(id, -32602, &e.to_string())),
+                }
+            }
             _ => Some(err_response(id, -32601, "Method not found")),
         }
     }
 
     fn read_resource(&self, params: &Value, id: &Value) -> String {
         let uri = params.get("uri").and_then(Value::as_str).unwrap_or("");
-        match resources::read(uri, self.paths.aproximaciones) {
+        match resources::read(uri, &self.paths) {
             Ok(value) => ok_response(id, &value),
             Err(e) => {
                 tracing::warn!(uri, kind = e.kind(), error = %e, "resource read failed");
@@ -147,7 +159,7 @@ impl Server {
 
     fn ejecutar_herramienta(&self, params: &Value, seguimiento: &SeguimientoTarea<'_>) -> Value {
         let Some(name) = params.get("name").and_then(Value::as_str) else {
-            let e = Error::Invalid("Falta 'name' (string) en tools/call".into());
+            let e = Error::Invalid(FALTA_NAME.texto_con(self.paths.idioma, &[]));
             return error_de_herramienta(&e, self.formato_resultado(), None);
         };
         // Missing arguments behave like `{}`: `Value::get` on Null yields None.
@@ -197,20 +209,35 @@ impl Server {
                 "name": "pvsyst-mcp",
                 "version": env!("CARGO_PKG_VERSION"),
             },
-            "instructions": instrucciones(self.paths.aproximaciones)
+            "instructions": instrucciones(self.paths.aproximaciones, self.paths.idioma)
         })
     }
 }
 
-const INSTRUCCIONES_BASE: &str = "Operate PVsyst 8.1.7 through its data files, its CLI and its GUI. Every PVsyst-native tool is available by default: the domain tools (entorno, leer, editar, listar, proyecto, componente, sitio, simular, resultados, workspace), the raw PVsystCLI passthrough (pvsyst_cli) and the GUI automation tools (gui_observar, gui_actuar). Every figure comes from PVsyst. Recipes, coverage, format and CLI reference are in the pvsyst:// resources. Operational notes: (1) the workspace argument is a per-call override and some actions ignore it; (2) sitio crear, sitio convertir_meteo, sitio meteo_pvgis and simular spend PVsyst TRIAL executions (meteo_pvgis is free when its coordinates are cached); (3) lists are truncated to 13 items by default: pass detalle:normal (50 items) or detalle:completo (all); (4) truncated answers carry truncado:true and hint, ignored parameters are listed in ignorados, and siguiente suggests the next call; (5) the GUI is single-instance and gui_actuar accion:funcion resolves its prerequisites itself; (6) every answer, errors included, carries a vista block (estado, resumen, campos, error, siguiente): each siguiente step is a call that can be sent as written, and a dry run says nothing was applied.";
-const INSTRUCCIONES_APROXIMACIONES: &str = " The MCP's own approximations (labelled origen:aproximacion_mcp) are enabled by PVSYST_MCP_APROXIMACIONES=1.";
+const INSTRUCCIONES_BASE: Texto = Texto {
+    es: "Opera PVsyst 8.1 (verificado en 8.1.7 y 8.1.8) a través de sus ficheros de datos, su CLI y su GUI. Cada cifra proviene de PVsyst. Hechos que ahorran llamadas: (1) los componentes se direccionan por NOMBRE (componente:\"Nombre\"), nunca por ruta; solo importar toma una ruta (origen). (2) teclas solo acepta nombres de tecla (RETURN, TAB, DOWN); para escribir texto usa escribir con un control (campo:{clase,x,y} con las claves de vista). En tu escritorio se niega a enviar teclas cuando no puede darles el foco; en el escritorio aislado informa foco:false y las envía igual. (3) esperar espera una VENTANA (clase/titulo obligatorios), no es una pausa; reintenta una vez (1,5 s) antes de informar del timeout. (4) campo casa con la etiqueta VISIBLE y rellenar con las claves del esquema; las claves de vista como combobox_100_138 son coordenadas de cliente que puedes pasar a campo/seleccionar. (5) resultados que:resumen devuelve KPIs + mensual + pérdidas principales en una llamada: úsalo en vez de tres lecturas del mismo PDF. (6) dry_run solo lo aceptan las acciones que lo implementan (pvsyst_cli, entorno licencia/exportar_logs, simular ejecutar, sitio crear/convertir_meteo/horizonte_pvgis, proyecto p50_p90, disenar_sistema, workspace restaurar, gui_actuar escena/escena_importar/rellenar); las demás lo rechazan por su nombre en vez de ejecutar. simular, disenar_sistema y proyecto p50_p90 informan costo_estimado (ejecuciones de prueba que gastaría la llamada). sitio crear, sitio convertir_meteo, sitio meteo_pvgis y simular consumen ejecuciones TRIAL (meteo_pvgis es gratis cuando sus coordenadas están en caché). (7) las listas se truncan a 13 elementos por defecto: pasa detalle:normal (50) o detalle:completo (todos). (8) el argumento workspace es un override por llamada: las rutas puras de PVsyst lo RECHAZAN con un error que lo nombra. Si lo rechazan, no repitas sin él: eso apunta al workspace configurado. (9) GUI: lánzala una vez (instancia única). El diálogo de prueba TDEMOForm es modal y bloquea las llamadas de GUI: ciérralo con gui_actuar accion:cerrar ventana:TDEMOForm. Las funciones variante.* y el editor 3D necesitan un proyecto cargado (TProjectForm): gui_actuar accion:funcion funcion:proyecto.cargar, escribe el nombre en el buscador y elige la fila 0 con accion:fila. (10) accion:fila selecciona fila solo en los controles cuya geometría está medida (árbol de proyectos, selector de módulos, tabla de objetos 3D); en los demás se niega y los nombra. (11) los errores listan las alternativas válidas cuando hay una enumeración; una clave listada en ignorados no la leyó la tool, así que no se aplicó. (12) toda respuesta, errores incluidos, lleva vista (estado, resumen, campos, siguiente): cada paso de siguiente es una llamada que puede enviarse tal cual. Recetas y referencias: recursos pvsyst://.",
+    en: "Operate PVsyst 8.1 (measured on 8.1.7 and 8.1.8) through its data files, its CLI and its GUI. Every figure comes from PVsyst. Facts that save round-trips: (1) components are addressed by NAME (componente:\"Name\"), never by path; only importar takes a path (origen). (2) teclas takes key names only (RETURN, TAB, DOWN); to type text use escribir with a control (campo:{clase,x,y} with the vista keys). On your own desktop it refuses to send keys when it cannot give them the focus; on the isolated desktop it reports foco:false and sends them anyway. (3) esperar waits for a WINDOW (clase/titulo required); it is not a sleep. It re-checks once (1.5 s) before reporting a timeout. (4) campo matches the VISIBLE label and rellenar the schema keys; vista keys such as combobox_100_138 are client coordinates you can pass to campo/seleccionar. (5) resultados que:resumen returns KPIs + monthly + main losses in one call: prefer it to three reads of the same PDF. (6) dry_run is only accepted by the actions that implement it (pvsyst_cli, entorno licencia/exportar_logs, simular ejecutar, sitio crear/convertir_meteo/horizonte_pvgis, proyecto p50_p90, disenar_sistema, workspace restaurar, gui_actuar escena/escena_importar/rellenar); the other actions refuse it by name instead of running. simular, disenar_sistema and proyecto p50_p90 report costo_estimado (trial executions the call would spend). sitio crear, sitio convertir_meteo, sitio meteo_pvgis and simular spend TRIAL executions (meteo_pvgis is free when its coordinates are cached). (7) lists are truncated to 13 items by default: pass detalle:normal (50) or detalle:completo (all). (8) the workspace argument is a per-call override: pure-PVsyst routes REJECT it with a named error. If rejected, do not just retry without it: that targets the configured workspace. (9) GUI: launch once (single instance). The TDEMOForm trial dialog is modal and blocks GUI calls: close it with gui_actuar accion:cerrar ventana:TDEMOForm. variante.* functions and the 3D editor need a project loaded (TProjectForm): gui_actuar accion:funcion funcion:proyecto.cargar, type the name in the search box and select row 0 with accion:fila. (10) accion:fila selects a row only in the controls whose geometry was measured (project tree, module chooser, 3D object table); elsewhere it refuses and names them. (11) errors list the valid alternatives when there is an enumeration; a key reported in ignorados was not read by the tool, so it was not applied. (12) every answer, errors included, carries vista (estado, resumen, campos, siguiente): each siguiente step is a call you can send as written. Recipes and references: pvsyst:// resources.",
+};
+const INSTRUCCIONES_APROXIMACIONES: Texto = Texto {
+    es: " Las aproximaciones propias del MCP (marcadas con origen:aproximacion_mcp) se activan con PVSYST_MCP_APROXIMACIONES=1.",
+    en: " The MCP's own approximations (labelled origen:aproximacion_mcp) are enabled by PVSYST_MCP_APROXIMACIONES=1.",
+};
+
+const FALTA_NAME: Texto = Texto {
+    es: "Falta 'name' (string) en tools/call",
+    en: "Missing 'name' (string) in tools/call",
+};
 
 /// Instructions sent at initialize; the approximation note appears only when its gate is on.
-fn instrucciones(aproximaciones: bool) -> String {
+fn instrucciones(aproximaciones: bool, idioma: Idioma) -> String {
     if aproximaciones {
-        format!("{INSTRUCCIONES_BASE}{INSTRUCCIONES_APROXIMACIONES}")
+        format!(
+            "{}{}",
+            INSTRUCCIONES_BASE.en_idioma(idioma),
+            INSTRUCCIONES_APROXIMACIONES.en_idioma(idioma)
+        )
     } else {
-        INSTRUCCIONES_BASE.to_owned()
+        INSTRUCCIONES_BASE.en_idioma(idioma).to_owned()
     }
 }
 

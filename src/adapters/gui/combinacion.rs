@@ -2,6 +2,7 @@
 //! principal key, mapped to Windows virtual keys. Pure: nothing is sent here.
 
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 
 const VK_CONTROL: u8 = 0x11;
 const VK_SHIFT: u8 = 0x10;
@@ -56,7 +57,7 @@ pub(crate) fn vk_for(key: &str) -> Option<u8> {
 
 /// Splits `CTRL+S` into its modifier codes and its one principal key. An
 /// unknown token or a combo without exactly one principal key is an error.
-pub(crate) fn parsear_combinacion(combo: &str) -> Result<(Vec<u8>, u8)> {
+pub(crate) fn parsear_combinacion(combo: &str, idioma: Idioma) -> Result<(Vec<u8>, u8)> {
     let mut mods = Vec::new();
     let mut principales = Vec::new();
     for p in combo.split('+').map(str::trim) {
@@ -65,19 +66,27 @@ pub(crate) fn parsear_combinacion(combo: &str) -> Result<(Vec<u8>, u8)> {
             "SHIFT" => mods.push(VK_SHIFT),
             "ALT" => mods.push(VK_MENU),
             other if TECLAS_PROHIBIDAS.contains(&other.to_uppercase().as_str()) => {
-                return Err(Error::Gui(format!(
-                    "La tecla '{other}' no se envía: en las listas de PVsyst puede eliminar o insertar elementos"
-                )));
+                let prohibida = Texto {
+                    es: "La tecla '{tecla}' no se envía: en las listas de PVsyst puede eliminar o insertar elementos",
+                    en: "The '{tecla}' key is not sent: in PVsyst lists it can delete or insert items",
+                };
+                return Err(Error::Gui(prohibida.texto_con(idioma, &[("tecla", other)])));
             }
             other => principales.push(vk_for(other).ok_or_else(|| {
-                Error::Gui(format!("Tecla no reconocida '{other}' en '{combo}'"))
+                let desconocida = Texto {
+                    es: "Tecla no reconocida '{tecla}' en '{combo}'",
+                    en: "Unrecognised key '{tecla}' in '{combo}'",
+                };
+                Error::Gui(desconocida.texto_con(idioma, &[("tecla", other), ("combo", combo)]))
             })?),
         }
     }
     let &[vk] = principales.as_slice() else {
-        return Err(Error::Gui(format!(
-            "'{combo}' necesita exactamente una tecla principal (p. ej. CTRL+S)"
-        )));
+        let una_tecla = Texto {
+            es: "'{combo}' necesita exactamente una tecla principal (p. ej. CTRL+S)",
+            en: "'{combo}' needs exactly one main key (e.g. CTRL+S)",
+        };
+        return Err(Error::Gui(una_tecla.texto_con(idioma, &[("combo", combo)])));
     };
     Ok((mods, vk))
 }

@@ -6,15 +6,21 @@
 //! which are always readable and never mutated.
 
 use super::{compos_dir, folder_for};
-use crate::args::no_encontrado;
+use crate::args::{no_encontrado, COMPONENTE};
 use crate::config::compos_ro;
 use crate::error::{Error, Result};
+use crate::idioma::Texto;
 use crate::workspace::{resolver_ruta, Alcance};
 use std::fs;
 use std::path::{Path, PathBuf};
 
 /// Largest component file loaded into memory (real PAN/OND files are < 1 MB).
 const MAX_BYTES_COMPONENTE: u64 = 16 * 1024 * 1024;
+
+const COMPONENTE_NO_ENCONTRADO: Texto = Texto {
+    es: "Componente no encontrado: {archivo}",
+    en: "Component not found: {archivo}",
+};
 
 /// What to resolve and under which path scope.
 pub(crate) struct ConsultaComponente<'a> {
@@ -62,7 +68,7 @@ pub(crate) fn resolve_component(
         let carpeta = folder.map_or_else(|| workspace.to_path_buf(), |f| compos_dir(workspace, f));
         let opciones = componentes_en(&carpeta, consulta.kind);
         no_encontrado(
-            "Componente",
+            COMPONENTE,
             consulta.name,
             &opciones,
             &carpeta.to_string_lossy(),
@@ -81,9 +87,9 @@ fn ruta_explicita(workspace: &Path, consulta: &ConsultaComponente<'_>) -> Result
     if ruta.is_file() {
         return Ok(ruta);
     }
-    Err(Error::NotFound(format!(
-        "Componente no encontrado: {}",
-        ruta.display()
+    Err(Error::NotFound(COMPONENTE_NO_ENCONTRADO.texto_con(
+        crate::idioma::Idioma::de_entorno(),
+        &[("archivo", &ruta.to_string_lossy())],
     )))
 }
 

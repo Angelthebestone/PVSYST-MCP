@@ -1,7 +1,8 @@
 //! Result trimming by detail level and next-step recommendations for callers.
 
+use crate::idioma::Idioma;
 use crate::vista_agente::contrato::catalogo;
-use serde_json::Value;
+use serde_json::{Map, Value};
 
 /// Accepted detail levels; `resumen` is the default.
 pub(crate) const DETALLES: &[&str] = &["resumen", "normal", "completo"];
@@ -18,6 +19,10 @@ pub(super) const SIN_RECORTE: &[&str] = &[
     "campos",
     "botones",
     "pestanas",
+    // The inventory caps itself (500 rows, with `total` and `truncado`); `otros` is the form's unclassified controls.
+    "controles",
+    "elementos",
+    "otros",
     "textos",
     "sin_mapear",
     "resultados",
@@ -30,6 +35,9 @@ const LIMITE_ARRAY_NORMAL: usize = 50;
 const LIMITE_ARRAY_RESUMEN: usize = 13; // 12 calendar months + full year
 const LIMITE_STR_NORMAL: usize = 8000;
 const LIMITE_STR_RESUMEN: usize = 1500;
+/// What a GUI inventory keeps when the caller names no `detalle`: a form has
+/// hundreds of controls, and a summary of 13 would hide most of them.
+const LIMITE_INVENTARIO: (usize, usize) = (500, LIMITE_STR_NORMAL);
 
 /// Size limits (max array items, max string chars) for `detalle`; `None` keeps everything.
 pub(crate) fn limites(args: &Value) -> Option<(usize, usize)> {
@@ -59,6 +67,7 @@ pub(crate) fn recortar(v: &mut Value, lim: (usize, usize)) -> bool {
                 recortado |= recortar_campo_objeto(k, hijo, &mut ctx);
             }
             recortado |= !totales.is_empty();
+            ajustar_count(mapa, &totales, max_arr);
             // A `<clave>_total` the answer already carries is the domain's count: keep it.
             for (k, total) in totales {
                 mapa.entry(k).or_insert(Value::from(total));
@@ -79,8 +88,21 @@ pub(crate) fn recortar(v: &mut Value, lim: (usize, usize)) -> bool {
 }
 
 /// Suggested next step after a successful call, as a short hint for the caller.
-pub(crate) fn siguiente(tool: &str, valor: &str) -> Option<&'static str> {
-    catalogo::buscar(tool, valor)?.pista
+pub(crate) fn siguiente(tool: &str, valor: &str, idioma: Idioma) -> Option<&'static str> {
+    catalogo::buscar(tool, valor)?
+        .pista
+        .map(|p| p.en_idioma(idioma))
+}
+
+/// A `count` that counted the list now cut says how many are left, not how many there were.
+fn ajustar_count(mapa: &mut Map<String, Value>, totales: &[(String, usize)], max_arr: usize) {
+    let contado = mapa.get("count").and_then(Value::as_u64);
+    if totales
+        .iter()
+        .any(|(_, t)| u64::try_from(*t).ok() == contado)
+    {
+        mapa.insert("count".into(), Value::from(max_arr));
+    }
 }
 
 struct ContextoRecorte<'a> {
@@ -131,24 +153,51 @@ fn pide_todos(r: &Respuesta<'_>, args: &Value) -> bool {
         && args.get("todos").and_then(Value::as_bool) == Some(true)
 }
 
+/// The raw list of controls with the hidden ones (`que:controles todos:true`).
+/// `inventario` and `elementos` cap themselves and are in `SIN_RECORTE`.
+fn pide_todos_los_controles(r: &Respuesta<'_>, args: &Value) -> bool {
+    r.herramienta == "gui_observar"
+        && r.accion == "controles"
+        && args.get("todos").and_then(Value::as_bool) == Some(true)
+}
+
+/// The limits of a call: none for `todos` on `listar objetos`, the inventory's
+/// when it names no `detalle`, else those of `detalle`.
+fn limites_de(r: &Respuesta<'_>, args: &Value) -> Option<(usize, usize)> {
+    if pide_todos(r, args) {
+        return None;
+    }
+    if pide_todos_los_controles(r, args) && args.get("detalle").is_none() {
+        return Some(LIMITE_INVENTARIO);
+    }
+    limites(args)
+}
+
 /// Trims the result to `detalle` and adds `elapsed_ms`, `siguiente`, `ignorados`, and, when cut, `truncado`, `hint` and `total`.
-pub(crate) fn decorar(v: &mut Value, args: &Value, r: Respuesta<'_>) {
-    let lim = if pide_todos(&r, args) {
-        None
-    } else {
-        limites(args)
-    };
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the decorator needs the answer, the request, its metadata and the language"
+)]
+pub(crate) fn decorar_con(v: &mut Value, args: &Value, r: Respuesta<'_>, idioma: Idioma) {
+    let lim = limites_de(&r, args);
     let total = lim.and_then(|l| total_principal(v, l));
     let truncado = lim.is_some_and(|l| recortar(v, l));
+    // A handler knows which of its own arguments the branch it took did not read.
+    let mut ignorados = r.ignorados;
+    if let Some(previos) = v.get("ignorados").and_then(Value::as_array) {
+        ignorados.extend(previos.iter().filter_map(Value::as_str).map(str::to_string));
+    }
+    ignorados.sort();
+    ignorados.dedup();
     let Some(obj) = v.as_object_mut() else {
         return;
     };
     obj.insert("elapsed_ms".to_string(), Value::from(r.ms));
-    if let Some(sig) = siguiente(r.herramienta, r.accion) {
+    if let Some(sig) = siguiente(r.herramienta, r.accion, idioma) {
         obj.insert("siguiente".to_string(), Value::from(sig));
     }
-    if !r.ignorados.is_empty() {
-        obj.insert("ignorados".to_string(), Value::from(r.ignorados));
+    if !ignorados.is_empty() {
+        obj.insert("ignorados".to_string(), Value::from(ignorados));
     }
     if truncado {
         obj.insert("truncado".to_string(), Value::Bool(true));
@@ -157,6 +206,13 @@ pub(crate) fn decorar(v: &mut Value, args: &Value, r: Respuesta<'_>) {
     if let Some(n) = total {
         obj.entry("total").or_insert(Value::from(n));
     }
+}
+
+/// The same decoration in the language of the installation. The trimming tests
+/// decorate without a `Paths`; the server passes `paths.idioma` to [`decorar_con`].
+#[cfg(test)]
+pub(crate) fn decorar(v: &mut Value, args: &Value, r: Respuesta<'_>) {
+    decorar_con(v, args, r, Idioma::de_entorno());
 }
 
 /// Original length of the longest top-level list that the detail level trims.

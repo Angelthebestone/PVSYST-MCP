@@ -26,64 +26,6 @@ fn ws_str(ws: &Path) -> String {
 }
 
 #[test]
-fn should_report_missing_economics_when_pdf_lacks_economic_evaluation() {
-    let ws = workspace();
-    let resultados = ws.path().join("Results");
-    for nombre in ["MCP_E2E.csv", "MCP_E2E.pdf"] {
-        fs::copy(
-            fixture(&format!("results/{nombre}")),
-            resultados.join(nombre),
-        )
-        .unwrap();
-    }
-    let mut client = Client::start_env(Some(&ws_str(ws.path())), &fake_env());
-    client.initialize();
-
-    let resp = client.call(
-        2,
-        "resultados",
-        json!({
-            "que": "economia",
-            "proyecto": "MCP_E2E",
-            "archivo": resultados.join("MCP_E2E.csv").to_string_lossy(),
-        }),
-    );
-
-    assert_eq!(resp["result"]["isError"], true, "resp={resp}");
-    let msg = resp["result"]["content"][0]["text"].as_str().unwrap();
-    assert!(msg.contains("proyecto accion:economia"), "msg={msg}");
-}
-
-#[test]
-fn should_report_missing_carbon_when_pdf_lacks_carbon_balance() {
-    let ws = workspace();
-    let resultados = ws.path().join("Results");
-    for nombre in ["MCP_E2E.csv", "MCP_E2E.pdf"] {
-        fs::copy(
-            fixture(&format!("results/{nombre}")),
-            resultados.join(nombre),
-        )
-        .unwrap();
-    }
-    let mut client = Client::start_env(Some(&ws_str(ws.path())), &fake_env());
-    client.initialize();
-
-    let resp = client.call(
-        2,
-        "resultados",
-        json!({
-            "que": "carbono",
-            "proyecto": "MCP_E2E",
-            "archivo": resultados.join("MCP_E2E.csv").to_string_lossy(),
-        }),
-    );
-
-    assert_eq!(resp["result"]["isError"], true, "resp={resp}");
-    let msg = resp["result"]["content"][0]["text"].as_str().unwrap();
-    assert!(msg.contains("PrintInReport"), "msg={msg}");
-}
-
-#[test]
 fn should_snapshot_previous_deliverable_when_regenerated() {
     let ws = workspace();
     let resultados = ws.path().join("Results");
@@ -105,47 +47,60 @@ fn should_snapshot_previous_deliverable_when_regenerated() {
     let primero = tool_text(&client.call(2, "resultados", args.clone()));
     let segundo = tool_text(&client.call(3, "resultados", args));
 
-    assert_eq!(primero["historial_id"], json!(null), "v={primero}");
-    assert!(segundo["historial_id"].is_string(), "v={segundo}");
+    let creacion = primero["historial_id"]
+        .as_str()
+        .unwrap_or_else(|| panic!("la creación del entregable deja historial: {primero}"));
+    let regeneracion = segundo["historial_id"]
+        .as_str()
+        .unwrap_or_else(|| panic!("la regeneración deja historial: {segundo}"));
+    assert_ne!(
+        creacion, regeneracion,
+        "cada escritura tiene su propio snapshot"
+    );
 }
 
-#[test]
-fn should_compare_variants_when_workspace_override_differs_from_default() {
-    let origen = synthetic_workspace();
-    let destino = workspace();
-    let projects = destino.path().join("Projects");
-    fs::create_dir_all(&projects).unwrap();
-    let base_vc = origen.path().join("Projects").join("SYNTH_Plant.VC0");
-    let cabecera = fs::read_to_string(fixture("results/MCP_E2E.csv")).unwrap();
-    let resultados = destino.path().join("Results");
-    for v in ["VC0", "VC1"] {
-        fs::copy(&base_vc, projects.join(format!("MCP_E2E.{v}"))).unwrap();
-        fs::write(
-            resultados.join(format!("MCP_E2E_{v}.csv")),
-            cabecera.replace("MCP_E2E.VC0", &format!("MCP_E2E.{v}")),
-        )
-        .unwrap();
+/// Variant whose `PNomSizing` (the sizing power PVsyst writes) differs from the
+/// array's nominal power the report prints (`Pnom total`): 10 x 2 x 400 W = 8 kWp
+/// sized to 4 kWp.
+const VARIANTE_DIMENSIONADA_A_MEDIO: &str = "PVObject_=pvVCalcul\r\n  Version=8.1.0\r\n  PVObject_SystemCircuit=pvCircuit\r\n    Version=8.1.0\r\n    PVObject_=pvSubArray\r\n      PVModule=Synth_400W.PAN\r\n      GInverter=Synth_10kW.OND\r\n      NModSerie=10\r\n      NStringCh=2\r\n      NInverter=1\r\n      PNomSizing=4.0\r\n    End of PVObject pvSubArray\r\n  End of PVObject pvCircuit\r\nEnd of PVObject pvVCalcul\r\n";
+
+/// A workspace holding the canned E2E result pair and the project it names.
+fn workspace_con_resultado() -> tempfile::TempDir {
+    let ws = workspace();
+    for nombre in ["MCP_E2E.csv", "MCP_E2E.pdf"] {
         fs::copy(
-            fixture("results/MCP_E2E.pdf"),
-            resultados.join(format!("MCP_E2E_{v}.pdf")),
+            fixture(&format!("results/{nombre}")),
+            ws.path().join("Results").join(nombre),
         )
         .unwrap();
     }
-    let mut client = Client::start_env(Some(&ws_str(origen.path())), &fake_env());
+    fs::write(
+        ws.path().join("Projects").join("MCP_E2E.VC0"),
+        VARIANTE_DIMENSIONADA_A_MEDIO,
+    )
+    .unwrap();
+    ws
+}
+
+#[test]
+fn should_take_the_kwp_from_the_report_and_not_from_the_sizing_power() {
+    let ws = workspace_con_resultado();
+    let mut client = Client::start_env(Some(&ws_str(ws.path())), &fake_env());
     client.initialize();
 
-    let resp = client.call(
-        2,
-        "resultados",
-        json!({
-            "que": "comparar",
-            "proyecto": "MCP_E2E",
-            "variantes": ["VC0", "VC1"],
-            "workspace": ws_str(destino.path()),
-        }),
-    );
-
-    let msg = resp["result"]["content"][0]["text"].as_str().unwrap();
-    assert!(!msg.contains("fuera del workspace"), "msg={msg}");
-    assert_ne!(resp["result"]["isError"], true, "msg={msg}");
+    // The report prints `Pnom total 9.00 kWp`; `PNomSizing` in the variant is 4.0.
+    for (id, que) in [(2, "perdidas"), (3, "mensual"), (4, "entregable")] {
+        let out = tool_text(&client.call(
+            id,
+            "resultados",
+            json!({ "que": que, "proyecto": "MCP_E2E" }),
+        ));
+        assert_eq!(out["kwp"].as_f64(), Some(9.0), "{que}: {out}");
+        // 14299 kWh / 9 kWp, the same figure the report's own summary prints.
+        assert_eq!(
+            out["produccion_especifica_kwh_kwp"].as_f64(),
+            Some(1588.8),
+            "{que}: {out}"
+        );
+    }
 }

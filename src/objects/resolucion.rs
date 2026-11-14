@@ -53,9 +53,9 @@ fn resolver_por_extension(workspace: &Path, req: &PeticionArchivo) -> Result<Pat
             return Ok(candidato);
         }
         let tipo = match carpeta {
-            "Projects" => "Proyecto",
-            "Sites" => "Sitio",
-            _ => "Meteo",
+            "Projects" => crate::args::PROYECTO,
+            "Sites" => crate::args::SITIO,
+            _ => crate::args::METEO,
         };
         let opciones = archivos_en(&dir, carpeta);
         return Err(crate::args::no_encontrado(

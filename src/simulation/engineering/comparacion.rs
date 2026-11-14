@@ -4,6 +4,7 @@ use super::caso::{caso, especifica, round1, Caso};
 use crate::args::{req_str, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::idioma::Texto;
 use crate::objects::leer_objeto;
 use crate::simulation::report_pdf;
 use crate::simulation::results::resultado_de;
@@ -17,6 +18,15 @@ pub(super) const CLAVES_EXCLUIDAS: &[&str] = &[
     "WRFactor",
 ];
 pub(super) const MAX_DIFERENCIAS: usize = 100;
+
+const COMPARAR_POCAS_PEDIDAS: Texto = Texto {
+    es: "comparar necesita al menos 2 variantes: se pidieron {n} ({lista})",
+    en: "comparar needs at least 2 variants: {n} were requested ({lista})",
+};
+const COMPARAR_POCAS_RESULTADOS: Texto = Texto {
+    es: "Se necesitan al menos 2 variantes con resultados en '{proyecto}' (hay {n})",
+    en: "At least 2 variants with results are needed in '{proyecto}' (there are {n})",
+};
 
 pub(super) fn excluida(clave: &str) -> bool {
     CLAVES_EXCLUIDAS.iter().any(|p| clave.starts_with(p))
@@ -130,7 +140,7 @@ pub(super) fn variantes_con_resultados(workspace: &Path, proyecto: &str) -> Vec<
                 .and_then(|e| e.to_str())
                 .map(str::to_uppercase)
         })
-        .filter(|e| e.starts_with("VC") || e.starts_with("CM"))
+        .filter(|e| crate::projects::lifecycle::variantes::es_variante_valida(e))
         .filter(|e| {
             matches!(
                 resultado_de(workspace, Some(proyecto), Some(e), None),
@@ -143,22 +153,46 @@ pub(super) fn variantes_con_resultados(workspace: &Path, proyecto: &str) -> Vec<
     out
 }
 
+/// `variantes` as given: each must be a text `VCn`/`CMn`, not silently dropped.
+fn variantes_pedidas(lista: &[Value]) -> Result<Vec<String>> {
+    lista
+        .iter()
+        .map(|v| {
+            let texto = v.as_str().ok_or_else(|| {
+                Error::Invalid(format!("'variantes' solo admite textos (recibido {v})"))
+            })?;
+            crate::projects::lifecycle::variantes::exigir_variante_valida(texto)?;
+            Ok(texto.to_string())
+        })
+        .collect()
+}
+
 pub(crate) fn comparar(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
     let proyecto = req_str(args, &["proyecto"], "proyecto")?;
+    crate::workspace::validar_nombre(proyecto)?;
     let variantes: Vec<String> = match args.get("variantes").and_then(Value::as_array) {
-        Some(lista) => lista
-            .iter()
-            .filter_map(Value::as_str)
-            .map(str::to_string)
-            .collect(),
+        Some(lista) => variantes_pedidas(lista)?,
         None => variantes_con_resultados(&workspace, proyecto),
     };
     if variantes.len() < 2 {
-        return Err(Error::Invalid(format!(
-            "Se necesitan al menos 2 variantes con resultados en '{proyecto}' (hay {})",
-            variantes.len()
-        )));
+        // A call that named its variants is short of variants, not of results: saying
+        // "the project has 1" would send the caller looking for the wrong thing.
+        let mensaje = if args.get("variantes").is_some_and(Value::is_array) {
+            COMPARAR_POCAS_PEDIDAS.texto_con(
+                paths.idioma,
+                &[
+                    ("n", &variantes.len().to_string()),
+                    ("lista", &variantes.join(", ")),
+                ],
+            )
+        } else {
+            COMPARAR_POCAS_RESULTADOS.texto_con(
+                paths.idioma,
+                &[("proyecto", proyecto), ("n", &variantes.len().to_string())],
+            )
+        };
+        return Err(Error::Invalid(mensaje));
     }
     let mut kpis = Vec::new();
     for v in &variantes {

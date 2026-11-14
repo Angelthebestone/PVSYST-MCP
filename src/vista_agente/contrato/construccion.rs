@@ -1,9 +1,10 @@
 //! Builds the `vista` block of a finished call from its request and its answer.
 
 use super::campos::{campos_de, CLAVES_AVISO};
-use super::catalogo::{self, Entrada, Paso};
+use super::catalogo::{self, Paso};
 use super::pendiente::{pendiente_de, Pendiente};
 use super::tipos::{ErrorVista, Estado, Origen, PasoSiguiente, Recorte, Vista};
+use crate::idioma::{Idioma, Texto};
 use serde_json::{Map, Value};
 use std::collections::HashSet;
 
@@ -12,6 +13,7 @@ pub(crate) struct Contexto<'a> {
     pub(crate) tool: &'a str,
     pub(crate) accion: &'a str,
     pub(crate) args: &'a Value,
+    pub(crate) idioma: Idioma,
 }
 
 /// Tools whose answers describe the workspace or the MCP, not a PVsyst figure.
@@ -23,7 +25,32 @@ const MAX_CARACTERES_MOTIVO: usize = 300;
 const MAX_AVISOS: usize = 5;
 const MAX_CARACTERES_AVISO: usize = 160;
 const PEDIR_RESTO: &str = "detalle:completo";
-const PEDIR_AVISOS: &str = "leer avisos completos en la propia respuesta";
+const PEDIR_AVISOS: Texto = Texto {
+    es: "leer avisos completos en la propia respuesta",
+    en: "read the full warnings in the answer itself",
+};
+/// Reason of a failure the answer does not explain.
+const MOTIVO_SIN_DETALLE: Texto = Texto {
+    es: "la acción informó un fallo",
+    en: "the action reported a failure",
+};
+const CAUSA_DE_FALLO: Texto = Texto {
+    es: "La acción informó un fallo o problemas en su resultado; algunos pasos pudieron aplicarse.",
+    en:
+        "The action reported a failure or problems in its result; some steps may have been applied.",
+};
+const REMEDIO_DE_FALLO: Texto = Texto {
+    es: "Corrige la causa indicada en motivo y avisos y repite la acción.",
+    en: "Fix the cause named in motivo and avisos and repeat the action.",
+};
+const ACCION_COMPLETADA: Texto = Texto {
+    es: "Acción completada.",
+    en: "Action completed.",
+};
+const NO_COMPLETADA: Texto = Texto {
+    es: "No se completó del todo: {motivo}.",
+    en: "Not fully completed: {motivo}.",
+};
 /// Arguments of the request that carry over to every next step; the server drops
 /// the ones the target tool does not declare.
 const PROPAGADOS: &[&str] = &["workspace", "variante", "permitir_fuera_del_workspace"];
@@ -65,14 +92,14 @@ fn avisos_de(salida: &Value) -> Vec<String> {
 }
 
 /// The first warnings, and the cut when there are more: the answer keeps all of them.
-fn acotar_avisos(mut avisos: Vec<String>) -> (Vec<String>, Option<Recorte>) {
+fn acotar_avisos(mut avisos: Vec<String>, idioma: Idioma) -> (Vec<String>, Option<Recorte>) {
     let total = avisos.len();
     avisos.truncate(MAX_AVISOS);
     let recorte = (total > MAX_AVISOS).then(|| Recorte {
         clave: "vista.avisos".into(),
         mostrados: MAX_AVISOS,
         total,
-        pedir_resto: PEDIR_AVISOS,
+        pedir_resto: PEDIR_AVISOS.en_idioma(idioma),
     });
     (avisos, recorte)
 }
@@ -103,15 +130,33 @@ fn falla_la_cli(salida: &Value) -> bool {
         || (!produjo_salida && !textos_de(salida, "detected_error").is_empty())
 }
 
-/// Keys that say the answer is missing part of what was asked for.
+/// Keys that name a failure inside a successful reply.
+fn nombra_fallo(salida: &Value) -> bool {
+    !textos_de(salida, "errores").is_empty() || !textos_de(salida, "error").is_empty()
+}
+
+/// Keys that name values that did not match what was asked for.
+fn nombra_diferencia(salida: &Value) -> bool {
+    salida
+        .get("campos_que_difieren")
+        .and_then(Value::as_u64)
+        .is_some_and(|n| n > 0)
+        || salida
+            .get("diferencias_con_la_ficha")
+            .and_then(Value::as_array)
+            .is_some_and(|d| !d.is_empty())
+}
+
+/// Keys that say the answer is missing part of what was asked for. An incomplete
+/// answer must name what failed or differed: `completo:false` alone only warns
+/// (a legacy MEF whose binary columns are not decoded), and calling that a
+/// failure would invent a reason.
 fn es_incompleta(salida: &Value) -> bool {
-    salida.get("completo").and_then(Value::as_bool) == Some(false)
-        || !textos_de(salida, "errores").is_empty()
-        || !textos_de(salida, "error").is_empty()
+    nombra_fallo(salida) || nombra_diferencia(salida)
 }
 
 /// `ok:false` or a failed CLI run marks a failure inside a successful reply;
-/// an `errores` list, `error` text or `completo:false` mark an incomplete one.
+/// an `errores` list, `error` text or a named difference mark an incomplete one.
 /// It is partial when a step worked or the reply never said it failed.
 fn estado_de(salida: &Value) -> Estado {
     let fallo = salida.get("ok").and_then(Value::as_bool) == Some(false) || falla_la_cli(salida);
@@ -125,14 +170,14 @@ fn estado_de(salida: &Value) -> Estado {
     Estado::Error
 }
 
-fn motivo_de(salida: &Value) -> String {
+fn motivo_de(salida: &Value, idioma: Idioma) -> String {
     let errores = textos_de(salida, "errores");
     let motivo = match errores.is_empty() {
         false => errores.join("; "),
         true => ["detected_error", "error", "mensaje"]
             .iter()
             .find_map(|clave| textos_de(salida, clave).into_iter().next())
-            .unwrap_or_else(|| "la acción informó un fallo".to_string()),
+            .unwrap_or_else(|| MOTIVO_SIN_DETALLE.en_idioma(idioma).to_string()),
     };
     motivo.chars().take(MAX_CARACTERES_MOTIVO).collect()
 }
@@ -145,22 +190,14 @@ fn codigo_de(estado: Estado, salida: &Value) -> &'static str {
     }
 }
 
-fn error_de(estado: Estado, salida: &Value) -> Option<ErrorVista> {
+fn error_de(estado: Estado, salida: &Value, idioma: Idioma) -> Option<ErrorVista> {
     (estado != Estado::Ok).then(|| ErrorVista {
         codigo: codigo_de(estado, salida).into(),
-        motivo: motivo_de(salida),
-        causa_probable: "La acción informó un fallo o problemas en su resultado; algunos pasos pudieron aplicarse.",
-        que_hacer: "Corrige la causa indicada en motivo y avisos y repite la acción.",
+        motivo: motivo_de(salida, idioma),
+        causa_probable: CAUSA_DE_FALLO.en_idioma(idioma),
+        que_hacer: REMEDIO_DE_FALLO.en_idioma(idioma),
         claves_validas: Vec::new(),
     })
-}
-
-fn resumen_de(entrada: Option<&Entrada>, estado: Estado, salida: &Value) -> String {
-    let hecho = entrada.map_or("Acción completada.", |e| e.resumen);
-    match estado {
-        Estado::Ok => hecho.to_string(),
-        _ => format!("No se completó del todo: {}.", motivo_de(salida)),
-    }
 }
 
 /// Lists the answer cut by the detail level, from the `<clave>_total` the trimmer adds.
@@ -205,6 +242,12 @@ fn argumentos_de(paso: &Paso, ctx: &Contexto<'_>, salida: &Value) -> Option<Valu
         .iter()
         .filter_map(|clave| Some(((*clave).to_string(), ctx.args.get(clave)?.clone())));
     argumentos.extend(heredados);
+    for (destino, candidatos) in paso.si_esta {
+        if let Some(texto) = texto_de(ctx.args, candidatos).or_else(|| texto_de(salida, candidatos))
+        {
+            argumentos.insert((*destino).to_string(), Value::from(texto));
+        }
+    }
     Some(Value::Object(argumentos))
 }
 
@@ -212,7 +255,7 @@ fn paso_siguiente(paso: &Paso, ctx: &Contexto<'_>, salida: &Value) -> Option<Pas
     Some(PasoSiguiente {
         tool: paso.tool.to_string(),
         argumentos: argumentos_de(paso, ctx, salida)?,
-        motivo: paso.motivo,
+        motivo: paso.motivo.en_idioma(ctx.idioma),
     })
 }
 
@@ -223,7 +266,7 @@ pub(crate) fn siguiente_de(
     estado: Estado,
     salida: &Value,
 ) -> Vec<PasoSiguiente> {
-    if let Some(pendiente) = pendiente_de(ctx, salida, estado) {
+    if let Some(pendiente) = pendiente_de(salida, estado) {
         return vec![pendiente.siguiente(ctx)];
     }
     let pasos: &[Paso] = match (estado, catalogo::buscar(ctx.tool, ctx.accion)) {
@@ -236,10 +279,10 @@ pub(crate) fn siguiente_de(
         .collect()
 }
 
-/// The `vista` block for an answer that arrived.
+/// The `vista` block for an answer that arrived, in the language of `ctx`.
 pub(crate) fn construir(ctx: &Contexto<'_>, salida: &Value) -> Vista {
     let base = estado_de(salida);
-    let pendiente = pendiente_de(ctx, salida, base);
+    let pendiente = pendiente_de(salida, base);
     let estado = match pendiente {
         Some(Pendiente::Confirmacion) => Estado::Parcial,
         _ => base,
@@ -247,23 +290,33 @@ pub(crate) fn construir(ctx: &Contexto<'_>, salida: &Value) -> Vista {
     let (campos, recorte_campos) = campos_de(salida);
     let mut recortado = recortes_de(salida);
     recortado.extend(recorte_campos);
-    let (avisos, recorte_avisos) = acotar_avisos(avisos_de(salida));
+    let (avisos, recorte_avisos) = acotar_avisos(avisos_de(salida), ctx.idioma);
     recortado.extend(recorte_avisos);
     let hecho = catalogo::buscar(ctx.tool, ctx.accion);
+    let resumen = match pendiente {
+        Some(p) => p.resumen(ctx, salida),
+        None => {
+            let hecho = hecho.map_or(ACCION_COMPLETADA, |e| e.resumen);
+            match estado {
+                Estado::Ok => hecho.en_idioma(ctx.idioma).to_string(),
+                _ => {
+                    let motivo = motivo_de(salida, ctx.idioma);
+                    NO_COMPLETADA.texto_con(ctx.idioma, &[("motivo", motivo.as_str())])
+                }
+            }
+        }
+    };
     Vista {
         estado,
-        resumen: match pendiente {
-            Some(p) => p.resumen(hecho.map_or("la acción pedida.", |e| e.resumen), salida),
-            None => resumen_de(hecho, estado, salida),
-        },
+        resumen,
         origen: origen_de(ctx, salida),
         campos,
         avisos,
         siguiente: siguiente_de(ctx, estado, salida),
         recortado,
         error: match pendiente {
-            Some(p) => p.error(salida),
-            None => error_de(estado, salida),
+            Some(p) => p.error(salida, ctx.idioma),
+            None => error_de(estado, salida, ctx.idioma),
         },
     }
 }

@@ -1,5 +1,7 @@
 //! Additional schema constraints and property annotations for tool parameters.
 
+use super::declaracion::Anotador;
+use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Value};
 
 /// Inclusive integer bounds `(propiedad, mínimo, máximo)`. One table feeds both the
@@ -9,6 +11,7 @@ const LIMITES_ENTEROS: &[(&str, i64, Option<i64>)] = &[
     ("lineas", 1, Some(500)),
     ("n_baterias_serie", 1, None),
     ("n_baterias_paralelo", 1, None),
+    ("timeout_s", 1, Some(3600)),
 ];
 
 /// Bounds `(mínimo, máximo)` declared for the integer property `clave`, if any.
@@ -19,10 +22,49 @@ pub(crate) fn limites_enteros(clave: &str) -> Option<(i64, Option<i64>)> {
         .map(|&(_, minimo, maximo)| (minimo, maximo))
 }
 
+const DESC_POTENCIA_KW: Texto = Texto {
+    es: "Potencia límite de inyección en kW. Para quitar el límite, usa editar con PLimGrid: null.",
+    en: "Injection power limit in kW. To remove the limit, use editar with PLimGrid: null.",
+};
+const DESC_VIA: Texto = Texto {
+    es: "pvsyst (defecto): la ruta de PVsyst. aproximacion: cálculo propio del MCP, oculto salvo con PVSYST_MCP_APROXIMACIONES=1.",
+    en: "pvsyst (default): the PVsyst route. aproximacion: the MCP's own calculation, hidden unless PVSYST_MCP_APROXIMACIONES=1.",
+};
+const DESC_BATERIAS: Texto = Texto {
+    es: "Solo aplica a tipo_sistema:aislado.",
+    en: "Only applies to tipo_sistema:aislado.",
+};
+const DESC_TIMEOUT: Texto = Texto {
+    es: "Segundos antes de matar el proceso (de 1 a 3600). Por defecto 120, y 900 en run-simulation.",
+    en: "Seconds before the process is killed (1 to 3600). Defaults to 120, and 900 for run-simulation.",
+};
+const DESC_WEATHER_DATA_FILE: Texto = Texto {
+    es: "CSV mensual que se importa con origen:csv; con origen:coordenadas el sitio se crea desde latitud y longitud.",
+    en: "Monthly CSV imported with origen:csv; with origen:coordenadas the site is created from latitud and longitud.",
+};
+const DESC_DRY_RUN: Texto = Texto {
+    es: "true: ensayo, no ejecuta nada y devuelve lo que haría. null no se acepta: ejecutaría de verdad.",
+    en: "true: rehearsal, runs nothing and returns what it would do. null is refused: it would run for real.",
+};
+const DESC_COMANDO_CLI: Texto = Texto {
+    es: "Solo el nombre del comando (`help`, `version`, `lic-info`), sin espacios; los argumentos van en 'opciones'.",
+    en: "Only the command name (`help`, `version`, `lic-info`), with no spaces; its arguments go in 'opciones'.",
+};
+const DESC_OPCIONES_CLI: Texto = Texto {
+    es: "Argumentos de PVsystCLI. Lista: cada elemento tal cual (`-w:C:/ws`). Objeto: `--nombre:valor`, en orden alfabético; una clave que empieza por `-` se usa tal cual, `true` es un flag sin valor y `false`/`null` omiten la opción.",
+    en: "PVsystCLI arguments. List: each item as written (`-w:C:/ws`). Object: `--name:value`, in alphabetical order; a key starting with `-` is used as written, `true` is a flag with no value and `false`/`null` leave the option out.",
+};
+
 /// Annotates known domain constraints on specific tool properties in the MCP schema.
 /// The GUI-specific annotations only apply to the GUI tools: other tools may reuse
 /// the same property names (`texto`) with a different meaning.
-pub(crate) fn anotar_restricciones(prop_val: &mut Value, herramienta: &str, clave: &str) {
+pub(crate) fn anotar_restricciones(an: &Anotador, prop_val: &mut Value, clave: &str) {
+    if reemplazar_esquema_opciones(an, prop_val, clave) {
+        return;
+    }
+    if anotar_comando_cli(an, prop_val, clave) {
+        return;
+    }
     let Some(obj) = prop_val.as_object_mut() else {
         return;
     };
@@ -35,11 +77,15 @@ pub(crate) fn anotar_restricciones(prop_val: &mut Value, herramienta: &str, clav
     if anotar_estructuras(obj, clave) {
         return;
     }
+    if let Some(texto) = descripcion_de_ejecucion(an, clave) {
+        obj.insert("description".to_string(), json!(texto));
+    }
+    let idioma = an.idioma;
     match clave {
         "potencia_kw" => {
             obj.insert(
                 "description".to_string(),
-                json!("Potencia límite de inyección en kW. Para quitar el límite, usa editar con PLimGrid: null."),
+                json!(DESC_POTENCIA_KW.en_idioma(idioma)),
             );
         }
         "estrategia" => {
@@ -50,20 +96,65 @@ pub(crate) fn anotar_restricciones(prop_val: &mut Value, herramienta: &str, clav
         }
         "via" => {
             obj.insert("enum".to_string(), json!(["pvsyst", "aproximacion"]));
-            obj.insert(
-                "description".to_string(),
-                json!("pvsyst (defecto): la ruta de PVsyst. aproximacion: cálculo propio del MCP, oculto salvo con PVSYST_MCP_APROXIMACIONES=1."),
-            );
+            obj.insert("description".to_string(), json!(DESC_VIA.en_idioma(idioma)));
         }
         "n_baterias_serie" | "n_baterias_paralelo" => {
             obj.insert(
                 "description".to_string(),
-                json!("Solo aplica a tipo_sistema:aislado."),
+                json!(DESC_BATERIAS.en_idioma(idioma)),
             );
         }
-        _ if herramienta.starts_with("gui_") => anotar_gui(obj, clave),
+        _ if an.herramienta.nombre.starts_with("gui_") => anotar_gui(obj, clave, idioma),
         _ => {}
     }
+}
+
+/// Description of the properties the tools that run PVsystCLI share.
+fn descripcion_de_ejecucion(an: &Anotador, clave: &str) -> Option<String> {
+    let texto = match clave {
+        "timeout_s" => DESC_TIMEOUT,
+        "dry_run" => DESC_DRY_RUN,
+        "weather_data_file" => DESC_WEATHER_DATA_FILE,
+        _ => return None,
+    };
+    Some(texto.en_idioma(an.idioma).to_string())
+}
+
+/// `comando` of the passthrough is a bare command name: the schema says so, so a
+/// client can reject `" help"` before the call.
+fn anotar_comando_cli(an: &Anotador, prop_val: &mut Value, clave: &str) -> bool {
+    if clave != "comando" || an.herramienta.nombre != "pvsyst_cli" {
+        return false;
+    }
+    let Some(obj) = prop_val.as_object_mut() else {
+        return false;
+    };
+    obj.insert("minLength".to_string(), json!(1));
+    obj.insert("pattern".to_string(), json!(r"^\S+$"));
+    obj.insert(
+        "description".to_string(),
+        json!(DESC_COMANDO_CLI.en_idioma(an.idioma)),
+    );
+    true
+}
+
+/// The passthrough's `opciones` is the only free object of the schema: it declares
+/// the scalar values it accepts instead of accepting anything.
+fn reemplazar_esquema_opciones(an: &Anotador, prop_val: &mut Value, clave: &str) -> bool {
+    if clave != "opciones" || an.herramienta.nombre != "pvsyst_cli" {
+        return false;
+    }
+    *prop_val = json!({
+        "anyOf": [
+            { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+            {
+                "type": "object",
+                "additionalProperties": { "type": ["string", "number", "boolean", "null"] }
+            }
+        ],
+        "description": DESC_OPCIONES_CLI.en_idioma(an.idioma),
+    });
+    true
 }
 
 fn anotar_estructuras(obj: &mut serde_json::Map<String, Value>, clave: &str) -> bool {
@@ -106,12 +197,16 @@ fn anotar_estructuras(obj: &mut serde_json::Map<String, Value>, clave: &str) -> 
 }
 
 /// Schema details of the GUI-automation arguments.
-fn anotar_gui(obj: &mut serde_json::Map<String, Value>, clave: &str) {
+fn anotar_gui(obj: &mut serde_json::Map<String, Value>, clave: &str, idioma: Idioma) {
     match clave {
         "campo" => {
             obj.insert(
                 "description".to_string(),
-                json!("Campo sin rótulo: clase VCL y centro en px a 96 DPI dentro del formulario."),
+                json!(Texto {
+                    es: "Campo sin rótulo: clase VCL y centro en px a 96 DPI dentro del formulario.",
+                    en: "Unlabeled field: VCL class and center in px at 96 DPI inside the form.",
+                }
+                .en_idioma(idioma)),
             );
             obj.insert(
                 "properties".to_string(),
@@ -130,14 +225,22 @@ fn anotar_gui(obj: &mut serde_json::Map<String, Value>, clave: &str) {
         "texto" => {
             obj.insert(
                 "description".to_string(),
-                json!("Texto a escribir, o prefijo del ítem del combo a seleccionar."),
+                json!(Texto {
+                    es: "Texto a escribir, o prefijo del ítem del combo a seleccionar.",
+                    en: "Text to type, or prefix of the combo item to select.",
+                }
+                .en_idioma(idioma)),
             );
         }
         "pids" => {
             obj.insert("items".to_string(), json!({ "type": "integer" }));
             obj.insert(
                 "description".to_string(),
-                json!("Procesos objetivo; si se omite, se usa PVsyst.exe."),
+                json!(Texto {
+                    es: "Procesos objetivo; si se omite, se usa PVsyst.exe.",
+                    en: "Target processes; if omitted, PVsyst.exe is used.",
+                }
+                .en_idioma(idioma)),
             );
         }
         _ => {}

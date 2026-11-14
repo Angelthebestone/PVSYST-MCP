@@ -6,6 +6,7 @@
 pub(crate) mod avisos_pvsyst;
 pub(crate) mod batch;
 pub(crate) mod cache;
+pub(crate) mod coherencia;
 pub(crate) mod engineering;
 pub(crate) mod preestimate;
 pub(crate) mod report_pdf;
@@ -27,16 +28,16 @@ use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::progreso::SeguimientoTarea;
 use serde_json::{json, Value};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 fn respuesta_dry_run(
     cli_args: &[String],
     prj_path: &Path,
     variant_file: &Path,
-    workspace: &Path,
+    paths: &Paths,
 ) -> Value {
     let variant_exists = variant_file.exists();
-    let ejecuciones = preparacion::ejecuciones_previstas(cli_args);
+    let ejecuciones = preparacion::ejecuciones_previstas(&paths.workspace, cli_args);
     json!({
         "command": "run-simulation",
         "cli_args": cli_args,
@@ -44,16 +45,10 @@ fn respuesta_dry_run(
         "project_file": prj_path.to_string_lossy(),
         "variant_file": variant_file.to_string_lossy(),
         "variant_file_exists": variant_exists,
-        "workspace": workspace.to_string_lossy(),
-        "costo_estimado": costo_estimado(workspace, ejecuciones),
+        "workspace": paths.workspace.to_string_lossy(),
+        "costo_estimado": crate::adapters::ledger::costo_estimado(paths, ejecuciones),
         "max_ejecuciones": ejecuciones,
     })
-}
-
-/// Trial cost a real run would charge: estimated executions and what the licence has left.
-fn costo_estimado(workspace: &Path, ejecuciones: u32) -> Value {
-    let restantes = crate::adapters::ledger::estado(workspace).and_then(|e| e.restantes);
-    json!({ "ejecuciones": ejecuciones, "restantes": restantes })
 }
 
 fn agregar_aviso_gui(resultado: &mut Value, e: &Error) {
@@ -75,6 +70,7 @@ fn resolver_datos_proyecto(
 ) -> Result<(std::path::PathBuf, String, String, std::path::PathBuf)> {
     let proyecto = req_str(args, &["proyecto"], "")?;
     let variante = opt_str(args, &["variante"]).unwrap_or("VC0");
+    crate::projects::lifecycle::variantes::exigir_variante_valida(variante)?;
     let variante_up = variante.to_ascii_uppercase();
     let prj_path = crate::projects::resolve_project_file(workspace, proyecto)?;
     let stem = prj_path
@@ -93,28 +89,36 @@ pub(crate) fn lanzar_simulacion(paths: &Paths, args: &Value) -> Result<Value> {
     lanzar_simulacion_seguida(paths, args, &seguimiento)
 }
 
+/// Effective workspace of the run, after refusing one PVsystCLI cannot load.
+fn workspace_de_simulacion(paths: &Paths, args: &Value) -> Result<PathBuf> {
+    let workspace = workspace_of(paths, args);
+    crate::prefs::workspace_configurado::exigir(paths, &workspace, "run-simulation")?;
+    Ok(workspace)
+}
+
 pub(crate) fn lanzar_simulacion_seguida(
     paths: &Paths,
     args: &Value,
     seguimiento: &SeguimientoTarea<'_>,
 ) -> Result<Value> {
-    let workspace = workspace_of(paths, args);
+    let workspace = workspace_de_simulacion(paths, args)?;
     let (prj_path, stem, variante_up, variant_file) = resolver_datos_proyecto(&workspace, args)?;
     opciones::validar(args)?;
+    preparacion::validar_extra_options(args)?;
     opciones::exigir_variante(&variant_file)?;
     let args_con_salidas =
-        preparacion::con_salidas_por_defecto(args, &workspace, &stem, &variante_up);
+        preparacion::con_salidas_por_defecto(args, &workspace, &stem, &variante_up)?;
     let cli_args = preparacion::argumentos_cli(&args_con_salidas, &workspace, &stem, &variante_up);
     // The reported files are the same resolved values that built `-ocf` / `-rpf`.
     let output_csv = opt_str(&args_con_salidas, &["output_csv"]);
     let report_pdf = opt_str(&args_con_salidas, &["report_pdf"]);
     let modo_gui = ModoGui::de_bool(flag(args, &["abrir_gui"]));
     if flag(args, &[DRY_RUN]) {
-        let mut respuesta = respuesta_dry_run(&cli_args, &prj_path, &variant_file, &workspace);
-        if let Some(obj) = respuesta.as_object_mut() {
-            obj.insert("output_csv".into(), json!(output_csv));
-            obj.insert("report_pdf".into(), json!(report_pdf));
-        }
+        let pedido = paths.con_workspace(workspace);
+        let mut respuesta = respuesta_dry_run(&cli_args, &prj_path, &variant_file, &pedido);
+        respuesta["output_csv"] = json!(output_csv);
+        respuesta["report_pdf"] = json!(report_pdf);
+        anotar_sin_cache(&mut respuesta, args);
         return Ok(respuesta);
     }
     if !cli::cli_available(paths) {
@@ -141,12 +145,21 @@ pub(crate) fn lanzar_simulacion_seguida(
         seguimiento,
     };
     let mut resultado = ejecucion::ejecutar_cli(&solicitud)?;
+    anotar_sin_cache(&mut resultado, args);
     if modo_gui.debe_abrir() {
         if let Err(e) = gui::spawn_gui(paths, &prj_path) {
             agregar_aviso_gui(&mut resultado, &e);
         }
     }
     Ok(resultado)
+}
+
+/// `sin_cache` bypasses the result cache; without this marker a cached reply and a
+/// fresh run look the same, so the caller cannot tell the flag did anything.
+fn anotar_sin_cache(resultado: &mut Value, args: &Value) {
+    if flag(args, &["sin_cache"]) {
+        resultado["sin_cache"] = json!(true);
+    }
 }
 
 #[cfg(test)]

@@ -1,10 +1,6 @@
 //! Regresiones de comportamiento sobre la superficie pública del MCP (stdio):
 //! entradas inválidas, resolución dentro del `workspace` pedido y límites de las
 //! salidas. Las que necesitan red o la CLI de PVsyst van marcadas `#[ignore]`.
-#![expect(
-    clippy::indexing_slicing,
-    reason = "deuda medida; pendiente del paso 2 de la limpieza"
-)]
 // Test code: failing loudly on unexpected state is the point.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
@@ -33,3 +29,27 @@ mod plantillas;
 
 #[path = "mcp_regresiones/exportar.rs"]
 mod exportar;
+
+#[path = "mcp_regresiones/escritura.rs"]
+mod escritura;
+
+#[path = "mcp_regresiones/edicion_campos.rs"]
+mod edicion_campos;
+
+#[path = "mcp_regresiones/componentes.rs"]
+mod componentes;
+
+#[path = "mcp_regresiones/horizonte.rs"]
+mod horizonte;
+
+#[path = "mcp_regresiones/sitios.rs"]
+mod sitios;
+
+#[path = "mcp_regresiones/entorno.rs"]
+mod entorno;
+
+#[path = "mcp_regresiones/mensajes.rs"]
+mod mensajes;
+
+#[path = "mcp_regresiones/exportar_importar.rs"]
+mod exportar_importar;

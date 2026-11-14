@@ -1,0 +1,45 @@
+﻿  PVObject_=pvShading
+    Comment=Ninguna escena de sombreado definida
+    Version=8.1.8
+    Flags=$00
+    Precision=1
+    FracOmbreMod=1.000
+    FracOmbreThin=0.400
+    DisplayedRef=refGeographical
+
+    ListeObjets, list of=1 TShdObject
+
+      PVObject_1=pvShdElemObject
+        Comment=Casa_A
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=1
+        ColorSurf=$C0FF
+        DOrigine=5.000000,2.000000,1.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeParallelepipede
+        Params=10.000,8.000,3.000,
+      End of PVObject pvShdElemObject
+    End of ListeObjets
+
+    Orientations, list of=1 TOrientGroup
+
+      PVObject_=pvOrient
+        Comment=Fixed, Tilt 25.0°, Azim. 20.0°
+        Version=8.1.8
+        Flags=$00
+      NoOrient=1
+      FieldType=FixedPlane
+      FieldTilt=25.0
+      FieldAzim=20.0
+      BaseSlope=0.0
+      UsesTiltAver=False
+      UsesAzimAver=False
+      UsesSlopeAver=False
+      BTNoTrackers=-1,-1,
+      End of TOrientGroup
+    End of Orientations
+  End of PVObject pvShading

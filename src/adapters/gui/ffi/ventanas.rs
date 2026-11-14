@@ -7,6 +7,7 @@ pub(crate) const WM_LBUTTONDOWN: u32 = 0x0201;
 pub(crate) const WM_LBUTTONUP: u32 = 0x0202;
 pub(crate) const BM_CLICK: u32 = 0x00F5;
 pub(crate) const SW_RESTORE: i32 = 9;
+pub(crate) const GA_PARENT: u32 = 1;
 pub(crate) const GA_ROOT: u32 = 2;
 const SMTO_ABORTIFHUNG: u32 = 0x0002;
 pub(crate) const TIMEOUT_MENSAJE_MS: u32 = 3000;

@@ -84,3 +84,35 @@ fn should_follow_the_first_next_step_from_creating_a_project_to_reading_results(
         "the last call fails: the fake CLI writes no PDF"
     );
 }
+
+#[test]
+fn should_carry_the_prepared_batch_files_into_the_next_step() {
+    // Given: a batch prepared for two tilts, with a result-variable list
+    let ws = synthetic_workspace();
+    let mut client = Client::start_env(Some(&ws.path().to_string_lossy()), &fake_env());
+    client.initialize();
+    let preparado = tool_text(&client.call(
+        2,
+        "simular",
+        json!({ "accion": "preparar", "proyecto": "SYNTH_Plant",
+                "filas": [{ "tilt": 20 }, { "tilt": 30 }],
+                "variables": ["E_Grid"] }),
+    ));
+
+    // When: the caller follows the first suggestion
+    let siguiente = preparado
+        .pointer("/vista/siguiente/0")
+        .cloned()
+        .unwrap_or_else(|| panic!("sin siguiente: {preparado}"));
+    let argumentos = siguiente.get("argumentos").expect("argumentos");
+
+    // Then: the run it suggests is the batch that was prepared, not a plain simulation
+    assert_eq!(texto_en(&siguiente, "/tool"), "simular");
+    assert_eq!(argumentos["accion"], json!("ejecutar"), "{siguiente}");
+    for archivo in ["batch_params_file", "batch_rvt_file"] {
+        assert_eq!(
+            argumentos[archivo], preparado[archivo],
+            "the prepared {archivo} is not carried: {siguiente}"
+        );
+    }
+}

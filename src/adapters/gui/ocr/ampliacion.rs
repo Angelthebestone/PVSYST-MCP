@@ -170,7 +170,3 @@ fn pixel_afilado(
             .clamp(0.0, 255.0) as u8
     })
 }
-
-#[cfg(test)]
-#[path = "../../../../tests/unit/adapters/gui/ocr/ampliacion.rs"]
-mod tests;

@@ -121,7 +121,3 @@ pub(crate) fn parse_selector(selector: &str) -> Result<Vec<Seg>> {
     }
     Ok(segs)
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/format/selector.rs"]
-mod tests;

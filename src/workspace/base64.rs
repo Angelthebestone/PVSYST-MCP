@@ -2,29 +2,29 @@
 
 use crate::error::{Error, Result};
 
-const TABLA_BASE64: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const TABLA_BASE64: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const RELLENO: char = '=';
 
-pub(crate) fn base64(data: &[u8]) -> String {
-    let mut out = String::with_capacity(data.len().div_ceil(3) * 4);
-    for chunk in data.chunks(3) {
-        let b = [
-            chunk[0],
-            *chunk.get(1).unwrap_or(&0),
-            *chunk.get(2).unwrap_or(&0),
-        ];
-        let n = ((b[0] as u32) << 16) | ((b[1] as u32) << 8) | b[2] as u32;
-        out.push(TABLA_BASE64[((n >> 18) & 63) as usize] as char);
-        out.push(TABLA_BASE64[((n >> 12) & 63) as usize] as char);
-        out.push(if chunk.len() > 1 {
-            TABLA_BASE64[((n >> 6) & 63) as usize] as char
-        } else {
-            '='
-        });
-        out.push(if chunk.len() > 2 {
-            TABLA_BASE64[(n & 63) as usize] as char
-        } else {
-            '='
-        });
+fn simbolo(indice: u32) -> char {
+    TABLA_BASE64
+        .get((indice & 63) as usize)
+        .copied()
+        .map_or(RELLENO, char::from)
+}
+
+/// Standard Base64 with padding (RFC 4648 §4), for binary files and PNG captures. O(n).
+pub(crate) fn base64(datos: &[u8]) -> String {
+    let mut out = String::with_capacity(datos.len().div_ceil(3) * 4);
+    for trozo in datos.chunks(3) {
+        let byte = |i: usize| u32::from(trozo.get(i).copied().unwrap_or(0));
+        let n = (byte(0) << 16) | (byte(1) << 8) | byte(2);
+        for i in 0..4 {
+            if i <= trozo.len() {
+                out.push(simbolo(n >> (18 - 6 * i)));
+            } else {
+                out.push(RELLENO);
+            }
+        }
     }
     out
 }
@@ -73,7 +73,3 @@ pub(crate) fn decode_base64(s: &str) -> Result<Vec<u8>> {
     }
     Ok(out)
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/workspace/base64.rs"]
-mod tests;

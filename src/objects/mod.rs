@@ -8,7 +8,7 @@ mod resolucion;
 #[path = "../../tests/unit/objects/tests.rs"]
 mod tests;
 
-pub(crate) use edicion::editar_objeto;
+pub(crate) use edicion::{editar_objeto, exigir_campos_existentes};
 pub(crate) use lectura::leer_objeto;
 pub(crate) use listado::listar_objetos;
 pub(crate) use resolucion::resolve_file;

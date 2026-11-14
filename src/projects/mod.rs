@@ -5,60 +5,39 @@ pub(crate) mod comentario;
 pub(crate) mod doctor;
 pub(crate) mod gui;
 pub(crate) mod lifecycle;
+mod resolucion;
 pub(crate) mod temporales;
 pub(crate) mod tipo_sistema;
 
-use crate::args::no_encontrado;
 use crate::args::workspace_of;
 use crate::args::{flag, req_str};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::object;
-use crate::workspace::{resolver_ruta, walk_ext, Alcance};
+use crate::idioma::Texto;
+use crate::workspace::{walk_ext, Alcance};
 use serde_json::{json, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::time::SystemTime;
 
-fn mtime(path: &Path) -> Option<u64> {
-    fs::metadata(path)
-        .ok()
-        .and_then(|m| m.modified().ok())
-        .and_then(|t| t.duration_since(SystemTime::UNIX_EPOCH).ok())
-        .map(|d| d.as_secs())
-}
+pub(crate) use resolucion::{resolve_project_file, resolve_project_file_con_alcance};
 
-/// Is `path` a variant/comparison file for project `stem`?
-fn variant_kind(path: &Path, stem: &str) -> Option<String> {
-    let file_stem = path.file_stem()?.to_str()?;
-    let ext = path.extension()?.to_str()?.to_uppercase();
-    if file_stem != stem {
-        return None;
-    }
-    let bytes = ext.as_bytes();
-    if bytes.len() == 3
-        && (ext.starts_with("VC") || ext.starts_with("CM"))
-        && bytes[2].is_ascii_alphanumeric()
-    {
-        Some(ext)
-    } else {
-        None
-    }
-}
-
-/// Variant extensions (`VC0`, `CM1`, ...) found next to `prj`, sorted.
+/// Variant extensions (`VC0`, `CM1`, ...) found next to `prj`, sorted; an unreadable
+/// folder lists none (logged): this only feeds listings and hints.
 pub(crate) fn variantes_de(prj: &Path, stem: &str) -> Vec<String> {
     let Some(parent) = prj.parent() else {
         return Vec::new();
     };
-    let mut variants: Vec<String> = fs::read_dir(parent)
-        .into_iter()
-        .flatten()
-        .flatten()
-        .filter_map(|e| variant_kind(&e.path(), stem))
+    let archivos = lifecycle::variantes::variant_files(parent, stem).unwrap_or_else(|e| {
+        tracing::warn!(error = %e, "no se pudieron listar las variantes");
+        Vec::new()
+    });
+    let mut variantes: Vec<String> = archivos
+        .iter()
+        .filter_map(|p| p.extension()?.to_str().map(str::to_uppercase))
         .collect();
-    variants.sort();
-    variants
+    variantes.sort();
+    variantes
 }
 
 /// Header metadata from the .PRJ: comment, version, meteo file, and parse error warning if any.
@@ -114,7 +93,7 @@ fn resumen_proyecto(workspace: &Path, prj: &Path, detalle: DetalleProyecto) -> V
     let mut item = json!({
         "name": stem,
         "prj": rel,
-        "modified_unix": mtime(prj),
+        "modified_unix": crate::workspace::mtime_unix(prj),
         "comment": comment,
         "version": version,
         "meteo_file": meteo,
@@ -175,9 +154,36 @@ pub(crate) fn listar_proyectos(paths: &Paths, args: &Value) -> Result<Value> {
         "projects_dir": projects_dir.to_string_lossy(),
         "count": projects.len(),
         "projects": projects,
+        "templates_dir": crate::config::proyectos_demo_ro().to_string_lossy(),
+        "templates": plantillas_ro(texto.as_deref()),
         "advertencias": recorrido.advertencias(),
     }))
 }
+
+/// The read-only demo projects PVsyst ships: `proyecto crear` takes them as templates,
+/// so a listing that left them out hid half of what can be created from.
+fn plantillas_ro(texto: Option<&str>) -> Vec<Value> {
+    let base = crate::config::proyectos_demo_ro();
+    let mut prjs: Vec<PathBuf> = Vec::new();
+    // Read-only folder: an unreadable one leaves the list empty, it is not an error.
+    let _ = walk_ext(&base, ".prj", &mut prjs);
+    prjs.sort();
+    prjs.retain(|prj| coincide_texto(prj, texto));
+    prjs.iter()
+        .map(|prj| {
+            json!({
+                "name": prj.file_stem().and_then(|s| s.to_str()).unwrap_or(""),
+                "prj": prj.to_string_lossy(),
+                "solo_lectura": true,
+            })
+        })
+        .collect()
+}
+
+const HINT_ARBOL: Texto = Texto {
+    es: "Pasa detalle:\"completo\" para el árbol completo, o leer con 'objeto' para un objeto.",
+    en: "Pass detalle:\"completo\" for the full tree, or leer with 'objeto' for one object.",
+};
 
 /// Read a .PRJ or .VCi file and return its parsed object tree plus key fields.
 pub(crate) fn leer_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
@@ -214,84 +220,9 @@ pub(crate) fn leer_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     if flag(args, &["completo"]) {
         out["tree"] = Value::Array(roots.iter().map(object::PvNode::to_json).collect());
     } else {
-        out["hint"] =
-            json!("Pass completo:true for the full tree, or leer with 'objeto' for one object.");
+        out["hint"] = json!(HINT_ARBOL.en_idioma(paths.idioma));
     }
     Ok(out)
-}
-
-/// Accepts `Projects\X.VC0`, `Projects/X.PRJ` and `X.PRJ`: returns the name relative to the Projects folder.
-fn relativo_a_projects(name: &str) -> String {
-    let normal = name.replace('\\', "/");
-    let prefijo = "Projects/";
-    match normal.get(..prefijo.len()) {
-        Some(inicio) if inicio.eq_ignore_ascii_case(prefijo) => normal[prefijo.len()..].to_string(),
-        _ => normal,
-    }
-}
-
-/// Resolve a project name (with or without extension) to an existing file within the workspace.
-pub(crate) fn resolve_project_file(workspace: &Path, name: &str) -> Result<PathBuf> {
-    resolve_project_file_con_alcance(workspace, name, Alcance::Workspace)
-}
-
-/// Resolve project file with confinement according to the given scope.
-pub(crate) fn resolve_project_file_con_alcance(
-    workspace: &Path,
-    name: &str,
-    alcance: Alcance,
-) -> Result<PathBuf> {
-    let direct = Path::new(name);
-    if direct.is_absolute() || name.contains("..") {
-        let safe = resolver_ruta(workspace, name, alcance)?;
-        if safe.exists() {
-            return Ok(safe);
-        }
-        let projects_dir = workspace.join("Projects");
-        return Err(no_encontrado(
-            "Proyecto",
-            name,
-            &[],
-            &projects_dir.to_string_lossy(),
-        ));
-    }
-    let projects_dir = workspace.join("Projects");
-    let relativo = relativo_a_projects(name);
-    let candidates = [
-        relativo.clone(),
-        format!("{relativo}.PRJ"),
-        format!("{relativo}.prj"),
-    ];
-    for c in &candidates {
-        let p = projects_dir.join(c);
-        if p.exists() {
-            return Ok(p);
-        }
-    }
-    // Recursive search by stem.
-    let mut prjs = Vec::new();
-    let avisos = walk_ext(&projects_dir, ".prj", &mut prjs).advertencias();
-    for p in &prjs {
-        if p.file_stem().and_then(|s| s.to_str()) == Some(relativo.as_str()) {
-            return Ok(p.clone());
-        }
-    }
-    if !avisos.is_empty() {
-        return Err(Error::NotFound(format!(
-            "Proyecto '{name}' no encontrado y la búsqueda quedó incompleta: {}",
-            avisos.join("; ")
-        )));
-    }
-    let opciones: Vec<String> = prjs
-        .iter()
-        .filter_map(|p| p.file_stem().and_then(|s| s.to_str()).map(str::to_string))
-        .collect();
-    Err(no_encontrado(
-        "Proyecto",
-        name,
-        &opciones,
-        &projects_dir.to_string_lossy(),
-    ))
 }
 
 #[cfg(test)]

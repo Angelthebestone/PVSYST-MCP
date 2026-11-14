@@ -51,15 +51,11 @@ pub(crate) fn pan(ws: &Path, nombre: &str, datos: &Map<String, Value>) -> Result
         .collect::<Result<Vec<_>>>()?;
     let (salida, resultados) = edit::edit_fields(cuerpo, &raiz.obj_type, &cambios)?;
 
-    let mut aplicados = Map::new();
-    let mut ignorados = Vec::new();
-    for r in resultados {
-        if r.action == "not-found" {
-            ignorados.push(r.key);
-        } else {
-            aplicados.insert(r.key, json!(r.new_value));
-        }
-    }
+    // `edit_fields` fails on a field it cannot set, so every outcome was applied.
+    let aplicados: Map<String, Value> = resultados
+        .into_iter()
+        .map(|r| (r.key, json!(r.new_value)))
+        .collect();
 
     let salida = con_bom(bom, &salida);
     let dest = destino(ws, "PVModules", &format!("{nombre}.PAN"))?;
@@ -70,6 +66,5 @@ pub(crate) fn pan(ws: &Path, nombre: &str, datos: &Map<String, Value>) -> Result
         "archivo": dest.display().to_string(),
         "plantilla": plantilla.display().to_string(),
         "aplicados": aplicados,
-        "ignorados": ignorados,
     }))
 }

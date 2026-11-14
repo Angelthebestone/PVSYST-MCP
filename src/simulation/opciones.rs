@@ -25,8 +25,6 @@ const PAGINAS_REPORTE: [&str; 15] = [
     "carbonbalance",
     "predefgraphs",
 ];
-const LOG_LEVEL_MIN: i64 = 0;
-const LOG_LEVEL_MAX: i64 = 3;
 const ANIO_ABREVIADO_BASE: u32 = 2000;
 const ANIO_REFERENCIA_SIN_ANIO: u32 = 2000;
 
@@ -48,14 +46,19 @@ pub(crate) fn exigir_variante(variant_file: &Path) -> Result<()> {
         .parent()
         .map(|p| p.display().to_string())
         .unwrap_or_default();
-    Err(no_encontrado("Variante", pedido, &disponibles, &carpeta))
+    Err(no_encontrado(
+        crate::args::VARIANTE,
+        pedido,
+        &disponibles,
+        &carpeta,
+    ))
 }
 
 /// Validates every option of a simulation request that PVsystCLI would otherwise
 /// silently clamp, skip or reject only after a 3-second run.
 pub(crate) fn validar(args: &Value) -> Result<()> {
     validar_time_step(args)?;
-    validar_log_level(args)?;
+    crate::adapters::cli::validar_log_level(args)?;
     validar_paginas(args)?;
     validar_fechas(args)
 }
@@ -67,18 +70,6 @@ fn validar_time_step(args: &Value) -> Result<()> {
         ))),
         _ => Ok(()),
     }
-}
-
-pub(crate) fn validar_log_level(args: &Value) -> Result<()> {
-    let Some(v) = args.get("log_level").and_then(Value::as_i64) else {
-        return Ok(());
-    };
-    if (LOG_LEVEL_MIN..=LOG_LEVEL_MAX).contains(&v) {
-        return Ok(());
-    }
-    Err(Error::Invalid(format!(
-        "'log_level' debe estar entre {LOG_LEVEL_MIN} y {LOG_LEVEL_MAX} (recibido {v})"
-    )))
 }
 
 fn validar_paginas(args: &Value) -> Result<()> {

@@ -1,39 +1,13 @@
-use super::{campo_por_etiqueta, valor_logico, CampoEtiquetado};
+use super::{campo_por_etiqueta, CampoEtiquetado, Desambiguador};
 
 fn campo(hwnd: isize, etiqueta: Option<&str>) -> CampoEtiquetado {
     CampoEtiquetado {
         hwnd,
         clase: "TEdit".into(),
         etiqueta: etiqueta.map(str::to_string),
+        // Later windows sit lower on the form.
+        posicion: (hwnd as i32 * 10, 0),
     }
-}
-
-#[test]
-fn should_pick_the_field_when_label_matches_ignoring_case_and_spacing() {
-    let campos = [
-        campo(1, Some("Factor de pérdida constante Uc")),
-        campo(2, Some("Uv")),
-    ];
-    let elegido = campo_por_etiqueta(&campos, "factor  de PÉRDIDA constante uc").unwrap();
-    assert_eq!(elegido.hwnd, 1);
-}
-
-#[test]
-fn should_prefer_the_exact_label_when_another_label_contains_it() {
-    let campos = [
-        campo(1, Some("Potencia")),
-        campo(2, Some("Potencia nominal")),
-    ];
-    assert_eq!(campo_por_etiqueta(&campos, "Potencia").unwrap().hwnd, 1);
-}
-
-#[test]
-fn should_accept_a_fragment_when_it_identifies_one_field() {
-    let campos = [
-        campo(1, Some("Factor de pérdida constante Uc")),
-        campo(2, Some("Factor de pérdida del viento Uv")),
-    ];
-    assert_eq!(campo_por_etiqueta(&campos, "viento").unwrap().hwnd, 2);
 }
 
 #[test]
@@ -42,29 +16,37 @@ fn should_refuse_to_guess_when_a_fragment_matches_several_fields() {
         campo(1, Some("Factor de pérdida constante Uc")),
         campo(2, Some("Factor de pérdida del viento Uv")),
     ];
-    let error = campo_por_etiqueta(&campos, "factor de pérdida")
+    let error = campo_por_etiqueta(&campos, "factor de pérdida", Desambiguador::default())
         .unwrap_err()
         .to_string();
     assert!(
-        error.contains("varios") && error.contains("Uc") && error.contains("Uv"),
+        error.contains("several") && error.contains("Uc") && error.contains("Uv"),
         "{error}"
     );
 }
 
+/// Three «Núm. de inversores» on the system form: `indice` counts them top to
+/// bottom, whatever order the windows were enumerated in.
 #[test]
-fn should_list_the_labels_seen_when_no_field_matches() {
-    let campos = [campo(1, Some("Uc")), campo(2, None)];
-    let error = campo_por_etiqueta(&campos, "inexistente")
-        .unwrap_err()
-        .to_string();
-    assert!(error.contains("Uc"), "{error}");
-}
+fn should_pick_among_fields_with_the_same_label_by_position_and_class() {
+    let mut combo = campo(1, Some("Núm. de inversores"));
+    combo.clase = "TComboBox".into();
+    let campos = [
+        campo(3, Some("Núm. de inversores")),
+        combo,
+        campo(2, Some("Núm. de inversores")),
+    ];
+    let como = |clase, indice| Desambiguador { clase, indice };
 
-#[test]
-fn should_read_logical_values_in_spanish_and_english() {
-    assert!(valor_logico("Sí").unwrap());
-    assert!(valor_logico(" TRUE ").unwrap());
-    assert!(!valor_logico("no").unwrap());
-    assert!(!valor_logico("0").unwrap());
-    assert!(valor_logico("quizá").is_err());
+    let primero = campo_por_etiqueta(&campos, "Núm. de inversores", como(None, Some(0))).unwrap();
+    let ultimo = campo_por_etiqueta(&campos, "Núm. de inversores", como(None, Some(2))).unwrap();
+    let editable =
+        campo_por_etiqueta(&campos, "Núm. de inversores", como(Some("TEdit"), Some(0))).unwrap();
+    let fuera = campo_por_etiqueta(&campos, "Núm. de inversores", como(None, Some(3))).unwrap_err();
+    let sin_indice =
+        campo_por_etiqueta(&campos, "Núm. de inversores", Desambiguador::default()).unwrap_err();
+
+    assert_eq!((primero.hwnd, ultimo.hwnd, editable.hwnd), (1, 3, 2));
+    assert!(fuera.to_string().contains("out of range"), "{fuera}");
+    assert!(sin_indice.to_string().contains("indice"), "{sin_indice}");
 }
