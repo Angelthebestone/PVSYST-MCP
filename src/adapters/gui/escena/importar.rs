@@ -6,6 +6,7 @@ use super::pasos::{hijo_n, ventana};
 use crate::adapters::gui::acciones::cerrar_ventana;
 use crate::adapters::gui::conduccion::{esperar, esperar_cierre, formularios, Formulario};
 use crate::adapters::gui::ffi::{self, Hwnd, Mensaje, WM_COMMAND};
+use crate::adapters::gui::rotulos::dialogos::NO;
 use crate::adapters::gui::sondeo::sondear_hasta;
 use crate::adapters::gui::ventanas::{class_of, pid_of};
 use crate::error::{Error, Result};
@@ -170,7 +171,7 @@ fn esperar_dialogo_de_archivo(pid: u32) -> Result<Formulario> {
     if class_of(primera) != MENSAJE {
         return Ok(Formulario::de(primera));
     }
-    Formulario::de(primera).pulsar("No")?;
+    Formulario::de(primera).pulsar(NO)?;
     esperar(pid, DIALOGO_ARCHIVO, ESPERA_DIALOGO)
 }
 

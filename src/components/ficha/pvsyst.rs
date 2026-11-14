@@ -4,7 +4,9 @@
 
 use crate::adapters::gui::conduccion::Formulario;
 use crate::adapters::gui::ffi;
-use crate::adapters::gui::rotulos::Idioma;
+use crate::adapters::gui::rotulos::dialogos::{GUARDAR, GUARDAR_COMO, NUEVO, OK};
+use crate::adapters::gui::rotulos::pvsyst::{BASES_DE_DATOS, INVERSOR_DE_RED, MODULOS_PV};
+use crate::adapters::gui::rotulos::Rotulo;
 use crate::adapters::gui::sesion_pvsyst::Sesion;
 use crate::adapters::gui::ventanas::class_of;
 use crate::components::ficha::datos::{avisos_de_unidades, tipo_de, validar, valores_de, Tipo};
@@ -15,36 +17,20 @@ use serde_json::{json, Map, Value};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-/// Declarative captions and form classes for PVsyst component creation.
-struct RotulosFicha {
-    ok: &'static str,
-    formulario_guardar_componente: &'static str,
-    guardar_como: &'static str,
-    formulario_guardar_objeto: &'static str,
-    guardar: &'static str,
-    bases_de_datos: &'static str,
-    formulario_base_datos: &'static str,
-    formulario_eleccion_objeto: &'static str,
-    nuevo: &'static str,
-}
+/// Window classes of the component creation flow: the same in every language of PVsyst.
+const FORMULARIO_GUARDAR_COMPONENTE: &str = "TSaveComponentForm";
+const FORMULARIO_GUARDAR_OBJETO: &str = "TSaveObjPVForm";
+const FORMULARIO_BASE_DATOS: &str = "TDatabaseForm";
+const FORMULARIO_ELECCION_OBJETO: &str = "TChoixObjetPVForm";
 
-const fn rotulos_ficha(idioma: Idioma) -> RotulosFicha {
-    match idioma {
-        Idioma::Es => RotulosFicha {
-            ok: "OK",
-            formulario_guardar_componente: "TSaveComponentForm",
-            guardar_como: "Guardar como",
-            formulario_guardar_objeto: "TSaveObjPVForm",
-            guardar: "Guardar",
-            bases_de_datos: "Bases de datos",
-            formulario_base_datos: "TDatabaseForm",
-            formulario_eleccion_objeto: "TChoixObjetPVForm",
-            nuevo: "Nuevo",
-        },
-    }
+/// The button of the database window that opens the list of `t`. The datasheet
+/// type names it by its Spanish caption, which keys the caption table.
+fn boton_de_base(t: &Tipo) -> Rotulo<'static> {
+    [MODULOS_PV, INVERSOR_DE_RED]
+        .into_iter()
+        .find(|r| r.es == t.boton_base)
+        .unwrap_or(Rotulo::igual(t.boton_base))
 }
-
-const ROTULOS: RotulosFicha = rotulos_ficha(Idioma::Es);
 
 const PAUSA_FOCO: Duration = Duration::from_millis(300);
 
@@ -56,18 +42,16 @@ fn rellenar(paths: &Paths, t: &Tipo, valores: &Map<String, Value>) -> Result<()>
 }
 
 fn guardar(s: &Sesion, f: &Formulario) -> Result<()> {
-    f.pulsar(ROTULOS.ok)?;
-    let confirmar = s
-        .esperar(ROTULOS.formulario_guardar_componente)
-        .map_err(|_| {
-            Error::Invalid(format!(
-                "PVsyst no acepta el componente: revisa la ficha (la ventana '{}' sigue abierta)",
-                f.titulo()
-            ))
-        })?;
-    pulsar_al_frente(&confirmar, ROTULOS.guardar_como)?;
-    let destino = s.esperar(ROTULOS.formulario_guardar_objeto)?;
-    pulsar_al_frente(&destino, ROTULOS.guardar)?;
+    f.pulsar(OK)?;
+    let confirmar = s.esperar(FORMULARIO_GUARDAR_COMPONENTE).map_err(|_| {
+        Error::Invalid(format!(
+            "PVsyst no acepta el componente: revisa la ficha (la ventana '{}' sigue abierta)",
+            f.titulo()
+        ))
+    })?;
+    pulsar_al_frente(&confirmar, GUARDAR_COMO)?;
+    let destino = s.esperar(FORMULARIO_GUARDAR_OBJETO)?;
+    pulsar_al_frente(&destino, GUARDAR)?;
     s.aceptar_mensajes();
     Ok(())
 }
@@ -76,7 +60,7 @@ fn guardar(s: &Sesion, f: &Formulario) -> Result<()> {
 /// focus: the file-name field takes it (the save dialog of a scene needed the same).
 /// The focus is tried twice; if it still is not there the click is sent anyway (it has worked
 /// without a confirmed focus) but the miss is logged, so a click PVsyst ignores leaves a trace.
-fn pulsar_al_frente(dialogo: &Formulario, rotulo: &str) -> Result<()> {
+fn pulsar_al_frente(dialogo: &Formulario, rotulo: Rotulo<'_>) -> Result<()> {
     let campo = ffi::enum_children(dialogo.h)
         .into_iter()
         .find(|c| class_of(*c) == "TEdit");
@@ -90,7 +74,7 @@ fn pulsar_al_frente(dialogo: &Formulario, rotulo: &str) -> Result<()> {
     if !con_foco {
         tracing::warn!(
             ventana = dialogo.h,
-            rotulo,
+            rotulo = %rotulo,
             "el diálogo no quedó delante ni con el foco: PVsyst puede ignorar el clic"
         );
     }
@@ -117,11 +101,9 @@ pub(crate) fn crear(
     }
     let sesion = Sesion::abrir(paths)?;
     sesion.ejecutar(|s| {
-        s.inicio.pulsar(ROTULOS.bases_de_datos)?;
-        s.esperar(ROTULOS.formulario_base_datos)?
-            .pulsar(t.boton_base)?;
-        s.esperar(ROTULOS.formulario_eleccion_objeto)?
-            .pulsar(ROTULOS.nuevo)?;
+        s.inicio.pulsar(BASES_DE_DATOS)?;
+        s.esperar(FORMULARIO_BASE_DATOS)?.pulsar(boton_de_base(t))?;
+        s.esperar(FORMULARIO_ELECCION_OBJETO)?.pulsar(NUEVO)?;
         let f = s.esperar(t.formulario)?;
         rellenar(paths, t, &valores_de(t, datos, nombre))?;
         guardar(s, &f)?;

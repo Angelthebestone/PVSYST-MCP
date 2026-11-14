@@ -8,10 +8,12 @@ use crate::format::object::PvNode;
 use serde_json::{json, Value};
 use std::time::{Duration, Instant};
 
-use super::rotulos::{rotulos_horizonte, RotulosHorizonte};
-use crate::adapters::gui::rotulos::Idioma;
+use super::rotulos::{FORMULARIO_HORIZONTE, FORMULARIO_IMPORTAR_HORIZONTE};
+use crate::adapters::gui::rotulos::dialogos::OK;
+use crate::adapters::gui::rotulos::pvsyst::{
+    HORIZONTE, IMPORTAR_DESDE_WEB, LEER_IMPORTAR, OPCION_PVGIS,
+};
 
-const ROTULOS: RotulosHorizonte = rotulos_horizonte(Idioma::Es);
 /// PVGIS answers in a few seconds; allow for slow networks.
 pub(crate) const ESPERA_DESCARGA: Duration = Duration::from_secs(90);
 
@@ -20,14 +22,14 @@ pub(crate) fn importar_pvgis(paths: &Paths, proyecto: &str, variante: &str) -> R
     let sesion = abrir_sesion(paths)?;
     sesion.ejecutar(|s| {
         let p = ProyectoEnPvsyst::abrir(s, paths, proyecto, variante)?;
-        p.ventana.pulsar(ROTULOS.horizonte)?;
-        let horizonte = s.esperar(ROTULOS.formulario_horizonte)?;
-        horizonte.pulsar(ROTULOS.leer_importar)?;
-        let importar = s.esperar(ROTULOS.formulario_importar)?;
-        importar.elegir(ROTULOS.opcion_pvgis)?;
-        importar.pulsar(ROTULOS.importar_desde_web)?;
+        p.ventana.pulsar(HORIZONTE)?;
+        let horizonte = s.esperar(FORMULARIO_HORIZONTE)?;
+        horizonte.pulsar(LEER_IMPORTAR)?;
+        let importar = s.esperar(FORMULARIO_IMPORTAR_HORIZONTE)?;
+        importar.elegir(OPCION_PVGIS)?;
+        importar.pulsar(IMPORTAR_DESDE_WEB)?;
         let fin = Instant::now() + ESPERA_DESCARGA;
-        while !importar.habilitado(ROTULOS.ok) {
+        while !importar.habilitado(OK) {
             if Instant::now() >= fin {
                 return Err(Error::Gui(
                     "PVsyst no pudo descargar el horizonte de PVGIS".into(),
@@ -35,8 +37,8 @@ pub(crate) fn importar_pvgis(paths: &Paths, proyecto: &str, variante: &str) -> R
             }
             std::thread::sleep(Duration::from_millis(500));
         }
-        importar.pulsar(ROTULOS.ok)?;
-        horizonte.pulsar(ROTULOS.ok)?;
+        importar.pulsar(OK)?;
+        horizonte.pulsar(OK)?;
         s.aceptar_mensajes();
         let raiz = p.guardar_variante()?;
         respuesta(&raiz, &s.mensajes())

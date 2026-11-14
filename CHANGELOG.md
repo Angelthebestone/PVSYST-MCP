@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **The server no longer needs PVsyst's windows to be in Spanish to press its own buttons.** The
+  captions the MCP's steps press (`OK`, `Cancelar`, `Cerrar`, `Guardar como`, `Bases de datos`,
+  `Sistema`, `Horizonte`, `Gestión de la energía`…) are one table in `adapters/gui/rotulos` with the
+  Spanish, English, French and German wording, and a button is found by its caption in any of them.
+  Only the Spanish wording was measured on a live PVsyst (8.1.8); English, French and German are
+  inferred and still to be measured. `proyecto p50_p90` no longer reads the tab caption or «Activo»:
+  it shows the page by index (the third, confirmed by a control only that page has, and searching the
+  other tabs if the order differs) and ticks the check box by class and position.
 - **GUI inventories are not summarised to 13 items.** `que:inventario` and `que:elementos` cap
   themselves at 500 rows (`total` and `truncado` say what was left out) and their lists `controles`,
   `elementos` and `otros` are never cut by `detalle`. `que:controles` with `todos:true` keeps up to 500

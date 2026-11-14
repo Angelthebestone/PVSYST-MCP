@@ -5,7 +5,8 @@
 use super::causa_pvsyst;
 use super::conduccion::{esperar, formularios, Formulario, ESPERA_FORMULARIO};
 use super::registro_pvsyst::{self, Marca};
-use super::rotulos::{rotulos_sesion, Idioma, RotulosSesion};
+use super::rotulos::dialogos::{BOTONES_SALIDA, BOTONES_SESION, CERRAR};
+use super::rotulos::Rotulo;
 use super::ventanas::class_of;
 use super::{acciones, ffi};
 use crate::config::Paths;
@@ -23,8 +24,6 @@ const AUXILIARES: [&str; 4] = ["TApplication", "THintWindow", INICIO, AVISO_PRUE
 const ARRANQUE: Duration = Duration::from_secs(60);
 /// Rounds of closing when cleaning up after a failed step.
 const MAX_CIERRES: usize = 12;
-
-pub(crate) const ROTULOS: RotulosSesion = rotulos_sesion(Idioma::Es);
 
 /// PVsyst on its home screen, ready for one MCP step.
 pub(crate) struct Sesion {
@@ -100,7 +99,7 @@ impl Sesion {
     fn en_inicio(pid: u32, lanzada: Option<u32>, idioma: IdiomaCliente) -> Result<Self> {
         let inicio = esperar(pid, INICIO, ARRANQUE)?;
         if let Ok(aviso) = esperar(pid, AVISO_PRUEBA, Duration::ZERO) {
-            aviso.pulsar(ROTULOS.cerrar)?;
+            aviso.pulsar(CERRAR)?;
         }
         let abiertos = formularios_de_usuario(pid);
         if !abiertos.is_empty() {
@@ -131,7 +130,7 @@ impl Sesion {
     pub(crate) fn aceptar_mensajes(&self) -> usize {
         let mut n = 0;
         while let Ok(m) = esperar(self.pid, MENSAJE, Duration::from_millis(600)) {
-            cerrar_con_boton(&m, ROTULOS.botones_mensaje);
+            cerrar_con_boton(&m, BOTONES_SESION);
             n += 1;
         }
         n
@@ -164,7 +163,7 @@ impl Sesion {
         else {
             return false;
         };
-        cerrar_con_boton(&Formulario::de(h), ROTULOS.salidas);
+        cerrar_con_boton(&Formulario::de(h), BOTONES_SALIDA);
         true
     }
 
@@ -191,8 +190,8 @@ impl Sesion {
 }
 
 /// Presses the first of `botones` the form has; `WM_CLOSE` when it has none.
-fn cerrar_con_boton(f: &Formulario, botones: &[&str]) {
-    if !botones.iter().any(|b| f.pulsar(b).is_ok()) {
+fn cerrar_con_boton(f: &Formulario, botones: &[Rotulo<'static>]) {
+    if !botones.iter().any(|b| f.pulsar(*b).is_ok()) {
         ffi::post_message(f.h, ffi::Mensaje::simple(ffi::WM_CLOSE));
     }
 }

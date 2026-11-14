@@ -4,7 +4,10 @@ use super::cierre;
 use super::clic_fisico::{clic_fisico_en_control, desplazamiento, punto_pedido};
 use super::ffi::{self, Hwnd, BM_CLICK, GA_ROOT, SW_RESTORE, WM_CLOSE};
 use super::modal;
-use super::rotulos::{rotulos_acciones, Idioma, RotulosAcciones};
+use super::rotulos::dialogos::{
+    BOTONES_CANCELAR, BOTONES_CIERRE, BOTONES_EXCEPCION, BOTONES_MENSAJE,
+};
+use super::rotulos::Rotulo;
 use super::ventanas::{class_of, pid_of, resolve, text_of, ventanas_de, visible, window_json};
 use crate::args::{opt_u32, req_str};
 use crate::error::{Error, Result};
@@ -13,9 +16,6 @@ use serde_json::{json, Value};
 
 /// Window classes (Win32 and VCL) that implement `BM_CLICK`.
 const CLASES_BOTON: &[&str] = &["Button", "TButton", "TBitBtn", "TCheckBox", "TRadioButton"];
-/// Buttons that abandon a form: tried first when the request says `cancelar:true`.
-const BOTONES_CANCELAR: &[&str] = &["Cancelar", "No"];
-const ROTULOS: RotulosAcciones = rotulos_acciones(Idioma::Es);
 /// Class of PVsyst's message boxes.
 pub(crate) const CLASE_MENSAJE: &str = "TMessageForm";
 /// Class of the madExcept crash dialog.
@@ -76,16 +76,16 @@ fn enviar_mensaje(h: Hwnd, args: &Value) -> Result<()> {
     Ok(())
 }
 
-fn botones_de_cierre(h: Hwnd) -> &'static [&'static str] {
+fn botones_de_cierre(h: Hwnd) -> &'static [Rotulo<'static>] {
     match class_of(h).as_str() {
-        CLASE_MENSAJE => ROTULOS.botones_mensaje,
-        CLASE_EXCEPCION => ROTULOS.botones_excepcion,
-        _ => ROTULOS.botones_cierre,
+        CLASE_MENSAJE => BOTONES_MENSAJE,
+        CLASE_EXCEPCION => BOTONES_EXCEPCION,
+        _ => BOTONES_CIERRE,
     }
 }
 
 /// Buttons that close `h`: with `cancelar`, Cancelar/No come first.
-fn botones_para_cerrar(h: Hwnd, cancelar: bool) -> Vec<&'static str> {
+fn botones_para_cerrar(h: Hwnd, cancelar: bool) -> Vec<Rotulo<'static>> {
     let base = botones_de_cierre(h);
     if cancelar {
         BOTONES_CANCELAR.iter().chain(base).copied().collect()
@@ -103,7 +103,7 @@ pub(crate) fn cerrar_ventana(h: Hwnd, args: &Value) -> Result<()> {
     let boton = ffi::enum_children(h)
         .into_iter()
         .filter(|c| visible(*c))
-        .find(|c| botones.contains(&text_of(*c).as_str()));
+        .find(|c| botones.iter().any(|b| b.coincide(&text_of(*c))));
     match boton {
         Some(b) => clic_por_mensajes(b)?,
         None if class_of(h) == CLASE_MENSAJE => {

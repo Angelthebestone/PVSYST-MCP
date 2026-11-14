@@ -3,6 +3,7 @@
 use super::ffi::{self, enum_children, enum_windows, pids_de_ejecutable, Hwnd, Rect};
 use super::modal;
 pub(crate) use super::resolucion::resolve;
+use super::rotulos::Rotulo;
 use crate::args::{flag, req_str};
 use crate::error::{Error, Result};
 use crate::idioma::{Idioma, Texto};
@@ -55,9 +56,11 @@ pub(crate) fn visible(h: Hwnd) -> bool {
     ffi::estado_ventana(h).visible
 }
 
-/// The first visible child of `h` whose caption is exactly `texto`.
-pub(crate) fn hijo_visible_con_texto(h: Hwnd, texto: &str) -> Option<Hwnd> {
-    hijos_visibles(h).find(|c| text_of(*c) == texto)
+/// The first visible child of `h` whose caption is exactly `rotulo`, in any of
+/// the languages the caption is known in.
+pub(crate) fn hijo_visible_con_texto<'a>(h: Hwnd, rotulo: impl Into<Rotulo<'a>>) -> Option<Hwnd> {
+    let rotulo = rotulo.into();
+    hijos_visibles(h).find(|c| rotulo.coincide(&text_of(*c)))
 }
 
 pub(crate) fn hijos_visibles(parent: Hwnd) -> impl Iterator<Item = Hwnd> {

@@ -11,15 +11,18 @@ mod relleno;
 pub(crate) mod rotulos;
 
 use crate::adapters::gui::conduccion::Formulario;
-use crate::adapters::gui::rotulos::Idioma;
+use crate::adapters::gui::rotulos::dialogos::{GUARDAR, OK};
+use crate::adapters::gui::rotulos::pvsyst::{
+    INICIO_AISLADO, INICIO_BOMBEO, INICIO_RED, INICIO_RED_DC,
+};
+use crate::adapters::gui::rotulos::Rotulo;
 use crate::adapters::gui::sesion_pvsyst::Sesion;
 use crate::adapters::gui::sondeo::sondear_hasta;
 use crate::config::Paths;
 use crate::error::{Error, Result};
-use rotulos::{rotulos_proyecto_gui, RotulosProyectoGui};
+use rotulos::{FORMULARIO_CARGAR, FORMULARIO_GUARDAR, FORMULARIO_PROYECTO};
 use serde_json::json;
 
-const ROTULOS: RotulosProyectoGui = rotulos_proyecto_gui(Idioma::Es);
 use crate::format::object::{self, PvNode};
 use crate::projects::lifecycle::variantes::{es_variante_valida, ruta_variante};
 use crate::projects::tipo_sistema::TipoSistema;
@@ -55,12 +58,12 @@ pub(super) fn abrir_sesion(paths: &Paths) -> Result<Sesion> {
     Sesion::abrir(paths)
 }
 
-fn boton_de_inicio(tipo: TipoSistema) -> &'static str {
+fn boton_de_inicio(tipo: TipoSistema) -> Rotulo<'static> {
     match tipo {
-        TipoSistema::Red => ROTULOS.inicio_red,
-        TipoSistema::Aislado => ROTULOS.inicio_aislado,
-        TipoSistema::Bombeo => ROTULOS.inicio_bombeo,
-        TipoSistema::RedDc => ROTULOS.inicio_red_dc,
+        TipoSistema::Red => INICIO_RED,
+        TipoSistema::Aislado => INICIO_AISLADO,
+        TipoSistema::Bombeo => INICIO_BOMBEO,
+        TipoSistema::RedDc => INICIO_RED_DC,
     }
 }
 
@@ -86,13 +89,13 @@ fn ejecutar(proyecto: &Formulario, funcion: &str) -> Result<()> {
 
 fn cargar(sesion: &Sesion, proyecto: &Formulario, prj: &str) -> Result<()> {
     ejecutar(proyecto, CARGAR_PROYECTO)?;
-    let lista = sesion.esperar(ROTULOS.formulario_cargar)?;
+    let lista = sesion.esperar(FORMULARIO_CARGAR)?;
     lista.escribir_unico("TEdit", prj)?;
     let arbol = lista.unico("TVirtualStringTree")?;
     crate::adapters::gui::fila::fila(
         &json!({ "ventana": format!("0x{arbol:X}"), "indice": PRIMERA_FILA }),
     )?;
-    lista.pulsar(ROTULOS.ok)?;
+    lista.pulsar(OK)?;
     sesion.aceptar_mensajes();
     esperar_titulo(proyecto, prj)
 }
@@ -136,7 +139,7 @@ impl<'s> ProyectoEnPvsyst<'s> {
         let bytes = leer_variante(&archivo_variante, &dir)?;
         let tipo = TipoSistema::de_variante(&bytes)?;
         sesion.inicio.pulsar(boton_de_inicio(tipo))?;
-        let ventana = sesion.esperar(ROTULOS.formulario_proyecto)?;
+        let ventana = sesion.esperar(FORMULARIO_PROYECTO)?;
         let prj = format!("{proyecto}.PRJ");
         if !ventana.titulo().ends_with(&prj) {
             cargar(sesion, &ventana, &prj)?;
@@ -155,8 +158,8 @@ impl<'s> ProyectoEnPvsyst<'s> {
     pub(crate) fn guardar_variante(&self) -> Result<PvNode> {
         let antes = crate::workspace::leer_bytes(&self.archivo_variante)?;
         ejecutar(&self.ventana, GUARDAR_VARIANTE)?;
-        let dialogo = self.sesion.esperar(ROTULOS.formulario_guardar)?;
-        dialogo.pulsar(ROTULOS.guardar)?;
+        let dialogo = self.sesion.esperar(FORMULARIO_GUARDAR)?;
+        dialogo.pulsar(GUARDAR)?;
         self.sesion.aceptar_mensajes();
         let Some(despues) = esperar_guardado(&self.archivo_variante, &antes) else {
             return Err(Error::Gui(format!(

@@ -9,6 +9,7 @@
 use super::pasos::{abrir, con_descarte, descartar, hijo_n, ventana};
 use crate::adapters::gui::conduccion::{esperar_cierre, Formulario};
 use crate::adapters::gui::ffi;
+use crate::adapters::gui::rotulos::dialogos::GUARDAR;
 use crate::adapters::gui::sondeo::sondear_hasta;
 use crate::config::Paths;
 use crate::error::{Error, Result};
@@ -57,7 +58,7 @@ pub(super) fn guardar_temporal(paths: &Paths, nombre: &str) -> Result<PathBuf> {
         let nombre = nombre_de(&ruta);
         ffi::teclear_en(campo_nombre, &nombre)?;
         exigir_nombre_escrito(&nombre, &ffi::texto_control(campo_nombre), paths.idioma)?;
-        dialogo.pulsar("Guardar")
+        dialogo.pulsar(GUARDAR)
     })?;
     let cerrado = esperar_cierre(dialogo.h, ESPERA_GUARDADO);
     if !cerrado {
