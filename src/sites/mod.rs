@@ -61,6 +61,12 @@ fn ejecutar<F: FnOnce(Value) -> Value>(
     let mut cli_args = vec![peticion.comando.to_string()];
     cli_args.extend(peticion.opciones);
     cli::validar_log_level(args)?;
+    // A dry run refuses it too: it would promise a command that crashes.
+    crate::prefs::workspace_configurado::exigir(
+        paths,
+        &workspace_of(paths, args),
+        peticion.comando,
+    )?;
     if let Some(v) = args.get("log_level").and_then(serde_json::Value::as_i64) {
         cli_args.push(format!("-ll:{v}"));
     }

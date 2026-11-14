@@ -5,6 +5,7 @@
 
 pub(crate) mod diagnostico;
 pub(crate) mod ini;
+pub(crate) mod workspace_configurado;
 
 pub(crate) use diagnostico::logs_cli;
 pub(crate) use ini::{preferencias, preferencias_editar};

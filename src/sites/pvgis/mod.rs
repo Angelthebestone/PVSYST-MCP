@@ -174,9 +174,16 @@ fn diagnostico_cli(cli: &Value) -> Value {
     Value::Object(campos)
 }
 
+/// The workspace of the call, refused before the download when `convert-meteo` cannot load it.
+fn workspace_para_convertir(paths: &Paths, args: &Value) -> Result<std::path::PathBuf> {
+    let ws = workspace_of(paths, args);
+    crate::prefs::workspace_configurado::exigir(paths, &ws, "convert-meteo")?;
+    Ok(ws)
+}
+
 /// Hourly TMY from PVGIS → CSV + MEF → `.MET` via the CLI with transactional staging.
 pub(crate) fn meteo_pvgis(paths: &Paths, args: &Value) -> Result<Value> {
-    let ws = workspace_of(paths, args);
+    let ws = workspace_para_convertir(paths, args)?;
     let lat = req_numero(args, "latitud", "número")?;
     let lon = req_numero(args, "longitud", "número")?;
     let nombre = req_str(args, &["nombre_sitio"], "")?;

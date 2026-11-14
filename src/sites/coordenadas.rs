@@ -137,6 +137,8 @@ pub(crate) fn crear_sitio_coordenadas(paths: &Paths, args: &Value) -> Result<Val
     super::entrada::validar_region(args)?;
 
     let ws = workspace_of(paths, args);
+    // Before the grid lookup and the files: `create-site` would crash on another workspace.
+    crate::prefs::workspace_configurado::exigir(paths, &ws, "create-site")?;
     let destino = DestinoSitio::de_args(&ws, args, &name)?;
     // A dry run answers with the command line it would run: no grid lookup, no
     // monthly CSV and no output folder either.

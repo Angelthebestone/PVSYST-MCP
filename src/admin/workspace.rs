@@ -109,7 +109,7 @@ pub(crate) fn crear_workspace(paths: &Paths, args: &Value) -> Result<Value> {
     Ok(json!({
         "workspace": base.to_string_lossy(),
         "folders": created,
-        "note": "Data-only workspace: PVsystCLI run-simulation only accepts the workspace configured in PVsyst itself (see PVSYST_CLI_REFERENCE.md section 9)."
+        "note": "Data-only workspace: PVsystCLI run-simulation, create-site and convert-meteo only accept the workspace configured in PVsyst itself (see PVSYST_CLI_REFERENCE.md section 9)."
     }))
 }
 

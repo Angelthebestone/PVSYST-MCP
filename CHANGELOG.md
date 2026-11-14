@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **`sitio crear`, `sitio convertir_meteo`, `sitio meteo_pvgis` and `disenar_sistema` refuse a workspace PVsyst does not have configured (BUG-05, 07, 08)**: PVsystCLI `create-site` and `convert-meteo` crash with `Instruction privilégiée` on any workspace other than the `DataPath` of `PVsyst.ini`, the same cause as `simular ejecutar` (BUG-06). The check that `simular` already had is shared and runs before the NASA lookup, the PVGIS download and any file is written, dry runs included. Checked live: the same `sitio crear` crashed on a temporary workspace and created the site on the configured one.
 - **GUI inventories are not summarised to 13 items.** `que:inventario` and `que:elementos` cap
   themselves at 500 rows (`total` and `truncado` say what was left out) and their lists `controles`,
   `elementos` and `otros` are never cut by `detalle`. `que:controles` with `todos:true` keeps up to 500
