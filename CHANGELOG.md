@@ -17,11 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   just because its children were not walked.
 
 ### Added
-- **Known limit of `componente crear_desde_ficha` for a `.PAN`**: it still does not fill the module
-  dimensions (the «sizes» page of `TPVModuleForm`), so PVsyst refuses to save the module. The
-  inventory now shows those controls (`gui_observar que:inventario` on the form, hidden page included,
-  with their `campo {clase, x, y}` anchors), but `components.panels` is not extended: its anchors are
-  measured on a live PVsyst, and none was measured for that page.
+- **`componente crear_desde_ficha` of a `.PAN` fills the module size (BUG-14)**: `components.panels`
+  gains `longitud_mm`, `anchura_mm`, `espesor_mm` and `peso_kg` (page «Dimensiones y tecnología», anchors
+  read live on PVsyst 8.1.8 with `gui_observar que:inventario`), saved by PVsyst as `Height`, `Width`,
+  `Depth` (in metres) and `Weight`. The datasheet takes `Height` and `Width` in mm, as the window does,
+  and refuses the call before opening PVsyst when they are missing (PVsyst does not save a module whose
+  size is not defined: it vetoes the tab change); `Depth` and `Weight` are optional. Checked live on
+  8.1.8 through `gui_actuar rellenar`, all four fields read back `ok`. The Comercial page has no
+  required field. Fixture: `tests/fixtures/vista_agente/Modulo_con_dimensiones_8_1_8.PAN`.
 - **`pvsyst://gui` describes its own map** in `metadatos`: `measured_on` (date of the last walk
   recorded in `docs/gui_mapa.json`), `pvsyst_version` it was measured on, `idioma_medido`,
   `windows_total`, `cobertura` (windows with fields mapped, controls without a handle, limits) and

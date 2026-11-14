@@ -1,6 +1,7 @@
-//! PV module window (`TPVModuleForm`, "Datos básicos" page). Anchors are the control
-//! corners in the form's 96-DPI layout, measured live on PVsyst 8.1.7; units and file
-//! keys were checked against a `.PAN` saved by PVsyst 8.1.8. [INFERENCIA] ranges and
+//! PV module window (`TPVModuleForm`, "Datos básicos" and "Dimensiones y tecnología"
+//! pages). Anchors are the control corners in the form's 96-DPI layout, measured live
+//! on PVsyst 8.1.7 (the module size ones on 8.1.8, read with `gui_observar que:inventario`);
+//! units and file keys were checked against a `.PAN` saved by PVsyst 8.1.8. [INFERENCIA] ranges and
 //! the `clave_archivo` of fields not in that `.PAN` have no measured source;
 //! file keys are the ones `componente crear_desde_ficha` already writes.
 
@@ -59,6 +60,24 @@ pub(crate) static PANELES: Entidad = Entidad {
         CampoEsquema::numero("t_oper_c", "TOper", en(468, 427), (-50.0, 150.0))
             .en("°C")
             .solo_lectura(),
+        // The window takes the size in mm and kg; the file stores `Width`, `Height` and
+        // `Depth` in metres. PVsyst refuses to save a module without its size.
+        CampoEsquema::numero("longitud_mm", "Longitud", en(124, 121), (0.0, 5000.0))
+            .en_archivo("Height")
+            .en("mm")
+            .en_pagina(1),
+        CampoEsquema::numero("anchura_mm", "Anchura", en(124, 145), (0.0, 5000.0))
+            .en_archivo("Width")
+            .en("mm")
+            .en_pagina(1),
+        CampoEsquema::numero("espesor_mm", "Espesor", en(124, 169), (0.0, 500.0))
+            .en_archivo("Depth")
+            .en("mm")
+            .en_pagina(1),
+        CampoEsquema::numero("peso_kg", "Peso", en(124, 193), (0.0, 500.0))
+            .en_archivo("Weight")
+            .en("kg")
+            .en_pagina(1),
         CampoEsquema::numero("g_oper_w_m2", "GOper", en(243, 427), (0.0, 2000.0))
             .en("W/m2")
             .solo_lectura(),

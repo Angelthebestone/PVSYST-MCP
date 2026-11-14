@@ -48,6 +48,10 @@ const MODULO: Tipo = Tipo {
         "Imp",
         "Vmp",
         "NCelS",
+        // PVsyst refuses to save a module whose size is not defined. In mm, as the
+        // window takes them (the file stores metres), so they are not read back.
+        "Height",
+        "Width",
     ],
     leidas: &[
         "PNom", "Isc", "Voc", "Imp", "Vmp", "NCelS", "RShunt", "RSerie", "Gamma", "muGamma",

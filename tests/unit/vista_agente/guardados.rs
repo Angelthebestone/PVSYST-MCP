@@ -5,9 +5,13 @@ use crate::vista_agente::esquemas::entidad;
 const MODULO_GUARDADO: &str =
     include_str!("../../fixtures/vista_agente/Modulo_distintos_8_1_8.PAN");
 
+/// The same window with its size typed (`Dimensiones y tecnología`, in mm and kg) and saved by PVsyst 8.1.8.
+const MODULO_CON_DIMENSIONES: &str =
+    include_str!("../../fixtures/vista_agente/Modulo_con_dimensiones_8_1_8.PAN");
+
 #[test]
 fn should_find_every_file_key_of_the_panel_schema_in_the_module_pvsyst_saved() {
-    let claves: Vec<&str> = MODULO_GUARDADO
+    let claves: Vec<&str> = MODULO_CON_DIMENSIONES
         .lines()
         .filter_map(|l| l.trim().split_once('=').map(|(k, _)| k))
         .collect();
@@ -98,5 +102,23 @@ fn should_find_every_file_key_of_the_orientation_and_system_schemas_in_the_varia
                 "{clave} no está en la variante guardada"
             );
         }
+    }
+}
+
+/// 1722 x 1134 x 30 mm and 21.5 kg typed in the window: the file keeps the size in metres.
+#[test]
+fn should_save_the_module_size_typed_in_millimetres_as_metres() {
+    let esperado = [
+        ("Height", 1.722),
+        ("Width", 1.134),
+        ("Depth", 0.03),
+        ("Weight", 21.5),
+    ];
+    for (clave, valor) in esperado {
+        assert_eq!(
+            valor_guardado(MODULO_CON_DIMENSIONES, clave),
+            Some(valor),
+            "{clave}"
+        );
     }
 }
