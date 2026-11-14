@@ -93,8 +93,10 @@ pub(crate) fn plan(paths: &Paths, proyecto: &str, variante: &str) -> Value {
 /// Shows the P50-P90 page: the usual index first, then the other tabs when the
 /// order is not the one measured.
 fn mostrar_pagina_p50(energia: &Formulario) -> Result<()> {
-    let candidatas =
-        std::iter::once(PAGINA_P50).chain((0..energia.paginas()?).filter(|i| *i != PAGINA_P50));
+    let total = energia.paginas()?;
+    let candidatas = std::iter::once(PAGINA_P50)
+        .filter(|i| *i < total)
+        .chain((0..total).filter(|i| *i != PAGINA_P50));
     for indice in candidatas {
         energia.pagina(indice)?;
         std::thread::sleep(PAUSA_PAGINA);
