@@ -103,6 +103,17 @@ pub(crate) fn compos_dir(workspace: &Path, folder: &str) -> PathBuf {
     direct
 }
 
+const TIPO_DESCONOCIDO: Texto = Texto {
+    es: "Tipo de componente desconocido '{tipo}'. Conocidos: {conocidos}",
+    en: "Unknown component kind '{tipo}'. Known: {conocidos}",
+};
+
+/// The rejection of a component kind that is not one of [`KINDS`].
+pub(crate) fn tipo_desconocido(tipo: &str, idioma: Idioma) -> Error {
+    let conocidos = KINDS.iter().map(|(e, _)| *e).collect::<Vec<_>>().join(", ");
+    Error::Invalid(TIPO_DESCONOCIDO.texto_con(idioma, &[("tipo", tipo), ("conocidos", &conocidos)]))
+}
+
 pub(crate) fn listar_componentes(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
     let kind = args
@@ -110,13 +121,8 @@ pub(crate) fn listar_componentes(paths: &Paths, args: &Value) -> Result<Value> {
         .or_else(|| args.get("kind"))
         .and_then(|v| v.as_str())
         .unwrap_or("PAN");
-    let (canon, folder) = tipo_canonico(kind).ok_or_else(|| {
-        Error::Invalid(format!(
-            "Unknown component kind '{}'. Known: {}",
-            kind,
-            KINDS.iter().map(|(e, _)| *e).collect::<Vec<_>>().join(", ")
-        ))
-    })?;
+    let (canon, folder) =
+        tipo_canonico(kind).ok_or_else(|| tipo_desconocido(kind, paths.idioma))?;
 
     let mut dirs = vec![compos_dir(&workspace, folder)];
     // Fallback to the bundled read-only database.
@@ -238,8 +244,7 @@ pub(crate) fn crear_componente(paths: &Paths, args: &Value) -> Result<Value> {
     let nuevo = req_str(args, &["nombre_nuevo"], "")?;
     validar_nombre(nuevo)?;
     let kind = tipo_de(args, plantilla).ok_or_else(|| missing("tipo", "p.ej. \"PAN\""))?;
-    let folder = folder_for(&kind)
-        .ok_or_else(|| Error::Invalid(format!("Unknown component kind '{kind}'")))?;
+    let folder = folder_for(&kind).ok_or_else(|| tipo_desconocido(&kind, paths.idioma))?;
 
     let src = resolve_component(&workspace, &consulta(&kind, plantilla, args))?;
     let mut bytes = leer_bytes_componente(&src)?;

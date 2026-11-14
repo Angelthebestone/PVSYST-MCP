@@ -248,10 +248,20 @@ pub(crate) fn invocar(args: &Value, idioma: IdiomaCliente) -> Result<Value> {
 /// Closing a window that is already gone usually means PVsyst closed it by itself
 /// (the trial dialog); it stays an error so a mistyped name is not taken for success.
 fn no_encontrado(referencia: &str, accion: &str) -> Error {
-    if accion == "cerrar" {
-        return Error::Gui(format!("Window '{referencia}' not found (already closed?)"));
-    }
-    Error::Gui(format!("Control '{referencia}' not found"))
+    const VENTANA_YA_CERRADA: Texto = Texto {
+        es: "No se encontró la ventana '{ventana}' (¿ya se cerró?)",
+        en: "Window '{ventana}' not found (already closed?)",
+    };
+    const SIN_CONTROL: Texto = Texto {
+        es: "No se encontró el control '{ventana}'",
+        en: "Control '{ventana}' not found",
+    };
+    let texto = if accion == "cerrar" {
+        VENTANA_YA_CERRADA
+    } else {
+        SIN_CONTROL
+    };
+    Error::Gui(texto.texto_con(IdiomaCliente::de_entorno(), &[("ventana", referencia)]))
 }
 
 #[cfg(test)]

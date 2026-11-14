@@ -5,7 +5,7 @@ use super::acciones::escritorio_interactivo;
 use super::esperas::{esperar_ventana, EsperarParams};
 use super::ffi::{self, Hwnd, BM_CLICK};
 use super::teclado::teclas;
-use super::ventanas::{class_of, hwnd_de, resolve, ventanas_de, visible};
+use super::ventanas::{class_of, hwnd_de, resolve, sin_ventana, ventanas_de, visible};
 use crate::adapters::uia;
 use crate::args::req_str;
 use crate::error::{Error, Result};
@@ -162,9 +162,7 @@ pub(crate) fn paso(args: &Value, idioma: Idioma) -> Result<Value> {
     }
     let scoped = ventanas_de(args)?;
     let raiz = match args.get("ventana").and_then(Value::as_str) {
-        Some(r) => {
-            Some(resolve(&scoped, r).ok_or_else(|| Error::Gui(format!("Window '{r}' not found")))?)
-        }
+        Some(r) => Some(resolve(&scoped, r).ok_or_else(|| Error::Gui(sin_ventana(r)))?),
         None => raiz_por_defecto(&scoped),
     };
     let ctx = CascadaContext {

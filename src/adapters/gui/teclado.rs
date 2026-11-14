@@ -3,7 +3,7 @@
 use super::combinacion::{parsear_combinacion, VK_MENU};
 use super::escritorio;
 use super::ffi;
-use super::ventanas::{class_of, rect_of, resolve, ventanas_de, visible};
+use super::ventanas::{class_of, rect_of, resolve, sin_ventana, ventanas_de, visible};
 use crate::args::req_str;
 use crate::error::{Error, Result};
 use crate::idioma::{Idioma, Texto};
@@ -74,9 +74,7 @@ pub(crate) fn teclas(args: &Value, idioma: Idioma) -> Result<Value> {
     let scoped = ventanas_de(args)?;
     let reference = args.get("ventana").and_then(|v| v.as_str());
     let h = match reference {
-        Some(r) => {
-            resolve(&scoped, r).ok_or_else(|| Error::Gui(format!("Window '{r}' not found")))?
-        }
+        Some(r) => resolve(&scoped, r).ok_or_else(|| Error::Gui(sin_ventana(r)))?,
         None => ventana_mas_al_frente(&scoped)?,
     };
     if escritorio::es_aislado() && mods.iter().any(|m| *m != VK_MENU) {

@@ -36,7 +36,7 @@ pub(crate) fn importar_componente(paths: &Paths, args: &Value) -> Result<Value> 
     let kind =
         tipo_de(args, &origen.to_string_lossy()).ok_or_else(|| missing("tipo", "p.ej. \"PAN\""))?;
     let folder = components::folder_for(&kind)
-        .ok_or_else(|| Error::Invalid(format!("Unknown component kind '{kind}'")))?;
+        .ok_or_else(|| components::tipo_desconocido(&kind, paths.idioma))?;
     let dir = components::compos_dir(&workspace, folder);
     fs::create_dir_all(&dir)
         .map_err(|e| Error::io(format!("Cannot create {}", dir.display()), e))?;

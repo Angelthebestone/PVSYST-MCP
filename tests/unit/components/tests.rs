@@ -118,3 +118,19 @@ fn should_create_legacy_component_from_template_with_applied_changes() {
     let parsed_orig = pan::parse_pan(&orig_bytes).expect("parse orig");
     assert_eq!(parsed_orig["pnom"], 300.0);
 }
+
+/// The rejection of an unknown kind speaks the client's language and lists the known kinds.
+#[test]
+fn should_word_an_unknown_component_kind_in_the_client_language() {
+    let es = tipo_desconocido("NOPE", Idioma::Es).to_string();
+    let en = tipo_desconocido("NOPE", Idioma::En).to_string();
+
+    assert!(
+        es.contains("Tipo de componente desconocido 'NOPE'") && es.contains("PAN"),
+        "{es}"
+    );
+    assert!(
+        en.contains("Unknown component kind 'NOPE'") && en.contains("PAN"),
+        "{en}"
+    );
+}

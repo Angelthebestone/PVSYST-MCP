@@ -60,6 +60,21 @@ use crate::args::flag;
 use crate::error::{Error, Result};
 use serde_json::Value;
 
+/// `que:leer`: the text the control reports; with `ocr:true`, also the lines
+/// drawn in it (what a control that paints its own text reports as empty).
+fn leer(args: &Value) -> Result<Value> {
+    let mut lectura = ventanas::leer(args)?;
+    if flag(args, &["ocr"]) {
+        ffi::declarar_dpi_por_monitor();
+        let lineas = ocr::captura_ocr::lineas_vivas(ventanas::hwnd_de(args, "ventana")?)?;
+        let textos: Vec<&str> = lineas.iter().map(|l| l.texto.as_str()).collect();
+        if let Some(mapa) = lectura.as_object_mut() {
+            mapa.insert("ocr".into(), serde_json::json!(textos));
+        }
+    }
+    Ok(lectura)
+}
+
 /// `observar` dispatcher. `que`: ventanas (default) | controles | leer |
 /// capturar | uia | arbol | formulario | inventario | elementos | vista | esquema | mensajes | funciones | menus.
 pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
@@ -70,7 +85,7 @@ pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Val
     {
         "ventanas" => ventanas::ventanas(args),
         "controles" => uia_vista::controles_con_uia(paths, args),
-        "leer" => ventanas::leer(args),
+        "leer" => leer(args),
         "capturar" => captura::capturar(paths, args),
         "uia" => uia_vista::observar_uia(paths, args),
         "arbol" => uia_vista::observar_arbol(paths, args),

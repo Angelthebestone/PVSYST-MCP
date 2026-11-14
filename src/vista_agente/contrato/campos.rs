@@ -7,8 +7,9 @@ use std::collections::HashSet;
 
 /// Most keyed values `vista.campos` lists; the rest stay in the answer itself.
 const MAX_CAMPOS: usize = 12;
-/// A nested object with more scalars than this is a table, not a group of values.
-const MAX_HIJOS: usize = 8;
+/// A nested object with more scalars than this is a table, not a group of values:
+/// the 10 fields of `p50_p90` are a group, the 12 months of a year are a table.
+const MAX_HIJOS: usize = 10;
 /// Longer texts (paths, logs) are not "values"; they stay in the answer.
 const MAX_CARACTERES_VALOR: usize = 40;
 
@@ -171,3 +172,7 @@ fn acotar(mut campos: Vec<Campo>) -> (Vec<Campo>, Option<Recorte>) {
     });
     (campos, recorte)
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/vista_agente/contrato/campos.rs"]
+mod tests;

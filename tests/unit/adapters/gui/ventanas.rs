@@ -33,3 +33,17 @@ fn should_say_which_window_is_foreground_iconic_and_the_modal_that_blocks_the_re
     let bloqueante = de(&lista, &principal.referencia(1)).unwrap();
     assert_eq!(bloqueante["modal"], true);
 }
+
+/// `ocr` is read only when asked for: a plain `leer` costs no capture.
+#[test]
+fn should_read_the_window_text_and_leave_ocr_out_unless_it_is_asked_for() {
+    let ventana = VentanaFalsa::crear("TFreeForm", "Libre", Vec::new());
+    let paths = crate::config::Paths::para_test(std::env::temp_dir());
+    let args =
+        json!({ "que": "leer", "ventana": ventana.referencia(0), "pids": [std::process::id()] });
+
+    let r = crate::adapters::gui::observar(&paths, &args).unwrap();
+
+    assert_eq!(r["class"], "TFreeForm");
+    assert!(r.get("ocr").is_none(), "{r}");
+}

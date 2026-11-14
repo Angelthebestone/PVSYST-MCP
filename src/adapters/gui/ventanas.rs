@@ -159,12 +159,21 @@ pub(crate) fn ventanas_de(args: &Value) -> Result<Vec<Hwnd>> {
         .collect())
 }
 
+const SIN_VENTANA: Texto = Texto {
+    es: "No se encontró la ventana '{ventana}'",
+    en: "Window '{ventana}' not found",
+};
+
+/// "Window not found" in the client's language.
+pub(crate) fn sin_ventana(referencia: &str) -> String {
+    SIN_VENTANA.texto_con(Idioma::de_entorno(), &[("ventana", referencia)])
+}
+
 /// Resolves the window named by the argument `campo` within the target process.
 pub(crate) fn hwnd_de(args: &Value, campo: &str) -> Result<Hwnd> {
     let scoped = ventanas_de(args)?;
     let reference = req_str(args, &[campo], "hwnd, class or title")?;
-    resolve(&scoped, reference)
-        .ok_or_else(|| Error::NotFound(format!("Window '{reference}' not found")))
+    resolve(&scoped, reference).ok_or_else(|| Error::NotFound(sin_ventana(reference)))
 }
 
 /// Marks a listed window with what decides whether a click on it lands:
@@ -231,7 +240,7 @@ pub(crate) fn controles(args: &Value) -> Result<Value> {
         .map(std::string::ToString::to_string);
     let roots: Vec<Hwnd> = match &reference {
         Some(r) => {
-            vec![resolve(&scoped, r).ok_or_else(|| Error::Gui(format!("Window '{r}' not found")))?]
+            vec![resolve(&scoped, r).ok_or_else(|| Error::Gui(sin_ventana(r)))?]
         }
         None => scoped,
     };

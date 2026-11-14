@@ -21,7 +21,7 @@ use super::modal;
 use super::ventanas::{class_of, hwnd_de, pid_of, text_of, visible};
 use crate::args::{missing, opt_u32};
 use crate::error::{Error, Result};
-use crate::idioma::Idioma;
+use crate::idioma::{Idioma, Texto};
 use banda::Capturas;
 use error::ErrorFila;
 use geometria::Geometria;
@@ -154,13 +154,14 @@ fn geometria_del_control(h: Hwnd) -> Result<&'static Geometria> {
 
 /// The control the request points at: `ventana` itself, or the only visible
 /// child of class `clase` when the caller names the host form. A list or tree
-/// has no window per row, so naming its class is how the caller picks it.
+/// has no window per row, so naming its class is how the caller picks it; with
+/// no `clase`, the one control of the form whose geometry was measured.
 fn control_de(args: &Value) -> Result<Hwnd> {
     let h = hwnd_de(args, "ventana")?;
-    let Some(clase) = args.get("clase").and_then(Value::as_str) else {
-        return Ok(h);
-    };
-    if class_of(h) == clase {
+    let clase = args.get("clase").and_then(Value::as_str);
+    if clase.is_some_and(|c| class_of(h) == c)
+        || (clase.is_none() && geometria_del_control(h).is_ok())
+    {
         return Ok(h);
     }
     let hijos: Vec<(Hwnd, String)> = ffi::enum_children(h)
@@ -168,7 +169,35 @@ fn control_de(args: &Value) -> Result<Hwnd> {
         .filter(|c| visible(*c))
         .map(|c| (c, class_of(c)))
         .collect();
-    unico_de_clase(&hijos, clase)
+    match clase {
+        Some(clase) => unico_de_clase(&hijos, clase),
+        None => Ok(unico_medido(&hijos, &class_of(h), &text_of(h))?.unwrap_or(h)),
+    }
+}
+
+const VARIOS_MEDIDOS: Texto = Texto {
+    es: "Hay más de un control medido en esa ventana: indica 'clase' o pasa el hwnd del control como 'ventana'",
+    en: "More than one measured control in that window: pass 'clase' or the control's hwnd as 'ventana'",
+};
+
+/// The only child whose class and host form have a measured geometry; `None`
+/// when there is none, so the caller reports the controls that are measured.
+fn unico_medido(hijos: &[(Hwnd, String)], anfitrion: &str, titulo: &str) -> Result<Option<Hwnd>> {
+    let mut medidos = hijos.iter().filter(|(_, clase)| {
+        registro::geometria_de(&Control {
+            clase,
+            anfitrion,
+            titulo,
+        })
+        .is_ok()
+    });
+    match (medidos.next(), medidos.next()) {
+        (Some((h, _)), None) => Ok(Some(*h)),
+        (None, _) => Ok(None),
+        _ => Err(Error::Invalid(
+            VARIOS_MEDIDOS.en_idioma(Idioma::de_entorno()).into(),
+        )),
+    }
 }
 
 /// Exactly one visible child of `clase`; several are ambiguous and none names

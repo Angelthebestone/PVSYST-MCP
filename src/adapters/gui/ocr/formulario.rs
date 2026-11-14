@@ -15,6 +15,7 @@ use crate::adapters::gui::ventanas::{class_of, hwnd_de, rect_of, text_of, ventan
 use crate::adapters::uia;
 use crate::args::flag;
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Value};
 
 const UIA_PROFUNDIDAD_PESTANAS: u32 = 4;
@@ -58,12 +59,17 @@ fn lineas_o_nada(params: &ParametrosCaptura, h: Hwnd) -> Result<Vec<LineaOcr>> {
     capturar_lineas_pantalla(params, h)
 }
 
+const SIN_VENTANA_VISIBLE: Texto = Texto {
+    es: "No hay una ventana visible para inspeccionar",
+    en: "There is no visible window to inspect",
+};
+
 /// The window named by `ventana`, or the front-most one of the process.
 pub(crate) fn ventana_objetivo(args: &Value) -> Result<Hwnd> {
     match args.get("ventana").and_then(Value::as_str) {
         Some(_) => hwnd_de(args, "ventana"),
         None => raiz_por_defecto(&ventanas_de(args)?)
-            .ok_or_else(|| Error::Gui("No hay una ventana visible para inspeccionar".into())),
+            .ok_or_else(|| Error::Gui(SIN_VENTANA_VISIBLE.en_idioma(Idioma::de_entorno()).into())),
     }
 }
 

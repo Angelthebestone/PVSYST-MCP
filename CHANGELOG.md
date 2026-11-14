@@ -87,6 +87,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Contract, size measurements and the tool × action matrix: `docs/vista_agente_salidas.md`.
 
 ### Fixed
+- Four findings of the exhaustive QA of 2026-11-11 (`docs/INFORME_PRUEBAS_EXHAUSTIVAS_2026-11-11.md`):
+  - **BUG-22**: `proyecto p50_p90` lists its ten stored fields in `vista.campos`; a nested object of up to
+    ten scalars is a group of values (the twelve months of a year stay a table).
+  - **BUG-21**: `gui_actuar accion:fila` needs no `clase` when the form has exactly one control whose row
+    geometry was measured; with several it asks for `clase` or the control's `hwnd`.
+  - **BUG-18**: `gui_observar que:leer` honours `ocr:true` and adds `ocr`, the lines drawn in the control
+    (it was silently ignored); without it nothing is captured.
+  - **BUG-16**: the existing-workspace, unknown-component-kind, window-not-found and object-not-found
+    rejections, and the «no visible window to inspect» one, follow `PVSYST_MCP_IDIOMA`.
 - QA of `pvsyst_cli` and the CLI adapter (`docs/INFORME_REVISION_PVSYST_CLI_2026-11-07.md`,
   `docs/INFORME_PRUEBAS_MCP_2026-11-07.md`), each finding reproduced first:
   - **No false confirmation**: an explicit CLI error (`Error: Invalid command syntax`, `Unknown command`,
