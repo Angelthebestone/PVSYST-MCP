@@ -26,6 +26,7 @@ pub(crate) mod esperas;
 pub(crate) mod ffi;
 pub(crate) mod fila;
 pub(crate) mod gdi;
+pub(crate) mod idioma_gui;
 pub(crate) mod inventario;
 pub(crate) mod menu_por_posicion;
 pub(crate) mod modal;
@@ -76,7 +77,8 @@ fn leer(args: &Value) -> Result<Value> {
 }
 
 /// `observar` dispatcher. `que`: ventanas (default) | controles | leer |
-/// capturar | uia | arbol | formulario | inventario | elementos | vista | esquema | mensajes | funciones | menus.
+/// capturar | uia | arbol | formulario | inventario | elementos | vista | esquema | mensajes | funciones | menus
+/// (`vista`, `esquema` and `idioma` are answered by the server: they read the agent view and `PVsyst.ini`).
 pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     match args
         .get("que")
@@ -105,7 +107,7 @@ pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Val
             Ok(registro_pvsyst::ultimos_mensajes(limite))
         }
         other => Err(Error::Invalid(format!(
-            "Unknown que '{other}' (ventanas|controles|leer|capturar|uia|arbol|formulario|inventario|elementos|vista|esquema|mensajes|funciones|menus)"
+            "Unknown que '{other}' (ventanas|controles|leer|capturar|uia|arbol|formulario|inventario|elementos|vista|esquema|mensajes|funciones|menus|idioma)"
         ))),
     }
 }

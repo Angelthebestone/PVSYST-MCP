@@ -75,32 +75,62 @@ const VERSION_DISTINTA: Texto = Texto {
     en: "The running GUI is PVsyst {en_ejecucion}; the map was measured on {medida}: tabs, anchors and menu positions may have changed. The live inventory (gui_observar que:inventario) is what holds.",
 };
 
-/// What the map says about itself: when and on which version it was measured,
-/// how big it is and, if the running PVsyst differs, a warning.
-fn metadatos(mapa: &Value, gui_exe: &Path, idioma: Idioma) -> Value {
-    let medida = version_medida(mapa);
-    let en_ejecucion = version_en_ejecucion(gui_exe);
-    let aviso = match (&en_ejecucion, medida) {
-        (Some(vivo), Some(medida)) if vivo != medida => {
-            Some(VERSION_DISTINTA.texto_con(idioma, &[("en_ejecucion", vivo), ("medida", medida)]))
+const IDIOMA_DISTINTO: Texto = Texto {
+    es: "La GUI de PVsyst está en '{en_ejecucion}'; los textos del mapa (títulos, pestañas, etiquetas) se midieron en '{medido}' y no coincidirán. Lo estructural (clases, índices de pestaña, posiciones) no depende del idioma.",
+    en: "PVsyst's GUI is in '{en_ejecucion}'; the texts of the map (titles, tabs, labels) were measured in '{medido}' and will not match. What is structural (classes, tab indexes, positions) does not depend on the language.",
+};
+
+/// The PVsyst the server drives, to compare it with the one the map was measured on.
+pub(crate) struct EnEjecucion<'a> {
+    pub(crate) gui_exe: &'a Path,
+    /// Language of its windows: a code (`es`) or the name PVsyst gave it; `None` when unknown.
+    pub(crate) idioma_gui: Option<&'a str>,
+}
+
+/// The warning for a running PVsyst whose version or language is not the one the map was measured on.
+fn aviso_de_diferencias(mapa: &Value, vivo: &EnEjecucion<'_>, idioma: Idioma) -> Option<String> {
+    let version = match (version_en_ejecucion(vivo.gui_exe), version_medida(mapa)) {
+        (Some(en_ejecucion), Some(medida)) if en_ejecucion != medida => {
+            Some(VERSION_DISTINTA.texto_con(
+                idioma,
+                &[("en_ejecucion", &en_ejecucion), ("medida", medida)],
+            ))
         }
         _ => None,
     };
+    let medido = mapa.get("idioma").and_then(Value::as_str);
+    let lengua = match (vivo.idioma_gui, medido) {
+        (Some(en_ejecucion), Some(medido)) if !en_ejecucion.eq_ignore_ascii_case(medido) => {
+            Some(IDIOMA_DISTINTO.texto_con(
+                idioma,
+                &[("en_ejecucion", en_ejecucion), ("medido", medido)],
+            ))
+        }
+        _ => None,
+    };
+    let avisos: Vec<String> = [version, lengua].into_iter().flatten().collect();
+    (!avisos.is_empty()).then(|| avisos.join(" "))
+}
+
+/// What the map says about itself: when and on which version and language it was
+/// measured, how big it is and, if the running PVsyst differs, a warning.
+fn metadatos(mapa: &Value, vivo: &EnEjecucion<'_>, idioma: Idioma) -> Value {
     json!({
         "measured_on": mapa.get("medido_el"),
-        "pvsyst_version": medida,
-        "pvsyst_version_en_ejecucion": en_ejecucion,
+        "pvsyst_version": version_medida(mapa),
+        "pvsyst_version_en_ejecucion": version_en_ejecucion(vivo.gui_exe),
         "idioma_medido": mapa.get("idioma"),
+        "idioma_en_ejecucion": vivo.idioma_gui,
         "windows_total": mapa.get("ventanas").and_then(Value::as_object).map_or(0, serde_json::Map::len),
         "cobertura": cobertura(mapa),
-        "aviso": aviso,
+        "aviso": aviso_de_diferencias(mapa, vivo, idioma),
     })
 }
 
 /// Machine-readable map of the GUI: every catalogued function and every window.
-/// `gui_exe` is the executable the server drives, to compare its version with
-/// the one the map was measured on.
-pub(crate) fn como_recurso(gui_exe: &Path, idioma: Idioma) -> Value {
+/// `vivo` is the PVsyst the server drives, to compare its version and language
+/// with the ones the map was measured on.
+pub(crate) fn como_recurso(vivo: &EnEjecucion<'_>, idioma: Idioma) -> Value {
     let mapa = mapa_de_ventanas();
     let uso = Texto {
         es: "gui_actuar accion:funcion funcion:<clave> abre una función; gui_actuar accion:menu ventana id abre un menú no catalogado.",
@@ -108,7 +138,7 @@ pub(crate) fn como_recurso(gui_exe: &Path, idioma: Idioma) -> Value {
     };
     json!({
         "uso": uso.en_idioma(idioma),
-        "metadatos": metadatos(mapa, gui_exe, idioma),
+        "metadatos": metadatos(mapa, vivo, idioma),
         "funciones": funciones().map(Funcion::a_json).collect::<Vec<_>>(),
         "mapa": mapa,
     })

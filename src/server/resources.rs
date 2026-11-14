@@ -1,5 +1,6 @@
 //! Read-only MCP resources: playbooks, coverage map, reference format and the CLI.
 
+use crate::adapters::gui::catalogo::EnEjecucion;
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::idioma::{Idioma, Texto};
@@ -58,10 +59,7 @@ pub(crate) fn read(uri: &str, paths: &Paths) -> Result<Value> {
         "pvsyst://cobertura" => ("application/json", cobertura(aproximaciones).to_string()),
         "pvsyst://formato" => ("text/markdown", FORMATO.to_string()),
         "pvsyst://cli" => ("text/markdown", CLI.to_string()),
-        "pvsyst://gui" => (
-            "application/json",
-            crate::adapters::gui::catalogo::como_recurso(&paths.gui_exe, idioma).to_string(),
-        ),
+        "pvsyst://gui" => ("application/json", gui(paths).to_string()),
         _ => {
             return Err(Error::NotFound(
                 RECURSO_DESCONOCIDO.texto_con(idioma, &[("uri", uri)]),
@@ -72,6 +70,18 @@ pub(crate) fn read(uri: &str, paths: &Paths) -> Result<Value> {
 }
 
 /// Machine-readable coverage map: PVsyst area -> how the MCP covers it.
+/// The GUI map, compared with the PVsyst that runs: its version and the language
+/// of its windows (read from the open windows, else from `PVsyst.ini`).
+fn gui(paths: &Paths) -> Value {
+    let lectura = crate::prefs::idioma_gui::Lectura::actual();
+    let codigo = lectura.codigo_o_nombre();
+    let vivo = EnEjecucion {
+        gui_exe: &paths.gui_exe,
+        idioma_gui: codigo.as_deref(),
+    };
+    crate::adapters::gui::catalogo::como_recurso(&vivo, paths.idioma)
+}
+
 fn cobertura(aproximaciones: bool) -> Value {
     let mut mapa = mapa_de_cobertura();
     if !aproximaciones {

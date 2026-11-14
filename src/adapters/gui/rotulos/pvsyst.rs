@@ -55,3 +55,18 @@ pub(crate) const IMPORTAR_DESDE_WEB: Rotulo<'static> = Rotulo::nuevo(
         "Aus dem Web importieren",
     ),
 );
+
+pub(super) const TABLA: &[Rotulo<'static>] = &[
+    INICIO_RED,
+    INICIO_AISLADO,
+    INICIO_BOMBEO,
+    INICIO_RED_DC,
+    BASES_DE_DATOS,
+    MODULOS_PV,
+    INVERSOR_DE_RED,
+    SISTEMA,
+    HORIZONTE,
+    GESTION_ENERGIA,
+    LEER_IMPORTAR,
+    IMPORTAR_DESDE_WEB,
+];

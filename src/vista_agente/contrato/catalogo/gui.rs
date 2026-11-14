@@ -195,6 +195,15 @@ pub(super) const ENTRADAS: &[Entrada] = &[
     )
     .luego(&[VER_FUNCIONES, VER_VENTANAS]),
     entrada(
+        "gui_observar",
+        "idioma",
+        Texto {
+            es: "Idioma de las ventanas de PVsyst leído.",
+            en: "Language of PVsyst's windows read.",
+        },
+    )
+    .luego(&[VER_VENTANAS, VER_FUNCIONES]),
+    entrada(
         "gui_actuar",
         "click",
         Texto {

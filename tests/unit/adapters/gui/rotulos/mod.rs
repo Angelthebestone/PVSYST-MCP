@@ -56,3 +56,35 @@ fn should_still_find_a_button_by_a_plain_caption_and_name_what_it_looked_for() {
 }
 
 const AUSENTE: Rotulo<'static> = Rotulo::nuevo("Ausente", ("Missing", "Absent", "Fehlt"));
+
+#[test]
+fn should_know_which_language_a_window_is_in_from_its_captions() {
+    let textos = |idioma: Idioma| match idioma {
+        Idioma::Es => vec!["OK", "Cancelar", "Guardar", "Sistema"],
+        Idioma::En => vec!["OK", "Cancel", "Save", "Horizon"],
+        Idioma::Fr => vec!["OK", "Annuler", "Enregistrer", "Système"],
+        Idioma::De => vec!["OK", "Abbrechen", "Speichern", "Horizont"],
+    };
+    for idioma in Idioma::TODOS {
+        assert_eq!(Idioma::por_textos(textos(idioma)), Some(idioma));
+    }
+}
+
+#[test]
+fn should_not_guess_a_language_from_captions_that_prove_nothing() {
+    // "OK" reads the same in all four, and "Sistema" belongs to Spanish while
+    // "Cancel" belongs to English: a tie is not an answer.
+    assert_eq!(Idioma::por_textos(["OK", "texto libre"]), None);
+    assert_eq!(Idioma::por_textos(["Sistema", "Cancel"]), None);
+    assert_eq!(Idioma::por_textos([]), None);
+}
+
+#[test]
+fn should_read_the_language_name_pvsyst_writes_in_its_ini() {
+    assert_eq!(Idioma::de_nombre("Spanish"), Some(Idioma::Es));
+    assert_eq!(Idioma::de_nombre(" english "), Some(Idioma::En));
+    assert_eq!(Idioma::de_nombre("French"), Some(Idioma::Fr));
+    assert_eq!(Idioma::de_nombre("German"), Some(Idioma::De));
+    // Italian is a PVsyst language the captions do not cover.
+    assert_eq!(Idioma::de_nombre("Italian"), None);
+}

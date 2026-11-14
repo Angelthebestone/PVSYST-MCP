@@ -44,3 +44,19 @@ pub(crate) const BOTONES_CANCELAR: &[Rotulo<'static>] = &[CANCELAR, NO];
 /// Words of the "PVsyst is unstable after a crash" warning, folded to lower case
 /// and without accents, in each language.
 pub(crate) const AVISO_INESTABLE: &[&str] = &["inestable", "unstable", "instable", "instabil"];
+
+pub(super) const TABLA: &[Rotulo<'static>] = &[
+    OK,
+    ACEPTAR,
+    CONTINUAR,
+    CERRAR,
+    CANCELAR,
+    SALIR,
+    SALIDA,
+    NO,
+    SI,
+    GUARDAR,
+    GUARDAR_COMO,
+    NUEVO,
+    REINICIAR,
+];

@@ -25,6 +25,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   just because its children were not walked.
 
 ### Added
+- **`gui_observar que:idioma`** says the language PVsyst's own windows are written in: from the
+  captions of the open windows (they win: a language changed from the menu reaches the ini only when
+  PVsyst exits) and from `[Preferences] Dialog Language` of `PVsyst.ini`. It lists the languages the
+  server has captions for (`es`, `en`, `fr`, `de`) and the one measured on a live PVsyst (`es`), and
+  warns when the ini and the windows disagree, when PVsyst is in a language without captions, or when
+  its captions are inferred. It is not `PVSYST_MCP_IDIOMA`, which only changes the MCP's messages.
+- **`pvsyst://gui` compares languages, not only versions**: `metadatos.idioma_en_ejecucion` is the
+  language of the running PVsyst, and `aviso` says the texts of the map (titles, tabs, labels) will
+  not match when it differs from `idioma_medido`, while classes, tab indexes and positions still hold.
 - **Known limit of `componente crear_desde_ficha` for a `.PAN`**: it still does not fill the module
   dimensions (the «sizes» page of `TPVModuleForm`), so PVsyst refuses to save the module. The
   inventory now shows those controls (`gui_observar que:inventario` on the form, hidden page included,

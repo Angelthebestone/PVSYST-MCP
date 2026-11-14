@@ -25,6 +25,62 @@ pub(crate) enum Idioma {
 
 impl Idioma {
     pub(crate) const TODOS: [Self; 4] = [Self::Es, Self::En, Self::Fr, Self::De];
+    /// The languages whose captions were measured on a live PVsyst.
+    pub(crate) const MEDIDOS: [Self; 1] = [Self::Es];
+
+    pub(crate) const fn codigo(self) -> &'static str {
+        match self {
+            Self::Es => "es",
+            Self::En => "en",
+            Self::Fr => "fr",
+            Self::De => "de",
+        }
+    }
+
+    /// The language a `PVsyst.ini` `Dialog Language` value names (`Spanish`,
+    /// `English`...); `None` for a language the captions do not cover.
+    pub(crate) fn de_nombre(nombre: &str) -> Option<Self> {
+        match nombre.trim().to_lowercase().as_str() {
+            "spanish" | "español" | "espanol" | "es" => Some(Self::Es),
+            "english" | "en" => Some(Self::En),
+            "french" | "français" | "francais" | "fr" => Some(Self::Fr),
+            "german" | "deutsch" | "de" => Some(Self::De),
+            _ => None,
+        }
+    }
+
+    /// The language the texts of a window betray: each text equal to a known
+    /// caption of exactly one language votes for it, and a clear winner is the
+    /// answer. A caption that reads the same in several languages ("OK") votes
+    /// for none. `None` on a tie or without votes.
+    pub(crate) fn por_textos<'a>(textos: impl IntoIterator<Item = &'a str>) -> Option<Self> {
+        let votos: Vec<Self> = textos.into_iter().filter_map(idioma_unico).collect();
+        let mut conteo: Vec<(Self, usize)> = Self::TODOS
+            .into_iter()
+            .map(|i| (i, votos.iter().filter(|v| **v == i).count()))
+            .collect();
+        conteo.sort_by_key(|(_, n)| std::cmp::Reverse(*n));
+        match conteo.as_slice() {
+            [(i, n), (_, siguiente), ..] if n > siguiente => Some(*i),
+            _ => None,
+        }
+    }
+}
+
+/// The only language in which `texto` is a known caption.
+fn idioma_unico(texto: &str) -> Option<Idioma> {
+    let mut idiomas = Idioma::TODOS
+        .into_iter()
+        .filter(|i| todos().any(|r| r.en_idioma(*i) == texto));
+    match (idiomas.next(), idiomas.next()) {
+        (Some(i), None) => Some(i),
+        _ => None,
+    }
+}
+
+/// Every caption the tables know.
+fn todos() -> impl Iterator<Item = &'static Rotulo<'static>> {
+    dialogos::TABLA.iter().chain(pvsyst::TABLA)
 }
 
 /// One caption in each language of PVsyst's interface.
