@@ -11,6 +11,7 @@ use crate::adapters::gui::acciones::clic_por_mensajes;
 use crate::adapters::gui::conduccion::Formulario;
 use crate::adapters::gui::ffi::{self, Hwnd};
 use crate::adapters::gui::resumen::resumen_de_ventana;
+use crate::adapters::gui::rotulos::Rotulo;
 use crate::adapters::gui::ventanas::{
     class_of, hijo_visible_con_texto, text_of, ventanas_de, visible,
 };
@@ -153,20 +154,46 @@ fn funcion_unica(clave: &str, idioma: Idioma) -> Result<&'static Funcion> {
 
 fn ventana_de_clase(pedido: Pedido, funcion: &Funcion) -> Result<Hwnd> {
     let clase = funcion.ventana;
-    ventanas_de(pedido.args)?
+    let de_la_clase: Vec<Hwnd> = ventanas_de(pedido.args)?
         .into_iter()
-        .find(|h| {
-            visible(*h)
-                && class_of(*h) == clase
-                && funcion.titulo_anfitrion.is_none_or(|t| text_of(*h) == t)
-        })
-        .ok_or_else(|| {
-            let cerrada = Texto {
-                es: "La ventana {clase} no está abierta en PVsyst",
-                en: "Window {clase} is not open in PVsyst",
-            };
-            Error::NotFound(cerrada.texto_con(pedido.idioma, &[("clase", clase)]))
-        })
+        .filter(|h| visible(*h) && class_of(*h) == clase)
+        .collect();
+    let esperado = funcion.titulo_anfitrion;
+    de_la_clase
+        .iter()
+        .copied()
+        .find(|h| esperado.is_none_or(|t| text_of(*h) == t))
+        .ok_or_else(|| sin_ventana(pedido.idioma, (clase, esperado), &de_la_clase))
+}
+
+/// Why the host window was not found. A window of the class with another title is
+/// told apart: the title is a caption PVsyst writes in its own language.
+pub(super) fn sin_ventana(
+    idioma: Idioma,
+    (clase, esperado): (&str, Option<&str>),
+    abiertas: &[Hwnd],
+) -> Error {
+    let cerrada = Texto {
+        es: "La ventana {clase} no está abierta en PVsyst",
+        en: "Window {clase} is not open in PVsyst",
+    };
+    let otro_titulo = Texto {
+        es: "Hay una {clase} abierta con el título '{titulo}', pero el catálogo espera '{esperado}': el título depende del idioma de PVsyst (gui_observar que:idioma). Nómbrala con ventana:<hwnd> (gui_observar que:ventanas)",
+        en: "A {clase} is open with the title '{titulo}', but the catalogue expects '{esperado}': the title depends on PVsyst's language (gui_observar que:idioma). Name it with ventana:<hwnd> (gui_observar que:ventanas)",
+    };
+    let titulos: Vec<String> = abiertas.iter().map(|h| text_of(*h)).collect();
+    let motivo = match (esperado, titulos.is_empty()) {
+        (Some(esperado), false) => otro_titulo.texto_con(
+            idioma,
+            &[
+                ("clase", clase),
+                ("titulo", &titulos.join("', '")),
+                ("esperado", esperado),
+            ],
+        ),
+        _ => cerrada.texto_con(idioma, &[("clase", clase)]),
+    };
+    Error::NotFound(motivo)
 }
 
 fn disparar(pedido: Pedido, anfitrion: Hwnd, funcion: &Funcion) -> Result<()> {
@@ -189,7 +216,7 @@ fn disparar(pedido: Pedido, anfitrion: Hwnd, funcion: &Funcion) -> Result<()> {
 /// The enabled button `titulo` of `anfitrion`, waiting for it: a form that has
 /// just opened builds its controls for a moment, and a click sent before they
 /// are enabled is lost without an error.
-fn esperar_boton(pedido: Pedido, anfitrion: Hwnd, titulo: &str) -> Result<Hwnd> {
+fn esperar_boton(pedido: Pedido, anfitrion: Hwnd, titulo: Rotulo<'static>) -> Result<Hwnd> {
     let fin = Instant::now() + espera_pedida(pedido.args);
     loop {
         let boton = hijo_visible_con_texto(anfitrion, titulo);
@@ -197,22 +224,22 @@ fn esperar_boton(pedido: Pedido, anfitrion: Hwnd, titulo: &str) -> Result<Hwnd> 
             return Ok(b);
         }
         if Instant::now() >= fin {
-            return Err(boton_ausente(titulo, boton.is_some(), pedido.idioma));
+            return Err(boton_ausente(&titulo, boton.is_some(), pedido.idioma));
         }
         std::thread::sleep(SONDEO);
     }
 }
 
 /// Why the button never became clickable.
-fn boton_ausente(titulo: &str, existe: bool, idioma: Idioma) -> Error {
+fn boton_ausente(titulo: &Rotulo<'_>, existe: bool, idioma: Idioma) -> Error {
     let deshabilitado = Texto {
         es: "Botón '{titulo}' deshabilitado",
         en: "Button '{titulo}' is disabled",
     };
     let invisible = Texto {
-        es: "Botón '{titulo}' no visible",
-        en: "Button '{titulo}' is not visible",
+        es: "Botón '{titulo}' no visible: se busca por ese rótulo. Si PVsyst usa otro texto (gui_observar que:idioma dice en qué idioma está), localiza el botón con gui_observar que:inventario y púlsalo con gui_actuar click por hwnd",
+        en: "Button '{titulo}' is not visible: it is looked for by that caption. If PVsyst uses another text (gui_observar que:idioma says which language it is in), find the button with gui_observar que:inventario and press it with gui_actuar click by hwnd",
     };
     let motivo = if existe { deshabilitado } else { invisible };
-    Error::NotFound(motivo.texto_con(idioma, &[("titulo", titulo)]))
+    Error::NotFound(motivo.texto_con(idioma, &[("titulo", &titulo.to_string())]))
 }

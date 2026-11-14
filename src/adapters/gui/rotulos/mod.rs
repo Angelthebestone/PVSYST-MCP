@@ -123,6 +123,17 @@ impl<'a> Rotulo<'a> {
         }
     }
 
+    /// The wordings by language code when the caption has more than one, else `None`.
+    pub(crate) fn por_idioma(&self) -> Option<serde_json::Value> {
+        let traducido = Idioma::TODOS.iter().any(|i| self.en_idioma(*i) != self.es);
+        traducido.then(|| {
+            let pares = Idioma::TODOS.map(|i| (i.codigo(), self.en_idioma(i)));
+            serde_json::json!(pares
+                .into_iter()
+                .collect::<std::collections::BTreeMap<_, _>>())
+        })
+    }
+
     /// Whether `texto` is this caption in any language, exactly.
     pub(crate) fn coincide(&self, texto: &str) -> bool {
         Idioma::TODOS.iter().any(|i| self.en_idioma(*i) == texto)

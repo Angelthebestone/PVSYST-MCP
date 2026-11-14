@@ -4,20 +4,22 @@
 //! nothing say why in `nota`.
 
 use crate::adapters::gui::catalogo::dominio::Funcion;
+use crate::adapters::gui::rotulos::dialogos::NUEVO;
+use crate::adapters::gui::rotulos::pvsyst::{HORIZONTE, SISTEMA};
 
 pub(super) const FUNCIONES: &[Funcion] = &[
-    Funcion::boton(
+    Funcion::boton_en_idiomas(
         "diseno_preliminar.conectado_a_la_red.horizonte",
         "TDimensForm",
-        "Horizonte",
+        HORIZONTE,
     )
     .en_ventana_titulada("Pre-dimensionamiento sistema de red")
     .abre("TDimensSituationForm")
     .requiere("diseno_preliminar.conectado_a_la_red"),
-    Funcion::boton(
+    Funcion::boton_en_idiomas(
         "diseno_preliminar.conectado_a_la_red.sistema",
         "TDimensForm",
-        "Sistema",
+        SISTEMA,
     )
     .en_ventana_titulada("Pre-dimensionamiento sistema de red")
     .requiere("diseno_preliminar.conectado_a_la_red")
@@ -46,18 +48,18 @@ pub(super) const FUNCIONES: &[Funcion] = &[
     .en_ventana_titulada("Pre-dimensionamiento sistema independiente")
     .requiere("diseno_preliminar.independiente")
     .nota("no abrió ventana sin sitio geográfico definido (botón deshabilitado)"),
-    Funcion::boton(
+    Funcion::boton_en_idiomas(
         "diseno_preliminar.independiente.horizonte",
         "TDimensForm",
-        "Horizonte",
+        HORIZONTE,
     )
     .en_ventana_titulada("Pre-dimensionamiento sistema independiente")
     .requiere("diseno_preliminar.independiente")
     .nota("no abrió ventana sin sitio geográfico definido (botón deshabilitado)"),
-    Funcion::boton(
+    Funcion::boton_en_idiomas(
         "diseno_preliminar.independiente.sistema",
         "TDimensForm",
-        "Sistema",
+        SISTEMA,
     )
     .en_ventana_titulada("Pre-dimensionamiento sistema independiente")
     .requiere("diseno_preliminar.independiente")
@@ -78,15 +80,15 @@ pub(super) const FUNCIONES: &[Funcion] = &[
     .en_ventana_titulada("Pre-dimensionamiento sistema independiente")
     .abre("TDimensSituationForm")
     .requiere("diseno_preliminar.independiente"),
-    Funcion::boton(
+    Funcion::boton_en_idiomas(
         "diseno_preliminar.bombeo.horizonte",
         "TDimensForm",
-        "Horizonte",
+        HORIZONTE,
     )
     .en_ventana_titulada("Pre-dimensionamiento sistema bombeo")
     .requiere("diseno_preliminar.bombeo")
     .nota("no abrió ventana sin sitio geográfico definido (botón deshabilitado)"),
-    Funcion::boton("diseno_preliminar.bombeo.sistema", "TDimensForm", "Sistema")
+    Funcion::boton_en_idiomas("diseno_preliminar.bombeo.sistema", "TDimensForm", SISTEMA)
         .en_ventana_titulada("Pre-dimensionamiento sistema bombeo")
         .requiere("diseno_preliminar.bombeo")
         .nota("no abrió ventana sin sitio geográfico definido (botón deshabilitado)"),
@@ -106,70 +108,66 @@ pub(super) const FUNCIONES: &[Funcion] = &[
     .en_ventana_titulada("Pre-dimensionamiento sistema bombeo")
     .abre("TDimensSituationForm")
     .requiere("diseno_preliminar.bombeo"),
-    Funcion::boton(
+    Funcion::boton_en_idiomas(
         "bases_de_datos.modulos_pv.nuevo",
         "TChoixObjetPVForm",
-        "Nuevo",
+        NUEVO,
     )
     .en_ventana_titulada("Eligiendo un módulo FV")
     .abre("TPVModuleForm")
     .requiere("bases_de_datos.modulos_pv"),
-    Funcion::boton(
+    Funcion::boton_en_idiomas(
         "bases_de_datos.inversores_red.nuevo",
         "TChoixObjetPVForm",
-        "Nuevo",
+        NUEVO,
     )
     .en_ventana_titulada("Eligiendo un inversor de red")
     .abre("TGridInverterForm")
     .requiere("bases_de_datos.inversores_red"),
-    Funcion::boton(
-        "bases_de_datos.baterias.nuevo",
-        "TChoixObjetPVForm",
-        "Nuevo",
-    )
-    .en_ventana_titulada("Eligiendo una batería")
-    .abre("TBatteryForm")
-    .requiere("bases_de_datos.baterias"),
-    Funcion::boton(
+    Funcion::boton_en_idiomas("bases_de_datos.baterias.nuevo", "TChoixObjetPVForm", NUEVO)
+        .en_ventana_titulada("Eligiendo una batería")
+        .abre("TBatteryForm")
+        .requiere("bases_de_datos.baterias"),
+    Funcion::boton_en_idiomas(
         "bases_de_datos.controladores_independientes.nuevo",
         "TChoixObjetPVForm",
-        "Nuevo",
+        NUEVO,
     )
     .en_ventana_titulada("Eligiendo un contolador de carga/descarga")
     .abre("TSAControllerForm")
     .requiere("bases_de_datos.controladores_independientes"),
-    Funcion::boton("bases_de_datos.bombas.nuevo", "TChoixObjetPVForm", "Nuevo")
+    Funcion::boton_en_idiomas("bases_de_datos.bombas.nuevo", "TChoixObjetPVForm", NUEVO)
         .en_ventana_titulada("Eligiendo una bomba")
         .abre("TPumpForm")
         .requiere("bases_de_datos.bombas"),
-    Funcion::boton(
+    Funcion::boton_en_idiomas(
         "bases_de_datos.controladores_bombeo.nuevo",
         "TChoixObjetPVForm",
-        "Nuevo",
+        NUEVO,
     )
     .en_ventana_titulada("Eligiendo un controlador para sistemas de bombeo")
     .abre("TPumpControllerForm")
     .requiere("bases_de_datos.controladores_bombeo"),
-    Funcion::boton(
+    Funcion::boton_en_idiomas(
         "bases_de_datos.generadores.nuevo",
         "TChoixObjetPVForm",
-        "Nuevo",
+        NUEVO,
     )
     .en_ventana_titulada("Eligiendo un generador de respaldo")
     .abre("TGeneratorForm")
     .requiere("bases_de_datos.generadores"),
-    Funcion::boton(
+    Funcion::boton_en_idiomas(
         "bases_de_datos.fabricantes_minoristas.nuevo",
         "TChoixObjetPVForm",
-        "Nuevo",
+        NUEVO,
     )
     .en_ventana_titulada("Eligiendo un fabricante o minorista")
     .abre("TContactForm")
     .requiere("bases_de_datos.fabricantes_minoristas"),
-    Funcion::boton(
+    Funcion::boton_en_idiomas(
         "bases_de_datos.sitios_geograficos.nuevo",
         "TChoixObjetPVForm",
-        "Nuevo",
+        NUEVO,
     )
     .en_ventana_titulada("Eligiendo un sitio geográfico")
     .abre("TGeoSiteForm")

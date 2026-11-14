@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inferred and still to be measured. `proyecto p50_p90` no longer reads the tab caption or «Activo»:
   it shows the page by index (the third, confirmed by a control only that page has, and searching the
   other tabs if the order differs) and ticks the check box by class and position.
+- **Catalogued buttons are found by caption in any language they are known in**: `gui_observar que:funciones`
+  lists the wordings of such a button under `destino.titulos`; a button measured in Spanish only keeps
+  `destino.titulo` alone, and its not-found error says to read `que:idioma` and `que:inventario` and press
+  it by `hwnd`. A host window whose catalogue title differs from the one open (the component choosers
+  share a class and differ by a title PVsyst translates) is reported as open under another title, not
+  as closed.
 - **GUI inventories are not summarised to 13 items.** `que:inventario` and `que:elementos` cap
   themselves at 500 rows (`total` and `truncado` say what was left out) and their lists `controles`,
   `elementos` and `otros` are never cut by `detalle`. `que:controles` with `todos:true` keeps up to 500

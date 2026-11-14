@@ -2,6 +2,7 @@
 //! datos and Datos medidos. Each button needs its parent window open first.
 
 use crate::adapters::gui::catalogo::dominio::Funcion;
+use crate::adapters::gui::rotulos::pvsyst::{INVERSOR_DE_RED, MODULOS_PV};
 
 const HERRAMIENTAS: &str = "TToolsForm";
 const BASES: &str = "TDatabaseForm";
@@ -46,10 +47,10 @@ pub(super) const FUNCIONES: &[Funcion] = &[
     )
     .requiere("inicio.herramientas")
     .abre("TParamSolForm"),
-    Funcion::boton("bases_de_datos.modulos_pv", BASES, "Módulos PV")
+    Funcion::boton_en_idiomas("bases_de_datos.modulos_pv", BASES, MODULOS_PV)
         .requiere("inicio.bases_de_datos")
         .abre(ELEGIR_OBJETO),
-    Funcion::boton("bases_de_datos.inversores_red", BASES, "Inversor de red")
+    Funcion::boton_en_idiomas("bases_de_datos.inversores_red", BASES, INVERSOR_DE_RED)
         .requiere("inicio.bases_de_datos")
         .abre(ELEGIR_OBJETO),
     Funcion::boton("bases_de_datos.baterias", BASES, "Baterías")

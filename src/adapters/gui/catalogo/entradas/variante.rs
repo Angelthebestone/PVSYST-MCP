@@ -3,12 +3,13 @@
 //! recent project through `gui_actuar accion:menu`).
 
 use crate::adapters::gui::catalogo::dominio::{Efecto, Funcion};
+use crate::adapters::gui::rotulos::pvsyst::{GESTION_ENERGIA, HORIZONTE, SISTEMA};
 
 const PROYECTO: &str = "TProjectForm";
 
 pub(super) const FUNCIONES: &[Funcion] = &[
     Funcion::boton("variante.orientacion", PROYECTO, "Orientación").abre("TOrientationForm"),
-    Funcion::boton("variante.sistema", PROYECTO, "Sistema").abre("TSystemegridForm"),
+    Funcion::boton_en_idiomas("variante.sistema", PROYECTO, SISTEMA).abre("TSystemegridForm"),
     Funcion::boton(
         "variante.perdidas_detalladas",
         PROYECTO,
@@ -17,19 +18,15 @@ pub(super) const FUNCIONES: &[Funcion] = &[
     .abre("TDetailedLossesForm"),
     Funcion::boton("variante.autoconsumo", PROYECTO, "Autoconsumo").abre("TUserNeedsForm"),
     Funcion::boton("variante.almacenamiento", PROYECTO, "Almacenamiento").abre("TGridStorageForm"),
-    Funcion::boton("variante.horizonte", PROYECTO, "Horizonte").abre("THorizonForm"),
+    Funcion::boton_en_idiomas("variante.horizonte", PROYECTO, HORIZONTE).abre("THorizonForm"),
     Funcion::boton(
         "variante.sombreados_cercanos",
         PROYECTO,
         "Sombreados cercanos",
     )
     .abre("TShadingsForm"),
-    Funcion::boton(
-        "variante.gestion_energia",
-        PROYECTO,
-        "Gestión de la energía",
-    )
-    .abre("TSystemeAddForm"),
+    Funcion::boton_en_idiomas("variante.gestion_energia", PROYECTO, GESTION_ENERGIA)
+        .abre("TSystemeAddForm"),
     Funcion::boton(
         "variante.evaluacion_economica",
         PROYECTO,

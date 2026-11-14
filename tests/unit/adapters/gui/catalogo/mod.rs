@@ -146,3 +146,52 @@ fn should_warn_when_the_running_pvsyst_speaks_another_language_than_the_map() {
         "{aviso}"
     );
 }
+
+/// A button of the catalogue is found by its caption in any language it is known
+/// in; one measured in Spanish only says so, and the agent presses it by `hwnd`.
+#[test]
+fn should_press_a_catalogued_button_by_its_caption_in_any_language_it_is_known_in() {
+    let traducida = buscar(funciones(), "variante.gestion_energia")[0];
+    let solo_es = buscar(funciones(), "variante.orientacion")[0];
+
+    let Acceso::Boton { titulo } = traducida.acceso else {
+        panic!("variante.gestion_energia is a button");
+    };
+
+    for texto in ["Gestión de la energía", "Energy management"] {
+        assert!(titulo.coincide(texto), "{texto}");
+    }
+    assert_eq!(
+        traducida.a_json()["destino"]["titulos"]["en"],
+        "Energy management"
+    );
+    assert_eq!(solo_es.a_json()["destino"]["titulo"], "Orientación");
+    assert_eq!(
+        solo_es.a_json()["destino"]["titulos"],
+        serde_json::Value::Null
+    );
+}
+
+/// The component choosers share a class and differ by a title PVsyst writes in its
+/// own language: a chooser open under another title is not reported as "not open".
+#[test]
+fn should_say_the_title_is_language_dependent_when_the_host_is_open_under_another_one() {
+    use crate::adapters::gui::ventana_falsa::VentanaFalsa;
+
+    let abierta = VentanaFalsa::crear("TChoixObjetPVForm", "Choosing a PV module", Vec::new());
+
+    let con_otro_titulo = super::abrir::sin_ventana(
+        Idioma::En,
+        ("TChoixObjetPVForm", Some("Eligiendo un módulo FV")),
+        &[abierta.hwnd(0)],
+    );
+    let cerrada = super::abrir::sin_ventana(Idioma::En, ("TChoixObjetPVForm", None), &[]);
+
+    let texto = con_otro_titulo.to_string();
+    assert!(
+        texto.contains("Choosing a PV module") && texto.contains("Eligiendo un módulo FV"),
+        "{texto}"
+    );
+    assert!(texto.contains("que:idioma"), "{texto}");
+    assert!(cerrada.to_string().contains("is not open"), "{cerrada}");
+}
