@@ -50,3 +50,21 @@ fn should_leave_a_click_with_an_ocr_match_as_it_was() {
 
     assert!(resultado.get("error").is_none());
 }
+
+/// 4.1-4: a click that changed nothing used to answer as a success.
+#[test]
+fn should_warn_that_a_click_without_effect_is_not_verified() {
+    let aviso = sin_efecto(&Efecto::default(), Idioma::Es).expect("no effect");
+
+    assert!(aviso.contains("verificado:false"), "{aviso}");
+}
+
+#[test]
+fn should_not_warn_when_the_click_opened_a_window() {
+    let efecto = Efecto {
+        abiertas: vec!["TToolsForm".into()],
+        ..Efecto::default()
+    };
+
+    assert!(sin_efecto(&efecto, Idioma::Es).is_none());
+}

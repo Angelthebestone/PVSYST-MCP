@@ -20,6 +20,7 @@ pub(crate) mod clic_fisico;
 pub(crate) mod clic_por_texto;
 pub(crate) mod combinacion;
 pub(crate) mod conduccion;
+pub(crate) mod efecto;
 pub(crate) mod escena;
 pub(crate) mod escritorio;
 pub(crate) mod esperas;
