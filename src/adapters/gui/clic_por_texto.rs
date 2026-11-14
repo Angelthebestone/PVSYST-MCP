@@ -35,14 +35,14 @@ pub(crate) fn clic_texto(args: &Value, idioma: Idioma) -> Result<Value> {
     let antes = Instantanea::de(h);
     enviar_clic(objetivo, punto)?;
     std::thread::sleep(ASENTAMIENTO_CLIC);
-    let efecto = Efecto::entre(&antes, &Instantanea::de(h));
+    let efecto = Efecto::entre(&antes, &antes.de_nuevo());
     let mut resultado = json!({
         "accion": "clic_texto",
         "texto": texto,
         "coincidencias": coincidencias,
         "punto": { "x": punto.0, "y": punto.1 },
         "control": { "hwnd": format!("0x{objetivo:X}"), "clase": class_of(objetivo) },
-        "verificado": efecto.hubo(),
+        "verificado": efecto.verificado(),
         "efecto": efecto.a_json(),
     });
     let avisos: Vec<String> = [
@@ -75,7 +75,7 @@ fn enviar_clic(objetivo: Hwnd, punto: (i32, i32)) -> Result<()> {
 /// A click that opened, closed and repainted nothing may have hit a dead spot:
 /// the call succeeded, the effect did not happen (`verificado:false`).
 fn sin_efecto(efecto: &Efecto, idioma: Idioma) -> Option<String> {
-    if efecto.hubo() {
+    if efecto.verificado() != Some(false) {
         return None;
     }
     let nada = Texto {

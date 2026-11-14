@@ -15,6 +15,8 @@ const CLASE_AVISO: &str = "THintWindow";
 
 /// The windows of a process and the picture of one of them, at one moment.
 pub(crate) struct Instantanea {
+    pid: u32,
+    h: Hwnd,
     ventanas: Vec<(Hwnd, String)>,
     imagen: Option<ImagenRgb>,
 }
@@ -24,7 +26,18 @@ impl Instantanea {
     /// not in the top-level list) and a capture of `h`. A capture that fails
     /// (the window closed, the desktop is not interactive) is left out.
     pub(crate) fn de(h: Hwnd) -> Self {
-        let pid = pid_of(h);
+        Self::de_proceso(h, pid_of(h))
+    }
+
+    /// The same window and process read again after the action. `h` may be gone
+    /// (a form that closed takes its controls with it) and a destroyed window
+    /// reports pid 0, which would list no window at all: the pid is the one
+    /// read before the action.
+    pub(crate) fn de_nuevo(&self) -> Self {
+        Self::de_proceso(self.h, self.pid)
+    }
+
+    fn de_proceso(h: Hwnd, pid: u32) -> Self {
         let mut ventanas: Vec<(Hwnd, String)> = formularios(pid)
             .into_iter()
             .map(|v| (v, class_of(v)))
@@ -33,7 +46,12 @@ impl Instantanea {
         let embebido = modal::modal_de(&[pid]).filter(|m| !ventanas.iter().any(|(v, _)| v == m));
         ventanas.extend(embebido.map(|m| (m, class_of(m))));
         let imagen = ffi::es_ventana(h).then(|| rgb_de_control(h).ok()).flatten();
-        Self { ventanas, imagen }
+        Self {
+            pid,
+            h,
+            ventanas,
+            imagen,
+        }
     }
 }
 
@@ -61,6 +79,8 @@ pub(crate) struct Efecto {
     pub(crate) abiertas: Vec<String>,
     pub(crate) cerradas: Vec<String>,
     pub(crate) pantalla_cambio: bool,
+    /// A capture is missing: the repaint could not be compared.
+    pub(crate) sin_comparar: bool,
 }
 
 impl Efecto {
@@ -69,6 +89,7 @@ impl Efecto {
             abiertas: clases_que_faltan(&despues.ventanas, &antes.ventanas),
             cerradas: clases_que_faltan(&antes.ventanas, &despues.ventanas),
             pantalla_cambio: imagenes_distintas(antes.imagen.as_ref(), despues.imagen.as_ref()),
+            sin_comparar: antes.imagen.is_none() || despues.imagen.is_none(),
         }
     }
 
@@ -77,11 +98,23 @@ impl Efecto {
         !self.abiertas.is_empty() || !self.cerradas.is_empty() || self.pantalla_cambio
     }
 
+    /// `Some(true)` when something changed, `Some(false)` when nothing did and the
+    /// repaint was compared, `None` when nothing changed but a capture is missing:
+    /// no change is claimed and no absence of change either.
+    pub(crate) fn verificado(&self) -> Option<bool> {
+        match (self.hubo(), self.sin_comparar) {
+            (true, _) => Some(true),
+            (false, true) => None,
+            (false, false) => Some(false),
+        }
+    }
+
     pub(crate) fn a_json(&self) -> Value {
         json!({
             "abiertas": self.abiertas,
             "cerradas": self.cerradas,
             "pantalla_cambio": self.pantalla_cambio,
+            "pantalla_comparada": !self.sin_comparar,
         })
     }
 }

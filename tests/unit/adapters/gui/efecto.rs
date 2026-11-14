@@ -13,6 +13,8 @@ fn imagen(valor: u8) -> ImagenRgb {
 
 fn instante(ventanas: &[(isize, &str)], pixel: u8) -> Instantanea {
     Instantanea {
+        pid: 1,
+        h: 1,
         ventanas: ventanas.iter().map(|(h, c)| (*h, (*c).into())).collect(),
         imagen: Some(imagen(pixel)),
     }
@@ -70,4 +72,20 @@ fn should_not_claim_a_repaint_when_a_capture_is_missing() {
     despues.imagen = None;
 
     assert!(!Efecto::entre(&antes, &despues).hubo());
+}
+
+/// Without a capture to compare, "nothing changed" is not proved: the answer is
+/// "not checked", never `verificado:false`.
+#[test]
+fn should_not_say_nothing_changed_when_a_capture_is_missing() {
+    let antes = instante(&[(1, "TSystemeAddForm")], 7);
+    let mut despues = instante(&[(1, "TSystemeAddForm")], 7);
+    despues.imagen = None;
+    assert_eq!(Efecto::entre(&antes, &despues).verificado(), None);
+
+    let completo = instante(&[(1, "TSystemeAddForm")], 7);
+    assert_eq!(Efecto::entre(&antes, &completo).verificado(), Some(false));
+
+    let abierta = instante(&[(1, "TSystemeAddForm"), (2, "TToolsForm")], 7);
+    assert_eq!(Efecto::entre(&antes, &abierta).verificado(), Some(true));
 }

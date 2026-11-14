@@ -262,7 +262,7 @@ fn abrir_fila(p: &Pedido<'_>, idioma: Idioma) -> Result<Value> {
     exigir_foco(p.h)?;
     ffi::pulsar_combinacion(VK_RETURN, &[]);
     std::thread::sleep(ESPERA_APERTURA);
-    let efecto = Efecto::entre(&antes, &Instantanea::de(p.h));
+    let efecto = Efecto::entre(&antes, &antes.de_nuevo());
     let cerrado = !ffi::es_ventana(p.h) || !visible(p.h);
     let abierta = !efecto.abiertas.is_empty() || !efecto.cerradas.is_empty() || cerrado;
     let mut respuesta = json!({ "abierta": abierta, "efecto": efecto.a_json() });
