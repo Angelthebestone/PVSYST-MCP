@@ -72,19 +72,37 @@ fn coincidentes(
     (visible, coinciden.next().map(|c| c.h))
 }
 
-/// Resolve a window reference: `0xHEX`, else class/title among the target
-/// process' top windows and their controls (see [`elegir`]).
-pub(crate) fn resolve(haystack: &[Hwnd], reference: &str) -> Option<Hwnd> {
-    let hex_val = reference
+/// The visible controls that tie for `referencia` when it names controls, not a
+/// window: the ones `elegir` would have to pick one of by chance. Empty when a
+/// top-level window answers the name or only one control does.
+fn controles_empatados(candidatos: &[Candidato], referencia: &str) -> Vec<Hwnd> {
+    let referencia = referencia.to_lowercase();
+    for (exacta, es_hijo) in [(true, false), (true, true), (false, false), (false, true)] {
+        if coincidentes(candidatos, (&referencia, exacta), es_hijo)
+            .0
+            .is_none()
+        {
+            continue;
+        }
+        return candidatos
+            .iter()
+            .filter(|c| es_hijo && c.es_hijo && c.visible && c.coincide(&referencia, exacta))
+            .map(|c| c.h)
+            .collect();
+    }
+    Vec::new()
+}
+
+fn hwnd_literal(reference: &str) -> Option<Hwnd> {
+    reference
         .strip_prefix("0x")
         .or_else(|| reference.strip_prefix("0X"))
-        .and_then(|hex| isize::from_str_radix(hex, 16).ok());
-    if let Some(v) = hex_val {
-        if ffi::es_ventana(v) {
-            return Some(v);
-        }
-    }
-    let candidatos: Vec<Candidato> = haystack
+        .and_then(|hex| isize::from_str_radix(hex, 16).ok())
+        .filter(|v| ffi::es_ventana(*v))
+}
+
+fn candidatos_de(haystack: &[Hwnd]) -> Vec<Candidato> {
+    haystack
         .iter()
         .map(|&h| Candidato::de(h, false))
         .chain(
@@ -93,8 +111,35 @@ pub(crate) fn resolve(haystack: &[Hwnd], reference: &str) -> Option<Hwnd> {
                 .flat_map(|&h| enum_children(h))
                 .map(|c| Candidato::de(c, true)),
         )
-        .collect();
-    elegir(&candidatos, reference)
+        .collect()
+}
+
+/// Resolve a window reference: `0xHEX`, else class/title among the target
+/// process' top windows and their controls (see [`elegir`]).
+pub(crate) fn resolve(haystack: &[Hwnd], reference: &str) -> Option<Hwnd> {
+    hwnd_literal(reference).or_else(|| elegir(&candidatos_de(haystack), reference))
+}
+
+/// Like [`resolve`], but a title or class that names several visible controls is
+/// refused with the candidates instead of picking one by chance: `ventana:"OK"`
+/// would press the OK of whichever window the enumeration listed first. A hwnd,
+/// a window and a name with one control are resolved as always.
+pub(crate) fn resolve_sin_empates(
+    haystack: &[Hwnd],
+    reference: &str,
+) -> Result<Option<Hwnd>, Vec<(Hwnd, String)>> {
+    if let Some(h) = hwnd_literal(reference) {
+        return Ok(Some(h));
+    }
+    let candidatos = candidatos_de(haystack);
+    let empatados = controles_empatados(&candidatos, reference);
+    if empatados.len() > 1 {
+        return Err(empatados
+            .into_iter()
+            .map(|h| (h, class_of(ffi::get_ancestor(h, ffi::GA_ROOT))))
+            .collect());
+    }
+    Ok(elegir(&candidatos, reference))
 }
 
 #[cfg(test)]

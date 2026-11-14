@@ -39,3 +39,42 @@ fn should_fall_back_to_a_hidden_window_only_when_no_visible_one_matches() {
 
     assert_eq!(elegir(&[oculta, visible], "demoform"), Some(2));
 }
+
+/// 4.1-7: `ventana:"OK"` pressed the OK of whichever window was listed first.
+#[test]
+fn should_report_the_controls_that_tie_for_a_name() {
+    let candidatos = [
+        candidato(1, ["Proyecto", "TProjectForm"], false),
+        candidato(2, ["OK", "TButton"], true),
+        candidato(3, ["OK", "TButton"], true),
+    ];
+
+    assert_eq!(controles_empatados(&candidatos, "OK"), vec![2, 3]);
+}
+
+#[test]
+fn should_not_call_a_tie_a_name_that_one_control_or_a_window_answers() {
+    let uno = [
+        candidato(1, ["Proyecto", "TProjectForm"], false),
+        candidato(2, ["OK", "TButton"], true),
+        candidato(3, ["Cancelar", "TButton"], true),
+    ];
+    assert_eq!(controles_empatados(&uno, "OK"), vec![2]);
+
+    // A top-level window with that name wins over the controls: no tie to resolve.
+    let ventana = [
+        candidato(1, ["OK", "TOkForm"], false),
+        candidato(2, ["OK", "TButton"], true),
+        candidato(3, ["OK", "TButton"], true),
+    ];
+    assert!(controles_empatados(&ventana, "OK").is_empty());
+}
+
+#[test]
+fn should_ignore_a_hidden_control_with_the_same_name() {
+    let mut oculto = candidato(3, ["OK", "TButton"], true);
+    oculto.visible = false;
+    let candidatos = [candidato(2, ["OK", "TButton"], true), oculto];
+
+    assert_eq!(controles_empatados(&candidatos, "OK"), vec![2]);
+}

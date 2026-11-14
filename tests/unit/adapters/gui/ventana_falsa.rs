@@ -11,9 +11,9 @@ use windows::Win32::System::Threading::GetCurrentThreadId;
 use windows::Win32::UI::Input::KeyboardAndMouse::EnableWindow;
 use windows::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetMessageW,
-    PostThreadMessageW, RegisterClassW, ShowWindow, TranslateMessage, MSG, SW_SHOWNOACTIVATE,
-    WINDOW_STYLE, WM_QUIT, WNDCLASSW, WS_CHILD, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW,
-    WS_OVERLAPPEDWINDOW, WS_VISIBLE,
+    PostThreadMessageW, RegisterClassW, ShowWindow, TranslateMessage, MSG, SW_SHOWMINNOACTIVE,
+    SW_SHOWNOACTIVATE, WINDOW_STYLE, WM_QUIT, WNDCLASSW, WS_CHILD, WS_EX_NOACTIVATE,
+    WS_EX_TOOLWINDOW, WS_OVERLAPPEDWINDOW, WS_VISIBLE,
 };
 
 /// Where the fake form sits: far outside any monitor, so nothing shows on screen.
@@ -203,6 +203,17 @@ impl VentanaFalsa {
         // SAFETY: `hwnd(0)` es la ventana creada por este objeto, viva hasta su `Drop`.
         unsafe {
             let _ = EnableWindow(HWND(self.hwnd(0) as *mut std::ffi::c_void), false);
+        }
+    }
+
+    /// Minimises the form, as a user does with the title bar button.
+    pub(crate) fn minimizar(&self) {
+        // SAFETY: `hwnd(0)` es la ventana creada por este objeto, viva hasta su `Drop`.
+        unsafe {
+            let _ = ShowWindow(
+                HWND(self.hwnd(0) as *mut std::ffi::c_void),
+                SW_SHOWMINNOACTIVE,
+            );
         }
     }
 

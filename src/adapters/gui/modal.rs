@@ -45,6 +45,16 @@ pub(crate) fn bloqueante_de(raiz: Hwnd) -> Option<Hwnd> {
     })
 }
 
+/// `modal: <class> 0x<hwnd>`: how an answer names the dialog that blocks `raiz`.
+/// Every action that refuses a blocked window says it this way, so a caller can
+/// read the dialog to close without parsing prose.
+pub(crate) fn nombre_del_bloqueo(raiz: Hwnd) -> String {
+    bloqueante_de(raiz).map_or_else(
+        || "modal: ?".to_string(),
+        |m| format!("modal: {} 0x{m:X}", class_of(m)),
+    )
+}
+
 /// Fails when the top-level window of `ventana` is disabled by a modal dialog.
 /// `para` completes the hint: "…before {para}".
 pub(crate) fn exigir_habilitada(ventana: Hwnd, para: &str) -> Result<()> {
@@ -52,12 +62,10 @@ pub(crate) fn exigir_habilitada(ventana: Hwnd, para: &str) -> Result<()> {
     if !ffi::es_ventana(raiz) || ffi::estado_ventana(raiz).habilitada {
         return Ok(());
     }
-    let sobre = bloqueante_de(raiz)
-        .map(class_of)
-        .map_or_else(String::new, |clase| format!(" ({clase})"));
     Err(Error::Gui(format!(
-        "{} is disabled: a modal dialog is open on top of it{sobre}. Close it (gui_actuar accion:cerrar) before {para}",
-        class_of(raiz)
+        "{} is disabled: a modal dialog is open on top of it ({}). Close it (gui_actuar accion:cerrar) before {para}",
+        class_of(raiz),
+        nombre_del_bloqueo(raiz)
     )))
 }
 
