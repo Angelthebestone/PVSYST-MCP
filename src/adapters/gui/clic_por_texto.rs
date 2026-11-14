@@ -3,11 +3,13 @@
 //! cannot be addressed any other way; the click is posted as mouse messages to
 //! the window under the text, which works on a private desktop too.
 
+use super::efecto::{Efecto, Instantanea};
 use super::ffi::{self, FalloClic, Hwnd};
 use super::modal;
 use super::ocr::captura_ocr::lineas_vivas;
 use super::ocr::segmentacion::segmentar_lineas;
 use super::ocr::ubicacion::{elegir_caja, ubicar_texto};
+use super::primer_plano;
 use super::ventanas::{class_of, hwnd_de};
 use crate::args::{opt_u32, req_str};
 use crate::error::{Error, Result};
@@ -25,9 +27,41 @@ pub(crate) fn clic_texto(args: &Value, idioma: Idioma) -> Result<Value> {
     let indice = opt_u32(args, "indice")?.map(|i| i as usize);
     let h = hwnd_de(args, "ventana")?;
     modal::exigir_habilitada(h, modal::PARA_ACTUAR)?;
+    // OCR and the click read screen coordinates: a minimised window has none.
+    primer_plano::restaurar_al_frente(h, idioma)?;
     let (punto, coincidencias) = punto_de_clic(h, texto, indice)?;
     let objetivo = ffi::control_en_punto(h, punto);
     let pestana_antes = pestana_seleccionada(objetivo);
+    let antes = Instantanea::de(h);
+    enviar_clic(objetivo, punto)?;
+    std::thread::sleep(ASENTAMIENTO_CLIC);
+    let efecto = Efecto::entre(&antes, &Instantanea::de(h));
+    let mut resultado = json!({
+        "accion": "clic_texto",
+        "texto": texto,
+        "coincidencias": coincidencias,
+        "punto": { "x": punto.0, "y": punto.1 },
+        "control": { "hwnd": format!("0x{objetivo:X}"), "clase": class_of(objetivo) },
+        "verificado": efecto.hubo(),
+        "efecto": efecto.a_json(),
+    });
+    let avisos: Vec<String> = [
+        pestana_sin_cambio(objetivo, pestana_antes),
+        sin_efecto(&efecto, idioma),
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
+    if let (false, Some(obj)) = (avisos.is_empty(), resultado.as_object_mut()) {
+        obj.insert("advertencias".into(), json!(avisos));
+    }
+    if coincidencias == 0 {
+        marcar_sin_ocr(&mut resultado, texto, idioma);
+    }
+    Ok(resultado)
+}
+
+fn enviar_clic(objetivo: Hwnd, punto: (i32, i32)) -> Result<()> {
     ffi::clic_en_pantalla(objetivo, punto).map_err(|fallo| match fallo {
         FalloClic::SinConversion => Error::Gui(format!(
             "Windows no pudo convertir el punto de pantalla al control 0x{objetivo:X}"
@@ -35,22 +69,20 @@ pub(crate) fn clic_texto(args: &Value, idioma: Idioma) -> Result<Value> {
         FalloClic::SinEnvio => {
             Error::Gui(format!("PostMessage falló para el control 0x{objetivo:X}"))
         }
-    })?;
-    let mut resultado = json!({
-        "accion": "clic_texto",
-        "texto": texto,
-        "coincidencias": coincidencias,
-        "punto": { "x": punto.0, "y": punto.1 },
-        "control": { "hwnd": format!("0x{objetivo:X}"), "clase": class_of(objetivo) },
-    });
-    let aviso = pestana_sin_cambio(objetivo, pestana_antes);
-    if let (Some(aviso), Some(obj)) = (aviso, resultado.as_object_mut()) {
-        obj.insert("advertencias".into(), json!([aviso]));
+    })
+}
+
+/// A click that opened, closed and repainted nothing may have hit a dead spot:
+/// the call succeeded, the effect did not happen (`verificado:false`).
+fn sin_efecto(efecto: &Efecto, idioma: Idioma) -> Option<String> {
+    if efecto.hubo() {
+        return None;
     }
-    if coincidencias == 0 {
-        marcar_sin_ocr(&mut resultado, texto, idioma);
-    }
-    Ok(resultado)
+    let nada = Texto {
+        es: "El clic no abrió ni cerró ninguna ventana ni repintó la ventana (verificado:false): puede haber caído en un punto muerto o el efecto es lento; comprueba con gui_observar que:ventanas o que:vista",
+        en: "The click opened and closed no window and did not repaint the window (verificado:false): it may have hit a dead spot or its effect is slow; check with gui_observar que:ventanas or que:vista",
+    };
+    Some(nada.en_idioma(idioma).to_string())
 }
 
 /// A click without an OCR match went to the UIA element of that name: it
@@ -117,7 +149,6 @@ fn pestana_seleccionada(control: Hwnd) -> Option<usize> {
 /// PVsyst vetoes the change while the current page has invalid fields.
 fn pestana_sin_cambio(control: Hwnd, antes: Option<usize>) -> Option<String> {
     let antes = antes?;
-    std::thread::sleep(ASENTAMIENTO_CLIC);
     (ffi::pagina_seleccionada(control)? == antes).then(|| {
         format!(
             "La pestaña seleccionada no cambió (sigue en la {antes}): PVsyst la vetó por validación del formulario o ya estaba seleccionada; el motivo está en gui_observar que:vista ocr:true (textos)"

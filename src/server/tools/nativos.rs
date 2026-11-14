@@ -140,7 +140,7 @@ const SINONIMOS_GUI_OBSERVAR: Sinonimos = Sinonimos {
 
 pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
     nombre: "gui_actuar",
-    descripcion: crate::idioma::Texto { es: "Actua sobre la GUI de PVsyst: clic, clic_texto (texto visible, por OCR), escribir, seleccionar, pestana, teclas, fila de una lista o arbol con geometria medida, menus por posicion, cerrar, lanzar, reiniciar, esperar a que aparezca una ventana (no es una pausa), rellenar un formulario por claves y validar, importar (mallas) o crear una escena 3D en el editor. reiniciar solo actua tras un dialogo de fallo de PVsyst (madExcept o aviso de inestabilidad): no reinicia una instancia sana.", en: "Acts on the PVsyst GUI: click, clic_texto (on-screen text, by OCR), type, select, tab page, keys, a row of a list or tree with measured geometry, menus by position, close, launch, restart, wait for a window to appear (not a sleep), fill a form by keys and validate, import (meshes) or build a 3D scene in the editor. reiniciar only applies after a PVsyst failure dialog (madExcept or the instability warning): it does not restart a healthy instance." },
+    descripcion: crate::idioma::Texto { es: "Actua sobre la GUI de PVsyst: clic, clic_texto (texto visible, por OCR; responde verificado:false si no abrio, cerro ni repinto nada), escribir, seleccionar, pestana, teclas, fila de una lista o arbol con geometria medida (solo selecciona; abrir:true pulsa Enter y dice si se abrio; texto comprueba por OCR que la fila es el elemento pedido), menus por posicion, cerrar, lanzar, reiniciar, esperar a que aparezca una ventana (no es una pausa), rellenar un formulario por claves y validar, importar (mallas) o crear una escena 3D en el editor. clic_fisico, clic_texto y fila restauran antes una ventana minimizada, y ante una ventana bloqueada responden modal: <clase> <hwnd>. reiniciar solo actua tras un dialogo de fallo de PVsyst (madExcept o aviso de inestabilidad): no reinicia una instancia sana.", en: "Acts on the PVsyst GUI: click, clic_texto (on-screen text, by OCR; answers verificado:false when nothing opened, closed or repainted), type, select, tab page, keys, fila (a row of a list or tree with measured geometry: it only selects, abrir:true presses Enter and says whether it opened; texto checks by OCR that the row holds that element), menus by position, close, launch, restart, wait for a window to appear (not a sleep), fill a form by keys and validate, import (meshes) or build a 3D scene in the editor. reiniciar only applies after a PVsyst failure dialog (madExcept or the instability warning): it does not restart a healthy instance. clic_fisico, clic_texto and fila restore a minimised window first, and on a blocked window they answer modal: <class> <hwnd>." },
     anotaciones: Anotaciones {
         titulo: crate::idioma::Texto { es: "Actuar en GUI", en: "Act on GUI" },
         es_solo_lectura: false,
@@ -173,6 +173,8 @@ pub(crate) const TOOL_GUI_ACTUAR: Herramienta = Herramienta {
         ("permitir_fuera_del_workspace", TipoDato::Boolean),
         ("cerrar_demo", TipoDato::Boolean),
         ("cancelar", TipoDato::Boolean),
+        ("abrir", TipoDato::Boolean),
+        ("confirmar", TipoDato::Boolean),
         ("pasos", TipoDato::Array),
         ("funcion", TipoDato::String),
         ("id", TipoDato::Integer),

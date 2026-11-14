@@ -3,6 +3,7 @@
 use super::combinacion::{parsear_combinacion, VK_MENU};
 use super::escritorio;
 use super::ffi;
+use super::modal;
 use super::ventanas::{class_of, rect_of, resolve, sin_ventana, ventanas_de, visible};
 use crate::args::req_str;
 use crate::error::{Error, Result};
@@ -83,7 +84,7 @@ pub(crate) fn teclas(args: &Value, idioma: Idioma) -> Result<Value> {
         ));
     }
     let raiz = ffi::get_ancestor(h, ffi::GA_ROOT);
-    exigir_objetivo_habilitado(ffi::estado_ventana(raiz).habilitada, &class_of(raiz))?;
+    exigir_objetivo_habilitado(raiz)?;
     ffi::traer_al_frente(raiz);
     std::thread::sleep(FOCO);
     exigir_primer_plano(raiz)?;
@@ -144,12 +145,14 @@ fn exigir_algun_foco(
 
 /// A target disabled by a modal dialog would receive nothing: the keys would go
 /// to the dialog instead, which is how a blind RETURN ended PVsyst.
-fn exigir_objetivo_habilitado(habilitada: bool, clase: &str) -> Result<()> {
-    if habilitada {
+fn exigir_objetivo_habilitado(raiz: ffi::Hwnd) -> Result<()> {
+    if ffi::estado_ventana(raiz).habilitada {
         return Ok(());
     }
     Err(Error::Gui(format!(
-        "'{clase}' is disabled by a modal dialog: the keys would go to the dialog, not to the window. Close it (gui_actuar accion:cerrar) or send 'teclas' to the dialog class and retry"
+        "'{}' is disabled by a modal dialog ({}): the keys would go to the dialog, not to the window. Close it (gui_actuar accion:cerrar) or send 'teclas' to the dialog class and retry",
+        class_of(raiz),
+        modal::nombre_del_bloqueo(raiz)
     )))
 }
 

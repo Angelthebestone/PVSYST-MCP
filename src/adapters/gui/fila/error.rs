@@ -42,6 +42,14 @@ pub(crate) enum ErrorFila {
     NingunaResaltada { indice: usize },
     #[error("Row {pedida} was requested and PVsyst highlighted {leida}")]
     FilaDistinta { pedida: usize, leida: usize },
+    #[error("Row {indice} is highlighted but its text could not be read to check it: {motivo}")]
+    SinLectura { indice: usize, motivo: String },
+    #[error("Row {indice} is highlighted but it holds \"{leido}\", not \"{pedido}\": the row selected is not the requested element")]
+    TextoDistinto {
+        indice: usize,
+        pedido: String,
+        leido: String,
+    },
     #[error("Several rows are highlighted ({filas:?}): the selected one is unknown")]
     Ambigua { filas: Vec<usize> },
     #[error("The click on row {indice} activated the element: PVsyst opened {clases}. Close it with accion:cerrar and cancelar:true")]

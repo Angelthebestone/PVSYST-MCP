@@ -27,3 +27,37 @@ fn should_list_the_blocking_modal_when_the_enumeration_missed_it() {
     assert_eq!(out[1]["modal"], true);
     assert_eq!(out[1]["child"], true);
 }
+
+/// 4.1-2: every modal that makes a click null is named with its class and hwnd.
+#[test]
+fn should_name_the_class_and_hwnd_of_each_modal_that_blocks_a_form() {
+    use crate::adapters::gui::ventana_falsa::{Hijo, VentanaFalsa};
+    for clase in [
+        "TDEMOForm",
+        "TMessageForm",
+        "TChoixObjetPVForm",
+        "TDatabaseForm",
+    ] {
+        let principal = VentanaFalsa::crear(
+            "TFormaBloqueada",
+            "Bloqueada",
+            vec![Hijo::de(clase, (50, 50, 300, 200))],
+        );
+        principal.deshabilitar();
+
+        let error = super::exigir_habilitada(principal.hwnd(0), super::PARA_ACTUAR)
+            .expect_err("a disabled form")
+            .to_string();
+
+        let esperado = format!("modal: {clase} 0x{:X}", principal.hwnd(1));
+        assert!(error.contains(&esperado), "{esperado} not in {error}");
+    }
+}
+
+#[test]
+fn should_let_an_enabled_form_through() {
+    use crate::adapters::gui::ventana_falsa::VentanaFalsa;
+    let libre = VentanaFalsa::crear("TFormaLibre", "Libre", vec![]);
+
+    assert!(super::exigir_habilitada(libre.hwnd(0), super::PARA_ACTUAR).is_ok());
+}

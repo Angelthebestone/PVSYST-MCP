@@ -20,6 +20,7 @@ pub(crate) mod clic_fisico;
 pub(crate) mod clic_por_texto;
 pub(crate) mod combinacion;
 pub(crate) mod conduccion;
+pub(crate) mod efecto;
 pub(crate) mod escena;
 pub(crate) mod escritorio;
 pub(crate) mod esperas;
@@ -33,6 +34,7 @@ pub(crate) mod modal;
 pub(crate) mod ocr;
 pub(crate) mod png;
 pub(crate) mod posicion;
+pub(crate) mod primer_plano;
 pub(crate) mod proceso;
 pub(crate) mod recuperacion;
 pub(crate) mod registro_pvsyst;
@@ -163,7 +165,7 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
             acciones::invocar(args, paths.idioma)
         }
         "teclas" => teclado::teclas(args, paths.idioma),
-        "fila" => fila::fila(args),
+        "fila" => fila::fila(args, paths.idioma),
         "funcion" => catalogo::abrir(args),
         "menu" => catalogo::menu(args),
         "escena" if flag(args, &["simular"]) => crate::escena_3d::pedir_escena(args),

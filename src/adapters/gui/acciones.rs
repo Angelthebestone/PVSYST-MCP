@@ -2,8 +2,10 @@
 
 use super::cierre;
 use super::clic_fisico::{clic_fisico_en_control, desplazamiento, punto_pedido};
-use super::ffi::{self, Hwnd, BM_CLICK, GA_ROOT, SW_RESTORE, WM_CLOSE};
+use super::ffi::{self, Hwnd, BM_CLICK, GA_ROOT, WM_CLOSE};
 use super::modal;
+use super::primer_plano;
+use super::resolucion::resolve_sin_empates;
 use super::rotulos::dialogos::{
     BOTONES_CANCELAR, BOTONES_CIERRE, BOTONES_EXCEPCION, BOTONES_MENSAJE,
 };
@@ -16,6 +18,8 @@ use serde_json::{json, Value};
 
 /// Window classes (Win32 and VCL) that implement `BM_CLICK`.
 const CLASES_BOTON: &[&str] = &["Button", "TButton", "TBitBtn", "TCheckBox", "TRadioButton"];
+/// Controls listed in the error of a name that several share.
+const CANDIDATOS_EN_ERROR: usize = 8;
 /// Class of PVsyst's message boxes.
 pub(crate) const CLASE_MENSAJE: &str = "TMessageForm";
 /// Class of the madExcept crash dialog.
@@ -134,10 +138,8 @@ fn ejecutar_accion(h: Hwnd, action: &str, pedido: Pedido) -> Result<()> {
             None => clic_por_mensajes(h)?,
         },
         "cerrar" => cerrar_ventana(h, args)?,
-        "activar" => {
-            ffi::mostrar_ventana(h, SW_RESTORE);
-            ffi::traer_al_frente(h);
-        }
+        // `invocar` already restored the window and brought it to the front.
+        "activar" => {}
         "mensaje" => enviar_mensaje(h, args)?,
         "clic_fisico" => clic_fisico_en_control(h, punto_pedido(args, idioma)?, idioma)?,
         other => {
@@ -178,6 +180,46 @@ fn exigir_sin_texto_ni_id(pedido: Pedido) -> Result<()> {
     Ok(())
 }
 
+/// The refusal for a name shared by several controls: `candidatos` are each
+/// control and the class of the window that holds it.
+fn nombre_ambiguo(referencia: &str, candidatos: &[(Hwnd, String)], idioma: IdiomaCliente) -> Error {
+    let ambiguo = Texto {
+        es: "'{ventana}' nombra {n} controles visibles ({lista}): pasa el hwnd del control elegido como 'ventana'",
+        en: "'{ventana}' names {n} visible controls ({lista}): pass the chosen control's hwnd as 'ventana'",
+    };
+    let mut lista = candidatos
+        .iter()
+        .take(CANDIDATOS_EN_ERROR)
+        .map(|(h, anfitrion)| format!("0x{h:X} ({anfitrion})"))
+        .collect::<Vec<_>>()
+        .join(", ");
+    if candidatos.len() > CANDIDATOS_EN_ERROR {
+        lista.push_str(", …");
+    }
+    Error::Gui(ambiguo.texto_con(
+        idioma,
+        &[
+            ("ventana", referencia),
+            ("n", &candidatos.len().to_string()),
+            ("lista", &lista),
+        ],
+    ))
+}
+
+/// The control or window `reference` names. Actions that press a control by its
+/// name (`click`, `clic_fisico`, `mensaje`) refuse a name several controls share.
+fn resolver_objetivo(scoped: &[Hwnd], reference: &str, pedido: Pedido) -> Result<Option<Hwnd>> {
+    let accion = pedido.args.get("accion").and_then(Value::as_str);
+    if !matches!(
+        accion.unwrap_or("click"),
+        "click" | "clic_fisico" | "mensaje"
+    ) {
+        return Ok(resolve(scoped, reference));
+    }
+    resolve_sin_empates(scoped, reference)
+        .map_err(|empatados| nombre_ambiguo(reference, &empatados, pedido.idioma))
+}
+
 /// A disabled control swallows the click without a trace (GUI-07).
 fn exigir_control_habilitado(h: Hwnd, idioma: IdiomaCliente) -> Result<()> {
     if ffi::estado_ventana(h).habilitada {
@@ -193,6 +235,26 @@ fn exigir_control_habilitado(h: Hwnd, idioma: IdiomaCliente) -> Result<()> {
     )))
 }
 
+/// A modal dialog or a disabled control swallows the action without a trace.
+fn exigir_actuable(h: Hwnd, action: &str, idioma: IdiomaCliente) -> Result<()> {
+    if !matches!(action, "activar" | "mensaje") {
+        modal::exigir_habilitada(h, modal::PARA_ACTUAR)?;
+    }
+    if matches!(action, "click" | "clic_fisico") {
+        exigir_control_habilitado(h, idioma)?;
+    }
+    Ok(())
+}
+
+/// A physical click lands on screen: a minimised window must be restored first.
+fn traer_para_actuar(h: Hwnd, action: &str, idioma: IdiomaCliente) -> Result<()> {
+    if matches!(action, "clic_fisico" | "activar") {
+        return primer_plano::restaurar_al_frente(h, idioma);
+    }
+    ffi::traer_al_frente(ffi::get_ancestor(h, GA_ROOT));
+    Ok(())
+}
+
 pub(crate) fn invocar(args: &Value, idioma: IdiomaCliente) -> Result<Value> {
     let pedido = Pedido { args, idioma };
     exigir_sin_texto_ni_id(pedido)?;
@@ -206,19 +268,15 @@ pub(crate) fn invocar(args: &Value, idioma: IdiomaCliente) -> Result<Value> {
         .get("accion")
         .and_then(|v| v.as_str())
         .unwrap_or("click");
-    let h = resolve(&scoped, reference).ok_or_else(|| no_encontrado(reference, action))?;
-    if !matches!(action, "activar" | "mensaje") {
-        modal::exigir_habilitada(h, modal::PARA_ACTUAR)?;
-    }
-    if matches!(action, "click" | "clic_fisico") {
-        exigir_control_habilitado(h, idioma)?;
-    }
+    let h = resolver_objetivo(&scoped, reference, pedido)?
+        .ok_or_else(|| no_encontrado(reference, action))?;
+    exigir_actuable(h, action, idioma)?;
     let cerrar = action == "cerrar";
     // The pid must be read while the window still exists: a destroyed HWND
     // reports pid 0 and the re-observation would see nothing.
     let pid = cerrar.then(|| pid_of(h));
     let antes = pid.map(cierre::instantanea);
-    ffi::traer_al_frente(ffi::get_ancestor(h, GA_ROOT));
+    traer_para_actuar(h, action, idioma)?;
     ejecutar_accion(h, action, pedido)?;
 
     let mut reabiertas = Vec::new();
