@@ -42,8 +42,12 @@ pub(crate) fn crash_en_directorio(dir: &Path, desde: SystemTime) -> Option<Strin
             if !ruta.to_str().is_some_and(|n| n.ends_with(".log")) {
                 return None;
             }
-            let modificado = entrada.metadata().ok()?.modified().ok()?;
-            (modificado >= umbral).then_some((modificado, ruta))
+            // Each run opens its own log: the creation time is when that process started.
+            // The modification time would also match the log of a command that crashed
+            // a moment before this one and blame this run for it.
+            let meta = entrada.metadata().ok()?;
+            let inicio = meta.created().or_else(|_| meta.modified()).ok()?;
+            (inicio >= umbral).then_some((inicio, ruta))
         })
         .collect();
     archivos.sort_by_key(|(modificado, _)| *modificado);
