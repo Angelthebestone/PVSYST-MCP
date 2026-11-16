@@ -21,7 +21,7 @@ Every task goes through these six steps, in order. Skipping one is a defect in t
 5. **Prove it.** Run the scoped check for the unit, and the full gate when the phase ends (section 8). Show the output. For behavior PVsyst observes, prove it against the real artifact: a file PVsyst opens, a CLI run, a GUI window. "It compiles" proves nothing.
 6. **Report honestly.** Say what you ran, what passed, what failed, what you skipped and why. Label each claim as measured, inferred or guessed.
 
-**Stop and ask** only for a product decision no experiment can settle, or before an irreversible action. Anything you can observe by running something, you run.
+**Stop and ask** only for a product decision no experiment can settle, or before an irreversible action. Anything you can observe by running something, you run. If the same check still fails after three fix rounds, stop and escalate (section 10).
 
 ## 2. HOW TO SPLIT WORK
 
@@ -124,7 +124,24 @@ ruff check tools; ruff format --check tools; mypy --strict tools; pytest -q tool
 - **Commit and push without asking.** Commit each unit once its scoped check is green. Push once the full gate is green. No permission is needed for either.
 - **Ask first** only for what cannot be undone: force-push, deleting a branch or a tag, rewriting pushed history, publishing a release.
 
-## 10. DEFINITION OF DONE
+## 10. VERIFICATION
+
+Verification is what lets an agent work alone. Build it as carefully as production code, keep it out of the agent's reach, and grade it against the bugs that actually happened.
+
+- **Run the change, not only the tests.** Climb the ladder only as far as the change needs: fixtures, then `fake_pvsystcli`, then `dry_run`, then one live run. The steps live in `.agents/skills/verificar/SKILL.md`; follow them before every commit that changes behavior PVsyst observes.
+- **Three rounds, then a human.** After three failed fix rounds on the same check, stop. The report says which check, what each round tried and why it failed, so the reviewer does not rebuild the story from the diff.
+- **Flaky tests are never worked around.** No retry until green, no `sleep`, no `#[ignore]` to hide one. Find the root cause. If you cannot, delete the test and say why in the commit.
+- **Properties for `format/`.** Parsers and writers get round-trip, idempotency (applying an edit twice equals once) and equivalence (new code equals the old or naive code) checks. `proptest` is accepted as a dev-dependency for this; `deny.toml` must still pass. One property test replaces a pile of example tests.
+- **Differential check for rewrites.** When a parser, writer or tool is rewritten, run old and new on every fixture and compare the bytes or the MCP response. Each difference is a bug or an approved change, listed in the commit message.
+- **A change never edits its own judge.** `agents.md`, `clippy.toml`, `deny.toml`, `tools/check_deps.py`, `scripts/verificar.ps1`, `.github/workflows/` and the fixtures' expected outputs change in their own commit, with no feature code, and the commit says what the gate accepts now that it rejected before.
+- **Reliability checklist.** `docs/checklist_fiabilidad.md` lists PVsyst traps: each has a trigger visible in a diff, a check, and the measurement or incident behind it. Before each commit, run the items whose trigger matches the diff, usually fewer than five.
+- **Misses become rules.** A bug that reached `main`, or a mistake seen in two reviews, becomes a checklist item with its origin. A rule with no trigger a diff can show is not a rule.
+- **Cheap checks first.** Scoped check and `cargo fmt` pass locally before asking for review or pushing. Never spend a reviewer's time on what a command would have caught.
+- **One primary reviewer, several rounds.** Tune one reviewer instead of stacking a second. Later rounds read the earlier findings and the commit under review; a review of an older commit is void. Grade each finding: must-fix, should-fix, nit, or pre-existing (not the author's).
+- **Stamp the commit.** Every commit ends with a `Verified:` trailer naming what ran (`scoped`, `gate`, `fake-cli`, `live x2`, `checklist`) or `Verified: none (reason)`, so unverified work can be found with `git log --grep`.
+- **Prune.** At the end of each phase, delete rules, checklist items and tests that no longer fire or that another one covers. Documents that only grow stop being read.
+
+## 11. DEFINITION OF DONE
 
 - [ ] The goal is met, and I can name the evidence that shows it.
 - [ ] The cause is fixed, not the symptom. A bug has the test that failed before the fix.
@@ -135,6 +152,8 @@ ruff check tools; ruff format --check tools; mypy --strict tools; pytest -q tool
 - [ ] PVsyst file edits preserve bytes they do not own, proven by a round-trip test.
 - [ ] Tests assert observable behavior. I added only the tests a new behavior needs, and none for changes that alter no behavior.
 - [ ] Each unit passed its scoped check. The full gate in section 8 is green, and I ran it after the last edit of the phase.
+- [ ] The change ran the way PVsyst runs it (section 10), the checklist items its diff triggers passed, and the commit carries a `Verified:` trailer.
+- [ ] No gate file (section 10) is edited together with feature code.
 - [ ] The work is committed, and pushed after the full gate.
 - [ ] README and CHANGELOG match the new behavior.
 - [ ] My report says what I ran, what I skipped, and how many trial executions I spent.
