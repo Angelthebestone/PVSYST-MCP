@@ -43,9 +43,9 @@ Every task goes through these six steps, in order. Skipping one is a defect in t
 - **A module is a PVsyst business area:** `bombeo/`, `perdidas/`, `seguidores/`, `sites/`. Inside it, `dominio.rs` holds pure logic and `aplicacion.rs` holds use cases. Names follow `docs/convencion_nombres.md`.
 - **Dependencies point inward** to `format/`, the pure core with no I/O. Adapters (`adapters/cli`, `adapters/gui`, `adapters/uia`) implement what the features need. `tools/check_deps.py` checks the graph and it must pass.
 - **Limits:** a file holds one concept in at most 300 lines. A function has at most 50 lines, 3 parameters, 1 boolean parameter and 3 nesting levels. Clippy enforces the function limits. Over the file limit, split into a directory module.
-- **No god objects. No mutable global state.** Composition over inheritance. Immutable by default.
-- **A resource that must be released has an owner.** A PVsyst process, a GUI window, a temp file, a COM initialization or a lock lives inside a value whose `Drop` releases it (RAII, like `ComGuard`), so every early return and error path cleans up. `Drop` never panics. When the release must happen after one block of work, a scoped function (`con_descarte(dialogo, || ...)`) does the same. It does not replace `scripts/verificar.ps1`, which still cleans up what a killed process leaves behind.
-- **An action is data before it runs.** An action that spends trial executions or writes files builds a plan value first. `dry_run` prints that plan and the real run executes the same plan, so `costo_estimado` and the effect cannot drift apart. No command class hierarchy, no undo stack.
+- **No god objects. No mutable global state.** Composition over inheritance, and no `Deref` to a wrapped type to fake it. Immutable by default. Use a trait object only when the set of implementations is open; a closed set is an `enum`.
+- **A resource that must be released has an owner.** A PVsyst process, a GUI window, a temp file, a COM initialization or a lock lives inside a value whose `Drop` releases it (RAII, like `ComGuard`), so every early return and error path cleans up. `Drop` never panics, and no drop bomb. Guards, tokens and plans are `#[must_use]`. When the release must happen after one block of work, a scoped function (`con_descarte(dialogo, || ...)`) does the same. It does not replace `scripts/verificar.ps1`, which still cleans up what a killed process leaves behind.
+- **An action is data before it runs.** An action that spends trial executions or writes files builds a plan value first. `dry_run` prints that plan and the real run executes the same plan, so `costo_estimado` and the effect cannot drift apart. The steps of a plan are an `enum` of data, not a `Vec` of closures, so they can be printed, compared in tests and sent through `dry_run`. No command class hierarchy, no undo stack.
 - **One owner for each single-instance resource.** The PVsyst GUI has one owner, and other code asks it to act through a channel (`std::sync::mpsc`), instead of sharing it behind an `Arc<Mutex>`. No actor crate.
 
 ## 4. DATA AND TYPES
@@ -65,7 +65,7 @@ Every task goes through these six steps, in order. Skipping one is a defect in t
 - **Simplest thing that satisfies the behavior.** No abstraction with one implementation. No configuration for a value that never changes. No code for a future nobody asked for.
 - **One source of truth for each fact.** A format rule, a unit conversion or a PVsyst limit lives in one place. Extract on the second copy of the same knowledge. Lines that merely look alike are not duplication.
 - **Match domain enums exhaustively.** A `match` on a state or domain enum names every variant, with no `_ =>` arm, so adding a variant breaks the build where it matters. This replaces the Visitor pattern. A `_ =>` on a string or a foreign type is fine.
-- **Guard clauses over nesting.** Return early. No `else` ladders.
+- **Guard clauses over nesting.** Return early, with `let ... else` when a pattern must match. No `else` ladders.
 - **Names carry intent.** Functions are verbs with intent (`calcular_perdida_ohmica`, not `process`). Booleans are questions (`es_bifacial`). One verb per concept across the codebase.
 - **Standard library before a dependency.** A new crate needs a reason a reviewer would accept, and `deny.toml` must still pass.
 - **No pessimization.** Pick the data structure on purpose. No quadratic scan over component databases or hourly series. Measure before you optimize, and report the before and after.
@@ -74,6 +74,8 @@ Every task goes through these six steps, in order. Skipping one is a defect in t
 
 - **Typed errors** from `src/error.rs`, with context that names the file, the key and the value. An error that lists valid alternatives tells the calling agent what to do next.
 - **Never `unwrap`, `expect`, `panic!`, `todo!` or indexing that can panic in production paths.** Never swallow an error. Every `unsafe` block carries a `// SAFETY:` justification.
+- **`unsafe` stays behind a safe boundary.** It lives only in `adapters/*/ffi` and `adapters/uia`, and each of those exposes safe functions whose signature makes the invariant impossible to break. `anyhow` is for `main.rs` only; the library returns the typed errors of `src/error.rs`.
+- **Every wait has a deadline.** A wait on a PVsyst process, a window, a file or a channel carries a timeout and fails with a typed error that names what it waited for. No unbounded `recv()`, `join()` or polling loop. A worker thread is joined or detached on purpose, and a channel that a producer can outrun is bounded (`sync_channel`).
 - **Validate every input at the boundary.** Paths stay inside the workspace. No secrets, licence contents or personal data in code, logs, fixtures or commits.
 - **Structured logs to stderr** with `tracing`, with fields rather than interpolated strings. No `println!`, `eprintln!` or `dbg!`.
 - **Never fail silently toward the agent.** An ignored argument is reported as ignored. A refused action names the reason and the alternative.
