@@ -44,12 +44,17 @@ Every task goes through these six steps, in order. Skipping one is a defect in t
 - **Dependencies point inward** to `format/`, the pure core with no I/O. Adapters (`adapters/cli`, `adapters/gui`, `adapters/uia`) implement what the features need. `tools/check_deps.py` checks the graph and it must pass.
 - **Limits:** a file holds one concept in at most 300 lines. A function has at most 50 lines, 3 parameters, 1 boolean parameter and 3 nesting levels. Clippy enforces the function limits. Over the file limit, split into a directory module.
 - **No god objects. No mutable global state.** Composition over inheritance. Immutable by default.
+- **A resource that must be released has an owner.** A PVsyst process, a GUI window, a temp file, a COM initialization or a lock lives inside a value whose `Drop` releases it (RAII, like `ComGuard`), so every early return and error path cleans up. `Drop` never panics. It does not replace `scripts/verificar.ps1`, which still cleans up what a killed process leaves behind.
+- **An action is data before it runs.** An action that spends trial executions or writes files builds a plan value first. `dry_run` prints that plan and the real run executes the same plan, so `costo_estimado` and the effect cannot drift apart. No command class hierarchy, no undo stack.
+- **One owner for each single-instance resource.** The PVsyst GUI has one owner, and other code asks it to act through a channel (`std::sync::mpsc`), instead of sharing it behind an `Arc<Mutex>`. No actor crate.
 
 ## 4. DATA AND TYPES
 
 - **Name the data shape before the logic.** Types first, then functions over them.
 - **Make illegal states unrepresentable.** An enum replaces a pair of booleans. A newtype replaces a bare `String` or `f64` that carries a unit or an identity.
-- **Parse at the boundary, trust inside.** MCP arguments, PVsyst files and CLI output are parsed into typed values once, at the edge. Inner code does not revalidate.
+- **Newtypes are valid by construction.** The field is private and the only constructor parses (`TryFrom`, `FromStr`) and returns a typed error, so holding the value proves it is valid. The unit is in the type name (`PotenciaKw`, `TensionV`), never in a comment.
+- **Parse at the boundary, trust inside.** MCP arguments, PVsyst files and CLI output are parsed into typed values once, at the edge. Inner code does not revalidate. Parse, do not validate: a function that checks a value and returns the same `String` or `f64` has parsed nothing.
+- **Model ordered flows as states.** A flow with a required order and three or more steps (launch, load project, save variant; prepare, run, finish) is an `enum` of states with the transitions as functions, never a set of flags such as `ok` plus `reutilizado`. Use typestate (one type per state, each transition consumes the previous one) only for an order that has already failed twice. Do not write the object-oriented State pattern with `Box<dyn Estado>`, and add no session-type or state-machine crate. A new flow of this size ships its state diagram in `docs/`.
 - **Edits to PVsyst files preserve every byte they do not own.** Encoding, CRLF line endings, unknown keys and field order survive a round trip. A round-trip test proves it.
 - **No magic numbers.** A flag bit, an offset or a PVsyst code gets a named constant and a note saying where it was measured.
 - **Retryable operations are idempotent.** Running a tool call twice leaves the same workspace as running it once.
