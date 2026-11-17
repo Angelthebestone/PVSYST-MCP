@@ -17,6 +17,8 @@ Sube por la escalera solo hasta donde el cambio lo necesita. Cada peldaño gasta
 - Lee `docs/checklist_fiabilidad.md` y ejecuta los ítems cuyo disparador coincide con el diff.
 - Si tocaste `format/`: round-trip, idempotencia y, si reescribiste algo, comparación byte a byte contra la versión anterior sobre todos los fixtures.
 - Si el cambio llega a la GUI: un solo agente a la vez, lanza PVsyst una vez y cierra `TDEMOForm` si aparece.
+- Cambio de GUI: guarda una captura de la ventana como evidencia y adjúntala al PR. Usa los nombres de `docs/pvsyst_features.md` y `docs/gui_mapa.json`.
+- Un script que maneja CLI o GUI se escribe una vez en `scripts/` o `tools/`, con su prueba; no se improvisa uno nuevo cada vez.
 - Un test inestable no se reintenta ni se duerme: causa raíz o borrarlo con motivo.
 - Tres rondas fallidas sobre la misma comprobación: detente y reporta qué se probó y por qué falló.
 

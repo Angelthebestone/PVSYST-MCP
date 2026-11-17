@@ -117,7 +117,7 @@ ruff check tools; ruff format --check tools; mypy --strict tools; pytest -q tool
 
 ## 9. DOCS AND GIT
 
-- **Comments explain why, never what.** If the what needs a comment, rename. Match the language of the file you touch.
+- **Comments explain why, never what.** If the what needs a comment, rename. Match the language of the file you touch. A comment never justifies a workaround: the next agent copies the workaround and trusts the excuse. Fix the cause, or record the measured PVsyst fact that forces the behavior.
 - **Public API carries a docstring.** When the tool surface, an environment variable or a requirement changes, `README.md` changes in the same commit. Behavior changes get a `CHANGELOG.md` entry under `## [Unreleased]`.
 - **Conventional Commits:** `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`. The message says why.
 - **No AI co-author trailers.**
@@ -128,6 +128,9 @@ ruff check tools; ruff format --check tools; mypy --strict tools; pytest -q tool
 
 Verification is what lets an agent work alone. Build it as carefully as production code, keep it out of the agent's reach, and grade it against the bugs that actually happened.
 
+- **Code before prose.** Every time an agent is corrected, ask in this order: can a type or an API make the mistake impossible, can `clippy.toml`, `tools/check_deps.py` or a test fail on it, can it be a checklist item with a trigger. A line in this file is the last resort, because only code is reproducible. A check's error message names the cause to fix, not the symptom to patch.
+- **The codebase is the main input.** Agents copy what they find: a workaround, a deprecated path or a duplicated pattern becomes the template for the next change. Never imitate an anti-pattern because it is already there. In a module you touch, delete the dead path in its own commit, or report it; do not add one more copy.
+- **Ban the trap, do not warn about it.** An API that needs nuance to use well and is misused twice goes into `clippy.toml` (`disallowed-methods`, `disallowed-macros`) or into `tools/check_deps.py`, with an exception allowed only in the one module that owns it.
 - **Run the change, not only the tests.** Climb the ladder only as far as the change needs: fixtures, then `fake_pvsystcli`, then `dry_run`, then one live run. The steps live in `.agents/skills/verificar/SKILL.md`; follow them before every commit that changes behavior PVsyst observes.
 - **Three rounds, then a human.** After three failed fix rounds on the same check, stop. The report says which check, what each round tried and why it failed, so the reviewer does not rebuild the story from the diff.
 - **Flaky tests are never worked around.** No retry until green, no `sleep`, no `#[ignore]` to hide one. Find the root cause. If you cannot, delete the test and say why in the commit.
@@ -136,10 +139,14 @@ Verification is what lets an agent work alone. Build it as carefully as producti
 - **A change never edits its own judge.** `agents.md`, `clippy.toml`, `deny.toml`, `tools/check_deps.py`, `scripts/verificar.ps1`, `.github/workflows/` and the fixtures' expected outputs change in their own commit, with no feature code, and the commit says what the gate accepts now that it rejected before.
 - **Reliability checklist.** `docs/checklist_fiabilidad.md` lists PVsyst traps: each has a trigger visible in a diff, a check, and the measurement or incident behind it. Before each commit, run the items whose trigger matches the diff, usually fewer than five.
 - **Misses become rules.** A bug that reached `main`, or a mistake seen in two reviews, becomes a checklist item with its origin. A rule with no trigger a diff can show is not a rule.
+- **Evidence, not diffs.** Review looks at artifacts: a PVsyst file that opens, the CLI output, a screenshot of the GUI window, the MCP response. A change to GUI behavior attaches its capture to the PR. `docs/pvsyst_features.md` and `docs/gui_mapa.json` are the feature map and shared vocabulary: name features and windows as they appear there, and a feature with no entry there is not verified.
+- **Reuse the driver.** A script that drives the CLI or the GUI is written once, committed under `scripts/` or `tools/`, and tested. A throwaway script written twice is a defect.
+- **Clean before automating.** Do not put an agent loop on top of a dirty codebase or a weak check: it multiplies slop and trial executions. Add the check first, then the loop.
 - **Cheap checks first.** Scoped check and `cargo fmt` pass locally before asking for review or pushing. Never spend a reviewer's time on what a command would have caught.
 - **One primary reviewer, several rounds.** Tune one reviewer instead of stacking a second. Later rounds read the earlier findings and the commit under review; a review of an older commit is void. Grade each finding: must-fix, should-fix, nit, or pre-existing (not the author's).
 - **Stamp the commit.** Every commit ends with a `Verified:` trailer naming what ran (`scoped`, `gate`, `fake-cli`, `live x2`, `checklist`) or `Verified: none (reason)`, so unverified work can be found with `git log --grep`.
-- **Prune.** At the end of each phase, delete rules, checklist items and tests that no longer fire or that another one covers. Documents that only grow stop being read.
+- **Scope each rule.** A correction becomes a rule with its trigger and its limit, not a blanket ban: an agent that over-rotates on a narrow fix turns it into a law and breaks other work.
+- **Prune and measure.** At the end of each phase, delete rules, checklist items and tests that no longer fire or that another one covers, and report how many commits of the phase were later reverted. Documents that only grow stop being read.
 
 ## 11. DEFINITION OF DONE
 
