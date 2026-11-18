@@ -99,6 +99,10 @@ def _boton_de(f: Json) -> str | None:
     for candidato in ("No", "Cancelar"):
         if normalizar_etiqueta(candidato) in botones:
             return candidato
+    # A notice with no choice (measured: «Por favor elija al menos una variable»,
+    # only OK, no question) offers nothing to confirm, so acknowledging it is safe.
+    if "?" not in textos and len(botones) == 1 and botones <= {"ok", "aceptar"}:
+        return "OK" if "ok" in botones else "Aceptar"
     return None
 
 

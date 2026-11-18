@@ -144,6 +144,15 @@ def test_limpiar_leaves_an_unknown_dialog_open_instead_of_pressing_ok() -> None:
     assert c.clics == []
 
 
+def test_limpiar_acknowledges_a_notice_that_has_only_ok_and_asks_nothing() -> None:
+    f = formulario(["x"])
+    f["textos"] = ["advertencia", "Por favor elija al menos una variable"]
+    c = PVsystFalso({"TMessageForm": f}, {})
+    c.abiertas.append({"class": "TMessageForm", "title": "m"})
+
+    assert limpiar(c) == [] and c.clics == ["OK"]
+
+
 def test_limpiar_rejects_an_unknown_dialog_with_cancelar() -> None:
     f = formulario(["x"])
     f["textos"] = ["Operación no reconocida"]
