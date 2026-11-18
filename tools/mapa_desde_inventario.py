@@ -68,6 +68,10 @@ class Remedio:
 
 
 ESTADO_SIN_PROYECTO = "Sin proyecto cargado; ventana recién abierta, sin editar"
+ESTADO_PROYECTO_BOMBEO = (
+    "Proyecto Z_E2E_Bombeo (tipo Bombeo, sitio Central Dakar) cargado; "
+    "ventana recién abierta, sin editar"
+)
 ESTADO_NUEVO = (
     "Objeto nuevo sin completar ni guardar (diálogo «Nuevo» de la base de datos)"
 )
@@ -121,6 +125,16 @@ REMEDIOS: dict[str, Remedio] = {
             "TPreferencesForm": "configuraciones.preferencias",
             "TMeteoImportForm": "bases_de_datos.importar_formato_conocido",
             "TMeteoTablesGraphsForm": "bases_de_datos.tablas_graficos_meteo",
+        }.items()
+    },
+    **{
+        clase: Remedio(reemplaza=abierta_con, estado=ESTADO_PROYECTO_BOMBEO)
+        for clase, abierta_con in {
+            "TSettingsForm": "ventana_proyecto.proyecto.configuracion",
+            "TGeoSiteForm": "ventana_proyecto.sitio.detalles",
+            "TSystemPumpingForm": "bombeo > Sistema",
+            "TWaterUseForm": "bombeo > Necesidades de agua",
+            "TCurrenciesForm": "TEcoEvaluationForm>Tasas",
         }.items()
     },
     **{
@@ -274,7 +288,9 @@ def _alcance(mapa: Json) -> list[str]:
         f"{ALCANCE}`pagina` solo cambia el TPageControl principal: en una ventana con "
         "hojas anidadas solo se registró la subpágina visible de cada pestaña y sus "
         "campos son un subconjunto (TPVModuleForm: `que:inventario` lista 17 hojas, 5 "
-        "principales). Hay ventanas que vetan el cambio de pestaña hasta que el objeto "
+        "principales); `pestanas` de `que:formulario` también puede listar una hoja "
+        "anidada como si fuera pestaña (TSystemPumpingForm: «Sugerencias de "
+        "pre-dimensionamiento», con `pagina 2` fuera de rango). Hay ventanas que vetan el cambio de pestaña hasta que el objeto "
         "está completo (TPVModuleForm, TGridInverterForm); `estado_medido` dice si se "
         "completó en memoria.",
         f"{ALCANCE}`etiqueta` de un campo sin texto propio sale de OCR y puede estar mal "
