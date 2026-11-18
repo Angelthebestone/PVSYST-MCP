@@ -61,7 +61,9 @@ fn should_name_every_accepted_window_when_none_of_them_opened() {
 }
 
 /// An alternative is a second class, never a replacement: the entry keeps
-/// announcing the primary one that descriptions and the contract name.
+/// announcing the primary one that descriptions and the contract name. One
+/// builder sets both, because an alternative alone leaves `esperadas` with no
+/// class to accept and the wait would take any new window for the expected one.
 #[test]
 fn should_keep_the_announced_class_when_a_function_declares_an_alternative() {
     for f in funciones().filter(|f| f.abre_tambien.is_some()) {
@@ -105,8 +107,7 @@ fn should_publish_a_function_under_the_alternative_class_it_opens() {
 /// The shape `variante.necesidades_usuario_independiente` measured on 8.1.8.
 fn de_dos_ventanas() -> Funcion {
     Funcion::boton("prueba.dos_ventanas", "TProjectForm", "Necesidades usuario")
-        .abre("TDomesticUseForm")
-        .o_tambien("TUserNeedsForm")
+        .abre_con_alternativa("TDomesticUseForm", "TUserNeedsForm")
 }
 
 /// GUI-12: `menus` listed ids and positions but no name for any entry.

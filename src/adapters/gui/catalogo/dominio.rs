@@ -136,10 +136,17 @@ impl Funcion {
         self
     }
 
-    /// Records a second class the function was seen to open for another kind of
-    /// project: the wait and the check accept either one.
-    pub(crate) const fn o_tambien(mut self, clase: &'static str) -> Self {
-        self.abre_tambien = Some(clase);
+    /// Records the class of the window the function was seen to open and a second
+    /// one it shows for another kind of project; the wait and the check accept
+    /// either. Both fields are set here, so an alternative without an announced
+    /// class cannot be declared: the wait would accept any new window.
+    pub(crate) const fn abre_con_alternativa(
+        mut self,
+        principal: &'static str,
+        alternativa: &'static str,
+    ) -> Self {
+        self.abre = Some(principal);
+        self.abre_tambien = Some(alternativa);
         self
     }
 

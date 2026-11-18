@@ -22,8 +22,7 @@ pub(super) const FUNCIONES: &[Funcion] = &[
         HOST,
         "Necesidades usuario",
     )
-    .abre("TDomesticUseForm")
-    .o_tambien("TUserNeedsForm")
+    .abre_con_alternativa("TDomesticUseForm", "TUserNeedsForm")
     .nota("requiere un proyecto de tipo sistema independiente abierto"),
     Funcion::boton("variante.necesidades_agua", HOST, "Necesidades de agua")
         .abre("TWaterUseForm")
