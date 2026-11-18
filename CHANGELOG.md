@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`pestana`, `subpestana`) pair is one page now: distinct sub-tabs are summed, repeats of one pair still
   keep its fullest page, and a page without `subpestana` counts as before. No page of the map carries the
   field yet, so today's `campos_en_mapa` and `botones_en_mapa` do not change.
+- **The catalogue no longer says «Necesidades usuario» always opens `TDomesticUseForm`.** Measured on
+  8.1.8, the demo `_DEMO_StandAlone` opens it, while a stand-alone project created with
+  `disenar_sistema tipo_sistema:aislado` opens `TUserNeedsForm`; the entry still declares the demo
+  window, and its module note now says which project each window was observed with. Documentation
+  only: the button, its caption and its declared window are unchanged.
 - **`gui_actuar accion:clic_texto` presses the button whose caption is that text, not the
   combo box that shows the same word (measured: `TChoixObjetPVForm` captions «Abrir» both a
   `TComboBox` and a `TButton`).** The click was aimed at the first place the search met (an OCR box,

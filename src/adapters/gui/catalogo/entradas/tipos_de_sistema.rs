@@ -2,6 +2,11 @@
 //! the system window each type opens. They need a project of that type
 //! loaded (`proyecto.nuevo_*` then Carga, or a recent project); observed live
 //! on the PVsyst demo projects.
+//!
+//! The window «Necesidades usuario» opens depends on the project: measured on
+//! 8.1.8, the demo `_DEMO_StandAlone` opens `TDomesticUseForm`, while a
+//! stand-alone project created with `disenar_sistema tipo_sistema:aislado`
+//! opens `TUserNeedsForm`. The entry declares the demo one.
 
 use crate::adapters::gui::catalogo::dominio::Funcion;
 use crate::adapters::gui::rotulos::pvsyst::SISTEMA;
@@ -9,6 +14,8 @@ use crate::adapters::gui::rotulos::pvsyst::SISTEMA;
 const HOST: &str = "TProjectForm";
 
 pub(super) const FUNCIONES: &[Funcion] = &[
+    // `_DEMO_StandAlone` opens `TDomesticUseForm` here and a synthetic
+    // stand-alone project opens `TUserNeedsForm`, so `abre` holds for the demo.
     Funcion::boton(
         "variante.necesidades_usuario_independiente",
         HOST,
