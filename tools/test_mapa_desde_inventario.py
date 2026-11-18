@@ -230,6 +230,35 @@ def test_replaces_the_instance_named_by_abierta_con_and_prefers_measured_rotulos
     assert "sin_rotulo" not in instancias[1]["paginas"][1]
 
 
+def test_remeasures_two_openings_of_the_same_window_under_their_own_keys(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        mapa_py,
+        "REMEDIOS",
+        {
+            "TPerdidasForm#variante.perdidas": Remedio(reemplaza="variante.perdidas"),
+            "TPerdidasForm#bombeo > Perdidas": Remedio(
+                reemplaza="bombeo > Perdidas", estado="Proyecto de bombeo"
+            ),
+        },
+    )
+    una = inventario_de_prueba()["TPerdidasForm"]
+    otra = inventario_de_prueba()["TPerdidasForm"]
+    otra["pestanas"] = otra["pestanas"][:1]
+    inventario = {
+        "TPerdidasForm#variante.perdidas": una,
+        "TPerdidasForm#bombeo > Perdidas": otra,
+    }
+
+    nuevo = remedir(mapa_de_prueba(), inventario)
+
+    instancias = nuevo["ventanas"]["TPerdidasForm"]["instancias"]
+    assert [len(i["paginas"]) for i in instancias] == [3, 1]
+    assert instancias[1]["estado_medido"] == "Proyecto de bombeo"
+    assert instancias[0]["estado_medido"] == "no registrado"
+
+
 @pytest.mark.usefixtures("remedios")
 def test_replaces_its_own_note_instead_of_appending_another() -> None:
     una_vez = remedir(mapa_de_prueba(), inventario_de_prueba())

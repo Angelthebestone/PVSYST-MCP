@@ -10,6 +10,11 @@ per page, so for the windows of the inventory this script replaces the pages of
 the map with the measured ones and leaves the rest of the file byte for byte as
 it was.
 
+An inventory entry is keyed by the window class, or by `Clase#abierta_con` when
+the same window was measured through more than one opening (each opening is a
+different instance of the map, in a different state); `REMEDIOS` uses the same
+key and its `ventana` field is always the class.
+
 What the inventory brings and the map keeps:
   - `campos`, `botones` (with `habilitado`) and `indice_pestana` come from the
     inventory; each field also keeps its `marcado` and `habilitado`.
@@ -311,10 +316,11 @@ def _anotar_alcance(mapa: Json) -> None:
 def remedir(mapa: Json, inventario: Json) -> Json:
     """A copy of `mapa` with the windows of `inventario` regenerated."""
     nuevo = copy.deepcopy(mapa)
-    for clase, medida in inventario.items():
-        if clase not in nuevo["ventanas"] or clase not in REMEDIOS:
-            raise KeyError(f"{clase}: not in the map or in REMEDIOS")
-        _remedir_ventana(clase, nuevo["ventanas"][clase], medida, REMEDIOS[clase])
+    for clave, medida in inventario.items():
+        clase = medida["ventana"]
+        if clase not in nuevo["ventanas"] or clave not in REMEDIOS:
+            raise KeyError(f"{clave}: not in the map or in REMEDIOS")
+        _remedir_ventana(clase, nuevo["ventanas"][clase], medida, REMEDIOS[clave])
     _anotar_alcance(nuevo)
     return nuevo
 
