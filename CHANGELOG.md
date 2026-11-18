@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **`gui_observar que:esquema` publishes a window under every catalogue function that opens it, not
+  only under the one that announces it.** `abierta_con` was built from `Funcion::abre` alone, so
+  `TUserNeedsForm` listed `variante.autoconsumo` and hid `variante.necesidades_usuario_independiente`,
+  which opens it on a stand-alone project created with `disenar_sistema tipo_sistema:aislado`. The
+  alternative class counts now: `abierta_con` of `TUserNeedsForm` is
+  `["variante.autoconsumo", "variante.necesidades_usuario_independiente"]` in catalogue order, and no
+  other class changes. `que:funciones` and its `abre` field are untouched.
+- **A catalogue entry can no longer declare an alternative window without the one it announces.** The
+  accepted classes of a function were built as `principal = Funcion.abre?`, so an entry carrying only
+  the alternative answered no expected class at all and the wait took any new window for the expected
+  one: `completo:true` with nothing checked. The alternative now comes from one builder,
+  `Funcion::abre_con_alternativa(principal, alternativa)`, which sets both classes, and the coherence
+  test of the real catalogue stays as the second line of defence.
+- **`gui_actuar accion:clic_texto` says which disabled button it skipped.** With an enabled «Abrir»
+  beside a disabled one (measured on `TSystemegridForm`) the click pressed the enabled button and the
+  answer said nothing about the other, which used to be an error when the caption was shared. The
+  answer now carries `descartados` (`[{clase, hwnd, centro}]` of each disabled button with that
+  caption) and only when there was one, so a click that skipped nothing keeps the answer it had; the
+  OCR and UIA paths never carry it. The refusal for a caption only disabled buttons carry now reads
+  «El rótulo '{texto}' aparece solo en botones deshabilitados», grammatical for one button too.
 - **The coverage count of `gui_observar que:esquema` adds every sub-tab of a page.** A page of
   `docs/gui_mapa.json` may now carry `subpestana`, but the counter keyed pages by `pestana` alone, so a
   window with nested sheets (`TPVModuleForm`, «Parámetros del modelo» → «Degradación», «IAM
@@ -23,24 +43,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `TDomesticUseForm`, while a project created with `disenar_sistema tipo_sistema:aislado` makes it open
   `TUserNeedsForm`; the entry declared only the demo window, so the second case opened the window and
   still answered `completo:false` with «PVsyst no abrió la ventana esperada (TDomesticUseForm) en el
-  plazo de espera». A catalogue entry can now declare an alternative window (`.o_tambien`) beside the
-  announced one, the wait counts either as arrived, and the error names every accepted class
-  (`TDomesticUseForm / TUserNeedsForm`). `abre` stays the announced class, so the `que:funciones`
-  listing and the `abierta_con` that `que:esquema` publishes keep naming only `TDomesticUseForm`; the
-  button, its caption and its note are unchanged.
+  plazo de espera». A catalogue entry can now declare an alternative window
+  (`Funcion::abre_con_alternativa(principal, alternativa)`) beside the announced one, which sets both
+  classes so the alternative cannot come alone; the wait counts either as arrived, and the error names
+  every accepted class (`TDomesticUseForm / TUserNeedsForm`). `abre` stays the announced class, so
+  `que:funciones` keeps announcing only `TDomesticUseForm`; the button, its caption and its note are
+  unchanged.
 - **`gui_actuar accion:clic_texto` presses the button whose caption is that text, not the
   combo box that shows the same word (measured: `TChoixObjetPVForm` captions «Abrir» both a
   `TComboBox` and a `TButton`).** The click was aimed at the first place the search met (an OCR box,
   or the UIA element of that name), so a caption shared by several controls could land on the combo.
   A visible button whose own caption is the text now wins over combos, edits and labels, folded as
   OCR folds it (`&Abrir` equals `Abrir`); the class is read before the caption, so only the buttons of
-  the form cost a message. Two buttons with the same caption are refused, naming each class, position
-  and hwnd (the value `accion:click ventana:<hwnd>` takes), instead of pressing one of them. `indice`
-  keeps counting the drawn matches and skips that step, and with no button carrying the text the click
-  works as before (OCR, then UIA). The answer gains `origen` (`control`, `ocr` or `uia`) saying where
-  the target came from; `coincidencias` keeps counting the OCR matches (0 when the button was pressed
-  by its caption, which no longer answers the `coincidencias:0` warning that only an unconfirmed UIA
-  click carries).
+  the form cost a message. Two enabled buttons with the same caption are refused, naming each class,
+  position and hwnd (the value `accion:click ventana:<hwnd>` takes), instead of pressing one of them.
+  `indice` keeps counting the drawn matches and skips that step, and with no button carrying the text
+  the click works as before (OCR, then UIA). The answer gains `origen` (`control`, `ocr` or `uia`)
+  saying where the target came from; `coincidencias` keeps counting the OCR matches (0 when the button
+  was pressed by its caption, which no longer answers the `coincidencias:0` warning that only an
+  unconfirmed UIA click carries).
 - **The README no longer says the `workspace` argument reaches the actions that run PVsystCLI (A.4.4 of the visual GUI test report).** It moves the confinement root for the file tools, but `sitio crear`, `sitio convertir_meteo` and `simular` reject a workspace other than the one configured in PVsyst (`DataPath` of `PVsyst.ini`) with a named error. Documentation only: the error was already right.
 - **`simular accion:preparar` with only `archivo_rvt` no longer fails asking for `batch_rvt_file`.** The tool declared `archivo_rvt` and routed to the RVT manager on it, but the manager read only `batch_rvt_file` or `archivo`, so the call stopped with `Falta 'batch_rvt_file' o 'archivo'`. It now reads `batch_rvt_file`, then `archivo_rvt`, then `archivo`, and the error names the three.
 - **`docs/gui_mapa.json` is remeasured for 10 windows, and says the state it was measured in and what

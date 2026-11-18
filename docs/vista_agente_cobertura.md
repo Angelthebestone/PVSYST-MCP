@@ -141,7 +141,7 @@ recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactament
 | `TThinObjectsForm` | escena_3d | 2 | sí (`escena_3d.herramientas.sombreado_objetos_delgados`) | 3 | 1 | 1 |
 | `TToolsForm` | aplicacion | 3 | sí (`inicio.herramientas`) | 0 | 6 | 1 |
 | `TTranspositionForm` | variante | 2 | sí (`herramientas.factor_transposicion`) | — | — | 1 |
-| `TUserNeedsForm` | variante | 2 | sí (`variante.autoconsumo`) | 8 | 6 | 2 |
+| `TUserNeedsForm` | variante | 2 | sí (`variante.autoconsumo`, `variante.necesidades_usuario_independiente`) | 8 | 6 | 2 |
 | `TVCManageForm` | variante | 2 | no | — | — | 1 |
 | `TVoltageOptimiseForm` | variante | 2 | no | — | — | 1 |
 | `TWaterUseForm` | variante | 2 | sí (`variante.necesidades_agua`) | 11 | 4 | 1 |
@@ -166,7 +166,7 @@ Medido en vivo con el release (PVsyst 8.1.7; la tabla de objetos del editor 3D y
 - La geometría vale para el control medido: clase y ventana anfitriona (`TVirtualStringTree` de `TProjectLoadForm`; `TListBox` de `TChoixObjetPVForm` titulado «Eligiendo un módulo FV»; `TVirtualStringTree` de `TShdObjectSelectionForm`). Los otros 14 selectores y cualquier otro control se rechazan con un error que lista dónde se midió.
 - Antes del clic `fila` exige que la ventana esté al frente y el control tenga el foco, y que el punto de clic caiga dentro del control; se niega con menos de 3 huecos visibles. La banda se lee comparando la captura de antes y la de después, y se comprueba que ninguna ventana se abrió ni se cerró.
 
-`que:esquema` trae `abierta_con` por clase: las funciones del catálogo que la abren. `herramientas.factor_transposicion` declara `TTranspositionForm`, la ventana que se vio abrir en vivo; `TArrayCharactForm` la abre `herramientas.comportamiento_electrico`.
+`que:esquema` trae `abierta_con` por clase: las funciones del catálogo que la abren, en orden de catálogo. `herramientas.factor_transposicion` declara `TTranspositionForm`, la ventana que se vio abrir en vivo; `TArrayCharactForm` la abre `herramientas.comportamiento_electrico`. Una entrada que abre una clase solo en otro tipo de proyecto también cuenta: `TUserNeedsForm` la listan `variante.autoconsumo` (la que la anuncia) y `variante.necesidades_usuario_independiente` (la que la abre en un proyecto creado con `disenar_sistema tipo_sistema:aislado`).
 
 ## Barras de acciones (`TActionToolBar`, Tarea D idea 4)
 Decisión: **no se ofrece una acción por coordenadas de barra**. Un clic ciego en un icono no tiene postcondición sin OCR (a diferencia de
