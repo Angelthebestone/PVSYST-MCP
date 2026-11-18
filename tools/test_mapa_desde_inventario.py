@@ -285,6 +285,32 @@ def test_adding_an_opening_keeps_the_instances_already_remeasured(
     assert serializar(dos_veces) == serializar(una_vez)
 
 
+def test_two_projects_opened_by_the_same_function_stay_two_instances(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        mapa_py,
+        "REMEDIOS",
+        {
+            "TSeguidorForm": Remedio(anadir_con="variante.orientacion", estado="fijo"),
+            "TSeguidorForm#seguidor": Remedio(
+                reemplaza="variante.orientacion", estado="seguidor"
+            ),
+        },
+    )
+    medida = inventario_de_prueba()["TSeguidorForm"]
+    inventario = {"TSeguidorForm": medida, "TSeguidorForm#seguidor": medida}
+
+    una_vez = remedir(mapa_de_prueba(), inventario)
+    dos_veces = remedir(una_vez, inventario)
+
+    estados = [
+        i["estado_medido"] for i in dos_veces["ventanas"]["TSeguidorForm"]["instancias"]
+    ]
+    assert estados == ["seguidor", "fijo"]
+    assert serializar(dos_veces) == serializar(una_vez)
+
+
 @pytest.mark.usefixtures("remedios")
 def test_replaces_its_own_note_instead_of_appending_another() -> None:
     una_vez = remedir(mapa_de_prueba(), inventario_de_prueba())

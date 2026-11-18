@@ -263,10 +263,17 @@ def _remedir_ventana(clase: str, ventana: Json, medida: Json, remedio: Remedio) 
         raise ValueError(f"{clase}: the inventory reports errors {medida['errores']}")
     instancias: list[Json] = ventana["instancias"]
     if remedio.anadir_con is not None:
+        # Same key and same state: another instance opened by the same function (a
+        # different project) is not this one. Changing `estado` leaves the old
+        # instance in the map, where it shows as a duplicate.
         instancias[:] = [
             i
             for i in instancias
-            if not (_viene_del_inventario(i) and i["abierta_con"] == remedio.anadir_con)
+            if not (
+                _viene_del_inventario(i)
+                and i["abierta_con"] == remedio.anadir_con
+                and i["estado_medido"] == remedio.estado
+            )
         ]
         instancias.append(
             _instancia(medida, medida["titulo"], remedio.anadir_con, {}, remedio.estado)
