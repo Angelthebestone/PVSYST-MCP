@@ -98,7 +98,7 @@ fn abrir_funcion(pedido: Pedido, funcion: &Funcion) -> Result<Value> {
 
 /// Why PVsyst opened none of the windows the function declares; every accepted
 /// class is named. The wording keeps `did not open the expected window`, which
-/// `tools/medir_gui.py` reads to tell this case from a failed click.
+/// `abrir` of `tools/medir_ventanas.py` reads to tell this case from a failed click.
 pub(super) fn no_abrio(idioma: Idioma, esperada: VentanaEsperada) -> String {
     let texto = Texto {
         es: "PVsyst no abrió la ventana esperada ({clases}) en el plazo de espera",
