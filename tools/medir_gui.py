@@ -194,21 +194,24 @@ def _boton_de(textos: str) -> str:
     return "No" if ("guard" in textos or "mantener" in textos) else "OK"
 
 
+def _cerrar(c: Cliente, clase: str) -> str | None:
+    """Close one window, answering its prompts as `_boton_de` says; the text pressed."""
+    if clase != "TMessageForm":
+        c.tool("gui_actuar", {"accion": "cerrar", "ventana": clase})
+        return None
+    f = c.tool("gui_observar", {"que": "formulario", "ventana": clase})
+    boton = _boton_de(" ".join(f.get("textos") or []).lower())
+    c.tool("gui_actuar", {"accion": "clic_texto", "ventana": clase, "texto": boton})
+    return boton
+
+
 def limpiar(c: Cliente) -> list[str]:
     """Close every window but the main ones; the classes still open if it gives up."""
     for _ in range(12):
         sobra = [w for w in ventanas(c) if w["class"] not in MANTENER]
         if not sobra:
             return []
-        clase = sobra[0]["class"]
-        if clase == "TMessageForm":
-            f = c.tool("gui_observar", {"que": "formulario", "ventana": clase})
-            boton = _boton_de(" ".join(f.get("textos") or []).lower())
-            c.tool(
-                "gui_actuar", {"accion": "clic_texto", "ventana": clase, "texto": boton}
-            )
-        else:
-            c.tool("gui_actuar", {"accion": "cerrar", "ventana": clase})
+        _cerrar(c, sobra[0]["class"])
         _dormir(0.6)
     return [w["class"] for w in ventanas(c) if w["class"] not in MANTENER]
 
