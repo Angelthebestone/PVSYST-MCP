@@ -1,8 +1,10 @@
 """One target of the manifest: open its window, inventory it, close it.
 
 `medir` is the unit `main` repeats per `clave`: clean the windows, open the target by
-its chain, read every tab, optionally press its buttons, refuse a measurement that
-recorded an error and close what it opened, always.
+its chain, read every tab, optionally press its buttons, refuse a measurement whose
+inventory recorded an error and close what it opened, always. A press that fails is
+not an inventory error: its reason stays in `botones_abren` and the fields already
+measured are merged.
 """
 
 from __future__ import annotations
@@ -37,8 +39,6 @@ def medir(c: Cliente, objetivo: Json, botones: bool = False) -> Json | str:
             return fallo
         if botones:
             medida["botones_abren"] = pulsar_botones(c, objetivo, medida)
-            # Pressing may have lost the host window for good: errors it recorded.
-            return _rechazar(medida) or medida
         return medida
     except ErrorMedicion as e:
         return str(e)

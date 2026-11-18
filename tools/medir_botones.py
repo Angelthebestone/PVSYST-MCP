@@ -140,11 +140,6 @@ def _error_de(respuesta: Json) -> str | None:
     return None if error is None else str(error)
 
 
-def _error_de_pestana(pestana: Json, texto: str) -> Json:
-    """A problem of one tab, in the shape `inventariar` records its errors."""
-    return {"indice": pestana["indice"], "pestana": pestana["pestana"], "texto": texto}
-
-
 def _abre(nuevas: list[Json], cerradas: list[Json]) -> list[Json]:
     """The windows a press opened, with the text that dismissed each one."""
     por_huella = {(e["clase"], e["titulo"]): e for e in cerradas}
@@ -201,9 +196,10 @@ def _reabrir(c: Cliente, objetivo: Json, pestana: Json) -> str | None:
 def pulsar_botones(c: Cliente, objetivo: Json, medida: Json) -> list[Json]:
     """Press every allowed button of the measured tabs: the `botones_abren` list.
 
-    One entry per press. A press can close the host window or make PVsyst veto the
-    next tab change: the host is reopened and, when that fails, the reason goes to
-    `medida["errores"]` and the target keeps what it measured up to there.
+    One entry per press, plus a `parado` entry when a press closes the host and it
+    cannot be reopened or its tab cannot be selected again. Those failures stay
+    here and not in `medida["errores"]`: the fields already measured are valid and
+    are still merged.
     """
     clase = objetivo["ventana"]
     registros: list[Json] = []
@@ -227,8 +223,8 @@ def pulsar_botones(c: Cliente, objetivo: Json, medida: Json) -> list[Json]:
             fallo = _abrir_pestana(c, clase, pestana["indice"])
             if fallo:
                 cerrar_nuevas(c, previas)
-                medida["errores"].append(_error_de_pestana(pestana, fallo))
-                break
+                registros.append({"pestana": pestana["pestana"], "parado": fallo})
+                return registros
             registros.append(
                 {"pestana": pestana["pestana"], **_pulsar(c, clase, texto)}
             )
@@ -236,8 +232,11 @@ def pulsar_botones(c: Cliente, objetivo: Json, medida: Json) -> list[Json]:
                 return registros
             fallo = _reabrir(c, objetivo, pestana)
             if fallo:
-                medida["errores"].append(
-                    _error_de_pestana(pestana, f"after pressing {texto!r}: {fallo}")
+                registros.append(
+                    {
+                        "pestana": pestana["pestana"],
+                        "parado": f"after pressing {texto!r}: {fallo}",
+                    }
                 )
                 return registros
     if quedan:

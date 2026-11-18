@@ -222,6 +222,22 @@ def test_pulsar_botones_reopens_the_host_the_press_closed() -> None:
     ]
 
 
+def test_pulsar_botones_records_the_tab_it_could_not_reopen_and_stops() -> None:
+    f = formulario([], pestanas=["Uno"])
+    f["paginas"][0]["botones"] = botones_de("Abrir")
+    c = PVsystFalso({"TX": f}, {"a": "TX"}, {"Abrir": {"cierra": None}})
+    assert abrir(c, "a", "TX") is None
+    medida = inventariar(c, "TX")
+    c.vetadas = {0}
+
+    abren = pulsar_botones(c, objetivo_de("TX"), medida)
+
+    assert c.clics == []
+    assert abren[0]["pestana"] == "Uno"
+    assert "vetoed" in abren[0]["parado"]
+    assert medida["errores"] == []
+
+
 def test_pulsar_botones_records_the_host_it_could_not_reopen() -> None:
     f = formulario([])
     f["paginas"][0]["botones"] = botones_de("Ver estado")
@@ -240,8 +256,10 @@ def test_pulsar_botones_records_the_host_it_could_not_reopen() -> None:
 
     abren = pulsar_botones(c, objetivo_de("TX"), medida)
 
-    assert len(abren) == 1
-    assert "PVsyst is not running" in medida["errores"][0]["texto"]
+    assert len(abren) == 2
+    assert abren[0]["boton"] == "Ver estado"
+    assert "PVsyst is not running" in abren[-1]["parado"]
+    assert medida["errores"] == []
 
 
 def test_pulsar_botones_stops_at_forty_presses() -> None:

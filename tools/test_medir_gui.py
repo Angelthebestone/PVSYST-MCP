@@ -94,6 +94,31 @@ def test_main_merges_botones_abren_only_when_it_pressed_them(tmp_path: Path) -> 
     ]
 
 
+def test_main_merges_the_fields_when_a_press_cannot_reopen_the_host(
+    tmp_path: Path,
+) -> None:
+    f = formulario(["a"])
+    f["paginas"][0]["botones"] = botones_de("Ver estado")
+    c = PVsystFalso({"TA": f}, {"a": "TA"}, {"Ver estado": {"cierra": "TA"}})
+    llamar = c.tool
+
+    def tool(nombre: str, a: dict[str, Any]) -> dict[str, Any]:
+        abierta = "TA" in [w["class"] for w in c.abiertas]
+        if a.get("funcion") == "a" and c.funciones and not abierta:
+            return {"error": "PVsyst is not running"}
+        return llamar(nombre, a)
+
+    c.tool = tool  # type: ignore[method-assign]
+
+    codigo = main(argumentos(tmp_path, "--solo", "TA", "--botones"), fabrica_de(c))
+
+    inventario = json.loads((tmp_path / "inventario.json").read_text())
+    assert codigo == 0
+    assert inventario["TA"]["pestanas"][0]["campos"][0]["etiqueta"] == "a"
+    assert inventario["TA"]["errores"] == []
+    assert "PVsyst is not running" in inventario["TA"]["botones_abren"][-1]["parado"]
+
+
 def test_main_exits_1_and_keeps_the_old_entry_when_a_target_does_not_open(
     tmp_path: Path,
 ) -> None:
