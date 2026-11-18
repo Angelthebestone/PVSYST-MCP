@@ -31,24 +31,27 @@ fn mas_lleno(a: Conteo, b: Conteo) -> Conteo {
     }
 }
 
-/// Fields and buttons of one instance: per tab, its fullest page (the map repeats pages
-/// and a tab-less window can have several), summed over tabs. Both numbers come from
-/// the same page, never the best of each.
+/// Fields and buttons of one instance: per tab and sub-tab, its fullest page (the map
+/// repeats pages, a tab-less window can have several, and a tab with nested sub-tabs is
+/// one page per sub-tab), summed over tabs and sub-tabs. Both numbers come from the same
+/// page, never the best of each.
 fn contar_instancia(instancia: &Value) -> Conteo {
     let paginas = instancia
         .get("paginas")
         .and_then(Value::as_array)
         .into_iter()
         .flatten();
-    let mut por_pestana: HashMap<Option<&str>, Conteo> = HashMap::new();
+    let mut por_pagina: HashMap<(Option<&str>, Option<&str>), Conteo> = HashMap::new();
     for p in paginas {
+        let pagina = (
+            p.get("pestana").and_then(Value::as_str),
+            p.get("subpestana").and_then(Value::as_str),
+        );
         let conteo = (longitud(p, "campos"), longitud(p, "botones"));
-        let mejor = por_pestana
-            .entry(p.get("pestana").and_then(Value::as_str))
-            .or_insert(conteo);
+        let mejor = por_pagina.entry(pagina).or_insert(conteo);
         *mejor = mas_lleno(*mejor, conteo);
     }
-    por_pestana
+    por_pagina
         .values()
         .fold((0, 0), |(c, b), (campos, botones)| {
             (c + campos, b + botones)
