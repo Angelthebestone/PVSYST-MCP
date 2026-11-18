@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **The README no longer says the `workspace` argument reaches the actions that run PVsystCLI (A.4.4 of the visual GUI test report).** It moves the confinement root for the file tools, but `sitio crear`, `sitio convertir_meteo` and `simular` reject a workspace other than the one configured in PVsyst (`DataPath` of `PVsyst.ini`) with a named error. Documentation only: the error was already right.
 - **`simular accion:preparar` with only `archivo_rvt` no longer fails asking for `batch_rvt_file`.** The tool declared `archivo_rvt` and routed to the RVT manager on it, but the manager read only `batch_rvt_file` or `archivo`, so the call stopped with `Falta 'batch_rvt_file' o 'archivo'`. It now reads `batch_rvt_file`, then `archivo_rvt`, then `archivo`, and the error names the three.
 - **`docs/gui_mapa.json` is remeasured for 10 windows, and says the state it was measured in and what
   it does not cover (2.1, 2.3, 2.4, 2.6 and 2.7 of the visual GUI test report).** The old collector kept at

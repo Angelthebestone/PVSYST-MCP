@@ -336,6 +336,10 @@ An empty value counts as unset, so the default or auto-detection applies.
 > accepts an explicit `workspace` argument on every tool. That argument moves the
 > confinement root itself (every path check is relative to it), so it is a
 > deliberate capability of this local server: only connect MCP clients you trust.
+> It does not reach the actions that run PVsystCLI (for example `sitio crear` or
+> `simular`): PVsystCLI only works on the workspace configured in PVsyst
+> (`DataPath` of `PVsyst.ini`), so those actions reject any other one with an error
+> that names it.
 
 ---
 

@@ -334,7 +334,10 @@ Un valor vacío cuenta como no definido, así que se aplica el valor por defecto
 > El MCP detecta el workspace real automáticamente y también acepta un argumento `workspace`
 > explícito en todas las tools. Ese argumento mueve la raíz del confinamiento (todas las
 > comprobaciones de ruta son relativas a él), así que es una capacidad deliberada de este
-> servidor local: conecta solo clientes MCP en los que confíes.
+> servidor local: conecta solo clientes MCP en los que confíes. No alcanza a las acciones que
+> ejecutan PVsystCLI (por ejemplo `sitio crear` o `simular`): PVsystCLI solo trabaja sobre el
+> workspace configurado en PVsyst (`DataPath` de `PVsyst.ini`), así que esas acciones rechazan
+> cualquier otro con un error que lo nombra.
 
 ---
 
