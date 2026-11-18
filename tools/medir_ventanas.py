@@ -75,10 +75,14 @@ def _boton_de(textos: str) -> str:
     return "No" if ("guard" in textos or "mantener" in textos) else "OK"
 
 
-def _cerrar(c: Cliente, clase: str) -> str | None:
-    """Close one window, answering its prompts as `_boton_de` says; the text pressed."""
+def _cerrar(c: Cliente, clase: str, titulo: str | None = None) -> str | None:
+    """Close one window, answering its prompts as `_boton_de` says; the text pressed.
+
+    `titulo` picks one of several windows that share a class; without it the class
+    is the reference.
+    """
     if clase != "TMessageForm":
-        c.tool("gui_actuar", {"accion": "cerrar", "ventana": clase})
+        c.tool("gui_actuar", {"accion": "cerrar", "ventana": titulo or clase})
         return None
     f = c.tool("gui_observar", {"que": "formulario", "ventana": clase})
     boton = _boton_de(" ".join(f.get("textos") or []).lower())

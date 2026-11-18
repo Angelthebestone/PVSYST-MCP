@@ -124,7 +124,10 @@ class PVsystFalso:
             self.pagina[a["ventana"]] = a["indice"]
         elif accion == "cerrar":
             if a["ventana"] not in self.incerrables:
-                self.abiertas = [w for w in self.abiertas if w["class"] != a["ventana"]]
+                for i, w in enumerate(self.abiertas):
+                    if a["ventana"] in (w["class"], w.get("title")):
+                        del self.abiertas[i]
+                        break
         elif accion == "clic_texto":
             self.clics.append(a["texto"])
             efecto = self.botones.get(a["texto"], {})

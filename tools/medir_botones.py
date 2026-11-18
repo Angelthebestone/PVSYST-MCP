@@ -16,7 +16,7 @@ import unicodedata
 from collections.abc import Collection
 
 from medir_cliente import Cliente, Json
-from medir_ventanas import _cerrar, _dormir, abrir, clases, ventanas
+from medir_ventanas import MANTENER, _cerrar, _dormir, abrir, clases, ventanas
 
 # White list, not a black list: a label this tool does not know is left alone.
 # A black list misses the next synonym, and the windows add one every release: one
@@ -45,22 +45,44 @@ PERMITIDOS = (
 MAX_PULSACIONES = 40
 
 
-def cerrar_nuevas(c: Cliente, previas: Collection[str]) -> dict[str, str]:
-    """Close only the windows that were not open before; the text per class.
+def huellas(c: Cliente) -> set[tuple[str, str]]:
+    """Class and title of the open windows: what a press is compared against."""
+    return {(w["class"], str(w.get("title") or "")) for w in ventanas(c)}
 
-    `limpiar` closes everything but the main windows, host included, so it cannot
-    run between two presses; this one leaves the windows in `previas` alone.
+
+def cerrar_nuevas(c: Cliente, previas: Collection[tuple[str, str]]) -> list[Json]:
+    """Close only the windows that were not open before; one entry per window.
+
+    A window is new when its `(class, title)` pair was not in `previas`: comparing
+    the class alone missed a second window of a class that was already open and
+    collapsed two new windows of that class into one. The main windows of
+    `MANTENER` are never closed. `limpiar` closes everything but the main windows,
+    host included, so it cannot run between two presses; this one leaves `previas`
+    alone. A class with two new windows keeps its two entries even when one close
+    removes both from the screen.
     """
-    pulsados: dict[str, str] = {}
+    cerradas: dict[tuple[str, str], Json] = {}
     for _ in range(12):
-        sobra = [w for w in ventanas(c) if w["class"] not in previas]
+        for w in ventanas(c):
+            clave = (w["class"], str(w.get("title") or ""))
+            if w["class"] in MANTENER or clave in previas:
+                continue
+            cerradas.setdefault(clave, {"clase": clave[0], "titulo": clave[1]})
+        sobra = [
+            w
+            for w in ventanas(c)
+            if w["class"] not in MANTENER
+            and (w["class"], str(w.get("title") or "")) not in previas
+        ]
         if not sobra:
-            return pulsados
-        texto = _cerrar(c, sobra[0]["class"])
+            break
+        w = sobra[0]
+        clave = (w["class"], str(w.get("title") or ""))
+        texto = _cerrar(c, w["class"], w.get("title"))
         if texto is not None:
-            pulsados[sobra[0]["class"]] = texto
+            cerradas[clave]["cierra"] = texto
         _dormir(0.6)
-    return pulsados
+    return list(cerradas.values())
 
 
 def _normalizado(texto: str) -> str:
@@ -99,13 +121,15 @@ def _error_de_pestana(pestana: Json, texto: str) -> Json:
     return {"indice": pestana["indice"], "pestana": pestana["pestana"], "texto": texto}
 
 
-def _abre(nuevas: list[Json], cerradas: dict[str, str]) -> list[Json]:
+def _abre(nuevas: list[Json], cerradas: list[Json]) -> list[Json]:
     """The windows a press opened, with the text that dismissed each one."""
+    por_huella = {(e["clase"], e["titulo"]): e for e in cerradas}
     salida: list[Json] = []
     for w in nuevas:
         entrada: Json = {"clase": w["class"], "titulo": w.get("title")}
-        if w["class"] in cerradas:
-            entrada["cierra"] = cerradas[w["class"]]
+        cierre = por_huella.get((w["class"], w.get("title")))
+        if cierre is not None and "cierra" in cierre:
+            entrada["cierra"] = cierre["cierra"]
         salida.append(entrada)
     return salida
 
@@ -122,10 +146,12 @@ def _abrir_pestana(c: Cliente, clase: str, indice: int | None) -> str | None:
 
 def _pulsar(c: Cliente, clase: str, texto: str) -> Json:
     """Press one button of the window and dismiss what it opened: its entry."""
-    previas = clases(c)
+    previas = huellas(c)
     r = c.tool("gui_actuar", {"accion": "clic_texto", "ventana": clase, "texto": texto})
     _dormir(0.8)
-    nuevas = [w for w in ventanas(c) if w["class"] not in previas]
+    nuevas = [
+        w for w in ventanas(c) if (w["class"], str(w.get("title") or "")) not in previas
+    ]
     cerradas = cerrar_nuevas(c, previas)
     return {"boton": texto, "abre": _abre(nuevas, cerradas), "error": _error_de(r)}
 
@@ -166,7 +192,7 @@ def pulsar_botones(c: Cliente, objetivo: Json, medida: Json) -> list[Json]:
             pulsados += 1
             # A press can switch the tab: the buttons on screen are not always the
             # ones this tab lists, and a text shared by two tabs would hit the wrong one.
-            previas = clases(c)
+            previas = huellas(c)
             fallo = _abrir_pestana(c, clase, pestana["indice"])
             if fallo:
                 cerrar_nuevas(c, previas)
