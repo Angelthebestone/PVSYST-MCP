@@ -3,7 +3,7 @@
 import medir_ventanas
 from medir_cliente import Json
 from medir_ventanas import abrir, asegurar_pvsyst, cargar_proyecto, limpiar
-from pvsyst_falso import PVsystFalso, formulario
+from pvsyst_falso import PVsystFalso, botones_de, formulario
 
 # pytest finds the autouse fixture through this import; the tests never call it.
 from pvsyst_falso import sin_esperas  # noqa: F401
@@ -12,6 +12,7 @@ from pvsyst_falso import sin_esperas  # noqa: F401
 def test_limpiar_answers_no_to_a_save_prompt_and_keeps_the_main_windows() -> None:
     f = formulario(["x"])
     f["textos"] = ["¿Desea guardarla?"]
+    f["paginas"][0]["botones"] = botones_de("Sí", "No", "Cancelar")
     c = PVsystFalso({"TMessageForm": f}, {})
     c.abiertas += [
         {"class": "TProjectForm", "title": "P"},
@@ -93,10 +94,32 @@ def test_a_project_whose_name_contains_the_requested_one_is_not_it() -> None:
 def test_the_discard_question_is_answered_si_and_the_save_one_no() -> None:
     f = formulario(["x"])
     f["textos"] = ["¿Quiere cancelar las modificaciones?"]
+    f["paginas"][0]["botones"] = botones_de("Sí", "No")
     c = PVsystFalso({"TMessageForm": f}, {})
     c.abiertas.append({"class": "TMessageForm", "title": "m"})
 
     assert limpiar(c) == [] and c.clics == ["Sí"]
+
+
+def test_limpiar_leaves_an_unknown_dialog_open_instead_of_pressing_ok() -> None:
+    f = formulario(["x"])
+    f["textos"] = ["¿Desea crear un sitio nuevo?"]
+    c = PVsystFalso({"TMessageForm": f}, {})
+    c.abiertas.append({"class": "TMessageForm", "title": "m"})
+
+    assert limpiar(c) == ["TMessageForm"]
+    assert c.clics == []
+
+
+def test_limpiar_rejects_an_unknown_dialog_with_cancelar() -> None:
+    f = formulario(["x"])
+    f["textos"] = ["Operación no reconocida"]
+    f["paginas"][0]["botones"] = botones_de("OK", "Cancelar")
+    c = PVsystFalso({"TMessageForm": f}, {})
+    c.abiertas.append({"class": "TMessageForm", "title": "m"})
+
+    assert limpiar(c) == []
+    assert c.clics == ["Cancelar"]
 
 
 def test_limpiar_reports_what_it_could_not_close() -> None:

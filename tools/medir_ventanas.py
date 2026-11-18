@@ -74,13 +74,26 @@ def asegurar_pvsyst(c: Cliente) -> str | None:
     return "PVsyst did not start"
 
 
-def _boton_de(textos: str) -> str:
-    """The answer to a message box that never saves: Sí to «cancel the
-    modifications?» (measured on 8.1.8, rotulos/dialogos.rs), No to «save?»,
-    OK otherwise."""
+def _boton_de(f: Json) -> str | None:
+    """The rejection a message box offers, or None when it offers none.
+
+    No answers «save?» and «keep the modifications?»; Sí is pressed only for the
+    measured «cancel the modifications?» question, where it means discard. Any
+    other dialog is rejected with No or Cancelar; a dialog without either stays
+    open instead of accepting an operation nobody asked for.
+    """
+    textos = normalizar_etiqueta(" ".join(str(t) for t in f.get("textos") or []))
+    botones = {
+        normalizar_etiqueta(str(b.get("texto") or ""))
+        for b in f.get("botones") or []
+        if b.get("habilitado") is not False
+    }
     if "cancelar las modificaciones" in textos:
-        return "Sí"
-    return "No" if ("guard" in textos or "mantener" in textos) else "OK"
+        return "Sí" if normalizar_etiqueta("Sí") in botones else None
+    for candidato in ("No", "Cancelar"):
+        if normalizar_etiqueta(candidato) in botones:
+            return candidato
+    return None
 
 
 def _cerrar(c: Cliente, clase: str, titulo: str | None = None) -> str | None:
@@ -93,7 +106,9 @@ def _cerrar(c: Cliente, clase: str, titulo: str | None = None) -> str | None:
         c.tool("gui_actuar", {"accion": "cerrar", "ventana": titulo or clase})
         return None
     f = c.tool("gui_observar", {"que": "formulario", "ventana": clase})
-    boton = _boton_de(" ".join(f.get("textos") or []).lower())
+    boton = _boton_de(f)
+    if boton is None:
+        return None
     c.tool("gui_actuar", {"accion": "clic_texto", "ventana": clase, "texto": boton})
     return boton
 

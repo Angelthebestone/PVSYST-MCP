@@ -17,6 +17,7 @@ from collections.abc import Collection
 from medir_cliente import Cliente, Json
 from medir_ventanas import (
     MANTENER,
+    _boton_de,
     _cerrar,
     _dormir,
     abrir,
@@ -57,8 +58,25 @@ def huellas(c: Cliente) -> set[tuple[str, str]]:
     return {(w["class"], str(w.get("title") or "")) for w in ventanas(c)}
 
 
-def cerrar_nuevas(c: Cliente, previas: Collection[tuple[str, str]]) -> list[Json]:
-    """Close only the windows that were not open before; one entry per window.
+def _rechazo_de(c: Cliente, clase: str) -> tuple[str | None, str | None]:
+    """Read a dialog and answer it with a rejection; the button, or why it stays open."""
+    f = c.tool("gui_observar", {"que": "formulario", "ventana": clase})
+    fallo = _error_de(f)
+    if fallo is not None:
+        return None, f"reading {clase} failed: {fallo[:200]}"
+    boton = _boton_de(f)
+    if boton is None:
+        textos = f.get("textos") or []
+        botones = [b.get("texto") for b in f.get("botones") or []]
+        return None, f"unrecognised dialog, left open: {textos} (buttons: {botones})"
+    c.tool("gui_actuar", {"accion": "clic_texto", "ventana": clase, "texto": boton})
+    return boton, None
+
+
+def cerrar_nuevas(
+    c: Cliente, previas: Collection[tuple[str, str]]
+) -> tuple[list[Json], str | None]:
+    """Close only the windows that were not open before; entries and a stop reason.
 
     A window is new when its `(class, title)` pair was not in `previas`: comparing
     the class alone missed a second window of a class that was already open and
@@ -66,7 +84,9 @@ def cerrar_nuevas(c: Cliente, previas: Collection[tuple[str, str]]) -> list[Json
     `MANTENER` are never closed. `limpiar` closes everything but the main windows,
     host included, so it cannot run between two presses; this one leaves `previas`
     alone. A class with two new windows keeps its two entries even when one close
-    removes both from the screen.
+    removes both from the screen. A dialog opened by the press is answered with a
+    rejection (`_boton_de`); when it offers none it stays open and its text is the
+    stop reason.
     """
     cerradas: dict[tuple[str, str], Json] = {}
     for _ in range(12):
@@ -85,11 +105,15 @@ def cerrar_nuevas(c: Cliente, previas: Collection[tuple[str, str]]) -> list[Json
             break
         w = sobra[0]
         clave = (w["class"], str(w.get("title") or ""))
-        texto = _cerrar(c, w["class"], w.get("title"))
-        if texto is not None:
+        if w["class"] == "TMessageForm":
+            texto, fallo = _rechazo_de(c, "TMessageForm")
+            if fallo is not None:
+                return list(cerradas.values()), fallo
             cerradas[clave]["cierra"] = texto
+        else:
+            _cerrar(c, w["class"], w.get("title"))
         _dormir(0.6)
-    return list(cerradas.values())
+    return list(cerradas.values()), None
 
 
 def _permitido(texto: str) -> bool:
@@ -152,8 +176,15 @@ def _pulsar(c: Cliente, clase: str, texto: str) -> Json:
     nuevas = [
         w for w in ventanas(c) if (w["class"], str(w.get("title") or "")) not in previas
     ]
-    cerradas = cerrar_nuevas(c, previas)
-    return {"boton": texto, "abre": _abre(nuevas, cerradas), "error": _error_de(r)}
+    cerradas, parado = cerrar_nuevas(c, previas)
+    entrada: Json = {
+        "boton": texto,
+        "abre": _abre(nuevas, cerradas),
+        "error": parado or _error_de(r),
+    }
+    if parado is not None:
+        entrada["parado"] = parado
+    return entrada
 
 
 def _reabrir(c: Cliente, objetivo: Json, pestana: Json) -> str | None:
@@ -201,6 +232,8 @@ def pulsar_botones(c: Cliente, objetivo: Json, medida: Json) -> list[Json]:
             registros.append(
                 {"pestana": pestana["pestana"], **_pulsar(c, clase, texto)}
             )
+            if "parado" in registros[-1]:
+                return registros
             fallo = _reabrir(c, objetivo, pestana)
             if fallo:
                 medida["errores"].append(

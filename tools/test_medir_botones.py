@@ -19,7 +19,9 @@ def test_cerrar_nuevas_compares_class_and_title_and_keeps_the_main_windows() -> 
         {"class": "TProjectForm", "title": "Proyecto"},
     ]
 
-    cerradas = cerrar_nuevas(c, {("THomeForm", "PVsyst"), ("TA", "vieja")})
+    cerradas, parado = cerrar_nuevas(c, {("THomeForm", "PVsyst"), ("TA", "vieja")})
+
+    assert parado is None
 
     assert [(e["clase"], e["titulo"]) for e in cerradas] == [
         ("TA", "nueva"),
@@ -127,6 +129,7 @@ def test_pulsar_botones_answers_the_prompt_a_button_opens_and_records_it() -> No
     f["paginas"][0]["botones"] = botones_de("Ver aviso")
     pregunta = formulario([])
     pregunta["textos"] = ["¿Desea guardarla?"]
+    pregunta["paginas"][0]["botones"] = botones_de("Sí", "No", "Cancelar")
     c = PVsystFalso(
         {"TX": f, "TMessageForm": pregunta},
         {"a": "TX"},
@@ -141,6 +144,50 @@ def test_pulsar_botones_answers_the_prompt_a_button_opens_and_records_it() -> No
     ]
     assert c.clics == ["Ver aviso", "No"]
     assert "TMessageForm" not in [w["class"] for w in c.abiertas]
+
+
+def test_pulsar_botones_rejects_an_unknown_dialog_with_no() -> None:
+    f = formulario([])
+    f["paginas"][0]["botones"] = botones_de("Ver sitio")
+    pregunta = formulario([])
+    pregunta["textos"] = ["¿Desea crear un sitio nuevo?"]
+    pregunta["paginas"][0]["botones"] = botones_de("Sí", "No")
+    c = PVsystFalso(
+        {"TX": f, "TMessageForm": pregunta},
+        {"a": "TX"},
+        {"Ver sitio": {"abre": "TMessageForm", "cierra": None}},
+    )
+    assert abrir(c, "a", "TX") is None
+
+    abren = pulsar_botones(c, objetivo_de("TX"), inventariar(c, "TX"))
+
+    assert c.clics == ["Ver sitio", "No"]
+    assert abren[0]["abre"] == [
+        {"clase": "TMessageForm", "titulo": "t", "cierra": "No"}
+    ]
+    assert "parado" not in abren[0]
+
+
+def test_pulsar_botones_stops_when_a_dialog_has_no_rejection_button() -> None:
+    f = formulario([])
+    f["paginas"][0]["botones"] = botones_de("Ver sitio", "Ver otro")
+    pregunta = formulario([])
+    pregunta["textos"] = ["¿Desea crear un sitio nuevo?"]
+    c = PVsystFalso(
+        {"TX": f, "TMessageForm": pregunta},
+        {"a": "TX"},
+        {"Ver sitio": {"abre": "TMessageForm", "cierra": None}},
+    )
+    assert abrir(c, "a", "TX") is None
+
+    abren = pulsar_botones(c, objetivo_de("TX"), inventariar(c, "TX"))
+
+    assert c.clics == ["Ver sitio"]
+    assert len(abren) == 1
+    assert "¿Desea crear un sitio nuevo?" in abren[0]["error"]
+    assert abren[0]["parado"] == abren[0]["error"]
+    assert abren[0]["abre"] == [{"clase": "TMessageForm", "titulo": "t"}]
+    assert "TMessageForm" in [w["class"] for w in c.abiertas]
 
 
 def test_pulsar_botones_records_an_ambiguous_text_and_does_not_retry_it() -> None:
