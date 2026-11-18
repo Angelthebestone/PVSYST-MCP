@@ -7,26 +7,19 @@ from typing import Any
 
 import pytest
 
+import medir_cliente
 import medir_gui
-from medir_gui import (
-    Json,
-    abrir,
-    ClienteMcp,
-    ErrorMedicion,
-    asegurar_pvsyst,
-    cargar_proyecto,
-    leer_pagina,
-    inventariar,
-    limpiar,
-    main,
-    pulsar_botones,
-    volcar,
-)
+import medir_ventanas
+from medir_botones import pulsar_botones
+from medir_cliente import ClienteMcp, Json
+from medir_gui import main
+from medir_inventario import ErrorMedicion, inventariar, leer_pagina, volcar
+from medir_ventanas import abrir, asegurar_pvsyst, cargar_proyecto, limpiar
 
 
 @pytest.fixture(autouse=True)
 def _sin_esperas(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(medir_gui, "PAUSA", 0)
+    monkeypatch.setattr(medir_ventanas, "PAUSA", 0)
 
 
 def campo(etiqueta: str) -> Json:
@@ -555,10 +548,10 @@ def test_a_project_whose_name_contains_the_requested_one_is_not_it() -> None:
     c.abiertas.append({"class": "TProjectForm", "title": "Proyecto _DEMO_Commercial2"})
     c.abiertas.append({"class": "TProjectForm", "title": "Proyecto X_DEMO_Commercial"})
 
-    assert medir_gui._es_proyecto(c.abiertas[-1], "_DEMO_Commercial") is False
-    assert medir_gui._es_proyecto(c.abiertas[-2], "_DEMO_Commercial") is False
+    assert medir_ventanas._es_proyecto(c.abiertas[-1], "_DEMO_Commercial") is False
+    assert medir_ventanas._es_proyecto(c.abiertas[-2], "_DEMO_Commercial") is False
     ok = {"class": "TProjectForm", "title": "Proyecto _DEMO_Commercial - VC0"}
-    assert medir_gui._es_proyecto(ok, "_DEMO_Commercial") is True
+    assert medir_ventanas._es_proyecto(ok, "_DEMO_Commercial") is True
 
 
 def test_the_discard_question_is_answered_si_and_the_save_one_no() -> None:
@@ -581,7 +574,7 @@ def test_limpiar_reports_what_it_could_not_close() -> None:
 def test_a_server_that_never_answers_times_out_instead_of_hanging(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(medir_gui, "PLAZO", 1.0)
+    monkeypatch.setattr(medir_cliente, "PLAZO", 1.0)
     # Answers `initialize`, then reads forever without answering anything else.
     servidor = (
         "import sys, json\n"
