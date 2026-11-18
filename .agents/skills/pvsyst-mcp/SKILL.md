@@ -52,7 +52,10 @@ reporta el error; no inventes cifras de producción, PR ni pérdidas.
 4. Marcar una casilla puede desbloquear entre 1 y 22 campos nuevos: vuelve a leer
    después y no reutilices la lista de antes.
 5. `docs/gui_mapa.json` es una foto de un estado y trunca campos por página
-   (muchas quedaron en 13): úsalo como pista, no como inventario.
+   (muchas quedaron en 13): úsalo como pista, no como inventario. Solo las
+   instancias con `estado_medido` están completas, y lo están para ese estado
+   (una casilla o un combo muestran u ocultan campos); `limites` dice qué sigue
+   truncado.
 
 ## Alcance del proyecto
 

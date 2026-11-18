@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **`docs/gui_mapa.json` is remeasured for 10 windows, and says the state it was measured in and what
+  it does not cover (2.1, 2.3, 2.4, 2.6 and 2.7 of the visual GUI test report).** The old collector kept at
+  most 13 fields per page and never said which state of the window it saw. Now
+  `tools/mapa_desde_inventario.py` regenerates, from `docs/gui_inventario_pestanas.json` (Win32
+  enumeration of every field, no OCR), instance 0 of `TDetailedLossesForm` (95 → 123 fields),
+  `TSystemegridForm` (13 → 28), `TSystemeAddForm` (17 → 11, with the missing first tab `Temperatura
+  inversor`, so every `indice_pestana` was off by one), `TGridStorageForm` (13 → 1) and `THorizonForm`,
+  `TShadingsForm`, `TEcoEvaluationForm`, `TUserNeedsForm`, `TSummaryForm` (same counts, now with `marcado`
+  and `habilitado` per field); `TOrientationForm` keeps the tracker instance and gains the fixed-tilt one.
+  Each regenerated instance carries `estado_medido` (`"Sin almacenamiento"`, `"P50-P90 con Activo
+  desmarcado"`, the fixed tilt of the demo project, or `"no registrado"` where the report does not say),
+  and `limites` states that everything else is still truncated at 13 (72 of 265 pages hold exactly 13),
+  that `TPVModuleForm` has four tabs recorded as the first one, and that some OCR labels are values. The
+  rest of the map is unchanged byte for byte; `python tools/mapa_desde_inventario.py --check` fails when
+  the map is not what the script writes. Pending, needs a live PVsyst: `TPVModuleForm`, the remaining
+  ~80 windows, the other openings of the regenerated ones.
 - **`vista.recortado` names a list `detalle` cut inside an object.** A project with more than 13 variants
   answered `truncado:true`, 13 `variants` and `variants_total:16` inside the project, and `vista.recortado`
   stayed empty: the trimmer writes `<clave>_total` next to the list it cut at whatever depth, but the vista
