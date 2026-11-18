@@ -67,6 +67,11 @@ class Remedio:
     estado: str = NO_REGISTRADO
 
 
+ESTADO_SIN_PROYECTO = "Sin proyecto cargado; ventana recién abierta, sin editar"
+ESTADO_NUEVO = (
+    "Objeto nuevo sin completar ni guardar (diálogo «Nuevo» de la base de datos)"
+)
+
 # Why each entry: INFORME_PRUEBAS_GUI_VISUAL_2026-11-17.md, sections 2.3, 2.4, 2.6.
 REMEDIOS: dict[str, Remedio] = {
     "TDetailedLossesForm": Remedio(),
@@ -106,6 +111,29 @@ REMEDIOS: dict[str, Remedio] = {
             "anidadas no recorridas"
         ),
     ),
+    **{
+        clase: Remedio(reemplaza=abierta_con, estado=ESTADO_SIN_PROYECTO)
+        for clase, abierta_con in {
+            "TArrayCharactForm": "herramientas.comportamiento_electrico",
+            "TParamSolForm": "herramientas.parametros_solares",
+            "TVoltageOptimiseForm": "herramientas.optimizacion_voltaje",
+            "TTranspositionForm": "herramientas.factor_transposicion",
+            "TPreferencesForm": "configuraciones.preferencias",
+            "TMeteoImportForm": "bases_de_datos.importar_formato_conocido",
+            "TMeteoTablesGraphsForm": "bases_de_datos.tablas_graficos_meteo",
+        }.items()
+    },
+    **{
+        clase: Remedio(reemplaza=abierta_con, estado=ESTADO_NUEVO)
+        for clase, abierta_con in {
+            "TBatteryForm": "bases_de_datos.baterias>Nuevo",
+            "TPumpForm": "bases_de_datos.bombas>Nuevo",
+            "TPumpControllerForm": "bases_de_datos.controladores_bombeo>Nuevo",
+            "TSAControllerForm": "bases_de_datos.controladores_independientes>Nuevo",
+            "TGeneratorForm": "bases_de_datos.generadores>Nuevo",
+            "TContactForm": "bases_de_datos.fabricantes_minoristas>Nuevo",
+        }.items()
+    },
 }
 
 
@@ -243,12 +271,17 @@ def _alcance(mapa: Json) -> list[str]:
         "TGridInverterForm «Parámetros adicionales» muestra 37). También siguen sin "
         "remedir las demás aperturas de esas ventanas (independiente, bombeo, red_cc "
         "y similares).",
-        f"{ALCANCE}TPVModuleForm tiene sus 5 pestañas grabadas como la misma página "
-        "`Datos básicos`: PVsyst veta el cambio de pestaña mientras el módulo no tiene "
-        "nombre. Solo la primera es válida; las otras 4 siguen pendientes de remedir.",
-        f"{ALCANCE}en las páginas sin `estado_medido` algunas `etiqueta` son el valor "
-        "del campo leído por OCR y no su rótulo (TResultForm, TGenerSyntheForm, "
-        "TBatteryForm, TPreferencesForm): `campo` no las encuentra.",
+        f"{ALCANCE}`pagina` solo cambia el TPageControl principal: en una ventana con "
+        "hojas anidadas solo se registró la subpágina visible de cada pestaña y sus "
+        "campos son un subconjunto (TPVModuleForm: `que:inventario` lista 17 hojas, 5 "
+        "principales). Hay ventanas que vetan el cambio de pestaña hasta que el objeto "
+        "está completo (TPVModuleForm, TGridInverterForm); `estado_medido` dice si se "
+        "completó en memoria.",
+        f"{ALCANCE}`etiqueta` de un campo sin texto propio sale de OCR y puede estar mal "
+        "leída (`o mulsc`, `Tol,`): las páginas medidas con `etiqueta_fuente` la guardan "
+        "en cada campo; las otras no. En las páginas sin `estado_medido` algunas "
+        "`etiqueta` son el valor del campo y no su rótulo (TResultForm, "
+        "TGenerSyntheForm): `campo` no las encuentra.",
     ]
 
 
