@@ -28,7 +28,8 @@ import sys
 import tempfile
 import threading
 import time
-from collections.abc import Callable
+import unicodedata
+from collections.abc import Callable, Collection
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -43,6 +44,41 @@ CLAVES_CAMPO = ("clase", "etiqueta", "etiqueta_fuente", "marcado", "habilitado")
 MANTENER = ("THomeForm", "TApplication", "TProjectForm")
 # Search box of TProjectLoadForm, client coordinates at 96 DPI.
 BUSCADOR = {"clase": "TEdit", "x": 1077, "y": 49}
+# Never pressed while measuring, matched as a prefix of the text in lower case and
+# without accents: `OK`, `Cancelar` and `Cerrar` are the buttons of every dialog and
+# close the window being measured; the `Guardar`/`Aplicar`/`Establecer` family writes
+# the window's state (PVsyst then offers to save the demo project); `Eliminar`,
+# `Borrar`, `Reset` and `Reiniciar` destroy what is being measured; and `Nuevo`,
+# `Añadir`, `Importar`, `Exportar`, `Imprimir`, `Siguiente` and `Previo` leave the
+# window in a flow the measurement does not know how to unwind.
+DENEGADOS = (
+    "ok",
+    "cancelar",
+    "cerrar",
+    "guardar",
+    "eliminar",
+    "borrar",
+    "pegar",
+    "copiar",
+    "establecer",
+    "aplicar",
+    "optimizar",
+    "linealizar",
+    "imprimir",
+    "exportar",
+    "siguiente",
+    "previo",
+    "añadir",
+    "nuevo",
+    "importar",
+    "leer / importar",
+    "horizonte despejado",
+    "reiniciar",
+    "reset",
+)
+# A form with many tabs lists hundreds of buttons and each press costs a click, two
+# window reads and a wait; the cap keeps one target from eating the whole session.
+MAX_PULSACIONES = 40
 
 # Multiplies every wait; the tests set it to 0.
 PAUSA = 1.0
@@ -173,6 +209,11 @@ def ventanas(c: Cliente) -> list[Json]:
     return list(r.get("windows", []))
 
 
+def clases(c: Cliente) -> set[str]:
+    """Classes of the open windows: what a press is compared against."""
+    return {w["class"] for w in ventanas(c)}
+
+
 def asegurar_pvsyst(c: Cliente) -> str | None:
     """Launch PVsyst when no PVsyst process is running; an error text, or None."""
     if "windows" in c.tool("gui_observar", {"que": "ventanas", "visibles": True}):
@@ -214,6 +255,24 @@ def limpiar(c: Cliente) -> list[str]:
         _cerrar(c, sobra[0]["class"])
         _dormir(0.6)
     return [w["class"] for w in ventanas(c) if w["class"] not in MANTENER]
+
+
+def cerrar_nuevas(c: Cliente, previas: Collection[str]) -> dict[str, str]:
+    """Close only the windows that were not open before; the text per class.
+
+    `limpiar` closes everything but the main windows, host included, so it cannot
+    run between two presses; this one leaves the windows in `previas` alone.
+    """
+    pulsados: dict[str, str] = {}
+    for _ in range(12):
+        sobra = [w for w in ventanas(c) if w["class"] not in previas]
+        if not sobra:
+            return pulsados
+        texto = _cerrar(c, sobra[0]["class"])
+        if texto is not None:
+            pulsados[sobra[0]["class"]] = texto
+        _dormir(0.6)
+    return pulsados
 
 
 def cargar_proyecto(c: Cliente, nombre: str) -> str | None:
@@ -345,7 +404,127 @@ def inventariar(c: Cliente, clase: str) -> Json:
     }
 
 
-def medir(c: Cliente, objetivo: Json) -> Json | str:
+def _sin_acentos(texto: str) -> str:
+    """Lower case without accents: «Añadir» and «anadir» must compare equal."""
+    descompuesto = unicodedata.normalize("NFD", texto.lower())
+    return "".join(c for c in descompuesto if not unicodedata.combining(c))
+
+
+def _denegado(texto: str) -> bool:
+    """Whether a button text is on the list this run never presses."""
+    normal = _sin_acentos(texto)
+    return any(normal.startswith(_sin_acentos(d)) for d in DENEGADOS)
+
+
+def _pulsable(boton: Json) -> str | None:
+    """The text to press, or None for a button this run must not press."""
+    texto = str(boton.get("texto") or "").strip()
+    if not texto or boton.get("habilitado") is not True:
+        return None
+    return None if _denegado(texto) else texto
+
+
+def _error_de(respuesta: Json) -> str | None:
+    """The refusal a tool answer carries, if any: `error` first, then a JSON-RPC one."""
+    error = respuesta.get("error")
+    if error is None:
+        error = respuesta.get("jsonrpc_error")
+    return None if error is None else str(error)
+
+
+def _error_de_pestana(pestana: Json, texto: str) -> Json:
+    """A problem of one tab, in the shape `inventariar` records its errors."""
+    return {"indice": pestana["indice"], "pestana": pestana["pestana"], "texto": texto}
+
+
+def _abre(nuevas: list[Json], cerradas: dict[str, str]) -> list[Json]:
+    """The windows a press opened, with the text that dismissed each one."""
+    salida: list[Json] = []
+    for w in nuevas:
+        entrada: Json = {"clase": w["class"], "titulo": w.get("title")}
+        if w["class"] in cerradas:
+            entrada["cierra"] = cerradas[w["class"]]
+        salida.append(entrada)
+    return salida
+
+
+def _abrir_pestana(c: Cliente, clase: str, indice: int | None) -> str | None:
+    """Select one tab again before pressing its buttons; an error text, or None."""
+    if indice is None:
+        return None
+    r = c.tool("gui_actuar", {"accion": "pagina", "ventana": clase, "indice": indice})
+    _dormir(0.5)
+    error = _error_de(r)
+    return None if error is None else error[:300]
+
+
+def _pulsar(c: Cliente, clase: str, texto: str) -> Json:
+    """Press one button of the window and dismiss what it opened: its entry."""
+    previas = clases(c)
+    r = c.tool("gui_actuar", {"accion": "clic_texto", "ventana": clase, "texto": texto})
+    _dormir(0.8)
+    nuevas = [w for w in ventanas(c) if w["class"] not in previas]
+    cerradas = cerrar_nuevas(c, previas)
+    return {"boton": texto, "abre": _abre(nuevas, cerradas), "error": _error_de(r)}
+
+
+def _reabrir(c: Cliente, objetivo: Json, pestana: Json) -> str | None:
+    """Open the host window again when the press closed it; an error text, or None."""
+    clase = objetivo["ventana"]
+    if clase in clases(c):
+        return None
+    # The reopened window starts on its first tab: select the one being pressed.
+    return abrir(c, objetivo["cadena"], clase) or _abrir_pestana(
+        c, clase, pestana["indice"]
+    )
+
+
+def pulsar_botones(c: Cliente, objetivo: Json, medida: Json) -> list[Json]:
+    """Press every allowed button of the measured tabs: the `botones_abren` list.
+
+    One entry per press. A press can close the host window or make PVsyst veto the
+    next tab change: the host is reopened and, when that fails, the reason goes to
+    `medida["errores"]` and the target keeps what it measured up to there.
+    """
+    clase = objetivo["ventana"]
+    registros: list[Json] = []
+    for pestana in medida["pestanas"]:
+        for boton in pestana["botones"]:
+            texto = _pulsable(boton)
+            if texto is None:
+                continue
+            if len(registros) >= MAX_PULSACIONES:
+                return registros
+            # A press can switch the tab: the buttons on screen are not always the
+            # ones this tab lists, and a text shared by two tabs would hit the wrong one.
+            previas = clases(c)
+            fallo = _abrir_pestana(c, clase, pestana["indice"])
+            if fallo:
+                cerrar_nuevas(c, previas)
+                medida["errores"].append(_error_de_pestana(pestana, fallo))
+                break
+            registros.append(
+                {"pestana": pestana["pestana"], **_pulsar(c, clase, texto)}
+            )
+            fallo = _reabrir(c, objetivo, pestana)
+            if fallo:
+                medida["errores"].append(
+                    _error_de_pestana(pestana, f"after pressing {texto!r}: {fallo}")
+                )
+                return registros
+    return registros
+
+
+def _rechazar(medida: Json) -> str | None:
+    """Why a measurement must not be merged, or None."""
+    if medida["errores"]:
+        return f"the window reported errors, nothing merged: {medida['errores']}"
+    if not any(p["campos"] or p["botones"] for p in medida["pestanas"]):
+        return "the window read back with no fields and no buttons, nothing merged"
+    return None
+
+
+def medir(c: Cliente, objetivo: Json, botones: bool = False) -> Json | str:
     """Open, inventory and close one target: the measurement, or an error text."""
     previas = limpiar(c)
     if previas:
@@ -355,15 +534,18 @@ def medir(c: Cliente, objetivo: Json) -> Json | str:
         if fallo:
             return fallo
         medida = inventariar(c, objetivo["ventana"])
+        fallo = _rechazar(medida)
+        if fallo:
+            return fallo
+        if botones:
+            medida["botones_abren"] = pulsar_botones(c, objetivo, medida)
+            # Pressing may have lost the host window for good: errors it recorded.
+            return _rechazar(medida) or medida
+        return medida
     except ErrorMedicion as e:
         return str(e)
     finally:
         limpiar(c)
-    if medida["errores"]:
-        return f"the window reported errors, nothing merged: {medida['errores']}"
-    if not any(p["campos"] or p["botones"] for p in medida["pestanas"]):
-        return "the window read back with no fields and no buttons, nothing merged"
-    return medida
 
 
 def volcar(datos: Json) -> str:
@@ -371,9 +553,10 @@ def volcar(datos: Json) -> str:
 
 
 def fusionar(inventario: Json, clave: str, medida: Json) -> None:
-    inventario[clave] = {
-        k: medida[k] for k in ("ventana", "titulo", "pestanas", "errores")
-    }
+    entrada = {k: medida[k] for k in ("ventana", "titulo", "pestanas", "errores")}
+    if "botones_abren" in medida:
+        entrada["botones_abren"] = medida["botones_abren"]
+    inventario[clave] = entrada
 
 
 def main(
@@ -385,6 +568,11 @@ def main(
     parser.add_argument("--manifiesto", type=Path, default=MANIFIESTO)
     parser.add_argument("--inventario", type=Path, default=INVENTARIO)
     parser.add_argument("--solo", nargs="*", help="measure only these `clave`s")
+    parser.add_argument(
+        "--botones",
+        action="store_true",
+        help="press the allowed buttons of every tab and record what they open",
+    )
     args = parser.parse_args(argv)
 
     objetivos: list[Json] = json.loads(args.manifiesto.read_text(encoding="utf-8"))
@@ -413,7 +601,7 @@ def main(
             return 1
         for o in objetivos:
             try:
-                r = medir(c, o)
+                r = medir(c, o, args.botones)
             except (RuntimeError, TimeoutError) as e:
                 # The server is gone or stuck: keep what was measured, stop here.
                 print(f"{o['clave']}: {e}")
@@ -426,8 +614,12 @@ def main(
             fusionar(inventario, o["clave"], r)
             fusionados += 1
             n = sum(len(p["campos"]) for p in r["pestanas"])
+            pulsados = (
+                f", {len(r['botones_abren'])} presses" if "botones_abren" in r else ""
+            )
             print(
-                f"{o['clave']}: {len(r['pestanas'])} tabs, {n} fields, {len(r['errores'])} errors"
+                f"{o['clave']}: {len(r['pestanas'])} tabs, {n} fields, "
+                f"{len(r['errores'])} errors{pulsados}"
             )
     finally:
         c.cerrar()

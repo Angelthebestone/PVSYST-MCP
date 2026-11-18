@@ -19,6 +19,7 @@ from medir_gui import (
     inventariar,
     limpiar,
     main,
+    pulsar_botones,
     volcar,
 )
 
@@ -57,15 +58,32 @@ def formulario(*paginas: list[str], pestanas: list[str] | None = None) -> Json:
     }
 
 
+def objetivo_de(clave: str) -> Json:
+    return {"clave": clave, "ventana": clave, "cadena": "a"}
+
+
+def botones_de(*textos: str) -> list[Json]:
+    return [{"texto": t, "habilitado": True} for t in textos]
+
+
 class PVsystFalso:
     """Just enough of the MCP tools: windows, forms with tabs, functions and prompts."""
 
-    def __init__(self, formularios: dict[str, Json], abre: dict[str, str]) -> None:
+    def __init__(
+        self,
+        formularios: dict[str, Json],
+        abre: dict[str, str],
+        botones: dict[str, Json] | None = None,
+    ) -> None:
         self.abiertas: list[Json] = [{"class": "THomeForm", "title": "PVsyst"}]
         self.formularios = formularios
         self.abre = abre
+        # What pressing a text does: `abre` a window class, `cierra` one (the window
+        # it was pressed in when the key is absent, none when it is null) or `error`.
+        self.botones = botones or {}
         self.pagina: dict[str, int] = {}
         self.clics: list[str] = []
+        self.funciones: list[str] = []
         self.escrito = ""
         self.cerrado = False
         self.corriendo = True
@@ -99,6 +117,7 @@ class PVsystFalso:
         if accion == "lanzar":
             self.corriendo = self.lanza
         elif accion == "funcion":
+            self.funciones.append(a["funcion"])
             if a["funcion"] not in self.abre:
                 return {"error": f"unknown function {a['funcion']}"}
             self.abiertas.append({"class": self.abre[a["funcion"]], "title": "t"})
@@ -111,7 +130,14 @@ class PVsystFalso:
                 self.abiertas = [w for w in self.abiertas if w["class"] != a["ventana"]]
         elif accion == "clic_texto":
             self.clics.append(a["texto"])
-            self.abiertas = [w for w in self.abiertas if w["class"] != a["ventana"]]
+            efecto = self.botones.get(a["texto"], {})
+            if "error" in efecto:
+                return {"error": efecto["error"]}
+            if "abre" in efecto:
+                self.abiertas.append({"class": efecto["abre"], "title": "t"})
+            cierra = efecto.get("cierra", a["ventana"])
+            if cierra:
+                self.abiertas = [w for w in self.abiertas if w["class"] != cierra]
         elif accion == "escribir":
             self.escrito = a["texto"]
         elif accion == "fila":
@@ -149,6 +175,161 @@ def test_inventariar_a_window_without_tabs_gives_one_page_with_no_index() -> Non
     p = inventariar(c, "TX")["pestanas"]
 
     assert len(p) == 1 and p[0]["indice"] is None and p[0]["pestana"] is None
+
+
+def test_pulsar_botones_presses_each_tab_and_records_the_window_it_opened() -> None:
+    f = formulario(["a"], ["b"], pestanas=["Uno", "Dos"])
+    f["paginas"][0]["botones"] = botones_de("Abrir")
+    f["paginas"][1]["botones"] = botones_de("Consultar")
+    c = PVsystFalso(
+        {"TX": f},
+        {"a": "TX"},
+        {"Abrir": {"abre": "TY", "cierra": None}, "Consultar": {"cierra": None}},
+    )
+    assert abrir(c, "a", "TX") is None
+
+    abren = pulsar_botones(c, objetivo_de("TX"), inventariar(c, "TX"))
+
+    assert [(e["pestana"], e["boton"]) for e in abren] == [
+        ("Uno", "Abrir"),
+        ("Dos", "Consultar"),
+    ]
+    assert abren[0]["abre"] == [{"clase": "TY", "titulo": "t"}]
+    assert abren[1]["abre"] == [] and abren[1]["error"] is None
+    assert [w["class"] for w in c.abiertas] == ["THomeForm", "TX"]
+
+
+def test_pulsar_botones_never_presses_a_denied_disabled_or_empty_button() -> None:
+    denegados = [
+        "OK",
+        "Cancelar",
+        "Cerrar",
+        "Guardar variante",
+        "Eliminar",
+        "Borrar fila",
+        "Pegar",
+        "Copiar",
+        "Establecer",
+        "Aplicar",
+        "Optimizar",
+        "Linealizar",
+        "Imprimir",
+        "Exportar",
+        "Siguiente",
+        "Previo",
+        "Añadir",
+        "Nuevo",
+        "Importar",
+        "Leer / Importar",
+        "Horizonte despejado",
+        "Reiniciar",
+        "Reset",
+        # Case and accents do not save a text from the list.
+        "GUARDAR todo",
+        "Anadir fila",
+        "Añadir fila",
+    ]
+    f = formulario([])
+    f["paginas"][0]["botones"] = [
+        *botones_de(*denegados, "Ver detalles"),
+        {"texto": "No habilitado", "habilitado": False},
+        {"texto": "", "habilitado": True},
+        {"texto": None, "habilitado": True},
+    ]
+    c = PVsystFalso({"TX": f}, {"a": "TX"}, {"Ver detalles": {"cierra": None}})
+    assert abrir(c, "a", "TX") is None
+
+    abren = pulsar_botones(c, objetivo_de("TX"), inventariar(c, "TX"))
+
+    assert [e["boton"] for e in abren] == ["Ver detalles"]
+    assert c.clics == ["Ver detalles"]
+
+
+def test_pulsar_botones_answers_the_prompt_a_button_opens_and_records_it() -> None:
+    f = formulario([])
+    f["paginas"][0]["botones"] = botones_de("Recalcular")
+    pregunta = formulario([])
+    pregunta["textos"] = ["¿Desea guardarla?"]
+    c = PVsystFalso(
+        {"TX": f, "TMessageForm": pregunta},
+        {"a": "TX"},
+        {"Recalcular": {"abre": "TMessageForm", "cierra": None}},
+    )
+    assert abrir(c, "a", "TX") is None
+
+    abren = pulsar_botones(c, objetivo_de("TX"), inventariar(c, "TX"))
+
+    assert abren[0]["abre"] == [
+        {"clase": "TMessageForm", "titulo": "t", "cierra": "No"}
+    ]
+    assert c.clics == ["Recalcular", "No"]
+    assert "TMessageForm" not in [w["class"] for w in c.abiertas]
+
+
+def test_pulsar_botones_records_an_ambiguous_text_and_does_not_retry_it() -> None:
+    f = formulario([])
+    f["paginas"][0]["botones"] = botones_de("Abrir")
+    c = PVsystFalso(
+        {"TX": f},
+        {"a": "TX"},
+        {"Abrir": {"error": "'Abrir' names 2 visible controls (0x1, 0x2)"}},
+    )
+    assert abrir(c, "a", "TX") is None
+
+    abren = pulsar_botones(c, objetivo_de("TX"), inventariar(c, "TX"))
+
+    assert len(abren) == 1 and abren[0]["abre"] == []
+    assert "2 visible controls" in abren[0]["error"]
+    assert c.clics == ["Abrir"]
+
+
+def test_pulsar_botones_reopens_the_host_the_press_closed() -> None:
+    f = formulario([])
+    f["paginas"][0]["botones"] = botones_de("Recalcular")
+    c = PVsystFalso({"TX": f}, {"a": "TX"}, {"Recalcular": {"cierra": "TX"}})
+    assert abrir(c, "a", "TX") is None
+
+    abren = pulsar_botones(c, objetivo_de("TX"), inventariar(c, "TX"))
+
+    assert c.funciones == ["a", "a"]
+    assert [w["class"] for w in c.abiertas] == ["THomeForm", "TX"]
+    assert abren == [
+        {"pestana": None, "boton": "Recalcular", "abre": [], "error": None}
+    ]
+
+
+def test_pulsar_botones_records_the_host_it_could_not_reopen() -> None:
+    f = formulario([])
+    f["paginas"][0]["botones"] = botones_de("Recalcular")
+    c = PVsystFalso({"TX": f}, {"a": "TX"}, {"Recalcular": {"cierra": "TX"}})
+    assert abrir(c, "a", "TX") is None
+    llamar = c.tool
+
+    def tool(nombre: str, a: Json) -> Json:
+        abierta = "TX" in [w["class"] for w in c.abiertas]
+        if a.get("funcion") == "a" and not abierta:
+            return {"error": "PVsyst is not running"}
+        return llamar(nombre, a)
+
+    c.tool = tool  # type: ignore[method-assign]
+    medida = inventariar(c, "TX")
+
+    abren = pulsar_botones(c, objetivo_de("TX"), medida)
+
+    assert len(abren) == 1
+    assert "PVsyst is not running" in medida["errores"][0]["texto"]
+
+
+def test_pulsar_botones_stops_at_forty_presses() -> None:
+    f = formulario([])
+    textos = [f"Detalle {i}" for i in range(41)]
+    f["paginas"][0]["botones"] = botones_de(*textos)
+    c = PVsystFalso({"TX": f}, {"a": "TX"}, {t: {"cierra": None} for t in textos})
+    assert abrir(c, "a", "TX") is None
+
+    abren = pulsar_botones(c, objetivo_de("TX"), inventariar(c, "TX"))
+
+    assert len(abren) == len(c.clics) == 40
 
 
 def test_limpiar_answers_no_to_a_save_prompt_and_keeps_the_main_windows() -> None:
@@ -281,6 +462,23 @@ def test_main_merges_what_it_measured_and_leaves_the_rest_of_the_inventory(
     assert set(inventario) == {"TA", "TA#otra", "TZ"}
     assert inventario["TA#otra"]["ventana"] == "TA"
     assert inventario["TA"]["pestanas"][0]["campos"][0]["etiqueta"] == "a"
+
+
+def test_main_merges_botones_abren_only_when_it_pressed_them(tmp_path: Path) -> None:
+    f = formulario([])
+    f["paginas"][0]["botones"] = botones_de("Ver detalles")
+
+    c = PVsystFalso({"TA": f}, {"a": "TA"}, {"Ver detalles": {"cierra": None}})
+    assert main(argumentos(tmp_path, "--solo", "TA"), fabrica_de(c)) == 0
+    sin_botones = json.loads((tmp_path / "inventario.json").read_text())
+    assert "botones_abren" not in sin_botones["TA"]
+
+    c = PVsystFalso({"TA": f}, {"a": "TA"}, {"Ver detalles": {"cierra": None}})
+    assert main(argumentos(tmp_path, "--solo", "TA", "--botones"), fabrica_de(c)) == 0
+    con_botones = json.loads((tmp_path / "inventario.json").read_text())
+    assert con_botones["TA"]["botones_abren"] == [
+        {"pestana": None, "boton": "Ver detalles", "abre": [], "error": None}
+    ]
 
 
 def test_main_exits_1_and_keeps_the_old_entry_when_a_target_does_not_open(
