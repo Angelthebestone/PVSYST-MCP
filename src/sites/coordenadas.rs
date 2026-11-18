@@ -85,6 +85,23 @@ fn exigir_nombre_libre_si_explicito(ws: &Path, args: &Value, name: &str) -> Resu
     reuse::exigir_nombre_libre(ws, name)
 }
 
+/// Keys of the CLI envelope that say how the run ended. `vista_agente` reads them at
+/// the top level of the answer, where `origen:"csv"` already leaves them.
+const CLAVES_ESTADO_CLI: [&str; 2] = ["success", "detected_error"];
+
+/// Copies the CLI status to the top level: nested under `create_site` a failed run
+/// leaves the agent reading a success.
+fn con_estado_del_cli(base: &mut Value, cli: &Value) {
+    let Some(destino) = base.as_object_mut() else {
+        return;
+    };
+    for clave in CLAVES_ESTADO_CLI {
+        if let Some(valor) = cli.get(clave) {
+            destino.insert(clave.to_string(), valor.clone());
+        }
+    }
+}
+
 /// Files a coordinate site needs on disk: the monthly CSV it consumes and the `.SIT`
 /// `create-site` writes.
 struct DestinoSitio {
@@ -155,15 +172,14 @@ pub(crate) fn crear_sitio_coordenadas(paths: &Paths, args: &Value) -> Result<Val
     destino.crear_carpeta_salida()?;
 
     let create_site = crear_sitio(paths, &destino.peticion(&name, (lat, lon), args))?;
-    let mut out = resumen_clima(
-        json!({
-            "site": name,
-            "sit_file": destino.sit,
-            "weather_csv": destino.csv.to_string_lossy(),
-            "create_site": create_site,
-        }),
-        &clim,
-    );
+    let mut base = json!({
+        "site": name,
+        "sit_file": destino.sit,
+        "weather_csv": destino.csv.to_string_lossy(),
+    });
+    con_estado_del_cli(&mut base, &create_site);
+    base["create_site"] = create_site;
+    let mut out = resumen_clima(base, &clim);
     if args.get("altitud").is_none() {
         out["warning"] = json!(
             "altitud not given: the site was created at 0 m (pass 'altitud' for highland sites)"

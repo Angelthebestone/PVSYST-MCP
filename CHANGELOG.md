@@ -156,6 +156,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Contract, size measurements and the tool × action matrix: `docs/vista_agente_salidas.md`.
 
 ### Fixed
+- **`sitio crear` from coordinates no longer answers `vista.estado:ok` when PVsystCLI could not
+  confirm the site.** The `create-site` envelope travelled nested under `create_site`, and `vista_agente`
+  reads `success` and `detected_error` at the top level of the answer, where `origen:"csv"`,
+  `convertir_meteo` and `simular` already leave them; a `clasificacion:"ambiguo"` with no `.SIT` on disk
+  came back as «Site created with the weather data of the location». The answer now carries the CLI
+  status at the top level as well, and keeps the envelope under `create_site` for `meteo_pvgis` and
+  `disenar_sistema`.
 - More findings of the same QA round:
   - **BUG-19**: `gui_actuar accion:campo` takes `indice` (from 0, top to bottom) and `clase` to pick one
     of several fields that share a label (the three «Núm. de inversores»); the error for an ambiguous
