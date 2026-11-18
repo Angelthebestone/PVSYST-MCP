@@ -314,3 +314,11 @@ def test_running_it_twice_leaves_the_same_bytes_as_once(tmp_path: Path) -> None:
 
 def test_the_committed_map_is_what_the_committed_inventory_generates() -> None:
     assert main(["--check"]) == 0
+
+
+def test_every_remedio_has_inventory_data() -> None:
+    # `remedir` only visits the inventory, so an entry without data is ignored silently.
+    sin_datos = set(mapa_py.REMEDIOS) - set(cargar(mapa_py.INVENTARIO))
+    assert not sin_datos, (
+        f"REMEDIOS entries with no inventory data: {sorted(sin_datos)}"
+    )
