@@ -15,6 +15,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`pestana`, `subpestana`) pair is one page now: distinct sub-tabs are summed, repeats of one pair still
   keep its fullest page, and a page without `subpestana` counts as before. No page of the map carries the
   field yet, so today's `campos_en_mapa` and `botones_en_mapa` do not change.
+- **`gui_actuar accion:clic_texto` presses the button whose caption is that text, not the
+  combo box that shows the same word (measured: `TChoixObjetPVForm` captions «Abrir» both a
+  `TComboBox` and a `TButton`).** The click was aimed at the first place the search met (an OCR box,
+  or the UIA element of that name), so a caption shared by several controls could land on the combo.
+  A visible button whose own caption is the text now wins over combos, edits and labels, folded as
+  OCR folds it (`&Abrir` equals `Abrir`); the class is read before the caption, so only the buttons of
+  the form cost a message. Two buttons with the same caption are refused, naming each class, position
+  and hwnd (the value `accion:click ventana:<hwnd>` takes), instead of pressing one of them. `indice`
+  keeps counting the drawn matches and skips that step, and with no button carrying the text the click
+  works as before (OCR, then UIA). The answer gains `origen` (`control`, `ocr` or `uia`) saying where
+  the target came from; `coincidencias` keeps counting the OCR matches (0 when the button was pressed
+  by its caption, which no longer answers the `coincidencias:0` warning that only an unconfirmed UIA
+  click carries).
 - **The README no longer says the `workspace` argument reaches the actions that run PVsystCLI (A.4.4 of the visual GUI test report).** It moves the confinement root for the file tools, but `sitio crear`, `sitio convertir_meteo` and `simular` reject a workspace other than the one configured in PVsyst (`DataPath` of `PVsyst.ini`) with a named error. Documentation only: the error was already right.
 - **`simular accion:preparar` with only `archivo_rvt` no longer fails asking for `batch_rvt_file`.** The tool declared `archivo_rvt` and routed to the RVT manager on it, but the manager read only `batch_rvt_file` or `archivo`, so the call stopped with `Falta 'batch_rvt_file' o 'archivo'`. It now reads `batch_rvt_file`, then `archivo_rvt`, then `archivo`, and the error names the three.
 - **`docs/gui_mapa.json` is remeasured for 10 windows, and says the state it was measured in and what
