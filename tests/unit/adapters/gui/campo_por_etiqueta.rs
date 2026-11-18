@@ -55,9 +55,8 @@ fn should_fail_when_the_check_box_does_not_take_the_requested_value() {
         etiqueta: Some("Sombreado".into()),
         posicion: (0, 0),
     };
-    let formulario = Formulario::de(forma.hwnd(0));
 
-    let error = poner_valor(&formulario, &casilla, "true")
+    let error = esperar_marca(&casilla, true, Duration::from_millis(100))
         .expect_err("a click the control did not take is not a success")
         .to_string();
 

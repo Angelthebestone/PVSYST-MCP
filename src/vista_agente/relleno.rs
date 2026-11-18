@@ -20,8 +20,8 @@ use std::collections::BTreeMap;
 
 /// What a rehearsal cannot know: it reads the schema, never an open form.
 const ENSAYO_SIN_VENTANA: Texto = Texto {
-    es: "Ensayo sin ventana: los valores actuales y los campos que PVsyst recalcularía no se leyeron. El plan trae las claves editables del esquema y el valor que se escribiría.",
-    en: "Rehearsal without a window: the current values and the fields PVsyst would recompute were not read. The plan carries the schema's editable keys and the value that would be typed.",
+    es: "Ensayo sin ventana: los valores actuales y los campos que PVsyst recalcularía no se leyeron, y el plan no se validó contra el formulario abierto (un control deshabilitado o un valor que una lista no ofrece solo fallará al aplicar). El plan trae las claves editables del esquema y el valor que se escribiría.",
+    en: "Rehearsal without a window: the current values and the fields PVsyst would recompute were not read, and the plan was not checked against the open form (a disabled control or a value a list does not offer will only fail when applied). The plan carries the schema's editable keys and the value that would be typed.",
 };
 
 /// A change tied to the live control that receives it.

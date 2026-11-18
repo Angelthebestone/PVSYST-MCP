@@ -45,7 +45,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   even when PVsyst had applied the value. After clicking an option the call now waits, with a 1 s
   deadline, for `BM_GETCHECK` to report the requested state and answers `despues` from that real read;
   if the state never matches, it fails and names what was requested and what the control still reads
-  instead of reporting success. `TEdit` and the other field types keep their path.
+  instead of reporting success. A radio button asked for `false` (it is only cleared by checking another
+  option of its group) fails the same way instead of answering `ok` with `antes == despues`.
+  `TEdit` and the other field types keep their path.
 - **`gui_actuar accion:campo` fails when it cannot read the state of a check box or radio button.**
   An unreadable state was reported as `antes`/`despues:"desconocido"`, a value the control never
   held, so the caller could take a read failure for the value PVsyst left. The read now returns an
@@ -70,7 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the GUI or pass a running `proceso` (or the `pids` of one). `pids: []` keeps its meaning.
   `esperar_cierre` is the exception: a process that is gone leaves nothing to wait for, so it still
   answers `ya_cerrada:true` (the trivial success of waiting for a window that is already closed).
-- **`gui_actuar rellenar` rehearses without the GUI.** With `simular:true` the call reads the mode before resolving a window and returns the plan (the schema's editable keys and the text each field would receive), so it answers with PVsyst closed instead of failing with «No hay una ventana … abierta». The answer carries `aviso` and an empty `antes`: the current values are only read when the fill is applied.
+- **`gui_actuar rellenar` rehearses without the GUI.** With `simular:true` the call reads the mode before resolving a window and returns the plan (the schema's editable keys and the text each field would receive), so it answers with PVsyst closed instead of failing with «No hay una ventana … abierta». The answer carries `aviso` and an empty `antes`: the current values are only read when the fill is applied, and the plan is no longer checked against an open form, so a disabled control or a list value PVsyst does not offer fails when applied, not in the rehearsal.
 - **Review of the 4.1 effect check.** `clic_texto` and `fila abrir:true` read the process of the clicked control after the action; a form that closed took the control with it, a destroyed window reports pid 0 and the second reading listed no window, so `efecto` named every open window as closed and none as opened. The pid is now the one read before the action. When a capture is missing the repaint cannot be compared: `clic_texto` answers `verificado:null` (and `efecto.pantalla_comparada:false`) instead of claiming `verificado:false` and a dead spot.
 - **Review of the GUI language work (4.3).** `fila` on the module chooser says the window title differs (it is the caption PVsyst writes in its own language) instead of «no measured row geometry»; «Cerrar objeto» of the 3D scene and the database buttons of the datasheet creation are found by caption in any language they are known in; the PVsyst GUI language enum is `IdiomaGui`, apart from the MCP message language `Idioma`; and the doc comments of `pvsyst://gui` and the coverage map in `resources.rs` are back on their functions.
 - **`gui_actuar` no longer answers success to a click that cannot land (4.1 of the exhaustive test report).**

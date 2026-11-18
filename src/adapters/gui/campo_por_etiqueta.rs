@@ -80,22 +80,33 @@ fn leer_valor(c: &CampoEtiquetado) -> Result<String> {
 
 /// The click was posted but the control did not show the requested state:
 /// answering success would send the old state back as the new one.
-fn error_marca(c: &CampoEtiquetado, pedido: bool, leido: Option<bool>) -> Error {
+fn error_marca(
+    c: &CampoEtiquetado,
+    (pedido, leido): (bool, Option<bool>),
+    plazo: Duration,
+) -> Error {
     let etiqueta = c.etiqueta.as_deref().unwrap_or(c.clase.as_str());
     let leido = leido.map_or_else(
         || "no answer from PVsyst".to_string(),
         |marcado| marcado.to_string(),
     );
+    // A radio button is only ever checked by a click: it cannot be cleared, only
+    // replaced by checking another option of its group.
+    let sugerencia = if c.clase == "TRadioButton" && !pedido {
+        " A radio button cannot be cleared by clicking it: check another option of its group instead."
+    } else {
+        ""
+    };
     Error::Gui(format!(
-        "The option '{etiqueta}' ({}) asked for '{pedido}' still reads '{leido}' when its {} ms deadline ran out. gui_observar que:formulario (or que:controles) shows the current state; gui_actuar accion:campo retries once the form answers",
+        "The option '{etiqueta}' ({}) asked for '{pedido}' still reads '{leido}' when its {} ms deadline ran out. gui_observar que:formulario (or que:controles) shows the current state; gui_actuar accion:campo retries once the form answers.{sugerencia}",
         c.clase,
-        ESPERA_CASILLA.as_millis()
+        plazo.as_millis()
     ))
 }
 
-fn esperar_marca(c: &CampoEtiquetado, pedido: bool) -> Result<()> {
+fn esperar_marca(c: &CampoEtiquetado, pedido: bool, plazo: Duration) -> Result<()> {
     let mut leido = None;
-    let alcanzado = sondear_hasta(ESPERA_CASILLA, SONDEO_CASILLA, || {
+    let alcanzado = sondear_hasta(plazo, SONDEO_CASILLA, || {
         leido = esta_marcado(c.hwnd);
         leido.filter(|marcado| *marcado == pedido)
     })
@@ -103,7 +114,7 @@ fn esperar_marca(c: &CampoEtiquetado, pedido: bool) -> Result<()> {
     if alcanzado {
         return Ok(());
     }
-    Err(error_marca(c, pedido, leido))
+    Err(error_marca(c, (pedido, leido), plazo))
 }
 
 fn poner_valor(f: &Formulario, c: &CampoEtiquetado, valor: &str) -> Result<()> {
@@ -123,7 +134,7 @@ fn poner_valor(f: &Formulario, c: &CampoEtiquetado, valor: &str) -> Result<()> {
         let marcado = esta_marcado(c.hwnd).ok_or_else(|| opcion_ilegible(c))?;
         if marcado != pedido {
             clic_por_mensajes(c.hwnd)?;
-            esperar_marca(c, pedido)?;
+            esperar_marca(c, pedido, ESPERA_CASILLA)?;
         }
         return Ok(());
     }
