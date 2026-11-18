@@ -17,6 +17,7 @@ mod aproximadas;
 pub(crate) mod componentes;
 mod configurar;
 pub(crate) mod declaracion;
+mod descripciones;
 pub(crate) mod entorno;
 pub(crate) mod nativos;
 mod no_leidos;

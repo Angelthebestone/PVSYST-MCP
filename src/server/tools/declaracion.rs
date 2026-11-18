@@ -168,6 +168,7 @@ impl Herramienta {
             let mut prop_val = tipo.esquema_json();
             anotar_workspace_si_aplica(&mut prop_val, clave, idioma);
             super::restricciones_esquema::anotar_restricciones(&an, &mut prop_val, clave);
+            super::descripciones::anotar(&an, &mut prop_val, clave);
             an.propiedad(&mut prop_val, clave);
             props.insert(clave.to_string(), prop_val);
         }
@@ -180,7 +181,11 @@ impl Herramienta {
 
         props.insert(
             "detalle".to_string(),
-            json!({ "type": "string", "enum": super::recorte::DETALLES }),
+            json!({
+                "type": "string",
+                "enum": super::recorte::DETALLES,
+                "description": super::descripciones::detalle(idioma),
+            }),
         );
 
         let mut entrada = json!({ "type": "object", "properties": props });
