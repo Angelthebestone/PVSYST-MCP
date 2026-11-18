@@ -83,6 +83,8 @@ class PVsystFalso:
         self.ilegibles: set[str] = set()
         self.vetadas: set[int] = set()
         self.fuera_de_rango: set[int] = set()
+        # A class listed here ignores both the close and the click: a native dialog
+        # (#32770) that refuses WM_CLOSE, which no press of the tool can dismiss.
         self.incerrables: set[str] = set()
 
     def tool(self, nombre: str, a: Json) -> Json:
@@ -123,11 +125,12 @@ class PVsystFalso:
                 return {"error": "the window vetoed the tab change"}
             self.pagina[a["ventana"]] = a["indice"]
         elif accion == "cerrar":
-            if a["ventana"] not in self.incerrables:
-                for i, w in enumerate(self.abiertas):
-                    if a["ventana"] in (w["class"], w.get("title")):
-                        del self.abiertas[i]
-                        break
+            for i, w in enumerate(self.abiertas):
+                if a["ventana"] not in (w["class"], w.get("title")):
+                    continue
+                if w["class"] not in self.incerrables:
+                    del self.abiertas[i]
+                break
         elif accion == "clic_texto":
             self.clics.append(a["texto"])
             efecto = self.botones.get(a["texto"], {})
@@ -136,7 +139,7 @@ class PVsystFalso:
             if "abre" in efecto:
                 self.abiertas.append({"class": efecto["abre"], "title": "t"})
             cierra = efecto.get("cierra", a["ventana"])
-            if cierra:
+            if cierra and cierra not in self.incerrables:
                 self.abiertas = [w for w in self.abiertas if w["class"] != cierra]
         elif accion == "escribir":
             self.escrito = a["texto"]

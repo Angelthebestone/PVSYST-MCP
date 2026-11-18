@@ -74,6 +74,25 @@ def _rechazo_de(c: Cliente, clase: str) -> tuple[str | None, str | None]:
     return boton, None
 
 
+def _nuevas(
+    abiertas: Collection[Json], previas: Collection[tuple[str, str]]
+) -> list[Json]:
+    """The open windows that were not there before the press, the main ones aside."""
+    return [
+        w
+        for w in abiertas
+        if w["class"] not in MANTENER
+        and (w["class"], str(w.get("title") or "")) not in previas
+    ]
+
+
+def _parado(quedan: Collection[Json], fallo: str | None) -> str:
+    """Why the rounds ran out: the windows still open and the close's refusal."""
+    nombres = ", ".join(f"{w['class']} {w.get('title')!r}" for w in quedan)
+    motivo = f"a window the press opened could not be closed: {nombres}"
+    return motivo if fallo is None else f"{motivo}; the close answered: {fallo[:200]}"
+
+
 def cerrar_nuevas(
     c: Cliente, previas: Collection[tuple[str, str]]
 ) -> tuple[list[Json], str | None]:
@@ -87,24 +106,21 @@ def cerrar_nuevas(
     alone. A class with two new windows keeps its two entries even when one close
     removes both from the screen. A dialog opened by the press is answered with a
     rejection (`_boton_de`); when it offers none it stays open and its text is the
-    stop reason.
+    stop reason. Twelve rounds that leave a window open are a stop too: its reason
+    names what is still open and the refusal `accion:cerrar` answered, because a
+    press that left a modal open is not a press that opened a window cleanly. Every
+    press after it fails on the disabled window and would blame the label.
     """
     cerradas: dict[tuple[str, str], Json] = {}
+    fallo: str | None = None
     for _ in range(12):
-        for w in ventanas(c):
+        nuevas = _nuevas(ventanas(c), previas)
+        for w in nuevas:
             clave = (w["class"], str(w.get("title") or ""))
-            if w["class"] in MANTENER or clave in previas:
-                continue
             cerradas.setdefault(clave, {"clase": clave[0], "titulo": clave[1]})
-        sobra = [
-            w
-            for w in ventanas(c)
-            if w["class"] not in MANTENER
-            and (w["class"], str(w.get("title") or "")) not in previas
-        ]
-        if not sobra:
-            break
-        w = sobra[0]
+        if not nuevas:
+            return list(cerradas.values()), None
+        w = nuevas[0]
         clave = (w["class"], str(w.get("title") or ""))
         if w["class"] == "TMessageForm":
             texto, fallo = _rechazo_de(c, "TMessageForm")
@@ -112,9 +128,12 @@ def cerrar_nuevas(
                 return list(cerradas.values()), fallo
             cerradas[clave]["cierra"] = texto
         else:
-            _cerrar(c, w["class"], w.get("title"))
+            fallo = _error_de(_cerrar(c, w["class"], w.get("title")))
         _dormir(0.6)
-    return list(cerradas.values()), None
+    quedan = _nuevas(ventanas(c), previas)
+    if not quedan:
+        return list(cerradas.values()), None
+    return list(cerradas.values()), _parado(quedan, fallo)
 
 
 def _permitido(texto: str) -> bool:

@@ -37,6 +37,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `Diagrama unifilar`, compared after folding case, accents, `&`, ellipsis and repeated spaces; every
   other label keeps its `no está en la lista blanca` motive, and adding one requires having seen which
   window it opens.
+- **A press that leaves a window it cannot close stops the run and names it.** `cerrar_nuevas` gets twelve
+  rounds to close the windows a press opened; when they ran out it answered no stop reason, so the entry
+  said the press opened a window (a native dialog `#32770` that refuses the close, for instance) while it
+  stayed on screen, and the presses after it failed with «TX is disabled: a modal dialog is open…» without
+  naming the modal. A window still open after the rounds is now `parado`, with its class and title and the
+  refusal `accion:cerrar` answered, and `pulsar_botones` stops there as it already did with an unknown
+  dialog; nothing is pressed after it.
 - **The coverage count of `gui_observar que:esquema` adds every sub-tab of a page.** A page of
   `docs/gui_mapa.json` may now carry `subpestana`, but the counter keyed pages by `pestana` alone, so a
   window with nested sheets (`TPVModuleForm`, «Parámetros del modelo» → «Degradación», «IAM
