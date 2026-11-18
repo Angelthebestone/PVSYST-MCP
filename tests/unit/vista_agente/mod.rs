@@ -58,3 +58,25 @@ fn should_not_locate_a_control_beyond_the_tolerance() {
     )];
     assert!(localizar(campo, &lejos).is_none());
 }
+
+#[test]
+fn should_plan_a_fill_without_a_window_when_simulating() {
+    let paths = crate::config::Paths::para_test(std::env::temp_dir());
+    // No process and no window: a rehearsal must answer with PVsyst closed.
+    let pedido = json!({
+        "entidad": "variante.orientation",
+        "valores": { "inclinacion_plano_deg": 30 },
+        "simular": true,
+        "pids": [],
+    });
+    let salida = super::rellenar(&paths, &pedido).expect("el ensayo no necesita ventana");
+    let paso = &salida["resultados"][0];
+    assert_eq!(salida["simulado"], json!(true), "{salida}");
+    assert_eq!(paso["clave"], json!("inclinacion_plano_deg"), "{salida}");
+    assert_eq!(paso["pedido"], json!("30"), "{salida}");
+    assert_eq!(paso["estado"], json!("simulado"), "{salida}");
+    assert!(salida.get("ventana").is_none(), "{salida}");
+    assert_eq!(paso["antes"], json!(""), "no se leyó nada: {salida}");
+    let aviso = salida["aviso"].as_str().unwrap_or_default();
+    assert!(!aviso.is_empty(), "dice que no se leyó: {salida}");
+}

@@ -14,14 +14,15 @@ use crate::adapters::gui::conduccion::Formulario;
 use crate::adapters::gui::ffi::{self, Hwnd};
 use crate::args::{flag, missing, req_str};
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Map, Value};
 use std::collections::BTreeMap;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ModoEjecucion {
-    Aplicar,
-    Simular,
-}
+/// What a rehearsal cannot know: it reads the schema, never an open form.
+const ENSAYO_SIN_VENTANA: Texto = Texto {
+    es: "Ensayo sin ventana: los valores actuales y los campos que PVsyst recalcularía no se leyeron. El plan trae las claves editables del esquema y el valor que se escribiría.",
+    en: "Rehearsal without a window: the current values and the fields PVsyst would recompute were not read. The plan carries the schema's editable keys and the value that would be typed.",
+};
 
 /// A change tied to the live control that receives it.
 struct Paso<'a> {
@@ -73,16 +74,9 @@ fn verificar_listas(pasos: &[Paso]) -> Result<()> {
     Ok(())
 }
 
-fn resultado_del_paso(
-    formulario: &Formulario,
-    paso: &Paso<'_>,
-    modo: ModoEjecucion,
-) -> Result<Value> {
+fn resultado_del_paso(formulario: &Formulario, paso: &Paso<'_>) -> Result<Value> {
     let campo = paso.cambio.campo;
     let antes = valor_de(paso.control.hwnd, &paso.control.clase);
-    if modo == ModoEjecucion::Simular {
-        return Ok(paso_json(campo, (&paso.cambio.texto, &antes), None));
-    }
     let destino = EscrituraDestino {
         formulario,
         campo,
@@ -98,14 +92,10 @@ fn resultado_del_paso(
 }
 
 /// Each step in order; the first that fails is reported as such and ends the batch.
-fn escribir_hasta_fallo(
-    formulario: &Formulario,
-    pasos: &[Paso<'_>],
-    modo: ModoEjecucion,
-) -> Vec<Value> {
+fn escribir_hasta_fallo(formulario: &Formulario, pasos: &[Paso<'_>]) -> Vec<Value> {
     let mut resultados = Vec::with_capacity(pasos.len());
     for p in pasos {
-        let paso = resultado_del_paso(formulario, p, modo);
+        let paso = resultado_del_paso(formulario, p);
         let fallo = paso.is_err();
         resultados.push(paso.unwrap_or_else(|e| paso_fallido(p.cambio.campo.clave, &e)));
         if fallo {
@@ -115,11 +105,10 @@ fn escribir_hasta_fallo(
     resultados
 }
 
-/// What a fill acts on: the form, its schema and whether it types or only reports.
+/// What a fill acts on: the form and its schema.
 struct Aplicacion<'a> {
     formulario: &'a Formulario,
     ent: &'a Entidad,
-    modo: ModoEjecucion,
 }
 
 /// What a tab of the fill produced: the result of each field and the fields PVsyst recomputed.
@@ -147,18 +136,9 @@ impl Aplicacion<'_> {
         let vivos = campos_vivos(self.formulario.h);
         let pasos = emparejar(grupo, &vivos)?;
         verificar_listas(&pasos)?;
-        let resultados = escribir_hasta_fallo(self.formulario, &pasos, self.modo);
+        let resultados = escribir_hasta_fallo(self.formulario, &pasos);
         let pedidos: Vec<Hwnd> = pasos.iter().map(|p| p.control.hwnd).collect();
         Ok((resultados, recalculados(self.ent, &vivos, &pedidos)))
-    }
-
-    /// A simulation does not leave tab 0, so fields of other tabs are only reported.
-    fn simular_otra_pagina(grupo: &[&Cambio]) -> Producido {
-        let resultados = grupo
-            .iter()
-            .map(|c| paso_json(c.campo, (&c.texto, ""), None))
-            .collect();
-        (resultados, Vec::new())
     }
 }
 
@@ -169,8 +149,7 @@ fn por_paginas(app: &Aplicacion<'_>, cambios: &[Cambio]) -> Result<Producido> {
     for c in cambios {
         grupos.entry(c.campo.pagina).or_default().push(c);
     }
-    let escribe = app.modo == ModoEjecucion::Aplicar;
-    let cambia_de_pagina = escribe && grupos.keys().any(|p| *p != 0);
+    let cambia_de_pagina = grupos.keys().any(|p| *p != 0);
     let producido = recorrer_paginas(app, &grupos);
     if !cambia_de_pagina {
         return producido;
@@ -187,13 +166,11 @@ fn recorrer_paginas(
     app: &Aplicacion<'_>,
     grupos: &BTreeMap<usize, Vec<&Cambio>>,
 ) -> Result<Producido> {
-    let escribe = app.modo == ModoEjecucion::Aplicar;
     let (mut resultados, mut recalc) = (Vec::new(), Vec::new());
     for (pagina, grupo) in grupos {
-        let producido = match (*pagina, escribe) {
-            (0, _) => app.aplicar(grupo),
-            (_, false) => Ok(Aplicacion::simular_otra_pagina(grupo)),
-            (n, true) => app.formulario.pagina(n).and_then(|()| app.aplicar(grupo)),
+        let producido = match *pagina {
+            0 => app.aplicar(grupo),
+            n => app.formulario.pagina(n).and_then(|()| app.aplicar(grupo)),
         };
         // Nothing typed yet: a plain error. Otherwise the fields already typed are kept.
         let (r, rec) = match producido {
@@ -211,6 +188,24 @@ fn recorrer_paginas(
     Ok((resultados, recalc))
 }
 
+/// The plan of a rehearsal, built from the schema alone: nothing is typed and no
+/// window is opened, so it also answers while PVsyst is closed.
+fn plan_simulado(idioma: Idioma, ent: &Entidad, cambios: &[Cambio]) -> Value {
+    let resultados: Vec<Value> = cambios
+        .iter()
+        .map(|c| paso_json(c.campo, (&c.texto, ""), None))
+        .collect();
+    let mut salida = json!({
+        "entidad": ent.clave,
+        "simulado": true,
+        "resultados": resultados,
+        "recalculados": [],
+        "aviso": ENSAYO_SIN_VENTANA.en_idioma(idioma),
+    });
+    resumir_relleno(&mut salida);
+    salida
+}
+
 /// Validates, then types (or, with `simular`, only reports) the values.
 pub(crate) fn rellenar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     let ent = entidad(req_str(
@@ -223,17 +218,14 @@ pub(crate) fn rellenar(paths: &crate::config::Paths, args: &Value) -> Result<Val
         .and_then(Value::as_object)
         .ok_or_else(|| missing("valores", "objeto {clave: valor}"))?;
     let cambios = planificar(ent, valores)?;
+    if flag(args, &["simular"]) {
+        return Ok(plan_simulado(paths.idioma, ent, &cambios));
+    }
     let h = ventana_de(args, ent)?;
-    let modo = if flag(args, &["simular"]) {
-        ModoEjecucion::Simular
-    } else {
-        ModoEjecucion::Aplicar
-    };
     let formulario = Formulario::de(h);
     let aplicacion = Aplicacion {
         formulario: &formulario,
         ent,
-        modo,
     };
     let (resultados, recalculados) = por_paginas(&aplicacion, &cambios)?;
     // The values are typed already: a failed read-back is reported, not turned into an error.
@@ -244,7 +236,7 @@ pub(crate) fn rellenar(paths: &crate::config::Paths, args: &Value) -> Result<Val
     let mut salida = json!({
         "entidad": ent.clave,
         "ventana": format!("0x{h:X}"),
-        "simulado": modo == ModoEjecucion::Simular,
+        "simulado": false,
         "resultados": resultados,
         "recalculados": recalculados,
     });
