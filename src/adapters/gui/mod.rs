@@ -149,6 +149,44 @@ pub(crate) const ACCIONES: &[&str] = &[
 /// cerrar | activar | teclas | fila | escribir | seleccionar | pagina | esperar_cierre |
 /// lanzar | reiniciar | uia_invocar | esperar | paso | funcion | menu | campo | rellenar | cerrar_todo | secuencia.
 pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
+    match despachar(paths, args) {
+        Ok(respuesta) => Ok(respuesta),
+        Err(fallo) => reintentar_sin_aviso_demo(paths, args, fallo),
+    }
+}
+
+/// The action failed: when the dialog that made it fail is PVsyst's DEMO notice,
+/// dismissing it and trying the same action once more is what a person does. The
+/// failure that names a dialog is the guard before the action, so the second try
+/// repeats no side effect. Any other dialog, and a notice that does not go away,
+/// returns the error the action already had.
+fn reintentar_sin_aviso_demo(
+    paths: &crate::config::Paths,
+    args: &Value,
+    fallo: Error,
+) -> Result<Value> {
+    let Some(nota) = modal::despejar_aviso_demo(&fallo.to_string(), paths.idioma) else {
+        return Err(fallo);
+    };
+    match despachar(paths, args) {
+        Ok(mut respuesta) => {
+            modal::anotar(&mut respuesta, Some(nota));
+            Ok(respuesta)
+        }
+        // A failure carries no `advertencias`: the note would be lost, so it is
+        // logged rather than passed over in silence.
+        Err(segundo) => {
+            tracing::warn!(
+                %nota,
+                "el aviso DEMO se cerró y la acción volvió a fallar: el error no lo dice"
+            );
+            Err(segundo)
+        }
+    }
+}
+
+/// The action itself, once: the moves each `accion` makes over the live windows.
+fn despachar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     crate::adapters::uia::invalidar_cache(&paths.estado);
     match args
         .get("accion")

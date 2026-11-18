@@ -1,7 +1,9 @@
 //! The listing side of the modal rule: the blocking modal must be in the answer
 //! even when it is a child window the enumeration does not return.
 
-use super::{agregar_modal, puede_bloquear};
+use super::{agregar_modal, aviso_demo, puede_bloquear, AvisoDemo, CLASE_AVISO_DEMO};
+use crate::adapters::gui::rotulos::dialogos::{CERRAR, SI};
+use crate::adapters::gui::rotulos::IdiomaGui;
 use serde_json::json;
 
 /// GUI-13: the error named the UAC overlay instead of the dialog on top.
@@ -51,6 +53,59 @@ fn should_name_the_class_and_hwnd_of_each_modal_that_blocks_a_form() {
 
         let esperado = format!("modal: {clase} 0x{:X}", principal.hwnd(1));
         assert!(error.contains(&esperado), "{esperado} not in {error}");
+    }
+}
+
+/// C.4 of the visual GUI test report: in trial mode PVsyst's DEMO notice blocks
+/// every window and every action answered «… is disabled: a modal dialog is open
+/// on top of it (modal: TDEMOForm 0x…)» until someone pressed «Cerrar». It only
+/// informs, so its «Cerrar» may be pressed — and nothing else, because the other
+/// three buy, activate a licence or open the help. A question or an error is not
+/// answered at all, and a GUI whose «Cerrar» caption is not among the buttons
+/// presses nothing.
+#[test]
+fn should_dismiss_the_demo_notice_with_its_close_button_and_no_other_dialog() {
+    let medidos_en_espanol = ["Compra", "Activar", "Cerrar", "Ayuda"];
+    assert_eq!(
+        aviso_demo(CLASE_AVISO_DEMO, &medidos_en_espanol, Some(IdiomaGui::Es)),
+        AvisoDemo::Cerrar { boton: CERRAR }
+    );
+
+    // Each language is recognised by the caption the server presses, not by the
+    // words PVsyst drew next to it.
+    for idioma in IdiomaGui::TODOS {
+        let botones = ["Compra", "Activar", CERRAR.en_idioma(idioma), "Ayuda"];
+        assert_eq!(
+            aviso_demo(CLASE_AVISO_DEMO, &botones, Some(idioma)),
+            AvisoDemo::Cerrar { boton: CERRAR },
+            "{idioma:?}"
+        );
+    }
+
+    // A notice with no known «Cerrar» — the GUI's language is not the one its
+    // buttons are written in — is left alone.
+    assert_eq!(
+        aviso_demo(CLASE_AVISO_DEMO, &medidos_en_espanol, Some(IdiomaGui::En)),
+        AvisoDemo::OtroDialogo
+    );
+    assert_eq!(
+        aviso_demo(CLASE_AVISO_DEMO, &medidos_en_espanol, None),
+        AvisoDemo::OtroDialogo
+    );
+
+    // Every other dialog is a decision for a person, even with a «Cerrar» and a
+    // «Sí» on it.
+    for dialogo in [
+        "TMessageForm",
+        "TDatabaseForm",
+        "#32770",
+        "TChoixObjetPVForm",
+    ] {
+        assert_eq!(
+            aviso_demo(dialogo, &[CERRAR.es, SI.es], Some(IdiomaGui::Es)),
+            AvisoDemo::OtroDialogo,
+            "{dialogo}"
+        );
     }
 }
 

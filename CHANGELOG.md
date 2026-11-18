@@ -12,8 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (5.2 point 4 of the visual GUI test report).** Closing an editor that has changes leaves the window open on a
   `TMessageForm` that asks «¿Quiere cancelar las modificaciones?»: it took a second call (`clic_texto "Sí"`),
   and walking ~60 windows cost ~120 calls. With the flag, a close that produced **exactly** that question
-  presses «Sí» and waits for the close again; any other dialog (`TDEMOForm`, another question, an error) is
-  left alone and reported as before, and without the flag nothing changes. The question is recognised by its
+  presses «Sí» and waits for the close again; any other dialog (another question, an error) is left alone and
+  reported as before, and without the flag nothing changes. The question is recognised by its
   wording in the language the open windows are written in (the reading behind `gui_observar que:idioma`;
   es measured on 8.1.8, en, fr and de inferred and failing closed), so a GUI in an unknown language answers
   nothing and the error carries a note saying so. The 3D editor's «¿Quiere mantener sus modificaciones en el objeto?» is a different question whose «Sí»
@@ -26,6 +26,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tab) or pull the whole entity schema (`que:esquema` without `entidad`) unaware, and `compacto` or
   `recorte` passed to a `que` that ignores them failed silently. `entidad` now names the six keys it
   accepts. Only the strings clients read changed; `mcpb/manifest.json` carries the same text.
+- **`gui_actuar` dismisses PVsyst's DEMO notice instead of stopping at it (C.4 and 5.2 point 3 of the visual GUI
+  test report).** In trial mode PVsyst puts `TDEMOForm` («Modo DEMO»: `Compra | Activar | Cerrar | Ayuda`) over
+  every window, and each action answered «… is disabled: a modal dialog is open on top of it (`modal: TDEMOForm`
+  0x…)» until someone pressed «Cerrar» by hand. An action that fails with that refusal now closes the notice
+  with its «Cerrar» — never «Compra», «Activar» or «Ayuda» — and tries once more, and the answer names what it
+  did in `advertencias` (read as `avisos` in `vista`): the dialog class, its hwnd and the caption pressed. The
+  decision is a pure function of the dialog class, the captions of its buttons and the language of PVsyst's
+  windows (es measured on 8.1.8; en, fr and de inferred from the caption tables and failing closed): a notice
+  whose «Cerrar» is not among its buttons presses nothing, a notice that is still there after the click leaves
+  the error as it was, and any other dialog — a question, an error, `TDatabaseForm` — is never touched.
 - **`gui_actuar accion:campo` reports the check box state PVsyst actually holds after the click.**
   The click is posted, so the immediate read returned the old state and `despues` repeated `antes`
   even when PVsyst had applied the value. After clicking an option the call now waits, with a 1 s

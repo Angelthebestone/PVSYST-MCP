@@ -8,7 +8,7 @@ use super::registro_pvsyst::{self, Marca};
 use super::rotulos::dialogos::{BOTONES_SALIDA, BOTONES_SESION, CERRAR};
 use super::rotulos::Rotulo;
 use super::ventanas::class_of;
-use super::{acciones, ffi};
+use super::{acciones, ffi, modal};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::idioma::{Idioma as IdiomaCliente, Texto};
@@ -16,10 +16,14 @@ use std::time::Duration;
 
 const EJECUTABLE: &str = "PVsyst.exe";
 const INICIO: &str = "THomeForm";
-const AVISO_PRUEBA: &str = "TDEMOForm";
 const MENSAJE: &str = "TMessageForm";
 /// Windows that are not forms the user works in.
-const AUXILIARES: [&str; 4] = ["TApplication", "THintWindow", INICIO, AVISO_PRUEBA];
+const AUXILIARES: [&str; 4] = [
+    "TApplication",
+    "THintWindow",
+    INICIO,
+    modal::CLASE_AVISO_DEMO,
+];
 /// PVsyst needs ~16 s to start.
 const ARRANQUE: Duration = Duration::from_secs(60);
 /// Rounds of closing when cleaning up after a failed step.
@@ -98,7 +102,7 @@ impl Sesion {
 
     fn en_inicio(pid: u32, lanzada: Option<u32>, idioma: IdiomaCliente) -> Result<Self> {
         let inicio = esperar(pid, INICIO, ARRANQUE)?;
-        if let Ok(aviso) = esperar(pid, AVISO_PRUEBA, Duration::ZERO) {
+        if let Ok(aviso) = esperar(pid, modal::CLASE_AVISO_DEMO, Duration::ZERO) {
             aviso.pulsar(CERRAR)?;
         }
         let abiertos = formularios_de_usuario(pid);

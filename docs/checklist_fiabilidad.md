@@ -34,3 +34,8 @@ Un ítem nuevo nace de un error que llegó a `main` o de uno visto en dos revisi
 - Disparador: el diff añade o cambia un `print`, un `log` o un subproceso que hereda stdout.
 - Comprobación: `rg "println!|eprintln!|dbg!" src` vacío y un arranque del servidor sin bytes extra en stdout.
 - Origen: restricción del producto (`agents.md` sección 0).
+
+### R-05 Cerrar un diálogo ajeno
+- Disparador: el diff pulsa un botón de un diálogo modal que no abrió el propio flujo.
+- Comprobación: la decisión sale de una función pura sobre la clase del diálogo, los rótulos de sus botones y el idioma; solo se pulsa el botón que esa función nombra, cualquier otro diálogo se devuelve como hoy, y la respuesta dice que se cerró en `advertencias`.
+- Origen: informe de pruebas GUI visual del 2026-11-17 (§C.4): en modo DEMO cada acción moría en `TDEMOForm` («Compra | Activar | Cerrar | Ayuda») y el aviso había que cerrarlo a mano.

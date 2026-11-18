@@ -22,7 +22,7 @@ use std::time::Duration;
 /// Time PVsyst takes to show the parent form again after an editor closes.
 pub(crate) const ESPERA_REAPARICION: Duration = Duration::from_millis(400);
 /// Longest wait for a form to disappear after asking it to close.
-const ESPERA_CIERRE: Duration = Duration::from_secs(2);
+pub(super) const ESPERA_CIERRE: Duration = Duration::from_secs(2);
 /// The home screen is always behind: it is not a form the close reopened.
 const INICIO: &str = "THomeForm";
 
