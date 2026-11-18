@@ -45,3 +45,7 @@ pub(crate) fn funcion_de_menu(
 #[cfg(test)]
 #[path = "../../../../tests/unit/adapters/gui/catalogo/mod.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "../../../../tests/unit/adapters/gui/catalogo/mapa.rs"]
+mod tests_mapa;
