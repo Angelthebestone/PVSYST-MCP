@@ -28,6 +28,7 @@ struct Coincidencia {
 
 /// The button a click presses: its centre and the disabled buttons that carry
 /// the same caption, which the click skipped and the answer names.
+#[derive(Debug)]
 pub(super) struct BotonElegido {
     pub(super) punto: (i32, i32),
     pub(super) descartados: Vec<Value>,
