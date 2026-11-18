@@ -1,6 +1,7 @@
 """Tests for medir_gui.py against a fake MCP client (no PVsyst, no server)."""
 
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -10,8 +11,11 @@ import medir_gui
 from medir_gui import (
     Json,
     abrir,
+    ClienteMcp,
+    ErrorMedicion,
     asegurar_pvsyst,
     cargar_proyecto,
+    leer_pagina,
     inventariar,
     limpiar,
     main,
@@ -67,6 +71,9 @@ class PVsystFalso:
         self.corriendo = True
         self.lanza = True
         self.acciones: list[str] = []
+        self.ilegibles: set[str] = set()
+        self.vetadas: set[int] = set()
+        self.incerrables: set[str] = set()
 
     def tool(self, nombre: str, a: Json) -> Json:
         self.acciones.append(a.get("accion", ""))
@@ -75,6 +82,8 @@ class PVsystFalso:
                 if not self.corriendo:
                     return {"error": "Process 'PVsyst.exe' is not running"}
                 return {"windows": list(self.abiertas)}
+            if a["ventana"] in self.ilegibles:
+                return {"error": f"Window '{a['ventana']}' not found"}
             f = self.formularios[a["ventana"]]
             pag = f["paginas"][self.pagina.get(a["ventana"], 0)]
             return {
@@ -94,9 +103,12 @@ class PVsystFalso:
                 return {"error": f"unknown function {a['funcion']}"}
             self.abiertas.append({"class": self.abre[a["funcion"]], "title": "t"})
         elif accion == "pagina":
+            if a["indice"] in self.vetadas:
+                return {"error": "the window vetoed the tab change"}
             self.pagina[a["ventana"]] = a["indice"]
         elif accion == "cerrar":
-            self.abiertas = [w for w in self.abiertas if w["class"] != a["ventana"]]
+            if a["ventana"] not in self.incerrables:
+                self.abiertas = [w for w in self.abiertas if w["class"] != a["ventana"]]
         elif accion == "clic_texto":
             self.clics.append(a["texto"])
             self.abiertas = [w for w in self.abiertas if w["class"] != a["ventana"]]
@@ -298,3 +310,90 @@ def test_the_committed_manifest_matches_the_committed_inventory() -> None:
     for o in manifiesto:
         assert o["clave"] in inventario, o["clave"]
         assert inventario[o["clave"]]["ventana"] == o["ventana"], o["clave"]
+
+
+def test_a_failed_read_is_an_error_and_nothing_is_merged(tmp_path: Path) -> None:
+    c = PVsystFalso({"TA": formulario(["a"])}, {"a": "TA"})
+    c.ilegibles = {"TA"}
+
+    with pytest.raises(ErrorMedicion):
+        leer_pagina(c, "TA")
+    assert main(argumentos(tmp_path, "--solo", "TA"), fabrica_de(c)) == 1
+    assert json.loads((tmp_path / "inventario.json").read_text())["TA"] == {
+        "viejo": True
+    }
+
+
+def test_a_window_that_reads_back_empty_is_not_merged(tmp_path: Path) -> None:
+    vacia = formulario([])
+    vacia["paginas"][0]["botones"] = []
+    c = PVsystFalso({"TA": vacia}, {"a": "TA"})
+
+    assert main(argumentos(tmp_path, "--solo", "TA"), fabrica_de(c)) == 1
+    assert json.loads((tmp_path / "inventario.json").read_text())["TA"] == {
+        "viejo": True
+    }
+
+
+def test_a_vetoed_tab_change_saves_no_page_for_that_tab_and_fails(
+    tmp_path: Path,
+) -> None:
+    f = formulario(["p0"], ["p1"], pestanas=["Uno", "Dos"])
+    c = PVsystFalso({"TA": f}, {"a": "TA"})
+    c.vetadas = {1}
+
+    r = inventariar(c, "TA")
+
+    assert [p["pestana"] for p in r["pestanas"]] == ["Uno"]
+    assert r["errores"][0]["pestana"] == "Dos"
+    assert main(argumentos(tmp_path, "--solo", "TA"), fabrica_de(c)) == 1
+    assert json.loads((tmp_path / "inventario.json").read_text())["TA"] == {
+        "viejo": True
+    }
+
+
+def test_a_project_whose_name_contains_the_requested_one_is_not_it() -> None:
+    c = PVsystFalso({}, {})
+    c.abiertas.append({"class": "TProjectForm", "title": "Proyecto _DEMO_Commercial2"})
+    c.abiertas.append({"class": "TProjectForm", "title": "Proyecto X_DEMO_Commercial"})
+
+    assert medir_gui._es_proyecto(c.abiertas[-1], "_DEMO_Commercial") is False
+    assert medir_gui._es_proyecto(c.abiertas[-2], "_DEMO_Commercial") is False
+    ok = {"class": "TProjectForm", "title": "Proyecto _DEMO_Commercial - VC0"}
+    assert medir_gui._es_proyecto(ok, "_DEMO_Commercial") is True
+
+
+def test_the_discard_question_is_answered_si_and_the_save_one_no() -> None:
+    f = formulario(["x"])
+    f["textos"] = ["¿Quiere cancelar las modificaciones?"]
+    c = PVsystFalso({"TMessageForm": f}, {})
+    c.abiertas.append({"class": "TMessageForm", "title": "m"})
+
+    assert limpiar(c) == [] and c.clics == ["Sí"]
+
+
+def test_limpiar_reports_what_it_could_not_close() -> None:
+    c = PVsystFalso({}, {})
+    c.abiertas.append({"class": "TTerco", "title": "t"})
+    c.incerrables = {"TTerco"}
+
+    assert limpiar(c) == ["TTerco"]
+
+
+def test_a_server_that_never_answers_times_out_instead_of_hanging(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(medir_gui, "PLAZO", 1.0)
+    # Answers `initialize`, then reads forever without answering anything else.
+    servidor = (
+        "import sys, json\n"
+        "l = sys.stdin.readline()\n"
+        "print(json.dumps({'jsonrpc': '2.0', 'id': 1, 'result': {}}), flush=True)\n"
+        "sys.stdin.read()\n"
+    )
+    c = ClienteMcp(Path(sys.executable), Path("."), ("-c", servidor))
+    try:
+        with pytest.raises(TimeoutError, match="no answer to tools/call"):
+            c.tool("gui_observar", {"que": "ventanas"})
+    finally:
+        c.cerrar()

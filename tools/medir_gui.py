@@ -21,9 +21,12 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import queue
+import re
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
@@ -43,10 +46,31 @@ BUSCADOR = {"clase": "TEdit", "x": 1077, "y": 49}
 
 # Multiplies every wait; the tests set it to 0.
 PAUSA = 1.0
+# Seconds to wait for the server to answer one call before giving up.
+PLAZO = 120.0
+
+
+class ErrorMedicion(Exception):
+    """A read or a step failed: the measurement of this target cannot be trusted."""
 
 
 def _dormir(segundos: float) -> None:
     time.sleep(segundos * PAUSA)
+
+
+def _hasta(condicion: Callable[[], bool], plazo: float) -> bool:
+    """Poll every half second until `condicion()` holds or `plazo` seconds pass."""
+    for _ in range(int(plazo / 0.5) + 1):
+        if condicion():
+            return True
+        _dormir(0.5)
+    return condicion()
+
+
+def _es_proyecto(w: Json, nombre: str) -> bool:
+    """The project window of exactly `nombre` (not `nombre2`, not `x_nombre`)."""
+    patron = rf"(?<!\w){re.escape(nombre)}(?!\w)"
+    return w["class"] == "TProjectForm" and bool(re.search(patron, w.get("title", "")))
 
 
 class Cliente(Protocol):
@@ -56,11 +80,13 @@ class Cliente(Protocol):
 class ClienteMcp:
     """JSON-RPC over the stdio of a `pvsyst-mcp` process."""
 
-    def __init__(self, servidor: Path, workspace: Path) -> None:
+    def __init__(
+        self, servidor: Path, workspace: Path, argumentos: tuple[str, ...] = ()
+    ) -> None:
         env = {k: v for k, v in os.environ.items() if not k.startswith("PVSYST_MCP")}
         env["PVSYST_WORKSPACE"] = str(workspace)
         self.proc = subprocess.Popen(
-            [str(servidor)],
+            [str(servidor), *argumentos],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
@@ -69,6 +95,9 @@ class ClienteMcp:
             env=env,
         )
         self._id = 0
+        # A reader thread, so that a server that hangs cannot hang this process.
+        self._lineas: queue.Queue[str | None] = queue.Queue()
+        threading.Thread(target=self._leer, daemon=True).start()
         self._llamar(
             "initialize",
             {
@@ -81,6 +110,12 @@ class ClienteMcp:
             {"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}}
         )
 
+    def _leer(self) -> None:
+        assert self.proc.stdout
+        for linea in self.proc.stdout:
+            self._lineas.put(linea)
+        self._lineas.put(None)
+
     def _enviar(self, obj: Json) -> None:
         assert self.proc.stdin
         self.proc.stdin.write(json.dumps(obj, ensure_ascii=False) + "\n")
@@ -91,13 +126,19 @@ class ClienteMcp:
         self._enviar(
             {"jsonrpc": "2.0", "id": self._id, "method": metodo, "params": params}
         )
-        assert self.proc.stdout
-        for linea in self.proc.stdout:
+        while True:
+            try:
+                linea = self._lineas.get(timeout=PLAZO)
+            except queue.Empty:
+                raise TimeoutError(
+                    f"no answer to {metodo} in {PLAZO:g} s (waiting for id {self._id})"
+                ) from None
+            if linea is None:
+                raise RuntimeError("the server closed stdout")
             if linea.strip():
                 resp: Json = json.loads(linea)
                 if resp.get("id") == self._id:
                     return resp
-        raise RuntimeError("the server closed stdout")
 
     def tool(self, nombre: str, argumentos: Json) -> Json:
         resp = self._llamar("tools/call", {"name": nombre, "arguments": argumentos})
@@ -144,31 +185,37 @@ def asegurar_pvsyst(c: Cliente) -> str | None:
     return "PVsyst did not start"
 
 
-def limpiar(c: Cliente) -> None:
-    """Close every window but the main ones, answering No to «save?» prompts."""
+def _boton_de(textos: str) -> str:
+    """The answer to a message box that never saves: Sí to «cancel the
+    modifications?» (measured on 8.1.8, rotulos/dialogos.rs), No to «save?»,
+    OK otherwise."""
+    if "cancelar las modificaciones" in textos:
+        return "Sí"
+    return "No" if ("guard" in textos or "mantener" in textos) else "OK"
+
+
+def limpiar(c: Cliente) -> list[str]:
+    """Close every window but the main ones; the classes still open if it gives up."""
     for _ in range(12):
         sobra = [w for w in ventanas(c) if w["class"] not in MANTENER]
         if not sobra:
-            return
+            return []
         clase = sobra[0]["class"]
         if clase == "TMessageForm":
             f = c.tool("gui_observar", {"que": "formulario", "ventana": clase})
-            textos = " ".join(f.get("textos") or []).lower()
-            boton = "No" if ("guard" in textos or "mantener" in textos) else "OK"
+            boton = _boton_de(" ".join(f.get("textos") or []).lower())
             c.tool(
                 "gui_actuar", {"accion": "clic_texto", "ventana": clase, "texto": boton}
             )
         else:
             c.tool("gui_actuar", {"accion": "cerrar", "ventana": clase})
         _dormir(0.6)
+    return [w["class"] for w in ventanas(c) if w["class"] not in MANTENER]
 
 
 def cargar_proyecto(c: Cliente, nombre: str) -> str | None:
     """Load a project through the loader's search box; an error text, or None."""
-    if any(
-        w["class"] == "TProjectForm" and nombre in w.get("title", "")
-        for w in ventanas(c)
-    ):
+    if any(_es_proyecto(w, nombre) for w in ventanas(c)):
         return None
     limpiar(c)
     if any(w["class"] == "TProjectForm" for w in ventanas(c)):
@@ -191,12 +238,9 @@ def cargar_proyecto(c: Cliente, nombre: str) -> str | None:
         "gui_actuar",
         {"accion": "fila", "ventana": "TProjectLoadForm", "indice": 0, "abrir": True},
     )
-    _dormir(2.5)
-    abiertas = ventanas(c)
-    if not any(
-        w["class"] == "TProjectForm" and nombre in w.get("title", "") for w in abiertas
-    ):
-        return f"project {nombre} did not load: {[w.get('title') for w in abiertas]}"
+    if not _hasta(lambda: any(_es_proyecto(w, nombre) for w in ventanas(c)), 15):
+        titulos = [w.get("title") for w in ventanas(c)]
+        return f"project {nombre} did not load: {titulos}"
     return None
 
 
@@ -216,13 +260,16 @@ def abrir(c: Cliente, cadena: str, clase: str) -> str | None:
         if r.get("error") and "did not open the expected window" not in str(r["error"]):
             return f"{paso}: {str(r['error'])[:200]}"
         _dormir(1.0)
-    _dormir(0.8)
-    clases = [w["class"] for w in ventanas(c)]
-    return None if clase in clases else f"{clase} did not open: {clases}"
+    if _hasta(lambda: any(w["class"] == clase for w in ventanas(c)), 5):
+        return None
+    return f"{clase} did not open: {[w['class'] for w in ventanas(c)]}"
 
 
 def leer_pagina(c: Cliente, clase: str) -> Json:
     f = c.tool("gui_observar", {"que": "formulario", "ventana": clase})
+    fallo = f.get("error") or f.get("jsonrpc_error")
+    if fallo:
+        raise ErrorMedicion(f"reading {clase} failed: {str(fallo)[:200]}")
     return {
         "campos": [{k: x.get(k) for k in CLAVES_CAMPO} for x in f.get("campos") or []],
         "botones": [
@@ -271,6 +318,10 @@ def inventariar(c: Cliente, clase: str) -> Json:
                 errores.append(
                     {"indice": i, "pestana": nombres[i], "texto": str(r)[:300]}
                 )
+                # The tab did not change: the screen shows another tab's page.
+                _dormir(0.5)
+                _cerrar_dialogos(c, i, errores)
+                continue
             _dormir(0.5)
             _cerrar_dialogos(c, i, errores)
         p = leer_pagina(c, clase) if i > 0 else base
@@ -293,14 +344,23 @@ def inventariar(c: Cliente, clase: str) -> Json:
 
 def medir(c: Cliente, objetivo: Json) -> Json | str:
     """Open, inventory and close one target: the measurement, or an error text."""
-    limpiar(c)
+    previas = limpiar(c)
+    if previas:
+        return f"could not close the windows left open: {previas}"
     try:
         fallo = abrir(c, objetivo["cadena"], objetivo["ventana"])
         if fallo:
             return fallo
-        return inventariar(c, objetivo["ventana"])
+        medida = inventariar(c, objetivo["ventana"])
+    except ErrorMedicion as e:
+        return str(e)
     finally:
         limpiar(c)
+    if medida["errores"]:
+        return f"the window reported errors, nothing merged: {medida['errores']}"
+    if not any(p["campos"] or p["botones"] for p in medida["pestanas"]):
+        return "the window read back with no fields and no buttons, nothing merged"
+    return medida
 
 
 def volcar(datos: Json) -> str:
@@ -342,25 +402,34 @@ def main(
     workspace.mkdir(parents=True)
     c = fabrica(args.servidor, workspace)
     fallos = 0
+    fusionados = 0
     try:
         fallo_arranque = asegurar_pvsyst(c)
         if fallo_arranque:
             print(fallo_arranque)
             return 1
         for o in objetivos:
-            r = medir(c, o)
+            try:
+                r = medir(c, o)
+            except (RuntimeError, TimeoutError) as e:
+                # The server is gone or stuck: keep what was measured, stop here.
+                print(f"{o['clave']}: {e}")
+                fallos += 1
+                break
             if isinstance(r, str):
                 print(f"{o['clave']}: {r}")
                 fallos += 1
                 continue
             fusionar(inventario, o["clave"], r)
+            fusionados += 1
             n = sum(len(p["campos"]) for p in r["pestanas"])
             print(
                 f"{o['clave']}: {len(r['pestanas'])} tabs, {n} fields, {len(r['errores'])} errors"
             )
     finally:
         c.cerrar()
-    args.inventario.write_text(volcar(inventario) + "\n", encoding="utf-8")
+        if fusionados:
+            args.inventario.write_text(volcar(inventario) + "\n", encoding="utf-8")
     return 1 if fallos else 0
 
 
