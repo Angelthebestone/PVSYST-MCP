@@ -54,7 +54,7 @@ const SINONIMOS_PVSYST_CLI: Sinonimos = Sinonimos {
 
 pub(crate) const TOOL_GUI_OBSERVAR: Herramienta = Herramienta {
     nombre: "gui_observar",
-    descripcion: crate::idioma::Texto { es: "Observa la GUI de PVsyst: ventanas, controles, texto, captura PNG, formularios por OCR, vista de agente (campos con clave estable, sin OCR), menus y arbol UIA.", en: "Observes the PVsyst GUI: windows, controls, text, PNG capture, OCR forms, agent view (fields by stable key, no OCR), menus and UIA tree." },
+    descripcion: crate::idioma::Texto { es: "Observa la GUI de PVsyst. Coste por que: ventanas/controles/leer, ms; inventario, todos los controles (ocultos, muchos sin etiqueta); formulario, OCR ~1 s de la pestaña visible; vista, claves sin OCR; esquema, grande sin entidad.", en: "Observes the PVsyst GUI. Cost per que: ventanas/controles/leer, ms; inventario, every control (hidden, many unlabeled); formulario, OCR ~1 s of the visible tab; vista, keys without OCR; esquema, large without entidad." },
     anotaciones: Anotaciones {
         titulo: crate::idioma::Texto { es: "Observar GUI", en: "Observe GUI" },
         es_solo_lectura: true,

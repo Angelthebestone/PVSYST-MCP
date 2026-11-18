@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   *adds* the object, so it is not matched.
 
 ### Changed
+- **`gui_observar` says what each `que` costs and which `que` each argument applies to.**
+  The description repeated the fifteen `que` values the schema already lists and said nothing about
+  their cost, so an agent could spend an OCR pass (`que:formulario`, which only labels the visible
+  tab) or pull the whole entity schema (`que:esquema` without `entidad`) unaware, and `compacto` or
+  `recorte` passed to a `que` that ignores them failed silently. `entidad` now names the six keys it
+  accepts. Only the strings clients read changed; `mcpb/manifest.json` carries the same text.
 - **`gui_actuar accion:campo` reports the check box state PVsyst actually holds after the click.**
   The click is posted, so the immediate read returned the old state and `despues` repeated `antes`
   even when PVsyst had applied the value. After clicking an option the call now waits, with a 1 s

@@ -438,7 +438,7 @@
       "name": "pvsyst_cli"
     },
     {
-      "description": "Observes the PVsyst GUI: windows, controls, text, PNG capture, OCR forms, agent view (fields by stable key, no OCR), menus and UIA tree.",
+      "description": "Observes the PVsyst GUI. Cost per que: ventanas/controles/leer, ms; inventario, every control (hidden, many unlabeled); formulario, OCR ~1 s of the visible tab; vista, keys without OCR; esquema, large without entidad.",
       "name": "gui_observar"
     },
     {

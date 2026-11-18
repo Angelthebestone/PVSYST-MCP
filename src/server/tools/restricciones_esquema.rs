@@ -104,7 +104,7 @@ pub(crate) fn anotar_restricciones(an: &Anotador, prop_val: &mut Value, clave: &
                 json!(DESC_BATERIAS.en_idioma(idioma)),
             );
         }
-        _ if an.herramienta.nombre.starts_with("gui_") => anotar_gui(obj, clave, idioma),
+        _ if an.herramienta.nombre.starts_with("gui_") => anotar_gui(an, obj, clave),
         _ => {}
     }
 }
@@ -200,15 +200,49 @@ fn con_descripcion(obj: &mut serde_json::Map<String, Value>, texto: &Texto, idio
     obj.insert("description".to_string(), json!(texto.en_idioma(idioma)));
 }
 
-/// Schema details of the GUI-automation arguments.
-fn anotar_gui(obj: &mut serde_json::Map<String, Value>, clave: &str, idioma: Idioma) {
+const DESC_ENTIDAD_OBSERVAR: Texto = Texto {
+    es: "que:esquema y que:vista: components.panels, components.inverters, components.batteries, variante.orientation, variante.system, proyecto.ventana.",
+    en: "que:esquema and que:vista: components.panels, components.inverters, components.batteries, variante.orientation, variante.system, proyecto.ventana.",
+};
+const DESC_COMPACTO: Texto = Texto {
+    es: "Solo que:ventanas, que:controles y que:vista; por defecto resume, completo:true lo anula; en otro que se ignora.",
+    en: "Only que:ventanas, que:controles and que:vista; summary by default, completo:true turns it off; ignored on another que.",
+};
+const DESC_RECORTE: Texto = Texto {
+    es: "Solo que:capturar: recorta el control de su ventana; en otro que se ignora.",
+    en: "Only que:capturar: crops the control out of its window; ignored on another que.",
+};
+const DESC_CAMPO: Texto = Texto {
+    es: "Campo sin rótulo: clase VCL y centro en px a 96 DPI dentro del formulario.",
+    en: "Unlabeled field: VCL class and center in px at 96 DPI inside the form.",
+};
+const DESC_TEXTO: Texto = Texto {
+    es: "Texto a escribir, o prefijo del ítem del combo a seleccionar.",
+    en: "Text to type, or prefix of the combo item to select.",
+};
+const DESC_PIDS: Texto = Texto {
+    es: "Procesos objetivo; si se omite, se usa PVsyst.exe.",
+    en: "Target processes; if omitted, PVsyst.exe is used.",
+};
+const DESC_DESCARTAR_CAMBIOS: Texto = Texto {
+    es: "cerrar: responde «Sí» a «¿Quiere cancelar las modificaciones?» en la misma llamada. Solo esa pregunta, y solo si el idioma de la GUI es uno con rótulos conocidos (es, en, fr, de); cualquier otro diálogo se devuelve como hoy",
+    en: "cerrar: answers «Yes» to «Do you want to cancel the modifications?» in the same call. Only that question, and only when the GUI's language is one with known captions (es, en, fr, de); any other dialog is reported as today",
+};
+
+/// Schema details of the GUI-automation arguments. `gui_actuar` reuses `entidad`
+/// with another meaning, so that one description is gated by tool.
+fn anotar_gui(an: &Anotador, obj: &mut serde_json::Map<String, Value>, clave: &str) {
+    let idioma = an.idioma;
     match clave {
+        "entidad" if an.herramienta.nombre == "gui_observar" => {
+            con_descripcion(obj, &DESC_ENTIDAD_OBSERVAR, idioma);
+        }
+        "compacto" => con_descripcion(obj, &DESC_COMPACTO, idioma),
+        "recorte" => con_descripcion(obj, &DESC_RECORTE, idioma),
+        "texto" => con_descripcion(obj, &DESC_TEXTO, idioma),
+        "descartar_cambios" => con_descripcion(obj, &DESC_DESCARTAR_CAMBIOS, idioma),
         "campo" => {
-            let descripcion = Texto {
-                es: "Campo sin rótulo: clase VCL y centro en px a 96 DPI dentro del formulario.",
-                en: "Unlabeled field: VCL class and center in px at 96 DPI inside the form.",
-            };
-            con_descripcion(obj, &descripcion, idioma);
+            con_descripcion(obj, &DESC_CAMPO, idioma);
             obj.insert(
                 "properties".to_string(),
                 json!({
@@ -223,27 +257,9 @@ fn anotar_gui(obj: &mut serde_json::Map<String, Value>, clave: &str, idioma: Idi
             );
             obj.insert("required".to_string(), json!(["x", "y"]));
         }
-        "texto" => {
-            let descripcion = Texto {
-                es: "Texto a escribir, o prefijo del ítem del combo a seleccionar.",
-                en: "Text to type, or prefix of the combo item to select.",
-            };
-            con_descripcion(obj, &descripcion, idioma);
-        }
         "pids" => {
             obj.insert("items".to_string(), json!({ "type": "integer" }));
-            let descripcion = Texto {
-                es: "Procesos objetivo; si se omite, se usa PVsyst.exe.",
-                en: "Target processes; if omitted, PVsyst.exe is used.",
-            };
-            con_descripcion(obj, &descripcion, idioma);
-        }
-        "descartar_cambios" => {
-            let descripcion = Texto {
-                es: "cerrar: responde «Sí» a «¿Quiere cancelar las modificaciones?» en la misma llamada. Solo esa pregunta, y solo si el idioma de la GUI es uno con rótulos conocidos (es, en, fr, de); cualquier otro diálogo se devuelve como hoy",
-                en: "cerrar: answers «Yes» to «Do you want to cancel the modifications?» in the same call. Only that question, and only when the GUI's language is one with known captions (es, en, fr, de); any other dialog is reported as today",
-            };
-            con_descripcion(obj, &descripcion, idioma);
+            con_descripcion(obj, &DESC_PIDS, idioma);
         }
         _ => {}
     }
