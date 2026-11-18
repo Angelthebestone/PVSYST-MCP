@@ -7,8 +7,8 @@ use crate::vista_agente::contrato::{construir, Contexto};
 /// BUG-03: `coincidencias:0` used to carry `vista.estado:"ok"`.
 #[test]
 fn should_report_a_click_without_ocr_match_as_partial() {
-    let mut resultado = json!({ "accion": "clic_texto", "coincidencias": 0 });
-    marcar_sin_ocr(&mut resultado, "NoExiste", Origen::Uia, Idioma::Es);
+    let mut resultado = json!({ "accion": "clic_texto", "texto": "NoExiste", "coincidencias": 0 });
+    marcar_sin_ocr(&mut resultado, Origen::Uia, Idioma::Es);
     let args = json!({});
 
     let vista = construir(
@@ -46,9 +46,9 @@ fn should_not_click_through_uia_when_the_index_is_out_of_range() {
 
 #[test]
 fn should_leave_a_click_with_an_ocr_match_as_it_was() {
-    let mut resultado = json!({ "accion": "clic_texto", "coincidencias": 1 });
+    let mut resultado = json!({ "accion": "clic_texto", "texto": "Cerrar", "coincidencias": 1 });
 
-    marcar_sin_ocr(&mut resultado, "Cerrar", Origen::Ocr, Idioma::Es);
+    marcar_sin_ocr(&mut resultado, Origen::Ocr, Idioma::Es);
 
     assert!(resultado.get("error").is_none());
 }
