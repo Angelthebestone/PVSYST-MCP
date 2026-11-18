@@ -259,6 +259,32 @@ def test_remeasures_two_openings_of_the_same_window_under_their_own_keys(
     assert instancias[0]["estado_medido"] == "no registrado"
 
 
+def test_adding_an_opening_keeps_the_instances_already_remeasured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        mapa_py,
+        "REMEDIOS",
+        {
+            "TPerdidasForm": Remedio(),
+            "TPerdidasForm#otra": Remedio(anadir_con="otra apertura"),
+        },
+    )
+    inventario = {
+        "TPerdidasForm": inventario_de_prueba()["TPerdidasForm"],
+        "TPerdidasForm#otra": inventario_de_prueba()["TPerdidasForm"],
+    }
+
+    una_vez = remedir(mapa_de_prueba(), inventario)
+    dos_veces = remedir(una_vez, inventario)
+
+    aperturas = [
+        i["abierta_con"] for i in dos_veces["ventanas"]["TPerdidasForm"]["instancias"]
+    ]
+    assert aperturas == ["variante.perdidas", "bombeo > Perdidas", "otra apertura"]
+    assert serializar(dos_veces) == serializar(una_vez)
+
+
 @pytest.mark.usefixtures("remedios")
 def test_replaces_its_own_note_instead_of_appending_another() -> None:
     una_vez = remedir(mapa_de_prueba(), inventario_de_prueba())
