@@ -132,6 +132,18 @@ def ventanas(c: Cliente) -> list[Json]:
     return list(r.get("windows", []))
 
 
+def asegurar_pvsyst(c: Cliente) -> str | None:
+    """Launch PVsyst when no PVsyst process is running; an error text, or None."""
+    if "windows" in c.tool("gui_observar", {"que": "ventanas", "visibles": True}):
+        return None
+    c.tool("gui_actuar", {"accion": "lanzar"})
+    for _ in range(30):
+        _dormir(1.0)
+        if "windows" in c.tool("gui_observar", {"que": "ventanas", "visibles": True}):
+            return None
+    return "PVsyst did not start"
+
+
 def limpiar(c: Cliente) -> None:
     """Close every window but the main ones, answering No to «save?» prompts."""
     for _ in range(12):
@@ -331,6 +343,10 @@ def main(
     c = fabrica(args.servidor, workspace)
     fallos = 0
     try:
+        fallo_arranque = asegurar_pvsyst(c)
+        if fallo_arranque:
+            print(fallo_arranque)
+            return 1
         for o in objetivos:
             r = medir(c, o)
             if isinstance(r, str):

@@ -10,6 +10,7 @@ import medir_gui
 from medir_gui import (
     Json,
     abrir,
+    asegurar_pvsyst,
     cargar_proyecto,
     inventariar,
     limpiar,
@@ -63,10 +64,16 @@ class PVsystFalso:
         self.clics: list[str] = []
         self.escrito = ""
         self.cerrado = False
+        self.corriendo = True
+        self.lanza = True
+        self.acciones: list[str] = []
 
     def tool(self, nombre: str, a: Json) -> Json:
+        self.acciones.append(a.get("accion", ""))
         if nombre == "gui_observar":
             if a["que"] == "ventanas":
+                if not self.corriendo:
+                    return {"error": "Process 'PVsyst.exe' is not running"}
                 return {"windows": list(self.abiertas)}
             f = self.formularios[a["ventana"]]
             pag = f["paginas"][self.pagina.get(a["ventana"], 0)]
@@ -80,7 +87,9 @@ class PVsystFalso:
 
     def _actuar(self, a: Json) -> Json:
         accion = a["accion"]
-        if accion == "funcion":
+        if accion == "lanzar":
+            self.corriendo = self.lanza
+        elif accion == "funcion":
             if a["funcion"] not in self.abre:
                 return {"error": f"unknown function {a['funcion']}"}
             self.abiertas.append({"class": self.abre[a["funcion"]], "title": "t"})
@@ -144,6 +153,28 @@ def test_limpiar_answers_no_to_a_save_prompt_and_keeps_the_main_windows() -> Non
 
     assert [w["class"] for w in c.abiertas] == ["THomeForm", "TProjectForm"]
     assert c.clics == ["No"]
+
+
+def test_asegurar_pvsyst_launches_it_only_when_it_is_not_running() -> None:
+    c = PVsystFalso({}, {})
+
+    assert asegurar_pvsyst(c) is None
+    assert "lanzar" not in c.acciones
+
+    c.corriendo = False
+    assert asegurar_pvsyst(c) is None and c.corriendo
+    assert "lanzar" in c.acciones
+
+
+def test_main_stops_when_pvsyst_does_not_start(tmp_path: Path) -> None:
+    c = PVsystFalso({"TA": formulario(["a"])}, {"a": "TA"})
+    c.corriendo = c.lanza = False
+
+    assert main(argumentos(tmp_path, "--solo", "TA"), fabrica_de(c)) == 1
+    assert c.cerrado
+    assert json.loads((tmp_path / "inventario.json").read_text())["TA"] == {
+        "viejo": True
+    }
 
 
 def test_abrir_runs_the_chain_and_reports_a_window_that_did_not_open() -> None:
