@@ -95,11 +95,18 @@ def _leer_inventario(ruta: Path) -> Json | None:
 
 
 def _resumen(clave: str, medida: Json) -> str:
-    """The line `main` prints for one measured target."""
+    """The line `main` prints for one measured target.
+
+    `presses` counts only entries that pressed a button: the list also carries the
+    buttons it refused and the truncation markers. A press error is not an
+    inventory error (it does not block the merge), so it is counted apart.
+    """
     n = sum(len(p["campos"]) for p in medida["pestanas"])
-    pulsados = (
-        f", {len(medida['botones_abren'])} presses" if "botones_abren" in medida else ""
-    )
+    pulsados = ""
+    if "botones_abren" in medida:
+        prensas = [e for e in medida["botones_abren"] if "abre" in e]
+        fallidas = [e for e in prensas if e.get("error")]
+        pulsados = f", {len(prensas)} presses, {len(fallidas)} with error"
     return (
         f"{clave}: {len(medida['pestanas'])} tabs, {n} fields, "
         f"{len(medida['errores'])} errors{pulsados}"

@@ -94,6 +94,26 @@ def test_main_merges_botones_abren_only_when_it_pressed_them(tmp_path: Path) -> 
     ]
 
 
+def test_main_reports_presses_with_error_without_failing(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    f = formulario([])
+    f["paginas"][0]["botones"] = botones_de("Abrir")
+    c = PVsystFalso(
+        {"TA": f},
+        {"a": "TA"},
+        {"Abrir": {"error": "'Abrir' is the caption of 2 buttons"}},
+    )
+
+    codigo = main(argumentos(tmp_path, "--solo", "TA", "--botones"), fabrica_de(c))
+
+    assert codigo == 0
+    assert "1 presses, 1 with error" in capsys.readouterr().out
+    inventario = json.loads((tmp_path / "inventario.json").read_text())
+    assert inventario["TA"]["errores"] == []
+    assert "2 buttons" in inventario["TA"]["botones_abren"][0]["error"]
+
+
 def test_main_merges_the_fields_when_a_press_cannot_reopen_the_host(
     tmp_path: Path,
 ) -> None:
