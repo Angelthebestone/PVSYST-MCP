@@ -2,11 +2,6 @@ use super::*;
 use crate::config::Paths;
 use serde_json::Value;
 
-/// Arguments of the schema a client sees that still carry no description. It only
-/// goes down: a new argument is described in its tool's table, and each table that
-/// gets filled lowers this number until it reaches zero.
-const DEUDA_MAXIMA: usize = 133;
-
 /// Longest description, in characters: the tool list travels in every turn, so a
 /// description says the meaning and the unit, not a paragraph.
 const LARGO_MAXIMO: usize = 100;
@@ -35,7 +30,7 @@ fn nombre(esquema: &Value) -> &str {
 
 #[test]
 fn should_not_add_arguments_without_a_description() {
-    let esquemas = esquemas(Idioma::En, false);
+    let esquemas = esquemas(Idioma::En, true);
     let sin: Vec<String> = esquemas
         .iter()
         .flat_map(|e| {
@@ -46,9 +41,8 @@ fn should_not_add_arguments_without_a_description() {
         })
         .collect();
     assert!(
-        sin.len() <= DEUDA_MAXIMA,
-        "{} arguments have no description (limit {DEUDA_MAXIMA}); describe the new one in its tool's table under src/server/tools/descripciones: {sin:?}",
-        sin.len()
+        sin.is_empty(),
+        "arguments without a description; describe each in its tool's table under src/server/tools/descripciones: {sin:?}"
     );
 }
 
