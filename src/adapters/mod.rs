@@ -16,6 +16,7 @@ pub(crate) mod http;
     reason = "deuda medida; pendiente del paso 2 de la limpieza"
 )]
 pub(crate) mod ledger;
+pub(crate) mod ledger_reserva;
 #[cfg(windows)]
 #[expect(
     clippy::excessive_nesting,

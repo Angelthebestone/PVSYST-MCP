@@ -1,22 +1,15 @@
 //! Trial-budget ledger. Records the licence mode and the remaining executions
 //! that PVsystCLI prints, persists them in `UserData/mcp_cache/ledger.json`, and
-//! asks for confirmation before a run that would spend several trial executions.
+//! asks for confirmation before a run that would spend several trial executions
+//! or would leave the trial balance under its reserve.
 
-use crate::args::{flag, CONFIRMAR};
 use crate::error::{Error, Result};
-use crate::idioma::{Idioma, Texto};
-
-const CONFIRMACION_TRIAL: Texto = Texto {
-    es: "Esta acción consume {n} ejecuciones de prueba; repítela con confirmar:true",
-    en: "This action spends {n} trial runs; repeat it with confirmar:true",
-};
 use serde_json::{json, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-/// Estimated trial executions at or above which a trial run needs confirmation.
-const UMBRAL_CONFIRMACION: u32 = 2;
+use super::ledger_reserva::{requiere_confirmacion_con, reserva_de_entorno, Gasto};
 
 /// Licence state persisted in `ledger.json`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -184,7 +177,7 @@ pub(crate) fn estado(workspace: &Path) -> Option<Estado> {
 
 /// The ledger as stored: `Ok(None)` when it does not exist yet, an error when it
 /// exists but is unreadable or corrupt, so the caller does not mistake it for "no data".
-fn estado_leido(workspace: &Path) -> Result<Option<Estado>> {
+pub(super) fn estado_leido(workspace: &Path) -> Result<Option<Estado>> {
     let ruta = ruta(workspace);
     let texto = match fs::read_to_string(&ruta) {
         Ok(t) => t,
@@ -216,37 +209,17 @@ fn guardar(workspace: &Path, estado: &Estado) -> Result<()> {
     crate::history::escribir_atomico(&ruta(workspace), v.to_string().as_bytes())
 }
 
-/// Confirmation gate for runs that would spend several trial executions.
-/// Returns the response to send instead of running, or `None` when the run may proceed.
+/// Confirmation gate for runs that would spend trial executions: several at once,
+/// or any at all when they would eat into the trial reserve. Returns the response
+/// to send instead of running, or `None` when the run may proceed.
 pub(crate) fn requiere_confirmacion(
     workspace: &Path,
     args: &Value,
     ejecuciones_estimadas: u32,
     plan: &[String],
 ) -> Option<Value> {
-    if ejecuciones_estimadas < UMBRAL_CONFIRMACION || flag(args, &[CONFIRMAR]) {
-        return None;
-    }
-    // An unreadable ledger may hide a trial licence: ask rather than spend blindly.
-    let estado = match estado_leido(workspace) {
-        Ok(Some(e)) if e.modo == "trial" => e,
-        Ok(_) => return None,
-        Err(e) => Estado {
-            modo: format!("desconocido ({e})"),
-            dias: None,
-            restantes: None,
-        },
-    };
-    Some(json!({
-        "requiere_confirmacion": true,
-        "ejecuciones_estimadas": ejecuciones_estimadas,
-        "restantes": estado.restantes,
-        "plan": plan,
-        "mensaje": CONFIRMACION_TRIAL.texto_con(
-            Idioma::de_entorno(),
-            &[("n", &ejecuciones_estimadas.to_string())],
-        ),
-    }))
+    let gasto = Gasto::nuevo(ejecuciones_estimadas, plan, reserva_de_entorno());
+    requiere_confirmacion_con(workspace, args, &gasto)
 }
 
 #[cfg(test)]

@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   truncation itself is unchanged.
 
 ### Added
+- **A trial licence keeps a reserve of executions (`PVSYST_RESERVA_TRIAL`).** The confirmation gate
+  only asked for `confirmar:true` when one call estimated 2 or more trial executions, so a loop of
+  one-execution calls drained the balance without ever being asked. A trial call that would leave
+  fewer than `10` executions now asks too, even when it estimates one; the message names the runs
+  estimated, the ones left, the reserve and the variable (`0` turns the reserve off, a lower number
+  narrows it), and the answer gains `reserva`. A licensed install has no budget, so it is never held
+  back, and the 2-execution threshold keeps working as before.
 - **`resultados que:todo` answers the whole panorama in one call (B.4.2 and B.7 row 5 of the visual GUI test report).**
   It returns `secciones` with one entry per section (`resumen`, `carbono`, `economia`, `p50_p90`), each
   `{estado:"ok", datos}` with what the individual call returns, or `{estado:"no_disponible", motivo}` with the

@@ -171,7 +171,7 @@ the `pvsyst://cobertura` resource returns the machine-readable version.
 2. `proyecto {accion:"crear", plantilla, nombre_nuevo, modulo, inversor, n_mod_serie, n_strings}`.
 3. `proyecto {accion:"dimensionar", proyecto, n_mod_serie, n_strings}` → writes `NModSerie`/`NStringCh`/`PNomSizing`.
 4. `editar {accion:"campos", proyecto, ediciones:[…]}` → tilt/azimuth, losses, etc.
-5. `simular {proyecto, site:"…SIT", synthetic_weather:true}` (trial-licence runs ask for confirmation when they use two or more executions). Check `avisos_pvsyst`: that is where PVsyst warns, e.g., about a Vmpp outside the inverter window.
+5. `simular {proyecto, site:"…SIT", synthetic_weather:true}` (trial-licence runs ask for confirmation when they use two or more executions, or when they would leave the balance under its reserve). Check `avisos_pvsyst`: that is where PVsyst warns, e.g., about a Vmpp outside the inverter window.
 6. `resultados {que:"perdidas"}`, then `que:"mensual"`, `que:"carbono"`, `que:"entregable"`.
 
 
@@ -322,6 +322,7 @@ An empty value counts as unset, so the default or auto-detection applies.
 | `PVSYST_WORKSPACE` | User workspace folder | `%USERPROFILE%\PVsyst8.1_Data`, then `Documents\…` |
 | `PVSYST_CLI` | Path to `PVsystCLI.exe` | `C:\Program Files\PVsyst8.1.7\PVsystCLI.exe` |
 | `PVSYST_GUI` | Path to `PVsyst.exe` | `C:\Program Files\PVsyst8.1.7\PVsyst.exe` |
+| `PVSYST_RESERVA_TRIAL` | Trial mode only: executions the trial budget keeps in reserve. A call that would leave fewer asks for `confirmar:true` even when it spends a single run; `0` turns the reserve off. Never applies with a licence | `10` |
 | `PVSYST_MCP_APROXIMACIONES` | `1` enables the MCP's own calculations (labelled `origen: "aproximacion_mcp"`) | unset (PVsyst results only) |
 | `PVSYST_MCP_IDIOMA` | Language of the MCP surface the client sees: tool descriptions, titles, schemas, recipes, prompts, resources and messages. `es` selects Spanish; any other value (or unset) is English | `en` |
 | `PVSYST_MCP_ESCRITORIO` | `aislado` runs PVsyst and the GUI tools on a private hidden Win32 desktop (the agent never takes your focus, cursor or keyboard); `compartido` uses your desktop. Any other value is an error | `compartido` |

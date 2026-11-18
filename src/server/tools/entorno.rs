@@ -3,7 +3,7 @@
 use super::declaracion::{
     con, Anotaciones, Discriminador, Ejecutor, Herramienta, Sinonimos, TipoDato,
 };
-use crate::adapters::gui;
+use crate::adapters::{gui, ledger_reserva};
 use crate::admin;
 use crate::config::Paths;
 use crate::easy_mode;
@@ -225,6 +225,7 @@ fn info_entorno(paths: &Paths) -> Value {
             "PVSYST_WORKSPACE": std::env::var("PVSYST_WORKSPACE").ok(),
             "PVSYST_CLI": std::env::var("PVSYST_CLI").ok(),
             "PVSYST_GUI": std::env::var("PVSYST_GUI").ok(),
+            "PVSYST_RESERVA_TRIAL": std::env::var(ledger_reserva::VARIABLE_RESERVA).ok(),
             "PVSYST_MCP_ESCRITORIO": std::env::var(gui::escritorio::VARIABLE).ok(),
             "PVSYST_MCP_APROXIMACIONES": std::env::var(crate::aproximaciones::VARIABLE_ENTORNO).ok()
         }

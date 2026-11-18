@@ -173,7 +173,7 @@ versión legible por máquina.
 2. `proyecto {accion:"crear", plantilla, nombre_nuevo, modulo, inversor, n_mod_serie, n_strings}`.
 3. `proyecto {accion:"dimensionar", proyecto, n_mod_serie, n_strings}` → escribe `NModSerie`/`NStringCh`/`PNomSizing`.
 4. `editar {accion:"campos", proyecto, ediciones:[…]}` → inclinación/azimut, pérdidas, etc.
-5. `simular {proyecto, site:"…SIT", synthetic_weather:true}` (con licencia trial, pide confirmación si va a gastar dos o más ejecuciones). Revisa `avisos_pvsyst`: ahí PVsyst avisa, por ejemplo, de un Vmpp fuera de la ventana del inversor.
+5. `simular {proyecto, site:"…SIT", synthetic_weather:true}` (con licencia trial, pide confirmación si va a gastar dos o más ejecuciones o si dejaría el presupuesto por debajo de la reserva). Revisa `avisos_pvsyst`: ahí PVsyst avisa, por ejemplo, de un Vmpp fuera de la ventana del inversor.
 6. `resultados {que:"perdidas"}`, y luego `que:"mensual"`, `que:"carbono"`, `que:"entregable"`.
 
 
@@ -322,6 +322,7 @@ Un valor vacío cuenta como no definido, así que se aplica el valor por defecto
 | `PVSYST_WORKSPACE` | Carpeta del workspace del usuario | `%USERPROFILE%\PVsyst8.1_Data`, luego `Documents\…` |
 | `PVSYST_CLI` | Ruta a `PVsystCLI.exe` | `C:\Program Files\PVsyst8.1.7\PVsystCLI.exe` |
 | `PVSYST_GUI` | Ruta a `PVsyst.exe` | `C:\Program Files\PVsyst8.1.7\PVsyst.exe` |
+| `PVSYST_RESERVA_TRIAL` | Solo en modo trial: ejecuciones que el presupuesto de prueba mantiene en reserva. Una llamada que dejaría menos pide `confirmar:true` aunque gaste una sola ejecución; `0` desactiva la reserva. Con licencia nunca aplica | `10` |
 | `PVSYST_MCP_APROXIMACIONES` | `1` activa los cálculos propios del MCP (marcados `origen: "aproximacion_mcp"`) | sin definir (solo resultados de PVsyst) |
 | `PVSYST_MCP_ESCRITORIO` | `aislado` ejecuta PVsyst y las tools de GUI en un escritorio Win32 oculto y propio (el agente nunca toma tu foco, cursor ni teclado); `compartido` usa tu escritorio. Cualquier otro valor es un error | `compartido` |
 | `PVSYST_MCP_AUTO_ACTUALIZAR` | Solo lanzador npm: `0` desactiva la auto-actualización | activada |
