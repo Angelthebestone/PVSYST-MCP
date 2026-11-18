@@ -16,6 +16,7 @@ pub(crate) mod captura;
 pub(crate) mod catalogo;
 pub(crate) mod causa_pvsyst;
 pub(crate) mod cierre;
+pub(crate) mod cierre_de_ventana;
 pub(crate) mod clic_fisico;
 pub(crate) mod clic_por_texto;
 pub(crate) mod combinacion;

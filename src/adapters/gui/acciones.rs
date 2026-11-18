@@ -1,16 +1,14 @@
 //! Window actions: clicks, messages, physical inputs and desktop interactivity.
 
 use super::cierre;
+use super::cierre_de_ventana::anotar_cierre;
+pub(crate) use super::cierre_de_ventana::{cerrar_ventana, CLASE_EXCEPCION, CLASE_MENSAJE};
 use super::clic_fisico::{clic_fisico_en_control, desplazamiento, punto_pedido};
-use super::ffi::{self, Hwnd, BM_CLICK, GA_ROOT, WM_CLOSE};
+use super::ffi::{self, Hwnd, BM_CLICK, GA_ROOT};
 use super::modal;
 use super::primer_plano;
 use super::resolucion::resolve_sin_empates;
-use super::rotulos::dialogos::{
-    BOTONES_CANCELAR, BOTONES_CIERRE, BOTONES_EXCEPCION, BOTONES_MENSAJE,
-};
-use super::rotulos::Rotulo;
-use super::ventanas::{class_of, pid_of, resolve, text_of, ventanas_de, visible, window_json};
+use super::ventanas::{class_of, pid_of, resolve, text_of, ventanas_de, window_json};
 use crate::args::{opt_u32, req_str};
 use crate::error::{Error, Result};
 use crate::idioma::{Idioma as IdiomaCliente, Texto};
@@ -20,10 +18,6 @@ use serde_json::{json, Value};
 const CLASES_BOTON: &[&str] = &["Button", "TButton", "TBitBtn", "TCheckBox", "TRadioButton"];
 /// Controls listed in the error of a name that several share.
 const CANDIDATOS_EN_ERROR: usize = 8;
-/// Class of PVsyst's message boxes.
-pub(crate) const CLASE_MENSAJE: &str = "TMessageForm";
-/// Class of the madExcept crash dialog.
-pub(crate) const CLASE_EXCEPCION: &str = "madExceptWndClass";
 
 /// How a control is clicked through messages. Exactly one mechanism is used:
 /// a button handles both `BM_CLICK` and mouse messages, so sending both would
@@ -77,48 +71,6 @@ fn enviar_mensaje(h: Hwnd, args: &Value) -> Result<()> {
         ffi::TIMEOUT_MENSAJE_MS,
     )
     .ok_or_else(|| Error::Gui("PVsyst did not answer in 3 s to the message".into()))?;
-    Ok(())
-}
-
-fn botones_de_cierre(h: Hwnd) -> &'static [Rotulo<'static>] {
-    match class_of(h).as_str() {
-        CLASE_MENSAJE => BOTONES_MENSAJE,
-        CLASE_EXCEPCION => BOTONES_EXCEPCION,
-        _ => BOTONES_CIERRE,
-    }
-}
-
-/// Buttons that close `h`: with `cancelar`, Cancelar/No come first.
-fn botones_para_cerrar(h: Hwnd, cancelar: bool) -> Vec<Rotulo<'static>> {
-    let base = botones_de_cierre(h);
-    if cancelar {
-        BOTONES_CANCELAR.iter().chain(base).copied().collect()
-    } else {
-        base.to_vec()
-    }
-}
-
-/// Closes a VCL form the way a user does: its own close/cancel button first,
-/// `WM_CLOSE` only when the form has none. `cancelar:true` tries Cancelar/No
-/// before the default buttons. A message box with no harmless button (a Sí/No
-/// question) is left open and reported.
-pub(crate) fn cerrar_ventana(h: Hwnd, args: &Value) -> Result<()> {
-    let botones = botones_para_cerrar(h, crate::args::flag(args, &["cancelar"]));
-    let boton = ffi::enum_children(h)
-        .into_iter()
-        .filter(|c| visible(*c))
-        .find(|c| botones.iter().any(|b| b.coincide(&text_of(*c))));
-    match boton {
-        Some(b) => clic_por_mensajes(b)?,
-        None if class_of(h) == CLASE_MENSAJE => {
-            return Err(Error::Gui(format!(
-                "Message 0x{h:X} is a question: read it with gui_observar que:formulario or controles and answer with click on the chosen button"
-            )))
-        }
-        None => {
-            ffi::post_message(h, ffi::Mensaje::simple(WM_CLOSE));
-        }
-    }
     Ok(())
 }
 
@@ -290,10 +242,8 @@ pub(crate) fn invocar(args: &Value, idioma: IdiomaCliente) -> Result<Value> {
         }
     }
     let mut window = window_json(h);
-    if let (true, Some(map)) = (cerrar, window.as_object_mut()) {
-        map.insert("closed".into(), json!(true));
-        // `true` when the window had unsaved changes and the question was answered yes.
-        map.insert("descartado".into(), json!(descartado));
+    if cerrar {
+        anotar_cierre(&mut window, descartado);
     }
     Ok(json!({
         "invoked": reference,
