@@ -234,8 +234,8 @@ pub(super) const ENTRADAS: &[Entrada] = &[
         "gui_actuar",
         "cerrar",
         Texto {
-            es: "Ventana cerrada.",
-            en: "Window closed.",
+            es: "Ventana cerrada. Con descartar_cambios:true responde «Sí» a «¿Quiere cancelar las modificaciones?» en la misma llamada, y solo a esa pregunta.",
+            en: "Window closed. With descartar_cambios:true it answers «Yes» to «Do you want to cancel the modifications?» in the same call, and only to that question.",
         },
     )
     .luego(&[VER_VENTANAS]),

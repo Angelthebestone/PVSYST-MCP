@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`gui_actuar accion:cerrar descartar_cambios:true` answers PVsyst's discard question in the same call
+  (5.2 point 4 of the visual GUI test report).** Closing an editor that has changes leaves the window open on a
+  `TMessageForm` that asks «¿Quiere cancelar las modificaciones?»: it took a second call (`clic_texto "Sí"`),
+  and walking ~60 windows cost ~120 calls. With the flag, a close that produced **exactly** that question
+  presses «Sí» and waits for the close again; any other dialog (`TDEMOForm`, another question, an error) is
+  left alone and reported as before, and without the flag nothing changes. The question is recognised by its
+  wording in the language the open windows are written in (the reading behind `gui_observar que:idioma`;
+  es measured on 8.1.8, en, fr and de inferred and failing closed), so a GUI in an unknown language answers
+  nothing and the error carries a note saying so. The 3D editor's «¿Quiere mantener sus modificaciones en el objeto?» is a different question whose «Sí»
+  *adds* the object, so it is not matched.
+
 ### Changed
 - **`gui_actuar accion:campo` reports the check box state PVsyst actually holds after the click.**
   The click is posted, so the immediate read returned the old state and `despues` repeated `antes`

@@ -196,18 +196,19 @@ fn anotar_estructuras(obj: &mut serde_json::Map<String, Value>, clave: &str) -> 
     }
 }
 
+fn con_descripcion(obj: &mut serde_json::Map<String, Value>, texto: &Texto, idioma: Idioma) {
+    obj.insert("description".to_string(), json!(texto.en_idioma(idioma)));
+}
+
 /// Schema details of the GUI-automation arguments.
 fn anotar_gui(obj: &mut serde_json::Map<String, Value>, clave: &str, idioma: Idioma) {
     match clave {
         "campo" => {
-            obj.insert(
-                "description".to_string(),
-                json!(Texto {
-                    es: "Campo sin rótulo: clase VCL y centro en px a 96 DPI dentro del formulario.",
-                    en: "Unlabeled field: VCL class and center in px at 96 DPI inside the form.",
-                }
-                .en_idioma(idioma)),
-            );
+            let descripcion = Texto {
+                es: "Campo sin rótulo: clase VCL y centro en px a 96 DPI dentro del formulario.",
+                en: "Unlabeled field: VCL class and center in px at 96 DPI inside the form.",
+            };
+            con_descripcion(obj, &descripcion, idioma);
             obj.insert(
                 "properties".to_string(),
                 json!({
@@ -223,25 +224,26 @@ fn anotar_gui(obj: &mut serde_json::Map<String, Value>, clave: &str, idioma: Idi
             obj.insert("required".to_string(), json!(["x", "y"]));
         }
         "texto" => {
-            obj.insert(
-                "description".to_string(),
-                json!(Texto {
-                    es: "Texto a escribir, o prefijo del ítem del combo a seleccionar.",
-                    en: "Text to type, or prefix of the combo item to select.",
-                }
-                .en_idioma(idioma)),
-            );
+            let descripcion = Texto {
+                es: "Texto a escribir, o prefijo del ítem del combo a seleccionar.",
+                en: "Text to type, or prefix of the combo item to select.",
+            };
+            con_descripcion(obj, &descripcion, idioma);
         }
         "pids" => {
             obj.insert("items".to_string(), json!({ "type": "integer" }));
-            obj.insert(
-                "description".to_string(),
-                json!(Texto {
-                    es: "Procesos objetivo; si se omite, se usa PVsyst.exe.",
-                    en: "Target processes; if omitted, PVsyst.exe is used.",
-                }
-                .en_idioma(idioma)),
-            );
+            let descripcion = Texto {
+                es: "Procesos objetivo; si se omite, se usa PVsyst.exe.",
+                en: "Target processes; if omitted, PVsyst.exe is used.",
+            };
+            con_descripcion(obj, &descripcion, idioma);
+        }
+        "descartar_cambios" => {
+            let descripcion = Texto {
+                es: "cerrar: responde «Sí» a «¿Quiere cancelar las modificaciones?» en la misma llamada. Solo esa pregunta, y solo si el idioma de la GUI es uno con rótulos conocidos (es, en, fr, de); cualquier otro diálogo se devuelve como hoy",
+                en: "cerrar: answers «Yes» to «Do you want to cancel the modifications?» in the same call. Only that question, and only when the GUI's language is one with known captions (es, en, fr, de); any other dialog is reported as today",
+            };
+            con_descripcion(obj, &descripcion, idioma);
         }
         _ => {}
     }

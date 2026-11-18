@@ -281,7 +281,8 @@ pub(crate) fn invocar(args: &Value, idioma: IdiomaCliente) -> Result<Value> {
 
     let mut reabiertas = Vec::new();
     if cerrar {
-        cierre::exigir_cerrada(h, idioma)?;
+        let descartar_cambios = crate::args::flag(args, &["descartar_cambios"]);
+        cierre::exigir_cerrada(h, idioma, descartar_cambios)?;
         std::thread::sleep(cierre::ESPERA_REAPARICION);
         if let (Some(antes), Some(pid)) = (antes, pid) {
             reabiertas = cierre::reabiertas(&antes, &cierre::instantanea(pid), h);

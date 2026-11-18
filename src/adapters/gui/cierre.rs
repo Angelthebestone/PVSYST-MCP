@@ -1,12 +1,19 @@
 //! What a close leaves behind. Closing an editor can make its parent selector
 //! reappear as a modal, so the answer is built only after re-reading the forms.
+//! A close can also stop at «¿Quiere cancelar las modificaciones?»: [`descarte`]
+//! decides whether that exact question is on screen, and which button answers it.
 
-use super::acciones::CLASE_MENSAJE;
+use super::acciones::{clic_por_mensajes, CLASE_MENSAJE};
 use super::conduccion::{esperar_cierre, formularios};
 use super::ffi::{self, Hwnd};
+use super::idioma_gui;
 use super::modal;
+use super::ocr::captura_ocr::lineas_vivas;
+use super::ocr::ubicacion::plegar;
 use super::proceso::pids_pvsyst;
-use super::ventanas::{class_of, pid_of, text_of, visible};
+use super::rotulos::dialogos::{DESCARTAR_CAMBIOS, SI};
+use super::rotulos::{IdiomaGui, Rotulo};
+use super::ventanas::{class_of, hijo_visible_con_texto, pid_of, text_of, visible};
 use crate::error::{Error, Result};
 use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Value};
@@ -18,6 +25,53 @@ pub(crate) const ESPERA_REAPARICION: Duration = Duration::from_millis(400);
 const ESPERA_CIERRE: Duration = Duration::from_secs(2);
 /// The home screen is always behind: it is not a form the close reopened.
 const INICIO: &str = "THomeForm";
+
+/// Note of a `descartar_cambios` that could not tell the question apart.
+const SIN_IDIOMA: Texto = Texto {
+    es: "«descartar_cambios» no respondió: la GUI de PVsyst está en un idioma cuyos rótulos este servidor no conoce (es, en, fr, de), así que no distingue esta pregunta de otra. Respóndela con gui_actuar accion:clic_texto",
+    en: "'descartar_cambios' answered nothing: the PVsyst GUI is in a language whose captions this server does not know (es, en, fr, de), so it cannot tell this question from another. Answer it with gui_actuar accion:clic_texto",
+};
+const SIN_LECTURA: Texto = Texto {
+    es: "«descartar_cambios» no respondió: no se pudo leer el texto del diálogo (OCR), así que no se sabe si es la pregunta de descarte. Léelo con gui_observar que:formulario y responde con gui_actuar accion:click",
+    en: "'descartar_cambios' answered nothing: the dialog's text could not be read (OCR), so whether it is the discard question is unknown. Read it with gui_observar que:formulario and answer with gui_actuar accion:click",
+};
+
+/// What a dialog that intercepted a close is, and whether it was answered.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Descarte {
+    /// The dialog is the discard question: press this button to answer it yes.
+    Descartar { boton: Rotulo<'static> },
+    /// A different dialog: it is left for the caller, as it always was.
+    OtroDialogo,
+    /// The wording of the question is not known in the GUI's language, so the
+    /// dialog cannot be told from another one: nothing is answered.
+    IdiomaDesconocido,
+    /// The dialog's text could not be read: nothing is answered either.
+    SinLectura,
+}
+
+/// Whether `texto`, read from a dialog of class `clase`, is the question a close
+/// asks before dropping the window's changes, and the button that answers it.
+///
+/// The whole sentence has to match: the 3D editor asks «¿Quiere mantener sus
+/// modificaciones en el objeto?», whose «Sí» adds the object instead of
+/// discarding it. Only the Spanish wording was measured on 8.1.8; the other
+/// three are inferred and can only fail closed, since an unmeasured wording
+/// matches nothing. A language no wording is known in answers nothing.
+pub(crate) fn descarte(clase: &str, texto: &str, idioma: Option<IdiomaGui>) -> Descarte {
+    if clase != CLASE_MENSAJE {
+        return Descarte::OtroDialogo;
+    }
+    let Some(idioma) = idioma else {
+        return Descarte::IdiomaDesconocido;
+    };
+    let pregunta = plegar(DESCARTAR_CAMBIOS.en_idioma(idioma));
+    if plegar(texto).contains(pregunta.as_str()) {
+        Descarte::Descartar { boton: SI }
+    } else {
+        Descarte::OtroDialogo
+    }
+}
 
 /// A visible top-level window of the process, as seen before and after a close.
 pub(crate) struct VentanaViva {
@@ -92,17 +146,89 @@ pub(crate) fn aviso(reabiertas: &[Value]) -> Option<String> {
 }
 
 /// A close that left the window open (it asked for a confirmation, or a modal
-/// intercepted it) is a failure the caller must see.
-pub(super) fn exigir_cerrada(h: Hwnd, idioma: Idioma) -> Result<()> {
+/// intercepted it) is a failure the caller must see. With `descartar_cambios`
+/// the one question that only asks to discard is answered first, and no other.
+pub(super) fn exigir_cerrada(h: Hwnd, idioma: Idioma, descartar_cambios: bool) -> Result<()> {
     if esperar_cierre(h, ESPERA_CIERRE) {
         return Ok(());
     }
-    let confirmacion = modal::modal_de(&[pid_of(h)]).filter(|m| class_of(*m) == CLASE_MENSAJE);
-    Err(Error::Gui(sigue_abierta(
-        &class_of(h),
-        confirmacion.map(|m| (m, botones_de(m))),
-        idioma,
-    )))
+    let decision = descartar_cambios.then(|| responder_descarte(h)).flatten();
+    if matches!(decision, Some(Descarte::Descartar { .. })) && esperar_cierre(h, ESPERA_CIERRE) {
+        return Ok(());
+    }
+    Err(Error::Gui(cierre_fallido(h, idioma, decision)))
+}
+
+/// The TMessageForm PVsyst put over `h`, if the close left one.
+fn mensaje_de(h: Hwnd) -> Option<Hwnd> {
+    modal::modal_de(&[pid_of(h)]).filter(|m| class_of(*m) == CLASE_MENSAJE)
+}
+
+/// Answers the question that blocked a close when it is exactly the discard
+/// question. The decision comes back so the error can explain a dialog it could
+/// not read or tell apart.
+fn responder_descarte(h: Hwnd) -> Option<Descarte> {
+    let pregunta = mensaje_de(h)?;
+    let Some(texto) = texto_del_dialogo(pregunta) else {
+        return Some(Descarte::SinLectura);
+    };
+    let decision = descarte(&class_of(pregunta), &texto, idioma_gui::en_ejecucion());
+    if let Descarte::Descartar { boton } = decision {
+        pulsar(pregunta, boton);
+    }
+    Some(decision)
+}
+
+/// Text of the dialog as a person reads it: its caption and the lines OCR draws
+/// on it. A TMessageForm shows its question in a `TLabel`, which is not a window,
+/// so those pixels are the only place the sentence is.
+fn texto_del_dialogo(pregunta: Hwnd) -> Option<String> {
+    let lineas = match lineas_vivas(pregunta) {
+        Ok(lineas) => lineas,
+        Err(error) => {
+            tracing::warn!(%error, "no se pudo leer el texto del diálogo de cierre");
+            return None;
+        }
+    };
+    let mut texto = text_of(pregunta);
+    for linea in lineas {
+        texto.push(' ');
+        texto.push_str(&linea.texto);
+    }
+    Some(texto)
+}
+
+/// Presses the answer on `pregunta`. A button that is not there, or a click
+/// Windows refused, leaves the dialog open and the close failing as before.
+fn pulsar(pregunta: Hwnd, boton: Rotulo<'static>) {
+    let Some(control) = hijo_visible_con_texto(pregunta, boton) else {
+        return;
+    };
+    if let Err(error) = clic_por_mensajes(control) {
+        tracing::warn!(%error, "no se pudo pulsar el botón que descarta los cambios");
+    }
+}
+
+/// Why the window is still open: the dialog that intercepted the close, with its
+/// buttons, plus the note of a `descartar_cambios` that answered nothing.
+fn cierre_fallido(h: Hwnd, idioma: Idioma, decision: Option<Descarte>) -> String {
+    let pregunta = mensaje_de(h);
+    let mut texto = sigue_abierta(&class_of(h), pregunta.map(|m| (m, botones_de(m))), idioma);
+    if let Some(nota) = decision.and_then(|d| nota_de(d, idioma)) {
+        texto.push(' ');
+        texto.push_str(&nota);
+    }
+    texto
+}
+
+/// The note of a `descartar_cambios` that did not answer, and why it did not.
+fn nota_de(decision: Descarte, idioma: Idioma) -> Option<String> {
+    let texto = match decision {
+        Descarte::IdiomaDesconocido => SIN_IDIOMA,
+        Descarte::SinLectura => SIN_LECTURA,
+        Descarte::Descartar { .. } | Descarte::OtroDialogo => return None,
+    };
+    Some(texto.en_idioma(idioma).to_string())
 }
 
 /// Visible buttons of `h` as `(hwnd, caption)`.

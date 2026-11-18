@@ -28,6 +28,18 @@ pub(crate) const REINICIAR: Rotulo<'static> = Rotulo::nuevo(
     ("Restart PVsyst", "Redémarrer PVsyst", "PVsyst neu starten"),
 );
 
+/// The question a close asks before dropping the window's changes: «Sí» discards
+/// them. It is not the 3D editor's «¿Quiere mantener sus modificaciones en el
+/// objeto?», whose «Sí» *adds* the object, so only this whole sentence counts.
+pub(crate) const DESCARTAR_CAMBIOS: Rotulo<'static> = Rotulo::nuevo(
+    "¿Quiere cancelar las modificaciones?",
+    (
+        "Do you want to cancel the modifications?",
+        "Voulez-vous annuler les modifications ?",
+        "Wollen Sie die Änderungen verwerfen?",
+    ),
+);
+
 /// Buttons that abandon a form, in the order they are tried.
 pub(crate) const BOTONES_CIERRE: &[Rotulo<'static>] = &[CERRAR, CANCELAR, SALIR, NO];
 /// Buttons of a message box that only informs, in the order they are tried.
@@ -59,4 +71,5 @@ pub(super) const TABLA: &[Rotulo<'static>] = &[
     GUARDAR_COMO,
     NUEVO,
     REINICIAR,
+    DESCARTAR_CAMBIOS,
 ];
