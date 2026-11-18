@@ -151,3 +151,56 @@ fn should_reject_a_configurar_step_that_is_not_a_variant_change_before_running_a
     assert!(error_text(&resp).contains("eliminar"), "resp={resp}");
     assert_eq!(leer_proyecto(ws.path(), "SYNTH_Plant.VC0"), antes);
 }
+
+/// A project's variants are a list nested in the answer, and `detalle` cuts them
+/// like any other list: `vista.recortado` must name that cut and how to ask for
+/// the rest, as it does for a top-level list.
+#[test]
+fn should_name_the_variants_detalle_cut_and_how_to_get_them_back() {
+    let ws = synthetic_workspace();
+    let projects = ws.path().join("Projects");
+    let vc0 = fs::read(projects.join("SYNTH_Plant.VC0")).expect("VC0 del fixture");
+    for variante in [
+        "VC1", "VC2", "VC3", "VC4", "VC5", "VC6", "VC7", "VC8", "VC9", "VCA", "VCB", "VCC", "VCD",
+        "VCE", "VCF",
+    ] {
+        fs::write(projects.join(format!("SYNTH_Plant.{variante}")), &vc0).expect("variante");
+    }
+    let mut c = cliente(ws.path());
+
+    let resp = c.call(
+        30,
+        "listar",
+        json!({ "que": "proyectos", "detalle": "resumen" }),
+    );
+    let out = tool_text(&resp);
+    assert_eq!(out["truncado"], json!(true), "resp={out}");
+    let variantes = out["projects"][0]["variants"].as_array().map(Vec::len);
+    assert_eq!(variantes, Some(13), "resp={out}");
+    assert_eq!(
+        out["projects"][0]["variants_total"],
+        json!(16),
+        "resp={out}"
+    );
+    let recortado = out["vista"]["recortado"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
+    assert!(
+        recortado.contains(&json!({
+            "clave": "projects[0].variants",
+            "mostrados": 13,
+            "total": 16,
+            "pedir_resto": "detalle:completo",
+        })),
+        "recortado={recortado:?} resp={out}"
+    );
+
+    let completo = tool_text(&c.call(
+        31,
+        "listar",
+        json!({ "que": "proyectos", "detalle": "completo" }),
+    ));
+    let todas = completo["projects"][0]["variants"].as_array().map(Vec::len);
+    assert_eq!(todas, Some(16), "resp={completo}");
+}

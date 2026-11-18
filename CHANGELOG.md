@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **`vista.recortado` names a list `detalle` cut inside an object.** A project with more than 13 variants
+  answered `truncado:true`, 13 `variants` and `variants_total:16` inside the project, and `vista.recortado`
+  stayed empty: the trimmer writes `<clave>_total` next to the list it cut at whatever depth, but the vista
+  only paired it with a sibling list at the top level, so a nested cut carried no `pedir_resto` and the caller
+  had to guess that `detalle:completo` returns the rest. Each cut is now named where it lives
+  (`projects[0].variants`, same `detalle:completo` to get it); a top-level cut keeps its bare key and the
+  truncation itself is unchanged.
+
 ### Added
 - **`gui_actuar accion:cerrar descartar_cambios:true` answers PVsyst's discard question in the same call
   (5.2 point 4 of the visual GUI test report).** Closing an editor that has changes leaves the window open on a
