@@ -10,6 +10,7 @@
 //! an interactive desktop.
 
 pub(crate) mod acciones;
+pub(crate) mod boton_por_caption;
 pub(crate) mod campo_por_etiqueta;
 pub(crate) mod campos;
 pub(crate) mod captura;
