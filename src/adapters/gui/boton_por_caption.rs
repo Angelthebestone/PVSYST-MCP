@@ -22,16 +22,22 @@ struct Coincidencia {
     punto: (i32, i32),
 }
 
-/// Centre of the only button of the form whose own caption is `texto`; `None`
-/// when no button carries it, so the caller reads the drawn text instead.
+/// Centre of the only enabled button of the form whose own caption is `texto`;
+/// `None` when no button carries it, so the caller reads the drawn text instead.
+/// A caption only disabled buttons carry is refused: a disabled control swallows
+/// the click without a trace (GUI-07) and would answer a dead
+/// `verificado:false`, hiding the caption the caller asked about.
 pub(super) fn boton_con_caption(
     h: Hwnd,
     texto: &str,
     idioma: Idioma,
 ) -> Result<Option<(i32, i32)>> {
-    let botones = botones_con_texto(h, texto);
-    match botones.as_slice() {
-        [] => Ok(None),
+    let (habilitados, deshabilitados): (Vec<_>, Vec<_>) = botones_con_texto(h, texto)
+        .into_iter()
+        .partition(|c| ffi::estado_ventana(c.hwnd).habilitada);
+    match habilitados.as_slice() {
+        [] if deshabilitados.is_empty() => Ok(None),
+        [] => Err(botones_deshabilitados(texto, &deshabilitados, idioma)),
         [unico] => Ok(Some(unico.punto)),
         varios => Err(botones_ambiguos(texto, varios, idioma)),
     }
@@ -68,9 +74,14 @@ const CAPTION_COMPARTIDO: Texto = Texto {
     en: "'{texto}' is the caption of {n} buttons ({lista}): choose one by its hwnd with gui_actuar accion:click ventana:<hwnd>, or pass 'indice' to click the drawn text",
 };
 
-/// The refusal for a caption that names several buttons: each with its class and
-/// position, so the caller picks one instead of the server pressing a wrong one.
-fn botones_ambiguos(texto: &str, botones: &[Coincidencia], idioma: Idioma) -> Error {
+const CAPTION_DESHABILITADO: Texto = Texto {
+    es: "'{texto}' es el rótulo solo de {n} botones deshabilitados ({lista}): el clic no haría nada. Habilita lo que los condiciona (gui_observar que:vista) y repite",
+    en: "'{texto}' is the caption only of {n} disabled buttons ({lista}): the click would do nothing. Enable what conditions them (gui_observar que:vista) and retry",
+};
+
+/// Each button with its class, hwnd and position, so the error names it and the
+/// caller can address it.
+fn lista_de_botones(botones: &[Coincidencia]) -> String {
     let mut lista = botones
         .iter()
         .take(BOTONES_EN_ERROR)
@@ -80,10 +91,34 @@ fn botones_ambiguos(texto: &str, botones: &[Coincidencia], idioma: Idioma) -> Er
     if botones.len() > BOTONES_EN_ERROR {
         lista.push_str("; …");
     }
+    lista
+}
+
+/// The refusal for a caption that names several buttons: each with its class and
+/// position, so the caller picks one instead of the server pressing a wrong one.
+fn botones_ambiguos(texto: &str, botones: &[Coincidencia], idioma: Idioma) -> Error {
     let total = botones.len().to_string();
     Error::Gui(CAPTION_COMPARTIDO.texto_con(
         idioma,
-        &[("texto", texto), ("n", &total), ("lista", &lista)],
+        &[
+            ("texto", texto),
+            ("n", &total),
+            ("lista", &lista_de_botones(botones)),
+        ],
+    ))
+}
+
+/// The refusal for a caption no enabled button carries: it names what to enable
+/// instead of pressing a button that ignores the click.
+fn botones_deshabilitados(texto: &str, botones: &[Coincidencia], idioma: Idioma) -> Error {
+    let total = botones.len().to_string();
+    Error::Gui(CAPTION_DESHABILITADO.texto_con(
+        idioma,
+        &[
+            ("texto", texto),
+            ("n", &total),
+            ("lista", &lista_de_botones(botones)),
+        ],
     ))
 }
 

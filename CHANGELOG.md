@@ -92,6 +92,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   had to guess that `detalle:completo` returns the rest. Each cut is now named where it lives
   (`projects[0].variants`, same `detalle:completo` to get it); a top-level cut keeps its bare key and the
   truncation itself is unchanged.
+- **`gui_actuar accion:clic_texto` refuses a disabled button instead of pressing it.** The search for a
+  button whose own caption is the text filtered the candidates by `visible` only, so a button PVsyst greys
+  was posted the click anyway: the disabled control swallows it, and the call answered `verificado:false`
+  with a point that hid the caption the caller asked about. `accion:click` refused that control by name
+  since GUI-07. The candidates are split by their window state now: a caption only disabled buttons carry
+  is an error naming each class, hwnd and position and saying what to enable, while a caption shared by a
+  disabled and an enabled button presses the enabled one as before instead of refusing both.
 
 ### Added
 - **Every argument of every tool now carries a description (F.1 #8 of the visual GUI test report).** `tools/list` declared 162 arguments with no text, so a client could not tell what `confirmar`, `n` or `todos` meant, its unit or its range. The descriptions live in `src/server/tools/descripciones/`: one table per tool plus `comunes` for the keys every tool reads the same way (`detalle`, `permitir_fuera_del_workspace`); a table wins over the shared one, and the annotators that know a constraint still go first. Each text says the meaning and the unit in at most 100 characters, because the list travels in every turn. `should_not_add_arguments_without_a_description` fails when an argument ships without one, `should_keep_each_description_short` caps the length, and another test rejects a description for an argument the tool does not declare.

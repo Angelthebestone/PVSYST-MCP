@@ -22,13 +22,14 @@ const ANCHO: i32 = 800;
 const ALTO: i32 = 600;
 
 /// A child window to create: its class, rectangle in the parent's client area,
-/// parent and text.
+/// parent, text, and whether it is visible and enabled.
 pub(crate) struct Hijo {
     clase: &'static str,
     texto: &'static str,
     padre: usize,
     rect: (i32, i32, i32, i32),
     visible: bool,
+    habilitada: bool,
 }
 
 impl Hijo {
@@ -40,6 +41,7 @@ impl Hijo {
             padre: 0,
             rect,
             visible: true,
+            habilitada: true,
         }
     }
 
@@ -57,6 +59,12 @@ impl Hijo {
     /// The same child, hidden: a page of a tab strip that is not the current one.
     pub(crate) fn oculto(mut self) -> Self {
         self.visible = false;
+        self
+    }
+
+    /// The same child, disabled: PVsyst greys a button whose conditions are not met.
+    pub(crate) fn deshabilitado(mut self) -> Self {
+        self.habilitada = false;
         self
     }
 }
@@ -152,6 +160,12 @@ fn construir(clase: &str, titulo: &str, hijos: &[Hijo]) -> Vec<HWND> {
             rect: hijo.rect,
             padre: hwnds.get(hijo.padre).copied(),
         });
+        if !hijo.habilitada {
+            // SAFETY: `h` es un hijo recién creado por este hilo; deshabilitarlo no retiene punteros.
+            unsafe {
+                let _ = EnableWindow(h, false);
+            }
+        }
         hwnds.push(h);
     }
     // SAFETY: `forma` es la ventana que este hilo acaba de crear.
