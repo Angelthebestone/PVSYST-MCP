@@ -65,11 +65,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   An inventory entry may be keyed `Clase#abierta_con` to hold several openings of one window. Pages that
   hold exactly 13 fields: 24 of 266. The inventory now
   keeps `etiqueta_fuente` per field and the tab and group-box captions per page. Corrected: the first pass
-  said its labels were free of OCR; they come from `que:formulario`, which includes it. Still pending:
-  `TGeoSiteForm` via `Nuevo` (button disabled), the DC-grid and 3D-scene windows (no project of that type
-  and no tool to create one), `TDetailedLossesForm` on a pumping project and the windows whose host
-  button is disabled there, the remaining openings (`red_cc`, `bombeo` for most), nested sheets (`pagina`
-  only changes the main page control), and the seven `no registrado` states.
+  said its labels were free of OCR; they come from `que:formulario`, which includes it.
+  A fourth pass, run with the versioned harness `tools/medir_gui.py` (it opens each window from
+  `tools/gui_manifiesto.json`; 0 trial executions, nothing saved), measured on PVsyst's shipped read-only
+  demos (`_DEMO_Commercial`, `_DEMO_DCGrid`, `_DEMO_Pumping`, `_DEMO_Tracking`, `_DEMO_StandAlone`, which
+  `proyecto.cargar` lists): the seven windows that said `no registrado` now carry their demo, and
+  `TSystemegridDCForm` (13 → 17 fields), `TDetailedLossesForm` on the DC grid (80) and pumping (93)
+  projects, the tracker `TOrientationForm` (22), the DC-grid and shading-opened `TOrientationForm`, the
+  five 3D windows (`TPerspectiveForm` 24, `TTableFieldForm` 42, `TRectFieldForm` 43, `TGroundObjectForm` 16,
+  `TOrientToolForm` 23), `TMismatchStringForm` (40), `TOptimizationToolForm` (22), `TResultPlotHorForm`
+  (30), `TDomesticUseForm` (47, on `_DEMO_StandAlone`) and `TContactForm` opened from the preferences (13).
+  Pages that hold exactly 13 fields: 8 of 266; remeasured instances: 52 of 146. Still pending:
+  `TGeoSiteForm` via `Nuevo` (button disabled), ten instances whose state cites a project that is not
+  reproducible (`Z_MAPA_Aislado`, `Z_E2E_Bombeo`), nested sheets (`pagina` only changes the main page
+  control), the windows the buttons open (the harness reads the buttons but does not press them yet),
+  the 58 windows with no remeasured instance, and `requiere`/`oculto_sin` per field.
 - **`vista.recortado` names a list `detalle` cut inside an object.** A project with more than 13 variants
   answered `truncado:true`, 13 `variants` and `variants_total:16` inside the project, and `vista.recortado`
   stayed empty: the trimmer writes `<clave>_total` next to the list it cut at whatever depth, but the vista
