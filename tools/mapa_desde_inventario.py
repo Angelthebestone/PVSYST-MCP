@@ -13,6 +13,10 @@ What the inventory brings and the map keeps:
     the map had when the tab of the same name still exists (and its state did
     not change, see `Remedio.sin_rotulos_de`); a new tab has none.
   - `titulo` and `abierta_con` of the instance stay as the map had them.
+  - Each regenerated instance gets `estado_medido`: the state the window was in
+    when measured (REMEDIOS), `no registrado` where the report does not say.
+  - `nota` and `limites` of the map say what was regenerated and what is still
+    truncated, counted on the map this script writes.
 
 Usage:
     python tools/mapa_desde_inventario.py [--check]
@@ -34,6 +38,8 @@ from typing import Any
 
 Json = dict[str, Any]
 
+NO_REGISTRADO = "no registrado"
+
 RAIZ = Path(__file__).resolve().parent.parent
 MAPA = RAIZ / "docs" / "gui_mapa.json"
 INVENTARIO = RAIZ / "docs" / "gui_inventario_pestanas.json"
@@ -50,6 +56,8 @@ class Remedio:
     # Tabs of the replaced instance whose `rotulos` describe another state of
     # the window (controls the inventory shows hidden), so they are dropped.
     sin_rotulos_de: frozenset[str] = frozenset()
+    # State of the window when measured; only what the report states.
+    estado: str = NO_REGISTRADO
 
 
 # Why each entry: INFORME_PRUEBAS_GUI_VISUAL_2026-11-17.md, sections 2.3, 2.4, 2.6.
@@ -58,15 +66,21 @@ REMEDIOS: dict[str, Remedio] = {
     "TSystemegridForm": Remedio(),
     # The map was measured with `Activo` ticked in P50-P90 (17 fields); the
     # inventory has it unticked (1 field): the old captions describe the ticked page.
-    "TSystemeAddForm": Remedio(sin_rotulos_de=frozenset({"Estimación P50 - P90"})),
+    "TSystemeAddForm": Remedio(
+        sin_rotulos_de=frozenset({"Estimación P50 - P90"}),
+        estado="P50-P90 con Activo desmarcado",
+    ),
     # The map has the tracker variant; the inventory is the fixed-tilt one.
-    "TOrientationForm": Remedio(anadir_con="variante.orientacion"),
+    "TOrientationForm": Remedio(
+        anadir_con="variante.orientacion",
+        estado="Tilt fijo (proyecto demo _DEMO_Commercial, plano a 15°)",
+    ),
     "THorizonForm": Remedio(),
     "TShadingsForm": Remedio(),
     "TEcoEvaluationForm": Remedio(),
     "TUserNeedsForm": Remedio(),
     "TSummaryForm": Remedio(),
-    "TGridStorageForm": Remedio(),
+    "TGridStorageForm": Remedio(estado="Sin almacenamiento"),
 }
 
 
@@ -94,12 +108,17 @@ def _pagina(pestana: Json, heredada: Json | None) -> Json:
 
 
 def _instancia(
-    medida: Json, titulo: str, abierta_con: str, heredables: dict[str | None, Json]
+    medida: Json,
+    titulo: str,
+    abierta_con: str,
+    heredables: dict[str | None, Json],
+    estado: str,
 ) -> Json:
     pestanas = medida["pestanas"]
     return {
         "titulo": titulo,
         "abierta_con": abierta_con,
+        "estado_medido": estado,
         "pestanas": [p["pestana"] for p in pestanas if p["pestana"] is not None],
         "paginas": [_pagina(p, heredables.get(p["pestana"])) for p in pestanas],
     }
@@ -129,7 +148,9 @@ def _remedir_ventana(clase: str, ventana: Json, medida: Json, remedio: Remedio) 
     instancias: list[Json] = ventana["instancias"]
     if remedio.anadir_con is not None:
         instancias[:] = [i for i in instancias if not _viene_del_inventario(i)]
-        instancias.append(_instancia(medida, medida["titulo"], remedio.anadir_con, {}))
+        instancias.append(
+            _instancia(medida, medida["titulo"], remedio.anadir_con, {}, remedio.estado)
+        )
     else:
         vieja = instancias[0]
         heredables = {
@@ -138,9 +159,61 @@ def _remedir_ventana(clase: str, ventana: Json, medida: Json, remedio: Remedio) 
             if p["pestana"] not in remedio.sin_rotulos_de
         }
         instancias[0] = _instancia(
-            medida, vieja["titulo"], vieja["abierta_con"], heredables
+            medida, vieja["titulo"], vieja["abierta_con"], heredables, remedio.estado
         )
     ventana["controles"] = _controles(ventana)
+
+
+NOTA = (
+    "REMEDIDO: las instancias con `estado_medido` se regeneraron con "
+    "tools/mapa_desde_inventario.py desde docs/gui_inventario_pestanas.json "
+    "(enumeración Win32 de todos los campos: sin OCR ni techo de 13 por página). "
+    "Sus campos traen además `marcado` y `habilitado`, y `estado_medido` dice en qué "
+    "estado estaba la ventana al medirla (`no registrado` si no se anotó): una casilla "
+    "o un combo muestran u ocultan campos, así que la lista vale para ese estado y no "
+    "para toda la ventana. Una página sin `rotulos` ni `sin_rotulo` es de una pestaña "
+    "nueva o de una cuyo estado cambió. Las instancias sin `estado_medido` siguen como "
+    "las dejó el recorrido de `medido_el`."
+)
+ALCANCE = "ALCANCE: "
+
+
+def _alcance(mapa: Json) -> list[str]:
+    """What the map still does not cover, counted on the map as it stands."""
+    remedidas = sorted(
+        clase
+        for clase, v in mapa["ventanas"].items()
+        if any("estado_medido" in i for i in v["instancias"])
+    )
+    paginas = [
+        p
+        for v in mapa["ventanas"].values()
+        for i in v["instancias"]
+        for p in i["paginas"]
+    ]
+    truncadas = sum(1 for p in paginas if len(p["campos"]) == 13)
+    return [
+        f"{ALCANCE}solo se remidieron sin truncar las instancias con `estado_medido` "
+        f"({', '.join(remedidas)}). En el resto el recolector original guardó como "
+        f"máximo 13 campos por página: {truncadas} de {len(paginas)} páginas tienen "
+        "exactamente 13 y se leen como «al menos 13», no como el total (medido en vivo: "
+        "TGridInverterForm «Parámetros adicionales» muestra 37). También siguen sin "
+        "remedir las demás aperturas de esas ventanas (independiente, bombeo, red_cc "
+        "y similares).",
+        f"{ALCANCE}TPVModuleForm tiene sus 5 pestañas grabadas como la misma página "
+        "`Datos básicos`: PVsyst veta el cambio de pestaña mientras el módulo no tiene "
+        "nombre. Solo la primera es válida; las otras 4 siguen pendientes de remedir.",
+        f"{ALCANCE}en las páginas sin `estado_medido` algunas `etiqueta` son el valor "
+        "del campo leído por OCR y no su rótulo (TResultForm, TGenerSyntheForm, "
+        "TBatteryForm, TPreferencesForm): `campo` no las encuentra.",
+    ]
+
+
+def _anotar_alcance(mapa: Json) -> None:
+    if NOTA not in mapa["nota"]:
+        mapa["nota"] = f"{mapa['nota']} {NOTA}"
+    propios = [x for x in mapa["limites"] if not x.startswith(ALCANCE)]
+    mapa["limites"] = [*propios, *_alcance(mapa)]
 
 
 def remedir(mapa: Json, inventario: Json) -> Json:
@@ -150,6 +223,7 @@ def remedir(mapa: Json, inventario: Json) -> Json:
         if clase not in nuevo["ventanas"] or clase not in REMEDIOS:
             raise KeyError(f"{clase}: not in the map or in REMEDIOS")
         _remedir_ventana(clase, nuevo["ventanas"][clase], medida, REMEDIOS[clase])
+    _anotar_alcance(nuevo)
     return nuevo
 
 

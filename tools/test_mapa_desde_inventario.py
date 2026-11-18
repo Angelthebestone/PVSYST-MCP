@@ -48,6 +48,7 @@ def mapa_de_prueba() -> Json:
     pestanas = [pagina_vieja("Uno", 0, 13), pagina_vieja("Dos", 1, 13)]
     return {
         "version_pvsyst": "8.1.8",
+        "nota": "Mapa de prueba.",
         "ventanas": {
             "TPerdidasForm": {
                 "titulos": ["Ventana <variante>"],
@@ -127,7 +128,9 @@ def remedios(monkeypatch: pytest.MonkeyPatch) -> None:
         mapa_py,
         "REMEDIOS",
         {
-            "TPerdidasForm": Remedio(sin_rotulos_de=frozenset({"Dos"})),
+            "TPerdidasForm": Remedio(
+                sin_rotulos_de=frozenset({"Dos"}), estado="Sin almacenamiento"
+            ),
             "TSeguidorForm": Remedio(anadir_con="variante.orientacion"),
         },
     )
@@ -166,10 +169,14 @@ def test_keeps_everything_else_of_the_map_byte_for_byte() -> None:
         == (original["ventanas"]["TPerdidasForm"]["instancias"][1])
     )
     assert list(nuevo) == list(original)
-    sin_tocar = {k: v for k, v in nuevo.items() if k != "ventanas"}
+    # `nota` and `limites` only grow: what was there stays, in its place.
+    crecen = {"ventanas", "nota", "limites"}
+    sin_tocar = {k: v for k, v in nuevo.items() if k not in crecen}
     assert serializar(sin_tocar) == serializar(
-        {k: v for k, v in original.items() if k != "ventanas"}
+        {k: v for k, v in original.items() if k not in crecen}
     )
+    assert nuevo["nota"].startswith(original["nota"])
+    assert nuevo["limites"][: len(original["limites"])] == original["limites"]
 
 
 @pytest.mark.usefixtures("remedios")
@@ -181,6 +188,24 @@ def test_adds_the_fixed_tilt_instance_and_keeps_the_tracker_one() -> None:
     assert len(instancias[0]["paginas"][0]["campos"]) == 13
     assert instancias[1]["abierta_con"] == "variante.orientacion"
     assert instancias[1]["paginas"][0]["campos"][0]["etiqueta"] == "tilt"
+
+
+@pytest.mark.usefixtures("remedios")
+def test_says_the_state_it_was_measured_in_and_what_is_still_truncated() -> None:
+    nuevo = remedir(mapa_de_prueba(), inventario_de_prueba())
+
+    perdidas = nuevo["ventanas"]["TPerdidasForm"]["instancias"]
+    assert perdidas[0]["estado_medido"] == "Sin almacenamiento"
+    assert "estado_medido" not in perdidas[1]
+    seguidor = nuevo["ventanas"]["TSeguidorForm"]["instancias"][1]
+    assert seguidor["estado_medido"] == "no registrado"
+    assert nuevo["nota"].count("REMEDIDO") == 1
+    alcance = [x for x in nuevo["limites"] if x.startswith("ALCANCE: ")]
+    assert nuevo["limites"][0] == "uno"
+    assert len(alcance) == 3
+    # 3 of the 7 pages still hold 13: the other instance, the tracker, the untouched window.
+    assert "3 de 7 páginas tienen exactamente 13" in alcance[0]
+    assert "TPerdidasForm, TSeguidorForm" in alcance[0]
 
 
 @pytest.mark.usefixtures("remedios")
