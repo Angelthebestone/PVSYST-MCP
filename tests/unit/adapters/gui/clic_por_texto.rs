@@ -1,5 +1,6 @@
 use super::*;
 use crate::adapters::gui::ventana_falsa::{Hijo, VentanaFalsa};
+use crate::adapters::gui::ventanas::rect_of;
 use crate::idioma::Idioma;
 use crate::vista_agente::contrato::{construir, Contexto};
 
@@ -78,11 +79,80 @@ fn should_skip_the_button_of_that_caption_when_an_index_picks_the_drawn_text() {
     let atajo = boton_del_pedido(form.hwnd(0), con_indice, Idioma::Es).expect("no error");
     let todo = boton_del_pedido(form.hwnd(0), completo, Idioma::Es);
 
-    assert_eq!(atajo, None, "con 'indice' se salta el paso del botón");
+    assert!(atajo.is_none(), "con 'indice' se salta el paso del botón");
     assert!(
         todo.is_err(),
         "sin 'indice' el rótulo compartido se rechaza: {todo:?}"
     );
+}
+
+/// Centre of child `indice` of a fake form (0 is the form).
+fn centro(ventana: &VentanaFalsa, indice: usize) -> (i32, i32) {
+    let r = rect_of(ventana.hwnd(indice));
+    ((r.left + r.right) / 2, (r.top + r.bottom) / 2)
+}
+
+/// Measured on 8.1.8: `TSystemegridForm` captions «Abrir» a disabled and an enabled
+/// button. The enabled one is pressed, and the answer names the button it skipped
+/// instead of leaving it unsaid.
+#[test]
+fn should_press_the_enabled_button_and_name_the_disabled_one_it_skipped() {
+    let form = VentanaFalsa::crear(
+        "TSystemegridForm",
+        "Sistema",
+        vec![
+            Hijo::de("TButton", (20, 40, 100, 64))
+                .con_texto("Abrir")
+                .deshabilitado(),
+            Hijo::de("TBitBtn", (200, 40, 280, 64)).con_texto("Abrir"),
+        ],
+    );
+
+    let elegido = destino_de_clic(
+        form.hwnd(0),
+        Pedido {
+            texto: "Abrir",
+            indice: None,
+        },
+        Idioma::Es,
+    )
+    .expect("the enabled button carries the caption");
+    let punto = elegido.punto;
+    let mut resultado = json!({ "accion": "clic_texto", "texto": "Abrir" });
+    con_descartados(&mut resultado, elegido.descartados);
+
+    assert_eq!(punto, centro(&form, 2));
+    let (x, y) = centro(&form, 1);
+    assert_eq!(
+        resultado["descartados"],
+        json!([{ "clase": "TButton", "hwnd": form.referencia(1), "centro": { "x": x, "y": y } }]),
+        "el botón deshabilitado que no se pulsó se dice, no se calla"
+    );
+}
+
+/// The same caption on enabled buttons only: no disabled one was skipped, so the
+/// answer keeps the shape it had, without an empty `descartados`.
+#[test]
+fn should_leave_the_answer_without_discarded_buttons_when_every_one_is_enabled() {
+    let form = VentanaFalsa::crear(
+        "TSystemegridForm",
+        "Sistema",
+        vec![Hijo::de("TBitBtn", (200, 40, 280, 64)).con_texto("Abrir")],
+    );
+
+    let elegido = destino_de_clic(
+        form.hwnd(0),
+        Pedido {
+            texto: "Abrir",
+            indice: None,
+        },
+        Idioma::Es,
+    )
+    .expect("the button carries the caption");
+    let mut resultado = json!({ "accion": "clic_texto", "texto": "Abrir" });
+    con_descartados(&mut resultado, elegido.descartados);
+
+    assert!(resultado.get("descartados").is_none(), "{resultado}");
 }
 
 /// 4.1-4: a click that changed nothing used to answer as a success.

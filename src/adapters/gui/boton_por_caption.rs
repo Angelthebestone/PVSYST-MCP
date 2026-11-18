@@ -2,8 +2,11 @@
 //!
 //! A caption on a button is the place a person means, even when a combo box or
 //! an edit shows the same word, so this search runs before the drawn text. Two
-//! buttons with the same caption are refused, never guessed: the error names each
-//! one by class, hwnd and position.
+//! enabled buttons with the same caption are refused, never guessed: the error
+//! names each one by class, hwnd and position. A caption only disabled buttons
+//! carry is refused as well, because a disabled control swallows the click; when
+//! an enabled button shares the caption with disabled ones, the enabled button is
+//! the one pressed and the disabled ones are reported as discarded.
 
 use super::ffi::{self, Hwnd};
 use super::inventario::tipos::Rol;
@@ -11,6 +14,7 @@ use super::ocr::ubicacion::plegar;
 use super::ventanas::{class_of, rect_of, visible};
 use crate::error::{Error, Result};
 use crate::idioma::{Idioma, Texto};
+use serde_json::{json, Value};
 
 /// Buttons the error names before cutting the list.
 const BOTONES_EN_ERROR: usize = 8;
@@ -22,25 +26,51 @@ struct Coincidencia {
     punto: (i32, i32),
 }
 
-/// Centre of the only enabled button of the form whose own caption is `texto`;
-/// `None` when no button carries it, so the caller reads the drawn text instead.
-/// A caption only disabled buttons carry is refused: a disabled control swallows
-/// the click without a trace (GUI-07) and would answer a dead
-/// `verificado:false`, hiding the caption the caller asked about.
+/// The button a click presses: its centre and the disabled buttons that carry
+/// the same caption, which the click skipped and the answer names.
+pub(super) struct BotonElegido {
+    pub(super) punto: (i32, i32),
+    pub(super) descartados: Vec<Value>,
+}
+
+/// The only enabled button of the form whose own caption is `texto`; `None` when
+/// no button carries it, so the caller reads the drawn text instead. A caption
+/// only disabled buttons carry is refused: a disabled control swallows the click
+/// without a trace (GUI-07) and would answer a dead `verificado:false`, hiding
+/// the caption the caller asked about.
 pub(super) fn boton_con_caption(
     h: Hwnd,
     texto: &str,
     idioma: Idioma,
-) -> Result<Option<(i32, i32)>> {
+) -> Result<Option<BotonElegido>> {
     let (habilitados, deshabilitados): (Vec<_>, Vec<_>) = botones_con_texto(h, texto)
         .into_iter()
         .partition(|c| ffi::estado_ventana(c.hwnd).habilitada);
     match habilitados.as_slice() {
         [] if deshabilitados.is_empty() => Ok(None),
         [] => Err(botones_deshabilitados(texto, &deshabilitados, idioma)),
-        [unico] => Ok(Some(unico.punto)),
+        [unico] => Ok(Some(BotonElegido {
+            punto: unico.punto,
+            descartados: descartados_json(&deshabilitados),
+        })),
         varios => Err(botones_ambiguos(texto, varios, idioma)),
     }
+}
+
+/// The buttons the click skips, each with its class, hwnd and centre, so the
+/// answer says which control was left alone; empty when every button of that
+/// caption was enabled.
+fn descartados_json(botones: &[Coincidencia]) -> Vec<Value> {
+    botones
+        .iter()
+        .map(|c| {
+            json!({
+                "clase": c.clase,
+                "hwnd": format!("0x{:X}", c.hwnd),
+                "centro": { "x": c.punto.0, "y": c.punto.1 },
+            })
+        })
+        .collect()
 }
 
 /// Every visible button of `h` whose own caption is `texto`, folded as OCR folds
@@ -75,8 +105,8 @@ const CAPTION_COMPARTIDO: Texto = Texto {
 };
 
 const CAPTION_DESHABILITADO: Texto = Texto {
-    es: "'{texto}' es el rótulo solo de {n} botones deshabilitados ({lista}): el clic no haría nada. Habilita lo que los condiciona (gui_observar que:vista) y repite",
-    en: "'{texto}' is the caption only of {n} disabled buttons ({lista}): the click would do nothing. Enable what conditions them (gui_observar que:vista) and retry",
+    es: "El rótulo '{texto}' aparece solo en botones deshabilitados ({n} en total, {lista}): el clic no haría nada. Habilita lo que los condiciona (gui_observar que:vista) y repite",
+    en: "The caption '{texto}' appears only on disabled buttons ({n} in total, {lista}): the click would do nothing. Enable what conditions them (gui_observar que:vista) and retry",
 };
 
 /// Each button with its class, hwnd and position, so the error names it and the

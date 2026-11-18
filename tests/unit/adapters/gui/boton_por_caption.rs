@@ -26,9 +26,10 @@ fn should_click_the_button_when_a_combo_shows_the_same_caption() {
     let form = form_con_combo_y_boton_abrir();
 
     let objetivo = boton_con_caption(form.hwnd(0), "Abrir", Idioma::Es)
+        .expect("reading the buttons does not fail")
         .expect("the button carries the caption");
 
-    assert_eq!(objetivo, Some(centro(&form, 2)));
+    assert_eq!(objetivo.punto, centro(&form, 2));
 }
 
 /// GUI-07 for `clic_texto`: a disabled button swallows the click, and the answer used to be
@@ -74,9 +75,10 @@ fn should_click_the_enabled_button_when_a_disabled_one_shares_the_caption() {
     );
 
     let objetivo = boton_con_caption(form.hwnd(0), "Abrir", Idioma::Es)
+        .expect("reading the buttons does not fail")
         .expect("the enabled button carries the caption");
 
-    assert_eq!(objetivo, Some(centro(&form, 2)));
+    assert_eq!(objetivo.punto, centro(&form, 2));
 }
 
 /// Two buttons of `TSystemegridForm` are captioned «Abrir» (measured): pressing

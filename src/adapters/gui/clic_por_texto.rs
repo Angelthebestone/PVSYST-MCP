@@ -5,10 +5,11 @@
 //!
 //! A button whose own caption is that text wins over the drawn text: a caption
 //! on a button is the place a person means, even when a combo box or an edit
-//! shows the same word. Two buttons with the same caption are refused, never
-//! guessed.
+//! shows the same word. Two enabled buttons with the same caption are refused,
+//! never guessed; a disabled one beside the enabled button is skipped and named
+//! in the answer's `descartados`.
 
-use super::boton_por_caption::boton_con_caption;
+use super::boton_por_caption::{boton_con_caption, BotonElegido};
 use super::efecto::{Efecto, Instantanea};
 use super::ffi::{self, FalloClic, Hwnd};
 use super::modal;
@@ -64,7 +65,20 @@ pub(crate) fn clic_texto(args: &Value, idioma: Idioma) -> Result<Value> {
         obj.insert("advertencias".into(), json!(avisos));
     }
     marcar_sin_ocr(&mut resultado, elegido.origen, idioma);
+    con_descartados(&mut resultado, elegido.descartados);
     Ok(resultado)
+}
+
+/// Names the disabled buttons a caption click skipped, and only when there was
+/// one: a click that skipped none keeps the answer it had.
+fn con_descartados(resultado: &mut Value, descartados: Vec<Value>) {
+    if descartados.is_empty() {
+        return;
+    }
+    let Some(obj) = resultado.as_object_mut() else {
+        return;
+    };
+    obj.insert("descartados".into(), Value::Array(descartados));
 }
 
 fn enviar_clic(objetivo: Hwnd, punto: (i32, i32)) -> Result<()> {
@@ -141,13 +155,16 @@ struct Pedido<'a> {
 }
 
 /// What a click on `texto` presses and where that target came from.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 struct Destino {
     punto: (i32, i32),
     origen: Origen,
     /// Places where OCR drew the text (`coincidencias` in the answer), 0 when a
     /// button carried the caption and OCR never ran.
     coincidencias: usize,
+    /// Disabled buttons that carried the caption and the click skipped; empty
+    /// when every button of that caption was enabled.
+    descartados: Vec<Value>,
 }
 
 /// Screen point to click for `texto`. The caption a control carries wins: a
@@ -156,11 +173,12 @@ struct Destino {
 /// element of that name when OCR does not draw the text (VCL buttons sometimes
 /// lack pixels).
 fn destino_de_clic(h: Hwnd, pedido: Pedido<'_>, idioma: Idioma) -> Result<Destino> {
-    if let Some(punto) = boton_del_pedido(h, pedido, idioma)? {
+    if let Some(boton) = boton_del_pedido(h, pedido, idioma)? {
         return Ok(Destino {
-            punto,
+            punto: boton.punto,
             origen: Origen::Control,
             coincidencias: 0,
+            descartados: boton.descartados,
         });
     }
     let lineas = lineas_vivas(h)?;
@@ -170,6 +188,7 @@ fn destino_de_clic(h: Hwnd, pedido: Pedido<'_>, idioma: Idioma) -> Result<Destin
             punto: ((caja.left + caja.right) / 2, (caja.top + caja.bottom) / 2),
             origen: Origen::Ocr,
             coincidencias: cajas.len(),
+            descartados: Vec::new(),
         }),
         Err(ocr) if recurre_a_uia(&ocr) => {
             crate::adapters::uia::centro(h, Some(pedido.texto), None)
@@ -177,6 +196,7 @@ fn destino_de_clic(h: Hwnd, pedido: Pedido<'_>, idioma: Idioma) -> Result<Destin
                     punto,
                     origen: Origen::Uia,
                     coincidencias: cajas.len(),
+                    descartados: Vec::new(),
                 })
                 .map_err(|_| ocr)
         }
@@ -188,7 +208,7 @@ fn destino_de_clic(h: Hwnd, pedido: Pedido<'_>, idioma: Idioma) -> Result<Destin
 /// screen, so it skips the search for a button whose caption is that text:
 /// `clic_texto {texto:"Abrir", indice:0}` presses the drawn text even when a
 /// button shows the same word, and never refuses a shared caption.
-fn boton_del_pedido(h: Hwnd, pedido: Pedido<'_>, idioma: Idioma) -> Result<Option<(i32, i32)>> {
+fn boton_del_pedido(h: Hwnd, pedido: Pedido<'_>, idioma: Idioma) -> Result<Option<BotonElegido>> {
     if pedido.indice.is_some() {
         return Ok(None);
     }
