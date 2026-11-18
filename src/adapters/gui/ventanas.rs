@@ -139,12 +139,12 @@ pub(crate) fn target_pids(args: &Value) -> Result<Vec<u32>> {
         format!("{name}.exe")
     };
     let pids = pids_de_ejecutable(&name);
-    if pids.is_empty() && args.get("proceso").is_none() {
+    if pids.is_empty() {
         // `hwnd_de`/`ventanas_de` are also called from `vista_agente`, which carries
         // no `Idioma`: the environment is the same source `Paths` reads.
         let no_arranca = Texto {
-            es: "El proceso '{name}' no está en ejecución. Lanza la GUI de PVsyst primero (o pasa 'proceso').",
-            en: "Process '{name}' is not running. Launch the PVsyst GUI first (or pass 'proceso').",
+            es: "El proceso '{name}' no está en ejecución. Lanza la GUI de PVsyst o pasa 'proceso' con uno que esté en ejecución (o 'pids' de un proceso vivo).",
+            en: "Process '{name}' is not running. Launch the PVsyst GUI or pass 'proceso' with one that is running (or 'pids' of a live process).",
         };
         return Err(Error::Gui(
             no_arranca.texto_con(Idioma::de_entorno(), &[("name", &name)]),

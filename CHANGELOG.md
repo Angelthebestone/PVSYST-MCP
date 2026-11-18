@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `habilitado` flag the form answer already carried is now read instead of dropped: the error names
   the label and the class, says the field is disabled and points at `gui_observar que:formulario`
   (or `que:controles` with `todos:true`) to find the control that enables it.
+- **A `proceso` that is not running no longer reads as an empty window list (C.5.1 of the visual GUI report).**
+  `gui_observar que:ventanas proceso:"NoExiste.exe"` answered `estado:"ok"` with `count:0`, so an agent
+  probing that way concluded PVsyst was open and showed no windows; without `proceso` the same call errors.
+  Every `que` and `accion` that resolves a target process (`ventanas`, `controles`, `leer`, `uia`, `vista`,
+  `esperar`, `teclado`, `fila`…) now answers the error that names the requested process and says to launch
+  the GUI or pass a running `proceso` (or the `pids` of one). `pids: []` keeps its meaning.
 - **Review of the 4.1 effect check.** `clic_texto` and `fila abrir:true` read the process of the clicked control after the action; a form that closed took the control with it, a destroyed window reports pid 0 and the second reading listed no window, so `efecto` named every open window as closed and none as opened. The pid is now the one read before the action. When a capture is missing the repaint cannot be compared: `clic_texto` answers `verificado:null` (and `efecto.pantalla_comparada:false`) instead of claiming `verificado:false` and a dead spot.
 - **Review of the GUI language work (4.3).** `fila` on the module chooser says the window title differs (it is the caption PVsyst writes in its own language) instead of «no measured row geometry»; «Cerrar objeto» of the 3D scene and the database buttons of the datasheet creation are found by caption in any language they are known in; the PVsyst GUI language enum is `IdiomaGui`, apart from the MCP message language `Idioma`; and the doc comments of `pvsyst://gui` and the coverage map in `resources.rs` are back on their functions.
 - **`gui_actuar` no longer answers success to a click that cannot land (4.1 of the exhaustive test report).**

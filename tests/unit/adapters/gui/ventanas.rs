@@ -34,6 +34,25 @@ fn should_say_which_window_is_foreground_iconic_and_the_modal_that_blocks_the_re
     assert_eq!(bloqueante["modal"], true);
 }
 
+/// A `proceso` that is not running must answer the error the default process
+/// gives, not `ok` with zero windows: an empty listing reads as «PVsyst is open
+/// and shows nothing», which sends the agent down the wrong path.
+#[test]
+fn should_refuse_an_explicit_process_that_is_not_running() {
+    let pedido = "pvsyst-mcp-no-existe.exe";
+
+    let error = ventanas(&json!({ "proceso": pedido }))
+        .expect_err("a process that is not running is not an empty listing");
+    let texto = error.to_string();
+
+    assert!(matches!(&error, Error::Gui(_)), "{texto}");
+    assert!(
+        texto.contains(pedido),
+        "names the requested process: {texto}"
+    );
+    assert!(texto.contains("pids"), "says how to go on: {texto}");
+}
+
 /// `ocr` is read only when asked for: a plain `leer` costs no capture.
 #[test]
 fn should_read_the_window_text_and_leave_ocr_out_unless_it_is_asked_for() {
