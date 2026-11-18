@@ -34,5 +34,14 @@
   {"clave": "TOptimizationToolForm", "ventana": "TOptimizationToolForm", "cadena": "@proyecto:_DEMO_Commercial,variante.simulacion_avanzada,variante.simulacion_avanzada.herramienta_de_optimizacion"},
   {"clave": "TResultPlotHorForm", "ventana": "TResultPlotHorForm", "cadena": "@proyecto:_DEMO_Commercial,variante.resultados_detallados,variante.resultados_detallados.graficos_por_hora"},
   {"clave": "TDomesticUseForm", "ventana": "TDomesticUseForm", "cadena": "@proyecto:_DEMO_StandAlone,variante.necesidades_usuario_independiente"},
-  {"clave": "TContactForm#configuraciones.preferencias>Editar info usuario", "ventana": "TContactForm", "cadena": "configuraciones.preferencias,configuraciones.preferencias.editar_info_usuario"}
+  {"clave": "TContactForm#configuraciones.preferencias>Editar info usuario", "ventana": "TContactForm", "cadena": "configuraciones.preferencias,configuraciones.preferencias.editar_info_usuario"},
+  {"clave": "TSystemeBattForm", "ventana": "TSystemeBattForm", "cadena": "@proyecto:_DEMO_StandAlone,variante.sistema_independiente"},
+  {"clave": "TDetailedLossesForm#independiente > Pérdidas detalladas", "ventana": "TDetailedLossesForm", "cadena": "@proyecto:_DEMO_StandAlone,variante.perdidas_detalladas"},
+  {"clave": "TOrientationForm#independiente > Orientación", "ventana": "TOrientationForm", "cadena": "@proyecto:_DEMO_StandAlone,variante.orientacion"},
+  {"clave": "TOrientationForm#bombeo > Orientación", "ventana": "TOrientationForm", "cadena": "@proyecto:_DEMO_Pumping,variante.orientacion"},
+  {"clave": "TSettingsForm", "ventana": "TSettingsForm", "cadena": "@proyecto:_DEMO_Pumping,ventana_proyecto.proyecto.configuracion"},
+  {"clave": "TGeoSiteForm", "ventana": "TGeoSiteForm", "cadena": "@proyecto:_DEMO_Pumping,ventana_proyecto.sitio.detalles"},
+  {"clave": "TSystemPumpingForm", "ventana": "TSystemPumpingForm", "cadena": "@proyecto:_DEMO_Pumping,variante.sistema_bombeo"},
+  {"clave": "TWaterUseForm", "ventana": "TWaterUseForm", "cadena": "@proyecto:_DEMO_Pumping,variante.necesidades_agua"},
+  {"clave": "TCurrenciesForm", "ventana": "TCurrenciesForm", "cadena": "@proyecto:_DEMO_Commercial,variante.evaluacion_economica,variante.evaluacion_economica.tasas"}
 ]

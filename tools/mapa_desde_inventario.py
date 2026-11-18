@@ -73,13 +73,12 @@ class Remedio:
 
 
 ESTADO_SIN_PROYECTO = "Sin proyecto cargado; ventana recién abierta, sin editar"
-ESTADO_PROYECTO_BOMBEO = (
-    "Proyecto Z_E2E_Bombeo (tipo Bombeo, sitio Central Dakar) cargado; "
-    "ventana recién abierta, sin editar"
-)
+# No shipped demo opens `TUserNeedsForm` for this function (`_DEMO_StandAlone` opens
+# `TDomesticUseForm`); a project built by the tool does, so the recipe is the state.
 ESTADO_INDEPENDIENTE = (
-    "Proyecto Z_MAPA_Aislado (sistema independiente con baterías, creado con "
-    "disenar_sistema simular:false) cargado; ventana recién abierta, sin editar"
+    "Proyecto independiente con baterías creado con `disenar_sistema "
+    "tipo_sistema:aislado simular:false` (sin demo equivalente: el demo "
+    "_DEMO_StandAlone abre TDomesticUseForm) cargado; ventana recién abierta, sin editar"
 )
 
 
@@ -147,27 +146,32 @@ REMEDIOS: dict[str, Remedio] = {
             "TMeteoTablesGraphsForm": "bases_de_datos.tablas_graficos_meteo",
         }.items()
     },
+    # Batch B: the stand-alone and pumping windows, remeasured on the shipped demos
+    # (the first measurement used projects a user cannot reproduce).
     **{
-        clase: Remedio(reemplaza=abierta_con, estado=ESTADO_PROYECTO_BOMBEO)
+        clase: Remedio(reemplaza=abierta_con, estado=_demo("_DEMO_Pumping"))
         for clase, abierta_con in {
             "TSettingsForm": "ventana_proyecto.proyecto.configuracion",
             "TGeoSiteForm": "ventana_proyecto.sitio.detalles",
             "TSystemPumpingForm": "bombeo > Sistema",
             "TWaterUseForm": "bombeo > Necesidades de agua",
-            "TCurrenciesForm": "TEcoEvaluationForm>Tasas",
         }.items()
     },
+    "TCurrenciesForm": Remedio(
+        reemplaza="TEcoEvaluationForm>Tasas", estado=ESTADO_COMMERCIAL
+    ),
     "TSystemeBattForm": Remedio(
-        reemplaza="independiente > Sistema", estado=ESTADO_INDEPENDIENTE
+        reemplaza="independiente > Sistema", estado=_demo("_DEMO_StandAlone")
     ),
     "TDetailedLossesForm#independiente > Pérdidas detalladas": Remedio(
-        reemplaza="independiente > Pérdidas detalladas", estado=ESTADO_INDEPENDIENTE
+        reemplaza="independiente > Pérdidas detalladas",
+        estado=_demo("_DEMO_StandAlone"),
     ),
     "TOrientationForm#independiente > Orientación": Remedio(
-        reemplaza="independiente > Orientación", estado=ESTADO_INDEPENDIENTE
+        reemplaza="independiente > Orientación", estado=_demo("_DEMO_StandAlone")
     ),
     "TOrientationForm#bombeo > Orientación": Remedio(
-        reemplaza="bombeo > Orientación", estado=ESTADO_PROYECTO_BOMBEO
+        reemplaza="bombeo > Orientación", estado=_demo("_DEMO_Pumping")
     ),
     # `variante.necesidades_usuario_independiente` opens TUserNeedsForm here, not
     # the TDomesticUseForm the catalogue declares: a new instance of the former.

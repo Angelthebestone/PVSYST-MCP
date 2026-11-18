@@ -11902,7 +11902,7 @@
     "campos": [
      {
       "clase": "TUpDown",
-      "etiqueta": "140",
+      "etiqueta": "160",
       "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
@@ -12950,7 +12950,7 @@
  },
  "TSystemeBattForm": {
   "ventana": "TSystemeBattForm",
-  "titulo": "Definición de sistema independiente, Variante   \"Z_MAPA_Aislado\", Variant  \"Z_MAPA_Aislado\"",
+  "titulo": "Definición de sistema independiente, Variante   \"SHS SolarHome System, 2.2 kWh/day, 570 Wp, controller without MPPT\", Variant  \"SHS SolarHome System, 2.2 kWh/day, 570 Wp, controller without MPPT\"",
   "pestanas": [
    {
     "indice": 0,
@@ -13007,7 +13007,7 @@
      },
      {
       "clase": "TComboBox",
-      "etiqueta": "1.5 kWdc",
+      "etiqueta": "kWdc",
       "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
@@ -13258,14 +13258,14 @@
       "clase": "TRadioButton",
       "etiqueta": "Convertidor MPPT",
       "etiqueta_fuente": "window_text",
-      "marcado": true,
+      "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Acoplamiento directo",
       "etiqueta_fuente": "window_text",
-      "marcado": false,
+      "marcado": true,
       "habilitado": true
      },
      {
@@ -13333,42 +13333,42 @@
      },
      {
       "clase": "TCheckBox",
-      "etiqueta": "Núm. cadenas",
+      "etiqueta": "cadenas",
       "etiqueta_fuente": "ocr",
-      "marcado": false,
+      "marcado": true,
       "habilitado": true
      },
      {
       "clase": "TUpDown",
-      "etiqueta": "Núm. cadenas",
+      "etiqueta": "cadenas",
       "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
-      "etiqueta": "Núm. cadenas",
+      "etiqueta": "cadenas",
       "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TCheckBox",
-      "etiqueta": "Mód. en sene",
+      "etiqueta": "en sene",
       "etiqueta_fuente": "ocr",
       "marcado": true,
       "habilitado": true
      },
      {
       "clase": "TEdit",
-      "etiqueta": "Mód. en sene",
+      "etiqueta": "en sene",
       "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TUpDown",
-      "etiqueta": "Mód. en sene",
+      "etiqueta": "en sene",
       "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
@@ -14133,20 +14133,6 @@
      {
       "clase": "TEdit",
       "etiqueta": "1",
-      "etiqueta_fuente": "ocr",
-      "marcado": null,
-      "habilitado": false
-     },
-     {
-      "clase": "TCheckBox",
-      "etiqueta": "Revestimiento AR refr.",
-      "etiqueta_fuente": "ocr",
-      "marcado": true,
-      "habilitado": false
-     },
-     {
-      "clase": "TEdit",
-      "etiqueta": "Revestimiento AR refr.",
       "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
