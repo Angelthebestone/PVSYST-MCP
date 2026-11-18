@@ -151,6 +151,7 @@ def pulsar_botones(c: Cliente, objetivo: Json, medida: Json) -> list[Json]:
     clase = objetivo["ventana"]
     registros: list[Json] = []
     pulsados = 0
+    quedan = 0
     for pestana in medida["pestanas"]:
         for boton in pestana["botones"]:
             texto = str(boton.get("texto") or "").strip()
@@ -159,6 +160,7 @@ def pulsar_botones(c: Cliente, objetivo: Json, medida: Json) -> list[Json]:
                 registros.append({"boton": texto, "pulsado": False, "motivo": motivo})
                 continue
             if pulsados >= MAX_PULSACIONES:
+                quedan += 1
                 registros.append({"boton": texto, "pulsado": False, "motivo": "tope"})
                 continue
             pulsados += 1
@@ -179,4 +181,6 @@ def pulsar_botones(c: Cliente, objetivo: Json, medida: Json) -> list[Json]:
                     _error_de_pestana(pestana, f"after pressing {texto!r}: {fallo}")
                 )
                 return registros
+    if quedan:
+        registros.append({"truncado": True, "quedan": quedan})
     return registros

@@ -192,3 +192,4 @@ def test_pulsar_botones_stops_at_forty_presses() -> None:
     assert [e for e in abren if e.get("motivo") == "tope"] == [
         {"boton": "Detalle 40", "pulsado": False, "motivo": "tope"}
     ]
+    assert abren[-1] == {"truncado": True, "quedan": 1}
