@@ -11,8 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`docs/gui_mapa.json` is remeasured for 10 windows, and says the state it was measured in and what
   it does not cover (2.1, 2.3, 2.4, 2.6 and 2.7 of the visual GUI test report).** The old collector kept at
   most 13 fields per page and never said which state of the window it saw. Now
-  `tools/mapa_desde_inventario.py` regenerates, from `docs/gui_inventario_pestanas.json` (Win32
-  enumeration of every field, no OCR), instance 0 of `TDetailedLossesForm` (95 → 123 fields),
+  `tools/mapa_desde_inventario.py` regenerates, from `docs/gui_inventario_pestanas.json` (every
+  field that `que:formulario` returns, tab by tab: class, `marcado` and `habilitado` come from the window
+  enumeration, `etiqueta` from the label chain, which includes OCR), instance 0 of `TDetailedLossesForm` (95 → 123 fields),
   `TSystemegridForm` (13 → 28), `TSystemeAddForm` (17 → 11, with the missing first tab `Temperatura
   inversor`, so every `indice_pestana` was off by one), `TGridStorageForm` (13 → 1) and `THorizonForm`,
   `TShadingsForm`, `TEcoEvaluationForm`, `TUserNeedsForm`, `TSummaryForm` (same counts, now with `marcado`

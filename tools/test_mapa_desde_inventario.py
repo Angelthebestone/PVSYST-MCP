@@ -209,6 +209,16 @@ def test_says_the_state_it_was_measured_in_and_what_is_still_truncated() -> None
 
 
 @pytest.mark.usefixtures("remedios")
+def test_replaces_its_own_note_instead_of_appending_another() -> None:
+    una_vez = remedir(mapa_de_prueba(), inventario_de_prueba())
+    una_vez["nota"] = "Mapa de prueba. REMEDIDO: texto de una versión anterior."
+
+    de_nuevo = remedir(una_vez, inventario_de_prueba())
+
+    assert de_nuevo["nota"] == remedir(mapa_de_prueba(), inventario_de_prueba())["nota"]
+
+
+@pytest.mark.usefixtures("remedios")
 def test_running_it_twice_leaves_the_same_bytes_as_once(tmp_path: Path) -> None:
     mapa = tmp_path / "mapa.json"
     inventario = tmp_path / "inventario.json"

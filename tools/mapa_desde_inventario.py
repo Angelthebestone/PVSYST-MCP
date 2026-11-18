@@ -1,10 +1,14 @@
 """Regenerates, in `docs/gui_mapa.json`, the windows that the tab inventory measured.
 
-`docs/gui_inventario_pestanas.json` lists EVERY field of a window, tab by tab
-(Win32 enumeration, no OCR, no truncation). The old collector of the map kept
-at most 13 fields per page, so for the windows of the inventory this script
-replaces the pages of the map with the measured ones and leaves the rest of the
-file byte for byte as it was.
+`docs/gui_inventario_pestanas.json` lists EVERY control of a window that the
+form read returns, tab by tab (`gui_observar que:formulario` after
+`gui_actuar accion:pagina`). The set of fields, their class, `marcado` and
+`habilitado` come from enumerating the windows; their `etiqueta` comes from the
+label chain of `que:formulario`, which includes OCR, and this inventory did not
+record `etiqueta_fuente`. The old collector of the map kept at most 13 fields
+per page, so for the windows of the inventory this script replaces the pages of
+the map with the measured ones and leaves the rest of the file byte for byte as
+it was.
 
 What the inventory brings and the map keeps:
   - `campos`, `botones` (with `habilitado`) and `indice_pestana` come from the
@@ -164,10 +168,14 @@ def _remedir_ventana(clase: str, ventana: Json, medida: Json, remedio: Remedio) 
     ventana["controles"] = _controles(ventana)
 
 
+INICIO_NOTA = "REMEDIDO:"
 NOTA = (
-    "REMEDIDO: las instancias con `estado_medido` se regeneraron con "
+    f"{INICIO_NOTA} las instancias con `estado_medido` se regeneraron con "
     "tools/mapa_desde_inventario.py desde docs/gui_inventario_pestanas.json "
-    "(enumeración Win32 de todos los campos: sin OCR ni techo de 13 por página). "
+    "(todos los campos que devuelve la lectura del formulario, sin techo de 13 por "
+    "página: su clase, `marcado` y `habilitado` salen de enumerar las ventanas, pero "
+    "`etiqueta` sale de la cadena de etiquetas de `que:formulario`, que incluye OCR, y "
+    "esta medición no guardó `etiqueta_fuente`). "
     "Sus campos traen además `marcado` y `habilitado`, y `estado_medido` dice en qué "
     "estado estaba la ventana al medirla (`no registrado` si no se anotó): una casilla "
     "o un combo muestran u ocultan campos, así que la lista vale para ese estado y no "
@@ -210,8 +218,8 @@ def _alcance(mapa: Json) -> list[str]:
 
 
 def _anotar_alcance(mapa: Json) -> None:
-    if NOTA not in mapa["nota"]:
-        mapa["nota"] = f"{mapa['nota']} {NOTA}"
+    original = mapa["nota"].split(f" {INICIO_NOTA}")[0]
+    mapa["nota"] = f"{original} {NOTA}"
     propios = [x for x in mapa["limites"] if not x.startswith(ALCANCE)]
     mapa["limites"] = [*propios, *_alcance(mapa)]
 
