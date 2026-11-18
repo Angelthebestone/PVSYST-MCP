@@ -30,12 +30,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `TParamSolForm`, `TPreferencesForm`, `TSAControllerForm`, `TPumpForm`, `TPumpControllerForm`,
   `TGeneratorForm`, `TContactForm`, `TMeteoImportForm`, `TMeteoTablesGraphsForm`, `TVoltageOptimiseForm`,
   `TTranspositionForm`, and on a pumping project `TSettingsForm`, `TGeoSiteForm`, `TSystemPumpingForm`,
-  `TWaterUseForm` and `TCurrenciesForm`. Pages that hold exactly 13 fields: 33 of 265. The inventory now
+  `TWaterUseForm` and `TCurrenciesForm`. A third pass measured other openings on a stand-alone, a pumping
+  and the demo grid project: `TSystemeBattForm`, `TDetailedLossesForm` and `TOrientationForm`
+  (`independiente`), `TOrientationForm` (`bombeo`), `TGridInverterForm` opened from the system window
+  (76 → 140 fields) and `TUserNeedsForm` through the stand-alone opening, which is what
+  `variante.necesidades_usuario_independiente` really opens (the catalogue declares `TDomesticUseForm`).
+  An inventory entry may be keyed `Clase#abierta_con` to hold several openings of one window. Pages that
+  hold exactly 13 fields: 24 of 266. The inventory now
   keeps `etiqueta_fuente` per field and the tab and group-box captions per page. Corrected: the first pass
   said its labels were free of OCR; they come from `que:formulario`, which includes it. Still pending:
-  `TGeoSiteForm` via `Nuevo` (button disabled), the windows of stand-alone, DC-grid and 3D-scene projects,
-  the other openings of the regenerated windows, nested sheets (`pagina` only changes the main page
-  control), and the seven `no registrado` states.
+  `TGeoSiteForm` via `Nuevo` (button disabled), the DC-grid and 3D-scene windows (no project of that type
+  and no tool to create one), `TDetailedLossesForm` on a pumping project and the windows whose host
+  button is disabled there, the remaining openings (`red_cc`, `bombeo` for most), nested sheets (`pagina`
+  only changes the main page control), and the seven `no registrado` states.
 - **`vista.recortado` names a list `detalle` cut inside an object.** A project with more than 13 variants
   answered `truncado:true`, 13 `variants` and `variants_total:16` inside the project, and `vista.recortado`
   stayed empty: the trimmer writes `<clave>_total` next to the list it cut at whatever depth, but the vista
