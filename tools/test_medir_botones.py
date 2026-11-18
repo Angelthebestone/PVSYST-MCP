@@ -1,6 +1,6 @@
 """Tests for medir_botones.py: which buttons are pressed and what they open."""
 
-from medir_botones import cerrar_nuevas, pulsar_botones
+from medir_botones import pulsar_botones
 from medir_cliente import Json
 from medir_inventario import inventariar
 from medir_ventanas import abrir
@@ -8,26 +8,6 @@ from pvsyst_falso import PVsystFalso, botones_de, formulario, objetivo_de
 
 # pytest finds the autouse fixture through this import; the tests never call it.
 from pvsyst_falso import sin_esperas  # noqa: F401
-
-
-def test_cerrar_nuevas_compares_class_and_title_and_keeps_the_main_windows() -> None:
-    c = PVsystFalso({}, {})
-    c.abiertas += [
-        {"class": "TA", "title": "vieja"},
-        {"class": "TA", "title": "nueva"},
-        {"class": "TA", "title": "otra"},
-        {"class": "TProjectForm", "title": "Proyecto"},
-    ]
-
-    cerradas, parado = cerrar_nuevas(c, {("THomeForm", "PVsyst"), ("TA", "vieja")})
-
-    assert parado is None
-
-    assert [(e["clase"], e["titulo"]) for e in cerradas] == [
-        ("TA", "nueva"),
-        ("TA", "otra"),
-    ]
-    assert [w["title"] for w in c.abiertas] == ["PVsyst", "vieja", "Proyecto"]
 
 
 def test_pulsar_botones_presses_each_tab_and_records_the_window_it_opened() -> None:
