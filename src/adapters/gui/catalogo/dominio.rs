@@ -59,6 +59,10 @@ pub(crate) struct Funcion {
     pub(crate) acceso: Acceso,
     /// Class of the window it opens, when it was observed; `None` when not yet.
     pub(crate) abre: Option<&'static str>,
+    /// Another class the same function was seen to open, measured on a project
+    /// of another kind: PVsyst shows it instead of `abre`, which stays the one
+    /// the descriptions and the contract announce.
+    pub(crate) abre_tambien: Option<&'static str>,
     /// Key of the function that opens the host window, when that window is not
     /// the main form (a tool button needs its tools window open first).
     pub(crate) requiere: Option<&'static str>,
@@ -84,6 +88,7 @@ impl Funcion {
             ventana: VENTANA_INICIO,
             acceso,
             abre: None,
+            abre_tambien: None,
             requiere: None,
             pagina: None,
             titulo_anfitrion: None,
@@ -128,6 +133,13 @@ impl Funcion {
     /// Records the class of the window the function was seen to open.
     pub(crate) const fn abre(mut self, clase: &'static str) -> Self {
         self.abre = Some(clase);
+        self
+    }
+
+    /// Records a second class the function was seen to open for another kind of
+    /// project: the wait and the check accept either one.
+    pub(crate) const fn o_tambien(mut self, clase: &'static str) -> Self {
+        self.abre_tambien = Some(clase);
         self
     }
 

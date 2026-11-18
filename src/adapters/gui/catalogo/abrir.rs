@@ -6,7 +6,7 @@ use super::aplicacion::{
 };
 use super::dominio::{buscar, Acceso, Efecto, Funcion, PedidoMenu};
 use super::entradas::funciones;
-use super::espera::{esperar_nuevas, Resultado, SolicitudEspera};
+use super::espera::{esperadas, esperar_nuevas, Resultado, SolicitudEspera, VentanaEsperada};
 use crate::adapters::gui::acciones::clic_por_mensajes;
 use crate::adapters::gui::conduccion::Formulario;
 use crate::adapters::gui::ffi::{self, Hwnd};
@@ -60,6 +60,7 @@ fn abrir_funcion(pedido: Pedido, funcion: &Funcion) -> Result<Value> {
     if let Some(pagina) = funcion.pagina {
         Formulario::de(anfitrion).pagina(usize::from(pagina))?;
     }
+    let esperada = esperadas(funcion);
     let antes = visibles(pedido.args)?;
     disparar(pedido, anfitrion, funcion)?;
     // Nothing is left to watch once PVsyst itself is closing.
@@ -68,7 +69,7 @@ fn abrir_funcion(pedido: Pedido, funcion: &Funcion) -> Result<Value> {
         _ => esperar_nuevas(
             SolicitudEspera {
                 antes: &antes,
-                esperada: funcion.abre,
+                esperada,
                 limite: espera_pedida(pedido.args),
             },
             || visibles(pedido.args),
@@ -77,7 +78,7 @@ fn abrir_funcion(pedido: Pedido, funcion: &Funcion) -> Result<Value> {
     let efecto_json = funcion.efecto.nombre();
     let ausente = match funcion.efecto {
         Efecto::Cierra => None,
-        _ => visto.clase_ausente(funcion.abre),
+        _ => visto.ausente(esperada),
     };
     let mut respuesta = json!({
         "funcion": funcion.clave,
@@ -88,18 +89,22 @@ fn abrir_funcion(pedido: Pedido, funcion: &Funcion) -> Result<Value> {
         "nota": funcion.nota,
         "resumen": visto.primera_nueva().map(resumen_de_ventana),
     });
-    if let (Some(clase), Some(o)) = (ausente, respuesta.as_object_mut()) {
-        let no_abrio = Texto {
-            es: "PVsyst no abrió la ventana esperada ({clase}) en el plazo de espera",
-            en: "PVsyst did not open the expected window ({clase}) within the wait",
-        };
+    if let (Some(esperada), Some(o)) = (ausente, respuesta.as_object_mut()) {
         o.insert("completo".into(), json!(false));
-        o.insert(
-            "error".into(),
-            json!(no_abrio.texto_con(pedido.idioma, &[("clase", clase)])),
-        );
+        o.insert("error".into(), json!(no_abrio(pedido.idioma, esperada)));
     }
     Ok(respuesta)
+}
+
+/// Why PVsyst opened none of the windows the function declares; every accepted
+/// class is named. The wording keeps `did not open the expected window`, which
+/// `tools/medir_gui.py` reads to tell this case from a failed click.
+pub(super) fn no_abrio(idioma: Idioma, esperada: VentanaEsperada) -> String {
+    let texto = Texto {
+        es: "PVsyst no abrió la ventana esperada ({clases}) en el plazo de espera",
+        en: "PVsyst did not open the expected window ({clases}) within the wait",
+    };
+    texto.texto_con(idioma, &[("clases", &esperada.listadas())])
 }
 
 fn anfitrion_de(pedido: Pedido, funcion: &Funcion) -> Result<Hwnd> {

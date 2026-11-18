@@ -1,9 +1,11 @@
-use super::dominio::{buscar, Acceso};
+use super::dominio::{buscar, Acceso, Funcion};
 use super::entradas::funciones;
+use super::espera::{esperadas, esperar_nuevas, SolicitudEspera};
 use super::recurso::EnEjecucion;
 use crate::idioma::Idioma;
 use std::collections::HashSet;
 use std::path::Path;
+use std::time::Duration;
 
 #[test]
 fn should_name_a_catalogued_parent_that_opens_the_host_when_function_requires_one() {
@@ -17,6 +19,66 @@ fn should_name_a_catalogued_parent_that_opens_the_host_when_function_requires_on
             f.clave
         );
     }
+}
+
+/// A function whose window PVsyst changes with the kind of project is waited for
+/// as either class: the one that opens is the expected one.
+#[test]
+fn should_wait_for_either_class_when_a_function_declares_an_alternative_window() {
+    use crate::adapters::gui::ventana_falsa::VentanaFalsa;
+
+    let esperada = esperadas(&de_dos_ventanas());
+    let abierta = VentanaFalsa::crear("TUserNeedsForm", "Necesidades usuario", Vec::new());
+
+    let visto = esperar_nuevas(
+        SolicitudEspera {
+            antes: &[],
+            esperada,
+            limite: Duration::ZERO,
+        },
+        || Ok(vec![abierta.hwnd(0)]),
+    )
+    .expect("enumerar las ventanas visibles no falla");
+
+    assert!(visto.llego, "{:?}", visto.nuevas_json());
+    assert!(visto.ausente(esperada).is_none());
+}
+
+/// The answer that says PVsyst opened nothing names every class the catalogue
+/// accepts for the function, in the client's language.
+#[test]
+fn should_name_every_accepted_window_when_none_of_them_opened() {
+    let esperada = esperadas(&de_dos_ventanas()).expect("la función declara su ventana");
+
+    for (idioma, verbo) in [(Idioma::Es, "no abrió"), (Idioma::En, "did not open")] {
+        let texto = super::abrir::no_abrio(idioma, esperada);
+        assert!(
+            texto.contains("TDomesticUseForm") && texto.contains("TUserNeedsForm"),
+            "{texto}"
+        );
+        assert!(texto.contains(verbo), "{texto}");
+    }
+}
+
+/// An alternative is a second class, never a replacement: the entry keeps
+/// announcing the primary one that descriptions and the contract name.
+#[test]
+fn should_keep_the_announced_class_when_a_function_declares_an_alternative() {
+    for f in funciones().filter(|f| f.abre_tambien.is_some()) {
+        assert!(f.abre.is_some(), "{}: alternativa sin ventana", f.clave);
+        assert_ne!(
+            f.abre, f.abre_tambien,
+            "{}: la alternativa repite la ventana",
+            f.clave
+        );
+    }
+}
+
+/// The shape `variante.necesidades_usuario_independiente` measured on 8.1.8.
+fn de_dos_ventanas() -> Funcion {
+    Funcion::boton("prueba.dos_ventanas", "TProjectForm", "Necesidades usuario")
+        .abre("TDomesticUseForm")
+        .o_tambien("TUserNeedsForm")
 }
 
 /// GUI-12: `menus` listed ids and positions but no name for any entry.
