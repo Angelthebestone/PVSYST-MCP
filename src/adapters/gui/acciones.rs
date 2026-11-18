@@ -280,19 +280,20 @@ pub(crate) fn invocar(args: &Value, idioma: IdiomaCliente) -> Result<Value> {
     ejecutar_accion(h, action, pedido)?;
 
     let mut reabiertas = Vec::new();
+    let mut descartado = false;
     if cerrar {
         let descartar_cambios = crate::args::flag(args, &["descartar_cambios"]);
-        cierre::exigir_cerrada(h, idioma, descartar_cambios)?;
+        descartado = cierre::exigir_cerrada(h, idioma, descartar_cambios)?;
         std::thread::sleep(cierre::ESPERA_REAPARICION);
         if let (Some(antes), Some(pid)) = (antes, pid) {
             reabiertas = cierre::reabiertas(&antes, &cierre::instantanea(pid), h);
         }
     }
     let mut window = window_json(h);
-    if cerrar {
-        if let Some(map) = window.as_object_mut() {
-            map.insert("closed".into(), json!(true));
-        }
+    if let (true, Some(map)) = (cerrar, window.as_object_mut()) {
+        map.insert("closed".into(), json!(true));
+        // `true` when the window had unsaved changes and the question was answered yes.
+        map.insert("descartado".into(), json!(descartado));
     }
     Ok(json!({
         "invoked": reference,

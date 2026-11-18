@@ -24,6 +24,11 @@ const CIERRE_TOTAL_SIN_CONFIRMAR: Texto = Texto {
     en: "'cerrar_todo' closed nothing: it closes every PVsyst window and discards unsaved work. If that is what you want, repeat with confirmar:true; to close one window, use gui_actuar accion:cerrar.",
 };
 
+const DESCARTAR_EN_CIERRE_TOTAL: Texto = Texto {
+    es: "'descartar_cambios' no aplica a 'cerrar_todo': este cierra pulsando Cancelar/No y nunca acepta una pregunta por ti. Para descartar los cambios de una ventana, usa gui_actuar accion:cerrar ventana:<clase> descartar_cambios:true.",
+    en: "'descartar_cambios' does not apply to 'cerrar_todo': it closes by pressing Cancelar/No and never accepts a question for you. To drop one window's changes, use gui_actuar accion:cerrar ventana:<class> descartar_cambios:true.",
+};
+
 /// Processes of the PVsyst executable currently running.
 pub(crate) fn pids_pvsyst() -> Vec<u32> {
     pids_de_ejecutable("PVsyst.exe")
@@ -65,6 +70,11 @@ pub(crate) fn cerrar_todo(args: &Value, idioma: Idioma) -> Result<Value> {
     if !flag(args, &[CONFIRMAR]) {
         return Err(Error::Invalid(
             CIERRE_TOTAL_SIN_CONFIRMAR.en_idioma(idioma).into(),
+        ));
+    }
+    if flag(args, &["descartar_cambios"]) {
+        return Err(Error::Invalid(
+            DESCARTAR_EN_CIERRE_TOTAL.en_idioma(idioma).into(),
         ));
     }
     let pids = pids_pvsyst();

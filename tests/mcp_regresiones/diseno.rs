@@ -64,3 +64,24 @@ fn should_refuse_cerrar_todo_without_confirmar() {
         "expected the alternative: {msg}"
     );
 }
+
+/// `cerrar_todo` presses Cancelar/No, so `descartar_cambios` cannot be honoured
+/// there: it is refused by name instead of being ignored (agents.md §6).
+#[test]
+fn should_refuse_descartar_cambios_on_cerrar_todo() {
+    let mut c = Client::start(None);
+    c.initialize();
+
+    let resp = c.call(
+        107,
+        "gui_actuar",
+        json!({ "accion": "cerrar_todo", "confirmar": true, "descartar_cambios": true }),
+    );
+    assert_eq!(resp["result"]["isError"], true, "resp={resp}");
+    let msg = error_text(&resp);
+    assert!(msg.contains("descartar_cambios"), "{msg}");
+    assert!(
+        msg.contains("accion:cerrar"),
+        "expected the alternative: {msg}"
+    );
+}

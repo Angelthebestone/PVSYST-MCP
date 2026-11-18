@@ -36,6 +36,15 @@ const SIN_LECTURA: Texto = Texto {
     en: "'descartar_cambios' answered nothing: the dialog's text could not be read (OCR), so whether it is the discard question is unknown. Read it with gui_observar que:formulario and answer with gui_actuar accion:click",
 };
 
+const OTRO_DIALOGO: Texto = Texto {
+    es: "«descartar_cambios» no respondió: el texto del diálogo no coincide con la pregunta de descarte conocida en el idioma de la GUI (el OCR puede haberla leído mal). Léelo con gui_observar que:formulario y responde con gui_actuar accion:click",
+    en: "'descartar_cambios' answered nothing: the dialog's text does not match the discard question known in the GUI's language (OCR may have misread it). Read it with gui_observar que:formulario and answer with gui_actuar accion:click",
+};
+const SIN_EFECTO: Texto = Texto {
+    es: "«descartar_cambios» intentó responder «Sí», pero la ventana sigue abierta (no se halló el botón o PVsyst no lo aceptó). Compruébalo con gui_observar que:ventanas",
+    en: "'descartar_cambios' tried to answer «Yes», but the window is still open (the button was not found or PVsyst did not take it). Check with gui_observar que:ventanas",
+};
+
 /// What a dialog that intercepted a close is, and whether it was answered.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Descarte {
@@ -148,13 +157,17 @@ pub(crate) fn aviso(reabiertas: &[Value]) -> Option<String> {
 /// A close that left the window open (it asked for a confirmation, or a modal
 /// intercepted it) is a failure the caller must see. With `descartar_cambios`
 /// the one question that only asks to discard is answered first, and no other.
-pub(super) fn exigir_cerrada(h: Hwnd, idioma: Idioma, descartar_cambios: bool) -> Result<()> {
+///
+/// Returns whether the close needed that answer: a window that closed by itself
+/// is `false`, one that closed after the question was answered is `true`, so the
+/// caller can say the changes were dropped.
+pub(super) fn exigir_cerrada(h: Hwnd, idioma: Idioma, descartar_cambios: bool) -> Result<bool> {
     if esperar_cierre(h, ESPERA_CIERRE) {
-        return Ok(());
+        return Ok(false);
     }
     let decision = descartar_cambios.then(|| responder_descarte(h)).flatten();
     if matches!(decision, Some(Descarte::Descartar { .. })) && esperar_cierre(h, ESPERA_CIERRE) {
-        return Ok(());
+        return Ok(true);
     }
     Err(Error::Gui(cierre_fallido(h, idioma, decision)))
 }
@@ -221,12 +234,14 @@ fn cierre_fallido(h: Hwnd, idioma: Idioma, decision: Option<Descarte>) -> String
     texto
 }
 
-/// The note of a `descartar_cambios` that did not answer, and why it did not.
+/// The note of a `descartar_cambios` that did not close the window, and why. It
+/// is only called when the close failed, so even the answered question has one.
 fn nota_de(decision: Descarte, idioma: Idioma) -> Option<String> {
     let texto = match decision {
         Descarte::IdiomaDesconocido => SIN_IDIOMA,
         Descarte::SinLectura => SIN_LECTURA,
-        Descarte::Descartar { .. } | Descarte::OtroDialogo => return None,
+        Descarte::OtroDialogo => OTRO_DIALOGO,
+        Descarte::Descartar { .. } => SIN_EFECTO,
     };
     Some(texto.en_idioma(idioma).to_string())
 }

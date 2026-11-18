@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   es measured on 8.1.8, en, fr and de inferred and failing closed), so a GUI in an unknown language answers
   nothing and the error carries a note saying so. The 3D editor's «¿Quiere mantener sus modificaciones en el objeto?» is a different question whose «Sí»
   *adds* the object, so it is not matched.
+  A close answers `window.descartado:true` when the question was answered (the changes were dropped) and
+  `false` otherwise; when the flag did not
+  close the window (text not recognised, button not found) the error says which. `cerrar_todo` refuses
+  `descartar_cambios` by name, since it presses Cancelar/No and never accepts a question.
 
 ### Changed
 - **`gui_observar` says what each `que` costs and which `que` each argument applies to.**
