@@ -81,14 +81,25 @@ ESTADO_INDEPENDIENTE = (
     "Proyecto Z_MAPA_Aislado (sistema independiente con baterías, creado con "
     "disenar_sistema simular:false) cargado; ventana recién abierta, sin editar"
 )
+
+
+def _demo(proyecto: str, detalle: str = "") -> str:
+    """State of a window opened on one of PVsyst's shipped, read-only demos."""
+    return (
+        f"Proyecto demo {proyecto} (solo lectura) cargado{detalle}; "
+        "ventana recién abierta, sin editar"
+    )
+
+
+ESTADO_COMMERCIAL = _demo("_DEMO_Commercial")
 ESTADO_NUEVO = (
     "Objeto nuevo sin completar ni guardar (diálogo «Nuevo» de la base de datos)"
 )
 
 # Why each entry: INFORME_PRUEBAS_GUI_VISUAL_2026-11-17.md, sections 2.3, 2.4, 2.6.
 REMEDIOS: dict[str, Remedio] = {
-    "TDetailedLossesForm": Remedio(),
-    "TSystemegridForm": Remedio(),
+    "TDetailedLossesForm": Remedio(estado=ESTADO_COMMERCIAL),
+    "TSystemegridForm": Remedio(estado=ESTADO_COMMERCIAL),
     # The map was measured with `Activo` ticked in P50-P90 (17 fields); the
     # inventory has it unticked (1 field): the old captions describe the ticked page.
     "TSystemeAddForm": Remedio(
@@ -100,11 +111,11 @@ REMEDIOS: dict[str, Remedio] = {
         anadir_con="variante.orientacion",
         estado="Tilt fijo (proyecto demo _DEMO_Commercial, plano a 15°)",
     ),
-    "THorizonForm": Remedio(),
-    "TShadingsForm": Remedio(),
-    "TEcoEvaluationForm": Remedio(),
-    "TUserNeedsForm": Remedio(),
-    "TSummaryForm": Remedio(),
+    "THorizonForm": Remedio(estado=ESTADO_COMMERCIAL),
+    "TShadingsForm": Remedio(estado=ESTADO_COMMERCIAL),
+    "TEcoEvaluationForm": Remedio(estado=ESTADO_COMMERCIAL),
+    "TUserNeedsForm": Remedio(estado=ESTADO_COMMERCIAL),
+    "TSummaryForm": Remedio(estado=ESTADO_COMMERCIAL),
     "TGridStorageForm": Remedio(estado="Sin almacenamiento"),
     # Step 2, measured on 8.1.8 through `bases_de_datos.*.nuevo`. The form vetoes
     # the tab change until the module is complete, so it was filled in memory
@@ -171,6 +182,40 @@ REMEDIOS: dict[str, Remedio] = {
             "Abrir desde la ventana de sistema; recién abierto, sin editar; "
             "subpáginas anidadas no recorridas"
         ),
+    ),
+    # Batch A: windows that were truncated at 13 fields or had no project of their
+    # type, remeasured on the shipped demos.
+    "TSystemegridDCForm": Remedio(
+        reemplaza="red_cc > Sistema", estado=_demo("_DEMO_DCGrid")
+    ),
+    "TDetailedLossesForm#red_cc > Pérdidas detalladas": Remedio(
+        reemplaza="red_cc > Pérdidas detalladas", estado=_demo("_DEMO_DCGrid")
+    ),
+    "TDetailedLossesForm#bombeo > Pérdidas detalladas": Remedio(
+        reemplaza="bombeo > Pérdidas detalladas", estado=_demo("_DEMO_Pumping")
+    ),
+    "TOrientationForm#red_cc > Orientación": Remedio(
+        reemplaza="red_cc > Orientación", estado=_demo("_DEMO_DCGrid")
+    ),
+    # The tracker instance is the first one opened by `variante.orientacion`.
+    "TOrientationForm#seguidor": Remedio(
+        reemplaza="variante.orientacion", estado=_demo("_DEMO_Tracking", " (seguidor)")
+    ),
+    "TOrientationForm#TShadingsForm>Orientaciones": Remedio(
+        reemplaza="TShadingsForm>Orientaciones", estado=ESTADO_COMMERCIAL
+    ),
+    "TPerspectiveForm": Remedio(estado=ESTADO_COMMERCIAL),
+    "TTableFieldForm": Remedio(estado=ESTADO_COMMERCIAL),
+    "TRectFieldForm": Remedio(estado=ESTADO_COMMERCIAL),
+    "TGroundObjectForm": Remedio(estado=ESTADO_COMMERCIAL),
+    "TOrientToolForm": Remedio(estado=ESTADO_COMMERCIAL),
+    "TMismatchStringForm": Remedio(estado=ESTADO_COMMERCIAL),
+    "TOptimizationToolForm": Remedio(estado=ESTADO_COMMERCIAL),
+    "TResultPlotHorForm": Remedio(estado=ESTADO_COMMERCIAL),
+    "TDomesticUseForm": Remedio(estado=_demo("_DEMO_StandAlone")),
+    "TContactForm#configuraciones.preferencias>Editar info usuario": Remedio(
+        reemplaza="configuraciones.preferencias>Editar info usuario",
+        estado=ESTADO_SIN_PROYECTO,
     ),
     **{
         clase: Remedio(reemplaza=abierta_con, estado=ESTADO_NUEVO)

@@ -10,36 +10,42 @@
      {
       "clase": "TCheckBox",
       "etiqueta": "Cúpulas",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Integración con respaldo totalmente aislado",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Semi-integrado con conducto de aire detrás",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Módulos montados \"libres\" con circulación de aire",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Factor de pérdida del viento LIV",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Factor de pérdida constante 1.1c",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      }
@@ -65,6 +71,24 @@
       "texto": "Ver el TNCO de todos modos",
       "habilitado": true
      }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Parámetro térmico"
+     ],
+     [
+      "TGroupBox",
+      "Factor de pérdidas térmicas del campo"
+     ],
+     [
+      "TGroupBox",
+      "Valor predeterminado según montaje"
+     ],
+     [
+      "TGroupBox",
+      "Factor TNCO equivalente"
+     ]
     ]
    },
    {
@@ -74,108 +98,126 @@
      {
       "clase": "TRadioButton",
       "etiqueta": "Alu",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Cobre",
+      "etiqueta_fuente": "window_text",
       "marcado": true,
       "habilitado": true
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Utiliza un transformador de AT",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": false
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Utiliza uno o varios transformadores MT",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": false
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "sistema completo",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "por inversor",
+      "etiqueta_fuente": "window_text",
       "marcado": true,
       "habilitado": true
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Utiliza pérdida óhmica del circuito CA",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Fracción pérdida en STC",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TComboBox",
       "etiqueta": "Fracción pérdida en STC",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Longitud del inversor a inyección",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Predefinido",
+      "etiqueta_fuente": "window_text",
       "marcado": true,
       "habilitado": true
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Calculada",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": false
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Fracción pérdida en STC",
+      "etiqueta_fuente": "window_text",
       "marcado": true,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Res. de cableado global",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "rcuito CC: pérdidas óhmicas en el conjun",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "rcuito CC: pérdidas óhmicas en el conjun",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Predefinido",
+      "etiqueta_fuente": "window_text",
       "marcado": true,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Caída de tensión a través del diodo en serie",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      }
@@ -205,6 +247,28 @@
       "texto": "Computación detallada",
       "habilitado": true
      }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Pérdidas óhmicas"
+     ],
+     [
+      "TGroupBox",
+      "Pérdidas CA después del inversor"
+     ],
+     [
+      "TGroupBox",
+      "Circuito CA: inversor al punto de inyección  (por inversor)"
+     ],
+     [
+      "TGroupBox",
+      "Circuito CC: pérdidas óhmicas en el conjunto"
+     ],
+     [
+      "TGroupBox",
+      "Especificado por"
+     ]
     ]
    },
    {
@@ -214,48 +278,56 @@
      {
       "clase": "TCheckBox",
       "etiqueta": "Pérdida de potencia en PIPP",
+      "etiqueta_fuente": "ocr",
       "marcado": true,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Pérdida de potencia en PIPP",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "%",
+      "etiqueta_fuente": "ocr",
       "marcado": true,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Pérdida de eficiencia módulo",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Pérdida de potencia en PPP",
+      "etiqueta_fuente": "ocr",
       "marcado": true,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Pérdida de potencia en PPP",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Factor de pérdidas LID",
+      "etiqueta_fuente": "ocr",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Factor de pérdidas LID",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      }
@@ -285,6 +357,28 @@
       "texto": "Computación detallada",
       "habilitado": true
      }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Calidad del módulo - LID - Desajuste"
+     ],
+     [
+      "TGroupBox",
+      "Desajuste de voltaje de las cadenas"
+     ],
+     [
+      "TGroupBox",
+      "Calidad del módulo"
+     ],
+     [
+      "TGroupBox",
+      "Pérdidas de desajuste de módulo"
+     ],
+     [
+      "TGroupBox",
+      "LID - Degradación Inducida por Luz"
+     ]
     ]
    },
    {
@@ -294,90 +388,105 @@
      {
       "clase": "TCheckBox",
       "etiqueta": "Factor de pérdida anual",
+      "etiqueta_fuente": "ocr",
       "marcado": false,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Factor de pérdida anual",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TComboBox",
       "etiqueta": "Parámetro térmico",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Diciembre",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Noviembre",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Octubre",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Septiembre",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Agosto",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Julio",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Junio",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Mayo",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": null,
+      "etiqueta_fuente": null,
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Marzo",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Febrero",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Enero",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      }
@@ -407,6 +516,24 @@
       "texto": "Establecer todo como año",
       "habilitado": false
      }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Pérdida de suciedad"
+     ],
+     [
+      "TGroupBox",
+      "From File"
+     ],
+     [
+      "TGroupBox",
+      "Factor de pérdida de suciedad anual"
+     ],
+     [
+      "TGroupBox",
+      "Valores mensuales de suciedad"
+     ]
     ]
    },
    {
@@ -416,108 +543,126 @@
      {
       "clase": "TCheckBox",
       "etiqueta": "Utiliza la definición del módulo FV",
+      "etiqueta_fuente": "window_text",
       "marcado": true,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "6",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "6",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "5",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "5",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "4",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "4",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "3",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "3",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "2",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "2",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "1",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "1",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Revestimiento AR refr.",
+      "etiqueta_fuente": "ocr",
       "marcado": true,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Revestimiento AR refr.",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "índice de refracción de",
+      "etiqueta_fuente": "ocr",
       "marcado": true,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "índice de refracción de",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TComboBox",
       "etiqueta": "Modelo de ángulo de",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      }
@@ -551,6 +696,20 @@
       "texto": "Copiar",
       "habilitado": true
      }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Pérdidas IAM"
+     ],
+     [
+      "TGroupBox",
+      "Puntos"
+     ],
+     [
+      "TGroupBox",
+      "Modelo de ángulo de incidencia"
+     ]
     ]
    },
    {
@@ -560,36 +719,42 @@
      {
       "clase": "TEdit",
       "etiqueta": "Consumo de auxiliares nocturnos",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "desde el umbral de potencia de salida del inversor",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": ", desde el umbral de potencia de salida del inversor",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Proporcional a la potencia de salida del inversor",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Pérdidas auxiliares continuas (ventiladores, etc.)",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Consumo auxiliares definidos",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      }
@@ -611,6 +776,24 @@
       "texto": "Gráfico de pérdidas",
       "habilitado": true
      }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Auxiliares"
+     ],
+     [
+      "TGroupBox",
+      "Pérdidas de energía auxiliares"
+     ],
+     [
+      "TGroupBox",
+      "Pérdidas nocturnas de auxiliares"
+     ],
+     [
+      "TGroupBox",
+      "Auxiliares durante el funcionamiento (día)"
+     ]
     ]
    },
    {
@@ -620,174 +803,203 @@
      {
       "clase": "TCheckBox",
       "etiqueta": "Interpol. lineal",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": false
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Interpol. lineal",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": false
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Escalones",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": false
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Curva",
+      "etiqueta_fuente": "window_text",
       "marcado": true,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": null,
+      "etiqueta_fuente": null,
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "álculo Monte",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Garantía",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Año",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Año",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Garantía",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Garantía",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Mantiene los valores calculados de desajuste",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": false
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Mostrar este gráfico en el informe",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": false
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Pérdidas",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": false
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Eficiencias",
+      "etiqueta_fuente": "window_text",
       "marcado": true,
       "habilitado": false
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Usos en simulación",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Factor de degrad. no",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Factor deter, global",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TUpDown",
       "etiqueta": "Simulación para el año n",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Simulación para el año n",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "ará metros envejecimiento módulo FV",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "%/año",
+      "etiqueta_fuente": "ocr",
       "marcado": true,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "ará metros envejecimiento módulo FV",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Dispersión Vmp RMS",
+      "etiqueta_fuente": "ocr",
       "marcado": true,
       "habilitado": false
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Dispersión Imp RMS",
+      "etiqueta_fuente": "ocr",
       "marcado": true,
       "habilitado": false
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Factor de degrad. promedio",
+      "etiqueta_fuente": "ocr",
       "marcado": true,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Dispersión Vmp RMS",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Dispersión Imp RMS",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "Factor de degrad. promedio",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      }
@@ -817,6 +1029,56 @@
       "texto": "Leer modelo",
       "habilitado": false
      }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Envejecimiento"
+     ],
+     [
+      "TGroupBox",
+      "Utilizado para esta evaluación"
+     ],
+     [
+      "TGroupBox",
+      "Cálculo Monte-Carlo"
+     ],
+     [
+      "TGroupBox",
+      "Subconjunto"
+     ],
+     [
+      "TGroupBox",
+      "Garantía del módulo"
+     ],
+     [
+      "TGroupBox",
+      "Delinear"
+     ],
+     [
+      "TGroupBox",
+      "Almacenar los valores de Monte Carlo"
+     ],
+     [
+      "TGroupBox",
+      "Valores Monte-Carlo"
+     ],
+     [
+      "TGroupBox",
+      "Utiliza degradación en la simulación."
+     ],
+     [
+      "TGroupBox",
+      "Parámetros en simulación"
+     ],
+     [
+      "TGroupBox",
+      "Modelo"
+     ],
+     [
+      "TGroupBox",
+      "Parámetros envejecimiento módulo FV"
+     ]
     ]
    },
    {
@@ -826,72 +1088,84 @@
      {
       "clase": "TRadioButton",
       "etiqueta": "Definido a partir de un archivo",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": false
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Períodos",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Inicialización aleatoria",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TUpDown",
       "etiqueta": "Duración mínima",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TUpDown",
       "etiqueta": "Duración máxima",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Duración máxima",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TUpDown",
       "etiqueta": "Número de períodos",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Número de períodos",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Duración mínima",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Facción tiempo de indisponibilidad",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Mostrar períodos",
+      "etiqueta_fuente": "window_text",
       "marcado": true,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Mostrar gráfico",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      }
@@ -933,6 +1207,32 @@
       "texto": "Previo",
       "habilitado": false
      }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Indisponibilidad"
+     ],
+     [
+      "TGroupBox",
+      "Modo de entrada"
+     ],
+     [
+      "TGroupBox",
+      "Parámetros aleatorios de indisponibilidad"
+     ],
+     [
+      "TGroupBox",
+      "Períodos de indisponibilidad"
+     ],
+     [
+      "TGroupBox",
+      "Opciones de la vista"
+     ],
+     [
+      "TGroupBox",
+      "Resultados principales"
+     ]
     ]
    },
    {
@@ -942,66 +1242,77 @@
      {
       "clase": "TCheckBox",
       "etiqueta": "Usar corrección espectral en simulación",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Overlay simulation points",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": null,
+      "etiqueta_fuente": null,
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": null,
+      "etiqueta_fuente": null,
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "CI",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": "co",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": null,
+      "etiqueta_fuente": null,
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TEdit",
       "etiqueta": null,
+      "etiqueta_fuente": null,
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Predefinido",
+      "etiqueta_fuente": "ocr",
       "marcado": true,
       "habilitado": false
      },
      {
       "clase": "TComboBox",
       "etiqueta": "CI",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Según la tecnología del módulo FV",
+      "etiqueta_fuente": "window_text",
       "marcado": true,
       "habilitado": true
      }
@@ -1023,6 +1334,16 @@
       "texto": "Gráfico de pérdidas",
       "habilitado": true
      }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Corrección espectral"
+     ],
+     [
+      "TGroupBox",
+      "Modelo FirstSolar"
+     ]
     ]
    }
   ],
@@ -1039,168 +1360,196 @@
      {
       "clase": "TComboBox",
       "etiqueta": "Subconjunto",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TComboBox",
       "etiqueta": "leccione el inverso",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "60 Hz",
+      "etiqueta_fuente": "window_text",
       "marcado": true,
       "habilitado": true
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "50 Hz",
+      "etiqueta_fuente": "window_text",
       "marcado": true,
       "habilitado": true
      },
      {
       "clase": "TComboBox",
       "etiqueta": "leccione el inverso",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Núm. de inversores",
+      "etiqueta_fuente": "ocr",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TUpDown",
       "etiqueta": "Núm. de inversores",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Núm. de inversores",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TComboBox",
       "etiqueta": "Voltaje de salida 800 V Tri 50Hz",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Reparto de PNom en el inversor",
+      "etiqueta_fuente": "window_text",
       "marcado": true,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Entradas MPPT independientes",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TComboBox",
       "etiqueta": "48",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Usar optimizador",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TComboBox",
       "etiqueta": "- 60 kWac string invert, , ,",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TComboBox",
       "etiqueta": "48",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TComboBox",
       "etiqueta": null,
+      "etiqueta_fuente": null,
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Sin dimensionamiento",
+      "etiqueta_fuente": "window_text",
       "marcado": true,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "o área disponible",
+      "etiqueta_fuente": "ocr",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Potenda planeada",
+      "etiqueta_fuente": "ocr",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "o área disponible",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Potenda planeada",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TUpDown",
       "etiqueta": "Núm. cadenas",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Núm. cadenas",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Mód. en serie",
+      "etiqueta_fuente": "ocr",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TUpDown",
       "etiqueta": "Mód. en serie",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Mód. en serie",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "STC",
+      "etiqueta_fuente": "window_text",
       "marcado": true,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Máx. en datos",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      }
@@ -1246,6 +1595,32 @@
       "texto": "Resumen del sistema",
       "habilitado": true
      }
+    ],
+    "rotulos": [
+     [
+      "TGroupBox",
+      "Seleccione la orientación"
+     ],
+     [
+      "TGroupBox",
+      "Seleccione el inversor"
+     ],
+     [
+      "TGroupBox",
+      "Seleccione el módulo FV"
+     ],
+     [
+      "TGroupBox",
+      "Ayuda de pre-dimensionamiento"
+     ],
+     [
+      "TGroupBox",
+      "Diseñe el conjunto"
+     ],
+     [
+      "TGroupBox",
+      "Núm. de módulos y cadenas"
+     ]
     ]
    }
   ],
@@ -1518,54 +1893,63 @@
      {
       "clase": "TEdit",
       "etiqueta": "4",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "3",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "3: 2C abr y 23 ago",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "1",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "4",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "3",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "3: 2C abr y 23 ago",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "1",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Comentario",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      }
@@ -1599,6 +1983,12 @@
       "texto": "OK",
       "habilitado": true
      }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Puntos"
+     ]
     ]
    },
    {
@@ -1608,6 +1998,7 @@
      {
       "clase": "TEdit",
       "etiqueta": "Comentario",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      }
@@ -1637,6 +2028,12 @@
       "texto": "OK",
       "habilitado": true
      }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Factor difuso"
+     ]
     ]
    }
   ],
@@ -1653,30 +2050,35 @@
      {
       "clase": "TRadioButton",
       "etiqueta": "Cálculo eléctrico detallado (según el diseño de módulo)",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Según cadenas de módulos",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Sombreados lineales",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Sin sombreados",
+      "etiqueta_fuente": "window_text",
       "marcado": true,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Comentario",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      }
@@ -1722,6 +2124,28 @@
       "texto": "Construcción / Perspectiva",
       "habilitado": true
      }
+    ],
+    "rotulos": [
+     [
+      "TGroupBox",
+      "Compatibilidad entre los parámetros del sistema y las definiciones de sombreado"
+     ],
+     [
+      "TGroupBox",
+      "Modo de cálculo"
+     ],
+     [
+      "TGroupBox",
+      "Utilizar en simulación"
+     ],
+     [
+      "TGroupBox",
+      "Factores de sombreado"
+     ],
+     [
+      "TGroupBox",
+      "Escena 3D de sombreados cercanos"
+     ]
     ]
    }
   ],
@@ -1738,6 +2162,7 @@
      {
       "clase": "TComboBox",
       "etiqueta": "por m2",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      }
@@ -1759,6 +2184,36 @@
       "texto": "Tasas",
       "habilitado": true
      }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Inversión y cargos"
+     ],
+     [
+      "TGroupBox",
+      "Costos de operación (anual)"
+     ],
+     [
+      "TGroupBox",
+      "Costes de instalación"
+     ],
+     [
+      "TRadioGroup",
+      "Valores"
+     ],
+     [
+      "TGroupBox",
+      "Moneda"
+     ],
+     [
+      "TGroupBox",
+      "Resumen del sistema"
+     ],
+     [
+      "TGroupBox",
+      "Resumen financiero"
+     ]
     ]
    },
    {
@@ -1768,72 +2223,84 @@
      {
       "clase": "TEdit",
       "etiqueta": "Otro impuesto sobre la",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Impuesto sobre la renta",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Dividendos",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Resultados de la herramienta de envejecimiento",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": null,
+      "etiqueta_fuente": null,
       "marcado": null,
       "habilitado": false
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Lineal",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Tasa de descuento",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Inflación",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Año de inicio",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Vida del proyecto",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "0.00",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Fondos propios",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      }
@@ -1851,6 +2318,40 @@
       "texto": "Cancelar",
       "habilitado": true
      }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Parámetros financieros"
+     ],
+     [
+      "TGroupBox",
+      "Gastos dependientes de ingresos"
+     ],
+     [
+      "TGroupBox",
+      "Variaciones proyectadas"
+     ],
+     [
+      "TGroupBox",
+      "Amortización fiscal"
+     ],
+     [
+      "TGroupBox",
+      "Período de simulación"
+     ],
+     [
+      "TGroupBox",
+      "Financiamiento"
+     ],
+     [
+      "TGroupBox",
+      "Resumen del sistema"
+     ],
+     [
+      "TGroupBox",
+      "Resumen financiero"
+     ]
     ]
    },
    {
@@ -1860,66 +2361,77 @@
      {
       "clase": "TCheckBox",
       "etiqueta": "Este análisis debe aparecer en el informe impreso",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Tarifa fija de alimentación",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Impuesto de conexión anual",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Reducción de tarifa de alimentación después de la garantía",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Duración de la garantía de tarifas",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Variación de tarifa anual",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Tarifa variable",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Tarifa fija",
+      "etiqueta_fuente": "window_text",
       "marcado": true,
       "habilitado": true
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Tarifa horaria horas de punta/horas valle",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": false
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Tarifa estacional",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": false
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Tarifa del archivo CSV",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": false
      }
@@ -1937,6 +2449,32 @@
       "texto": "Cancelar",
       "habilitado": true
      }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Venta de electricidad"
+     ],
+     [
+      "TGroupBox",
+      "Tarifa de alimentación"
+     ],
+     [
+      "TGroupBox",
+      "Otros parámetros generales"
+     ],
+     [
+      "TGroupBox",
+      "Tipo de tarifa"
+     ],
+     [
+      "TGroupBox",
+      "Resumen del sistema"
+     ],
+     [
+      "TGroupBox",
+      "Resumen financiero"
+     ]
     ]
    },
    {
@@ -1946,6 +2484,7 @@
      {
       "clase": "TCheckBox",
       "etiqueta": "Este análisis debe aparecer en el informe impreso",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      }
@@ -1979,6 +2518,40 @@
       "texto": "Flujo de caja acumulativo",
       "habilitado": true
      }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Resultados financieros"
+     ],
+     [
+      "TGroupBox",
+      "Costes de instalación (CAPEX)"
+     ],
+     [
+      "TGroupBox",
+      "Gastos"
+     ],
+     [
+      "TGroupBox",
+      "Financiamiento"
+     ],
+     [
+      "TGroupBox",
+      "Retorno de la inversión"
+     ],
+     [
+      "TGroupBox",
+      "Resultados económicos detallados"
+     ],
+     [
+      "TGroupBox",
+      "Resumen del sistema"
+     ],
+     [
+      "TGroupBox",
+      "Resumen financiero"
+     ]
     ]
    },
    {
@@ -1988,60 +2561,70 @@
      {
       "clase": "TCheckBox",
       "etiqueta": "Este análisis debe aparecer en el informe impreso",
+      "etiqueta_fuente": "window_text",
       "marcado": true,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Degradación anual [0/0]",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "años",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "870,9 MWh",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TMemo",
       "etiqueta": "Sin datos",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Detallado",
+      "etiqueta_fuente": "window_text",
       "marcado": true,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Manual",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "País AIE",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Mezcla energética",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Manual",
+      "etiqueta_fuente": "window_text",
       "marcado": true,
       "habilitado": true
      }
@@ -2059,6 +2642,24 @@
       "texto": "Cancelar",
       "habilitado": true
      }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Balance de carbono"
+     ],
+     [
+      "TTabSheet",
+      "Visión general"
+     ],
+     [
+      "TGroupBox",
+      "Resumen del sistema"
+     ],
+     [
+      "TGroupBox",
+      "Resumen financiero"
+     ]
     ]
    }
   ],
@@ -2075,48 +2676,56 @@
      {
       "clase": "TRadioButton",
       "etiqueta": "Cargar valores de un archivo CSV por hora/diario",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Consumidores domésticos",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Perfiles de probabilidad",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Perfiles diarios",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Valores mensuales",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Consumo constante fijo",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TRadioButton",
       "etiqueta": "Sin autoconsumo",
+      "etiqueta_fuente": "window_text",
       "marcado": true,
       "habilitado": true
      },
      {
       "clase": "TEdit",
       "etiqueta": "Comentario",
+      "etiqueta_fuente": "ocr",
       "marcado": null,
       "habilitado": true
      }
@@ -2146,6 +2755,24 @@
       "texto": "Cancelar",
       "habilitado": true
      }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Características generales"
+     ],
+     [
+      "TGroupBox",
+      "Modelo"
+     ],
+     [
+      "TGroupBox",
+      "Info sistema: Generador FV definido"
+     ],
+     [
+      "TGroupBox",
+      "Tipo de perfil de carga"
+     ]
     ]
    }
   ],
@@ -2162,12 +2789,14 @@
      {
       "clase": "TCheckBox",
       "etiqueta": "Actualización automática del resumen (puede ser lenta)",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      },
      {
       "clase": "TCheckBox",
       "etiqueta": "Abrir siempre con el proyecto",
+      "etiqueta_fuente": "window_text",
       "marcado": false,
       "habilitado": true
      }
@@ -2177,7 +2806,8 @@
       "texto": "Cerrar",
       "habilitado": true
      }
-    ]
+    ],
+    "rotulos": []
    }
   ],
   "errores": []
@@ -15410,6 +16040,5461 @@
      [
       "TGroupBox",
       "Precio"
+     ]
+    ]
+   }
+  ],
+  "errores": []
+ },
+ "TOptimizationToolForm": {
+  "ventana": "TOptimizationToolForm",
+  "titulo": "Herramienta de optimización",
+  "pestanas": [
+   {
+    "indice": 0,
+    "pestana": "Nuevo escaneo",
+    "campos": [
+     {
+      "clase": "TComboBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Parámetro",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "máx",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Nombre del escaneo",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     }
+    ],
+    "botones": [
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "Ejecutar",
+      "habilitado": false
+     },
+     {
+      "texto": "Abortar",
+      "habilitado": false
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Nuevo escaneo"
+     ]
+    ]
+   },
+   {
+    "indice": 1,
+    "pestana": "Ver resultados",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Escala completa",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Máximo",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Variable",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Y eje",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Z eje",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "X eje",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "2 D",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "1 D",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "lección de escaneos",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "Nuevo escaneo",
+      "habilitado": false
+     },
+     {
+      "texto": "Eliminar escaneo",
+      "habilitado": false
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Ver resultados"
+     ],
+     [
+      "TGroupBox",
+      "Opciones"
+     ],
+     [
+      "TGroupBox",
+      "Otros parámetros"
+     ],
+     [
+      "TGroupBox",
+      "Ejes"
+     ],
+     [
+      "TGroupBox",
+      "Tipo de gráfico"
+     ],
+     [
+      "TGroupBox",
+      "Selección de escaneos"
+     ]
+    ]
+   }
+  ],
+  "errores": []
+ },
+ "TResultPlotHorForm": {
+  "ventana": "TResultPlotHorForm",
+  "titulo": "Gráficos por hora",
+  "pestanas": [
+   {
+    "indice": null,
+    "pestana": null,
+    "campos": [
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Potencia",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Irradiancia",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Valores mensuales",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Valores diarios",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Valores por hora",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Sub-hora",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TDateTimePicker",
+      "etiqueta": "Primera fecha",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Primera fecha",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Número de días dibujados",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Número de días dibujados",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Ángulo de incidencia",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Banda horizonte, plano vertical",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Circumsolar, horizontal",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Isotrópico difuso, horizontal",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Temperatura ambiente",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Irradiación difusa horizontal",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Irradiación horizontal global",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Ángulo de perfil",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Azimut del sol",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Izquierdôerecha",
+      "etiqueta_fuente": "ocr",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Altura del sol",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Izquierdôerecha",
+      "etiqueta_fuente": "ocr",
+      "marcado": false,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Gráfico",
+      "habilitado": true
+     },
+     {
+      "texto": "Cerrar",
+      "habilitado": true
+     },
+     {
+      "texto": "Establecer como predeterminado",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TGroupBox",
+      "Unidades"
+     ],
+     [
+      "TGroupBox",
+      "Definición del eje de tiempo"
+     ],
+     [
+      "TGroupBox",
+      "Datos"
+     ],
+     [
+      "TRadioGroup",
+      "Tipo de gráfico"
+     ],
+     [
+      "TGroupBox",
+      "Variables a dibujar"
+     ]
+    ]
+   }
+  ],
+  "errores": []
+ },
+ "TDomesticUseForm": {
+  "ventana": "TDomesticUseForm",
+  "titulo": "Uso diario de energía, variante \"SHS SolarHome System, 2.2 kWh/day, 570 Wp, controller without MPPT\"",
+  "pestanas": [
+   {
+    "indice": 0,
+    "pestana": "Consumo",
+    "campos": [
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Primavera",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Invierno",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Otoño",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Verano",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Fin de semana o uso semana",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Fin de semana o uso semana",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Usar solo durante",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "W prom",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "kWh/día",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Aparato",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Aparato",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "W/apar,",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Número",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Número",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Número",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Consumidores en espera",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "W/apar,",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "W/apar.",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "W/apar,",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Potencia",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "W/lámpara",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Potencia",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Número",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Guardar",
+      "habilitado": true
+     },
+     {
+      "texto": "Carga",
+      "habilitado": true
+     },
+     {
+      "texto": "Copiar valores",
+      "habilitado": true
+     },
+     {
+      "texto": "Otro perfil",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TGroupBox",
+      "Modelo"
+     ],
+     [
+      "TTabSheet",
+      "Consumo"
+     ],
+     [
+      "TGroupBox",
+      "Daily global consumption "
+     ],
+     [
+      "TGroupBox",
+      "Mostrar valores de"
+     ],
+     [
+      "TGroupBox",
+      "Fin de semana o uso semanal"
+     ],
+     [
+      "TGroupBox",
+      "Consumos diarios"
+     ],
+     [
+      "TRadioGroup",
+      "Definición de consumo por"
+     ]
+    ]
+   },
+   {
+    "indice": 1,
+    "pestana": "Distribución por hora",
+    "campos": [
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Primavera",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Otoño",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Verano",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Invierno",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Guardar",
+      "habilitado": true
+     },
+     {
+      "texto": "Carga",
+      "habilitado": true
+     },
+     {
+      "texto": "Otro perfil",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TGroupBox",
+      "Modelo"
+     ],
+     [
+      "TTabSheet",
+      "Distribución por hora"
+     ],
+     [
+      "TGroupBox",
+      "Mostrar valores de"
+     ],
+     [
+      "TGroupBox",
+      "Consumo global diario"
+     ],
+     [
+      "TGroupBox",
+      "Domestic appliances"
+     ],
+     [
+      "TGroupBox",
+      "TV / PC / Mobile"
+     ],
+     [
+      "TGroupBox",
+      "Fridge / Deep-freeze"
+     ],
+     [
+      "TGroupBox",
+      "Lamps (LED or fluo)"
+     ]
+    ]
+   }
+  ],
+  "errores": []
+ },
+ "TSystemegridDCForm": {
+  "ventana": "TSystemegridDCForm",
+  "titulo": "PVsyst, Variante  \"150 kWp array, 650VDC nom, 35 strings of 23 modules\"",
+  "pestanas": [
+   {
+    "indice": null,
+    "pestana": null,
+    "campos": [
+     {
+      "clase": "TEdit",
+      "etiqueta": "Fuente de alimentación a la resistencia de línea del usuario",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "FV a las pérdidas óhmicas de la línea de usuara.O",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Voltaje máximo (seguridad) en la salida del conjunto FV",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Voltaje de alimentación principal nominal",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Corte de módulos en serie",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Corte de módulos cadena",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Corte general",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Potencia planeada",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Automático",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Automático",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Diseño generador FV",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Diseño generador FV",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Diseño generador FV",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Diseño generador FV",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Seleccionar módulo",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Seleccionar módulo",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Esquema",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "Abrir",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TGroupBox",
+      "Características de la red CC"
+     ],
+     [
+      "TGroupBox",
+      "Comportamiento de regulación a Vmax"
+     ],
+     [
+      "TGroupBox",
+      "Ayuda de pre-dimensionamiento"
+     ],
+     [
+      "TGroupBox",
+      "Diseño generador FV"
+     ],
+     [
+      "TGroupBox",
+      "Seleccionar módulos"
+     ]
+    ]
+   }
+  ],
+  "errores": []
+ },
+ "TDetailedLossesForm#red_cc > Pérdidas detalladas": {
+  "ventana": "TDetailedLossesForm",
+  "titulo": "Parámetros detallados de pérdidas del campo FV",
+  "pestanas": [
+   {
+    "indice": 0,
+    "pestana": "Parámetro térmico",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Cúpulas",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Integración con respaldo totalmente aislado",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Semi-integrado con conducto de aire detrás",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Módulos montados \"libres\" con circulación de aire",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Factor de pérdida del viento LIV",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Factor de pérdida constante 1.1c",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Resumen del sistema",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Gráfico de pérdidas",
+      "habilitado": true
+     },
+     {
+      "texto": "Ver el TNCO de todos modos",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Parámetro térmico"
+     ],
+     [
+      "TGroupBox",
+      "Factor de pérdidas térmicas del campo"
+     ],
+     [
+      "TGroupBox",
+      "Valor predeterminado según montaje"
+     ],
+     [
+      "TGroupBox",
+      "Factor TNCO equivalente"
+     ]
+    ]
+   },
+   {
+    "indice": 1,
+    "pestana": "Pérdidas óhmicas",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Predefinido",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Calculada",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Fracción pérdida en STC",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Res. de cableado global",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "rcuito CC: pérdidas óhmicas en eI conjun",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "rcuito CC: pérdidas óhmicas en eI conjun",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Predefinido",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Caída de tensión a través del diodo en serie",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Resumen del sistema",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Gráfico de pérdidas",
+      "habilitado": true
+     },
+     {
+      "texto": "Computación detallada",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Pérdidas óhmicas"
+     ],
+     [
+      "TGroupBox",
+      "Circuito CC: pérdidas óhmicas en el conjunto"
+     ],
+     [
+      "TGroupBox",
+      "Especificado por"
+     ]
+    ]
+   },
+   {
+    "indice": 2,
+    "pestana": "Calidad del módulo - LID - Desajuste",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Pérdida de potencia en PIPP",
+      "etiqueta_fuente": "ocr",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Pérdida de potencia en PIPP",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "%",
+      "etiqueta_fuente": "ocr",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Pérdida de eficiencia módulo",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Pérdida de potencia en PPP",
+      "etiqueta_fuente": "ocr",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Pérdida de potencia en PPP",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Factor de pérdidas LID",
+      "etiqueta_fuente": "ocr",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Factor de pérdidas LID",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Resumen del sistema",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Gráfico de pérdidas",
+      "habilitado": true
+     },
+     {
+      "texto": "Estudio detallado",
+      "habilitado": true
+     },
+     {
+      "texto": "Computación detallada",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Calidad del módulo - LID - Desajuste"
+     ],
+     [
+      "TGroupBox",
+      "Desajuste de voltaje de las cadenas"
+     ],
+     [
+      "TGroupBox",
+      "Calidad del módulo"
+     ],
+     [
+      "TGroupBox",
+      "Pérdidas de desajuste de módulo"
+     ],
+     [
+      "TGroupBox",
+      "LID - Degradación Inducida por Luz"
+     ]
+    ]
+   },
+   {
+    "indice": 3,
+    "pestana": "Pérdida de suciedad",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "%",
+      "etiqueta_fuente": "ocr",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Factor de pérdida anual",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Parámetro térmico",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Diciembre",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Noviembre",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Octubre",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Septiembre",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Agosto",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Julio",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Junio",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Mayo",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Marzo",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Febrero",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Enero",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Resumen del sistema",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Gráfico de pérdidas",
+      "habilitado": true
+     },
+     {
+      "texto": "Eleja archivo CSV",
+      "habilitado": false
+     },
+     {
+      "texto": "Establecer todo como año",
+      "habilitado": false
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Pérdida de suciedad"
+     ],
+     [
+      "TGroupBox",
+      "From File"
+     ],
+     [
+      "TGroupBox",
+      "Factor de pérdida de suciedad anual"
+     ],
+     [
+      "TGroupBox",
+      "Valores mensuales de suciedad"
+     ]
+    ]
+   },
+   {
+    "indice": 4,
+    "pestana": "Pérdidas IAM",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Utiliza la definición del módulo FV",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Modelo de ángulo de",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "-",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Resumen del sistema",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Gráfico de pérdidas",
+      "habilitado": true
+     },
+     {
+      "texto": "Estudio detallado",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Pérdidas IAM"
+     ],
+     [
+      "TGroupBox",
+      "Modelo de ángulo de incidencia"
+     ]
+    ]
+   },
+   {
+    "indice": 5,
+    "pestana": "Envejecimiento",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Interpol. lineal",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Interpol. lineal",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Escalones",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Curva",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "álculo Monte",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Garantía",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Año",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Año",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Garantía",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Garantía",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Mantiene los valores calculados de desajuste",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Mostrar este gráfico en el informe",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Pérdidas",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Eficiencias",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Usos en simulación",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Factor de degrad. no",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Factor deter. global",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Simulación para el año n",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Simulación para el año n",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Parámetros envejecimiento módulo FV",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "%/año",
+      "etiqueta_fuente": "ocr",
+      "marcado": true,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Parámetros envejecimiento módulo FV",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Dispersión Vmp RMS",
+      "etiqueta_fuente": "ocr",
+      "marcado": true,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Dispersión Imp RMS",
+      "etiqueta_fuente": "ocr",
+      "marcado": true,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Factor de degrad. promedio",
+      "etiqueta_fuente": "ocr",
+      "marcado": true,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Dispersión Vmp RMS",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Dispersión Imp RMS",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Factor de degrad. promedio",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Resumen del sistema",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Gráfico de pérdidas",
+      "habilitado": true
+     },
+     {
+      "texto": "Guardar como modelo",
+      "habilitado": false
+     },
+     {
+      "texto": "Leer modelo",
+      "habilitado": false
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Envejecimiento"
+     ],
+     [
+      "TGroupBox",
+      "Utilizado para esta evaluación"
+     ],
+     [
+      "TGroupBox",
+      "Cálculo Monte-Carlo"
+     ],
+     [
+      "TGroupBox",
+      "Subconjunto"
+     ],
+     [
+      "TGroupBox",
+      "Garantía del módulo"
+     ],
+     [
+      "TGroupBox",
+      "Delinear"
+     ],
+     [
+      "TGroupBox",
+      "Almacenar los valores de Monte Carlo"
+     ],
+     [
+      "TGroupBox",
+      "Valores Monte-Carlo"
+     ],
+     [
+      "TGroupBox",
+      "Utiliza degradación en la simulación."
+     ],
+     [
+      "TGroupBox",
+      "Parámetros en simulación"
+     ],
+     [
+      "TGroupBox",
+      "Modelo"
+     ],
+     [
+      "TGroupBox",
+      "Parámetros envejecimiento módulo FV"
+     ]
+    ]
+   },
+   {
+    "indice": 6,
+    "pestana": "Corrección espectral",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Usar corrección espectral en simulación",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Overlay simulation points",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "CI",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "co",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Predefinido",
+      "etiqueta_fuente": "ocr",
+      "marcado": true,
+      "habilitado": false
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "CI",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Según la tecnología del módulo FV",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Resumen del sistema",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Gráfico de pérdidas",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Corrección espectral"
+     ],
+     [
+      "TGroupBox",
+      "Modelo FirstSolar"
+     ]
+    ]
+   }
+  ],
+  "errores": []
+ },
+ "TDetailedLossesForm#bombeo > Pérdidas detalladas": {
+  "ventana": "TDetailedLossesForm",
+  "titulo": "Parámetros detallados de pérdidas del campo FV",
+  "pestanas": [
+   {
+    "indice": 0,
+    "pestana": "Parámetro térmico",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Cúpulas",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Integración con respaldo totalmente aislado",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Semi-integrado con conducto de aire detrás",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Módulos montados \"libres\" con circulación de aire",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Factor de pérdida del viento LIV",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Factor de pérdida constante 1.1c",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Gráfico de pérdidas",
+      "habilitado": true
+     },
+     {
+      "texto": "Ver el TNCO de todos modos",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Parámetro térmico"
+     ],
+     [
+      "TGroupBox",
+      "Factor de pérdidas térmicas del campo"
+     ],
+     [
+      "TGroupBox",
+      "Valor predeterminado según montaje"
+     ],
+     [
+      "TGroupBox",
+      "Factor TNCO equivalente"
+     ]
+    ]
+   },
+   {
+    "indice": 1,
+    "pestana": "Pérdidas óhmicas",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Predefinido",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Calculada",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Fracción pérdida en STC",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Res. de cableado global",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "rcuito CC: pérdidas óhmicas en eI conjun",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "rcuito CC: pérdidas óhmicas en eI conjun",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Predefinido",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Caída de tensión a través del diodo en serie",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Gráfico de pérdidas",
+      "habilitado": true
+     },
+     {
+      "texto": "Computación detallada",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Pérdidas óhmicas"
+     ],
+     [
+      "TGroupBox",
+      "Circuito CC: pérdidas óhmicas en el conjunto"
+     ],
+     [
+      "TGroupBox",
+      "Especificado por"
+     ]
+    ]
+   },
+   {
+    "indice": 2,
+    "pestana": "Calidad del módulo - LID - Desajuste",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Pérdida de potencia en PIPP",
+      "etiqueta_fuente": "ocr",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Pérdida de potencia en PIPP",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "%",
+      "etiqueta_fuente": "ocr",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Pérdida de eficiencia módulo",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Pérdida de potencia en PPP",
+      "etiqueta_fuente": "ocr",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Pérdida de potencia en PPP",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Factor de pérdidas LID",
+      "etiqueta_fuente": "ocr",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Factor de pérdidas LID",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Gráfico de pérdidas",
+      "habilitado": true
+     },
+     {
+      "texto": "Estudio detallado",
+      "habilitado": true
+     },
+     {
+      "texto": "Computación detallada",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Calidad del módulo - LID - Desajuste"
+     ],
+     [
+      "TGroupBox",
+      "Desajuste de voltaje de las cadenas"
+     ],
+     [
+      "TGroupBox",
+      "Calidad del módulo"
+     ],
+     [
+      "TGroupBox",
+      "Pérdidas de desajuste de módulo"
+     ],
+     [
+      "TGroupBox",
+      "LID - Degradación Inducida por Luz"
+     ]
+    ]
+   },
+   {
+    "indice": 3,
+    "pestana": "Pérdida de suciedad",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "%",
+      "etiqueta_fuente": "ocr",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Factor de pérdida anual",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Parámetro térmico",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Diciembre",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Noviembre",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Octubre",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Septiembre",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Agosto",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Julio",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Junio",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Mayo",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Marzo",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Febrero",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Enero",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Gráfico de pérdidas",
+      "habilitado": true
+     },
+     {
+      "texto": "Eleja archivo CSV",
+      "habilitado": false
+     },
+     {
+      "texto": "Establecer todo como año",
+      "habilitado": false
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Pérdida de suciedad"
+     ],
+     [
+      "TGroupBox",
+      "From File"
+     ],
+     [
+      "TGroupBox",
+      "Factor de pérdida de suciedad anual"
+     ],
+     [
+      "TGroupBox",
+      "Valores mensuales de suciedad"
+     ]
+    ]
+   },
+   {
+    "indice": 4,
+    "pestana": "Pérdidas IAM",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Utiliza la definición del módulo FV",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "6",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "6",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "5",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "5",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "4",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "4",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "3",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "3",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "2",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "2",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "1",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "1",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "índice de refracción de",
+      "etiqueta_fuente": "ocr",
+      "marcado": true,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "índice de refracción de",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Modelo de ángulo de",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Gráfico de pérdidas",
+      "habilitado": true
+     },
+     {
+      "texto": "Estudio detallado",
+      "habilitado": true
+     },
+     {
+      "texto": "Pegar",
+      "habilitado": true
+     },
+     {
+      "texto": "Copiar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Pérdidas IAM"
+     ],
+     [
+      "TGroupBox",
+      "Puntos"
+     ],
+     [
+      "TGroupBox",
+      "Modelo de ángulo de incidencia"
+     ]
+    ]
+   },
+   {
+    "indice": 5,
+    "pestana": "Envejecimiento",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Interpol. lineal",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Interpol. lineal",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Escalones",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Curva",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "álculo Monte",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Garantía",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Año",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Año",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Garantía",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Garantía",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Mantiene los valores calculados de desajuste",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Mostrar este gráfico en el informe",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Pérdidas",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Eficiencias",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Usos en simulación",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Factor de degrad. no",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Factor deter. global",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Simulación para el año n",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Simulación para el año n",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Parámetros envejecimiento módulo FV",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "%/año",
+      "etiqueta_fuente": "ocr",
+      "marcado": true,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Parámetros envejecimiento módulo FV",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Dispersión Vmp RMS",
+      "etiqueta_fuente": "ocr",
+      "marcado": true,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Dispersión Imp RMS",
+      "etiqueta_fuente": "ocr",
+      "marcado": true,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Factor de degrad. promedio",
+      "etiqueta_fuente": "ocr",
+      "marcado": true,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Dispersión Vmp RMS",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Dispersión Imp RMS",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Factor de degrad. promedio",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Gráfico de pérdidas",
+      "habilitado": true
+     },
+     {
+      "texto": "Guardar como modelo",
+      "habilitado": false
+     },
+     {
+      "texto": "Leer modelo",
+      "habilitado": false
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Envejecimiento"
+     ],
+     [
+      "TGroupBox",
+      "Utilizado para esta evaluación"
+     ],
+     [
+      "TGroupBox",
+      "Cálculo Monte-Carlo"
+     ],
+     [
+      "TGroupBox",
+      "Subconjunto"
+     ],
+     [
+      "TGroupBox",
+      "Garantía del módulo"
+     ],
+     [
+      "TGroupBox",
+      "Delinear"
+     ],
+     [
+      "TGroupBox",
+      "Almacenar los valores de Monte Carlo"
+     ],
+     [
+      "TGroupBox",
+      "Valores Monte-Carlo"
+     ],
+     [
+      "TGroupBox",
+      "Utiliza degradación en la simulación."
+     ],
+     [
+      "TGroupBox",
+      "Parámetros en simulación"
+     ],
+     [
+      "TGroupBox",
+      "Modelo"
+     ],
+     [
+      "TGroupBox",
+      "Parámetros envejecimiento módulo FV"
+     ]
+    ]
+   },
+   {
+    "indice": 6,
+    "pestana": "Corrección espectral",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Usar corrección espectral en simulación",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Overlay simulation points",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "CI",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "co",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Predefinido",
+      "etiqueta_fuente": "ocr",
+      "marcado": true,
+      "habilitado": false
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "CI",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Según la tecnología del módulo FV",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Gráfico de pérdidas",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Corrección espectral"
+     ],
+     [
+      "TGroupBox",
+      "Modelo FirstSolar"
+     ]
+    ]
+   }
+  ],
+  "errores": []
+ },
+ "TOrientationForm#red_cc > Orientación": {
+  "ventana": "TOrientationForm",
+  "titulo": "Gestión de orientaciones",
+  "pestanas": [
+   {
+    "indice": null,
+    "pestana": null,
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "TIPO de campo",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Invierno (oct-mar)",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Verano (abr-sept)",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Rendimiento anual",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Ángulo de inclinación base",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Azimut",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Inclinación del plano",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Ángulo de inclinación base",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Azimut",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Inclinación del plano",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "",
+      "habilitado": true
+     },
+     {
+      "texto": "Añadir orientación",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TGroupBox",
+      "Área del módulo"
+     ],
+     [
+      "TGroupBox",
+      "Nombre"
+     ],
+     [
+      "TGroupBox",
+      "Tipo de campo"
+     ],
+     [
+      "TGroupBox",
+      "Optimización rápida (según modelo de cielo despejado)"
+     ],
+     [
+      "TGroupBox",
+      "Optimización con respecto a"
+     ],
+     [
+      "TGroupBox",
+      "Irradiación incidente anual"
+     ],
+     [
+      "TGroupBox",
+      "Parámetros del campo"
+     ]
+    ]
+   }
+  ],
+  "errores": []
+ },
+ "TOrientationForm#seguidor": {
+  "ventana": "TOrientationForm",
+  "titulo": "Gestión de orientaciones",
+  "pestanas": [
+   {
+    "indice": null,
+    "pestana": null,
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "- Unlimited trackers, Azim. -8.0z",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "TIPO de campo",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Optimización de irradiancia",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Phi máx., anochecer",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Phi máx., anochecer",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Retroceso",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Núm. de rastreadores",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Núm. de rastreadores",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Phi mih., mañana",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Phi mih., mañana",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Azimut del eje",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Azimut del eje",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Banda inactiva derecha",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Banda inactiva izquierda",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Ancho de sensor",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Distancia entre filas",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Ancho de una céh-ja FV",
+      "etiqueta_fuente": "ocr",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "NO de particiones en ancho",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Utilizar efecto eléctrico en simul.",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Ancho de una céh-ja FV",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "NO de particiones en ancho",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "",
+      "habilitado": true
+     },
+     {
+      "texto": "Añadir orientación",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Detalles y gráfico",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TGroupBox",
+      "Área del módulo"
+     ],
+     [
+      "TGroupBox",
+      "Nombre"
+     ],
+     [
+      "TGroupBox",
+      "Tipo de campo"
+     ],
+     [
+      "TGroupBox",
+      "Parámetros de rastreo"
+     ],
+     [
+      "TGroupBox",
+      "Rastreador"
+     ],
+     [
+      "TGroupBox",
+      "Parámetro del sistema"
+     ],
+     [
+      "TGroupBox",
+      "Efecto eléctrico"
+     ]
+    ]
+   }
+  ],
+  "errores": []
+ },
+ "TOrientationForm#TShadingsForm>Orientaciones": {
+  "ventana": "TOrientationForm",
+  "titulo": "Gestión de orientaciones",
+  "pestanas": [
+   {
+    "indice": null,
+    "pestana": null,
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "TIPO de campo",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Invierno (oct-mar)",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Verano (abr-sept)",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Rendimiento anual",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Ángulo de inclinación base",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Azimut",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Inclinación del plano",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Ángulo de inclinación base",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Azimut",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Inclinación del plano",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "",
+      "habilitado": true
+     },
+     {
+      "texto": "Añadir orientación",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TGroupBox",
+      "Área del módulo"
+     ],
+     [
+      "TGroupBox",
+      "Nombre"
+     ],
+     [
+      "TGroupBox",
+      "Tipo de campo"
+     ],
+     [
+      "TGroupBox",
+      "Optimización rápida (según modelo de cielo despejado)"
+     ],
+     [
+      "TGroupBox",
+      "Optimización con respecto a"
+     ],
+     [
+      "TGroupBox",
+      "Irradiación incidente anual"
+     ],
+     [
+      "TGroupBox",
+      "Parámetros del campo"
+     ]
+    ]
+   }
+  ],
+  "errores": []
+ },
+ "TPerspectiveForm": {
+  "ventana": "TPerspectiveForm",
+  "titulo": "Construcción de escena de sombreado",
+  "pestanas": [
+   {
+    "indice": 0,
+    "pestana": "Objetos de la escena",
+    "campos": [],
+    "botones": [
+     {
+      "texto": "Cerrar escena",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Objetos de la escena"
+     ]
+    ]
+   },
+   {
+    "indice": 1,
+    "pestana": "Herramientas",
+    "campos": [
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TDateTimePicker",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TDateTimePicker",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "O por",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Por tiempo",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TDateTimePicker",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Crear campos de rastreo",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Longitud automát.",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Inclinación automát.",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cerrar escena",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "+ 30 min",
+      "habilitado": true
+     },
+     {
+      "texto": "+ 10 días",
+      "habilitado": true
+     },
+     {
+      "texto": "- 30 min",
+      "habilitado": true
+     },
+     {
+      "texto": "- 10 días",
+      "habilitado": true
+     },
+     {
+      "texto": "Llenar la zona",
+      "habilitado": false
+     },
+     {
+      "texto": "Propiedades de los campos",
+      "habilitado": false
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Herramientas"
+     ],
+     [
+      "TGroupBox",
+      "Posición del sol dada por"
+     ],
+     [
+      "TGroupBox",
+      "Información"
+     ],
+     [
+      "TGroupBox",
+      "Zonas de exclusión"
+     ],
+     [
+      "TGroupBox",
+      "Parámetros de zona seleccionados"
+     ],
+     [
+      "TGroupBox",
+      "Nueva zona"
+     ]
+    ]
+   }
+  ],
+  "errores": []
+ },
+ "TTableFieldForm": {
+  "ventana": "TTableFieldForm",
+  "titulo": "Tabla FV (con marco)",
+  "pestanas": [
+   {
+    "indice": 0,
+    "pestana": "Parámetros básicos",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Activar proyección de sombras",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Utiliza el promedio",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cerrar objeto",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "Abrir",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Parámetros básicos"
+     ],
+     [
+      "TGroupBox",
+      "Posición en la escena"
+     ],
+     [
+      "TGroupBox",
+      "Orientación"
+     ],
+     [
+      "TGroupBox",
+      "Descripción"
+     ],
+     [
+      "TGroupBox",
+      "Tamaños de tabla globales"
+     ]
+    ]
+   },
+   {
+    "indice": 1,
+    "pestana": "Tamaño de la tabla",
+    "campos": [
+     {
+      "clase": "TComboBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Por tamaños sensibles",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Por módulos (ajustar tamaños)",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cerrar objeto",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Tamaño de la tabla"
+     ],
+     [
+      "TGroupBox",
+      "Marco alrededor de módulos"
+     ],
+     [
+      "TGroupBox",
+      "Definición de tamaños"
+     ],
+     [
+      "TGroupBox",
+      "Área sensible"
+     ],
+     [
+      "TGroupBox",
+      "Por módulos"
+     ]
+    ]
+   },
+   {
+    "indice": 2,
+    "pestana": "Partición",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Todas las mesas en la misma orientación",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Cancela todas las particiones",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Todas las tablas de la escena",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Todas las tablas del mismo tamaño",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "La selección de tablas",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Definir partición",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cerrar objeto",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "Aplicar",
+      "habilitado": false
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Partición"
+     ],
+     [
+      "TGroupBox",
+      "Aplicar la partición a:"
+     ],
+     [
+      "TGroupBox",
+      "Número de particiones"
+     ],
+     [
+      "TGroupBox",
+      "Tamaño de las particiones"
+     ]
+    ]
+   }
+  ],
+  "errores": []
+ },
+ "TRectFieldForm": {
+  "ventana": "TRectFieldForm",
+  "titulo": "(Multi) campo rectangular",
+  "pestanas": [
+   {
+    "indice": 0,
+    "pestana": "Parámetros básicos",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Activar proyección de sombras",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "raurnur",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Pendente del plano",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Pendente del plano",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Utiliza el promedio",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Rectángulo seleccionado",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Azimut plano",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Azimut plano",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Inchación del plano",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Inchación del plano",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "ru:rn. de rectángulos",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "ru:rn. de rectángulos",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Rectángulo seleccionado",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cerrar objeto",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "Abrir",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Parámetros básicos"
+     ],
+     [
+      "TGroupBox",
+      "Descripción"
+     ],
+     [
+      "TGroupBox",
+      "Posición y Orientación"
+     ],
+     [
+      "TGroupBox",
+      "Plano y orientación del colector"
+     ],
+     [
+      "TGroupBox",
+      "Área FV sensible"
+     ]
+    ]
+   },
+   {
+    "indice": 1,
+    "pestana": "Tamaño rect.",
+    "campos": [
+     {
+      "clase": "TComboBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Por tamaños sensibles",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Por módulos (ajustar tamaños)",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cerrar objeto",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Tamaño rect."
+     ],
+     [
+      "TGroupBox",
+      "Área sensible"
+     ],
+     [
+      "TGroupBox",
+      "Por módulos"
+     ],
+     [
+      "TGroupBox",
+      "Definición de tamaños"
+     ],
+     [
+      "TGroupBox",
+      "Área total"
+     ]
+    ]
+   },
+   {
+    "indice": 2,
+    "pestana": "Partición",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Todas las mesas en la misma orientación",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Cancela todas las particiones",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Todas las tablas de la escena",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Todas las tablas del mismo tamaño",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "La selección de tablas",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Definir partición",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Núm. de rectángulos en altura CV)",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Núm. de rectángulos en ancho CX)",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Núm. de rectángulos en altura CV)",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Núm. de rectángulos en ancho CX)",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Altura de bos rectángulos",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Longitud de bos rectángulos",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cerrar objeto",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "Aplicar",
+      "habilitado": false
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Partición"
+     ],
+     [
+      "TGroupBox",
+      "Aplicar la partición a:"
+     ],
+     [
+      "TGroupBox",
+      "Número de particiones"
+     ],
+     [
+      "TGroupBox",
+      "Tamaño de las particiones"
+     ]
+    ]
+   }
+  ],
+  "errores": []
+ },
+ "TGroundObjectForm": {
+  "ventana": "TGroundObjectForm",
+  "titulo": "Objeto de tierra",
+  "pestanas": [
+   {
+    "indice": 0,
+    "pestana": "Parámetros",
+    "campos": [
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Activar proyección de sombras",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TTrackBar",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TTrackBar",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cerrar objeto",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Parámetros"
+     ],
+     [
+      "TGroupBox",
+      "Generar"
+     ]
+    ]
+   }
+  ],
+  "errores": []
+ },
+ "TOrientToolForm": {
+  "ventana": "TOrientToolForm",
+  "titulo": "Herramienta educativa para la comprensión de la orientación",
+  "pestanas": [
+   {
+    "indice": 0,
+    "pestana": "Pendien. base",
+    "campos": [
+     {
+      "clase": "TTrackBar",
+      "etiqueta": "Pendien. base",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TTrackBar",
+      "etiqueta": "Azimut nominal",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TTrackBar",
+      "etiqueta": "Indinación nominal",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Azimut nominal",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Azimut nominal",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Pendien. base",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Pendien. base",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Indinación nominal",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Indinación nominal",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cerrar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Pendien. base"
+     ],
+     [
+      "TGroupBox",
+      "Inclinación / azimut real"
+     ],
+     [
+      "TGroupBox",
+      "Plano"
+     ]
+    ]
+   },
+   {
+    "indice": 1,
+    "pestana": "Ángulo entre planos",
+    "campos": [
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Azimut",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Inclinación",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TTrackBar",
+      "etiqueta": "Azimut nominal",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TTrackBar",
+      "etiqueta": "Indinación nominal",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Azimut nominal",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Azimut nominal",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Indinación nominal",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Indinación nominal",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TTrackBar",
+      "etiqueta": "Azimut nominal",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TTrackBar",
+      "etiqueta": "a.1e2",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Azimut nominal",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Azimut nominal",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Indinacjón nominal",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Indinacjón nominal",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cerrar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Ángulo entre planos"
+     ],
+     [
+      "TGroupBox",
+      "Plano 1"
+     ],
+     [
+      "TGroupBox",
+      "Plano 2"
+     ],
+     [
+      "TGroupBox",
+      "Ángulo entre planos"
+     ]
+    ]
+   }
+  ],
+  "errores": []
+ },
+ "TMismatchStringForm": {
+  "ventana": "TMismatchStringForm",
+  "titulo": "Estudio del desajuste en el voltaje entre cadenas",
+  "pestanas": [
+   {
+    "indice": null,
+    "pestana": null,
+    "campos": [
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Curvas paramétricas",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Curvas I/V",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Disposición de conjunto completo",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Ajuste de una tabla",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Automático al entrar en un panel",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Desajuste de corriente, 1 módulo en la cadena",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Desajuste de corriente, 2 módulos en serie",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Longtud del cab'e para cadena",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Caída de tensión debido a la variación de temperatura del conjunto FV",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Caída de tensión debido a la resistencia del cableado",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "» Inversores",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Distribución cuadrada",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Distribución gaussiana",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "»",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Sistema real, entrada de inversor",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Distribución cuadrada de voltaje",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Distribución gaussiana de voltaje",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "» Cables y Resultados",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "»",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "»",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "»",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Paisaje",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Retrato",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "» Cables y Resultados",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "» Cables y Resultados",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "» Inversores",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "» Cables y Resultados",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "» Cables y Resultados",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "» Cables y Resultados",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Actualizar",
+      "habilitado": true
+     },
+     {
+      "texto": "Cerrar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TGroupBox",
+      "Resultados"
+     ],
+     [
+      "TGroupBox",
+      "Elección de gráfico"
+     ]
+    ]
+   }
+  ],
+  "errores": []
+ },
+ "TContactForm#configuraciones.preferencias>Editar info usuario": {
+  "ventana": "TContactForm",
+  "titulo": "Contacto",
+  "pestanas": [
+   {
+    "indice": null,
+    "pestana": null,
+    "campos": [
+     {
+      "clase": "TEdit",
+      "etiqueta": "ID fiscal / número de IVA",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "URL del sitio web",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Ciudad / Código postal",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Número de teléfono / fax",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Observaciones",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Contacto personal",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Número de teléfono / fax",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Dirección de correo electrónico",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "País",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Empresa / institución",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Dirección",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Importar logo",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TGroupBox",
+      "Logo de contacto"
      ]
     ]
    }
