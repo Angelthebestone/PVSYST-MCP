@@ -18,6 +18,10 @@ key and its `ventana` field is always the class.
 What the inventory brings and the map keeps:
   - `campos`, `botones` (with `habilitado`) and `indice_pestana` come from the
     inventory; each field also keeps its `marcado` and `habilitado`.
+  - `subpestana` (the nested sheet of a tab) comes from the inventory when it
+    measured one. Such a page repeats the `pestana` and `indice_pestana` of its
+    tab, so `pestanas` names the tab once, and its captions are the ones of that
+    same (tab, sub-tab) pair, never those of another page of the tab.
   - `rotulos` (tab and group-box captions of the page) come from the inventory
     when it has them. Otherwise a page keeps the `rotulos` and `sin_rotulo` the
     map had when the tab of the same name still exists (and its state did not
@@ -245,12 +249,26 @@ def serializar(mapa: Json) -> bytes:
     return json.dumps(mapa, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
 
+def _subpestana(pestana: Json) -> str | None:
+    """The sub-tab of a page: text no reader can group by when it is blank."""
+    subpestana = pestana.get("subpestana")
+    if subpestana is None:
+        return None
+    if not isinstance(subpestana, str) or not subpestana.strip():
+        raise ValueError(
+            f"{pestana['pestana']!r}: subpestana must be a non-empty text, "
+            f"not {subpestana!r}"
+        )
+    return subpestana
+
+
 def _pagina(pestana: Json, heredada: Json | None) -> Json:
-    pagina: Json = {
-        "pestana": pestana["pestana"],
-        "campos": copy.deepcopy(pestana["campos"]),
-        "botones": copy.deepcopy(pestana["botones"]),
-    }
+    pagina: Json = {"pestana": pestana["pestana"]}
+    subpestana = _subpestana(pestana)
+    if subpestana is not None:
+        pagina["subpestana"] = subpestana
+    pagina["campos"] = copy.deepcopy(pestana["campos"])
+    pagina["botones"] = copy.deepcopy(pestana["botones"])
     if "rotulos" in pestana:
         pagina["rotulos"] = copy.deepcopy(pestana["rotulos"])
     elif heredada is not None:
@@ -261,11 +279,25 @@ def _pagina(pestana: Json, heredada: Json | None) -> Json:
     return pagina
 
 
+def _nombres_de_pestana(paginas: list[Json]) -> list[str]:
+    """The main tabs of the instance, each once, in the order they appear.
+
+    A page with a `subpestana` repeats its tab, and `indice_pestana` indexes this
+    list, so a duplicated name would move the index of every tab after it.
+    """
+    nombres: list[str] = []
+    for pagina in paginas:
+        nombre = pagina["pestana"]
+        if nombre is not None and nombre not in nombres:
+            nombres.append(nombre)
+    return nombres
+
+
 def _instancia(
     medida: Json,
     titulo: str,
     abierta_con: str,
-    heredables: dict[str | None, Json],
+    heredables: dict[tuple[str | None, str | None], Json],
     estado: str,
 ) -> Json:
     pestanas = medida["pestanas"]
@@ -273,8 +305,11 @@ def _instancia(
         "titulo": titulo,
         "abierta_con": abierta_con,
         "estado_medido": estado,
-        "pestanas": [p["pestana"] for p in pestanas if p["pestana"] is not None],
-        "paginas": [_pagina(p, heredables.get(p["pestana"])) for p in pestanas],
+        "pestanas": _nombres_de_pestana(pestanas),
+        "paginas": [
+            _pagina(p, heredables.get((p["pestana"], p.get("subpestana"))))
+            for p in pestanas
+        ],
     }
 
 
@@ -329,8 +364,10 @@ def _remedir_ventana(clase: str, ventana: Json, medida: Json, remedio: Remedio) 
         )
     else:
         vieja = _instancia_a_reemplazar(clase, instancias, remedio)
+        # Keyed by (tab, sub-tab): keyed by the tab alone, every page but the last of
+        # a tab was unreachable and a sub-tab inherited the captions of another one.
         heredables = {
-            p["pestana"]: p
+            (p["pestana"], p.get("subpestana")): p
             for p in vieja["paginas"]
             if p["pestana"] not in remedio.sin_rotulos_de
         }
@@ -356,6 +393,18 @@ NOTA = (
     "las dejó el recorrido de `medido_el`."
 )
 ALCANCE = "ALCANCE: "
+# What `gui_actuar accion:pagina` does not reach. Edit it here, in one piece, when the
+# inventory starts to measure the nested sheets.
+ALCANCE_PAGINA = (
+    "`pagina` solo cambia el TPageControl principal: en una ventana con "
+    "hojas anidadas solo se registró la subpágina visible de cada pestaña y sus "
+    "campos son un subconjunto (TPVModuleForm: `que:inventario` lista 17 hojas, 5 "
+    "principales); `pestanas` de `que:formulario` también puede listar una hoja "
+    "anidada como si fuera pestaña (TSystemPumpingForm: «Sugerencias de "
+    "pre-dimensionamiento», con `pagina 2` fuera de rango). Hay ventanas que vetan el cambio de pestaña hasta que el objeto "
+    "está completo (TPVModuleForm, TGridInverterForm); `estado_medido` dice si se "
+    "completó en memoria."
+)
 
 
 def _alcance(mapa: Json) -> list[str]:
@@ -380,14 +429,7 @@ def _alcance(mapa: Json) -> list[str]:
         "TGridInverterForm «Parámetros adicionales» muestra 37). También siguen sin "
         "remedir las demás aperturas de esas ventanas (independiente, bombeo, red_cc "
         "y similares).",
-        f"{ALCANCE}`pagina` solo cambia el TPageControl principal: en una ventana con "
-        "hojas anidadas solo se registró la subpágina visible de cada pestaña y sus "
-        "campos son un subconjunto (TPVModuleForm: `que:inventario` lista 17 hojas, 5 "
-        "principales); `pestanas` de `que:formulario` también puede listar una hoja "
-        "anidada como si fuera pestaña (TSystemPumpingForm: «Sugerencias de "
-        "pre-dimensionamiento», con `pagina 2` fuera de rango). Hay ventanas que vetan el cambio de pestaña hasta que el objeto "
-        "está completo (TPVModuleForm, TGridInverterForm); `estado_medido` dice si se "
-        "completó en memoria.",
+        f"{ALCANCE}{ALCANCE_PAGINA}",
         f"{ALCANCE}`etiqueta` de un campo sin texto propio sale de OCR y puede estar mal "
         "leída (`o mulsc`, `Tol,`): las páginas medidas con `etiqueta_fuente` la guardan "
         "en cada campo; las otras no. En las páginas sin `estado_medido` algunas "

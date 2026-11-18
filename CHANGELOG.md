@@ -146,6 +146,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   disabled and an enabled button presses the enabled one as before instead of refusing both.
 
 ### Added
+- **`tools/mapa_desde_inventario.py` copies the nested sheets of a tab into the map as `subpestana`.**
+  A page whose inventory entry names a sub-sheet (`TPVModuleForm`, «Parámetros del modelo» →
+  «Degradación», «IAM personalizado») carries it right after `pestana`, repeats the `indice_pestana` of
+  its tab, and the tab is still named once in `pestanas`, because `indice_pestana` indexes that list.
+  The captions a page inherits are looked up by (tab, sub-tab) now, so a sub-sheet no longer takes the
+  `rotulos` of the last page of its tab, and an unnamed sub-sheet is refused instead of written. No page
+  of `docs/gui_mapa.json` changes: the inventory records no sub-sheet yet.
 - **Every argument of every tool now carries a description (F.1 #8 of the visual GUI test report).** `tools/list` declared 162 arguments with no text, so a client could not tell what `confirmar`, `n` or `todos` meant, its unit or its range. The descriptions live in `src/server/tools/descripciones/`: one table per tool plus `comunes` for the keys every tool reads the same way (`detalle`, `permitir_fuera_del_workspace`); a table wins over the shared one, and the annotators that know a constraint still go first. Each text says the meaning and the unit in at most 100 characters, because the list travels in every turn. `should_not_add_arguments_without_a_description` fails when an argument ships without one, `should_keep_each_description_short` caps the length, and another test rejects a description for an argument the tool does not declare.
 - **A trial licence keeps a reserve of executions (`PVSYST_RESERVA_TRIAL`).** The confirmation gate
   only asked for `confirmar:true` when one call estimated 2 or more trial executions, so a loop of
