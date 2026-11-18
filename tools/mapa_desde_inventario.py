@@ -13,9 +13,10 @@ it was.
 What the inventory brings and the map keeps:
   - `campos`, `botones` (with `habilitado`) and `indice_pestana` come from the
     inventory; each field also keeps its `marcado` and `habilitado`.
-  - `rotulos` and `sin_rotulo` are not in the inventory: a page keeps the ones
-    the map had when the tab of the same name still exists (and its state did
-    not change, see `Remedio.sin_rotulos_de`); a new tab has none.
+  - `rotulos` (tab and group-box captions of the page) come from the inventory
+    when it has them. Otherwise a page keeps the `rotulos` and `sin_rotulo` the
+    map had when the tab of the same name still exists (and its state did not
+    change, see `Remedio.sin_rotulos_de`); a new tab has none.
   - `titulo` and `abierta_con` of the instance stay as the map had them.
   - Each regenerated instance gets `estado_medido`: the state the window was in
     when measured (REMEDIOS), `no registrado` where the report does not say.
@@ -54,9 +55,11 @@ class Remedio:
     """How the inventory of one window enters the map."""
 
     # Add the inventory as a new instance opened with this key, keeping the
-    # instances the map has. None: replace instance 0, the one opened by the
-    # `variante.*` function the inventory was measured through.
+    # instances the map has. None: replace an existing instance (see `reemplaza`).
     anadir_con: str | None = None
+    # `abierta_con` of the instance to replace; None: instance 0, the one opened
+    # by the `variante.*` function the first inventory was measured through.
+    reemplaza: str | None = None
     # Tabs of the replaced instance whose `rotulos` describe another state of
     # the window (controls the inventory shows hidden), so they are dropped.
     sin_rotulos_de: frozenset[str] = frozenset()
@@ -85,6 +88,24 @@ REMEDIOS: dict[str, Remedio] = {
     "TUserNeedsForm": Remedio(),
     "TSummaryForm": Remedio(),
     "TGridStorageForm": Remedio(estado="Sin almacenamiento"),
+    # Step 2, measured on 8.1.8 through `bases_de_datos.*.nuevo`. The form vetoes
+    # the tab change until the module is complete, so it was filled in memory
+    # (model, maker, STC sheet, size, technology, .PAN name) and closed unsaved;
+    # only then does the tab `Parámetros del modelo` exist.
+    "TPVModuleForm": Remedio(
+        estado=(
+            "Módulo nuevo completo en memoria, sin guardar (6 pestañas; "
+            "solo la subpágina visible de cada una)"
+        )
+    ),
+    "TGridInverterForm": Remedio(
+        reemplaza="bases_de_datos.inversores_red>Nuevo",
+        estado=(
+            "Inversor nuevo trifásico 50 Hz completo en memoria, sin guardar; "
+            "«Eficiencia definida para 3 voltajes» desmarcada; subpáginas "
+            "anidadas no recorridas"
+        ),
+    ),
 }
 
 
@@ -104,9 +125,12 @@ def _pagina(pestana: Json, heredada: Json | None) -> Json:
         "campos": copy.deepcopy(pestana["campos"]),
         "botones": copy.deepcopy(pestana["botones"]),
     }
-    for clave in ("rotulos", "sin_rotulo"):
-        if heredada is not None and clave in heredada:
-            pagina[clave] = copy.deepcopy(heredada[clave])
+    if "rotulos" in pestana:
+        pagina["rotulos"] = copy.deepcopy(pestana["rotulos"])
+    elif heredada is not None:
+        for clave in ("rotulos", "sin_rotulo"):
+            if clave in heredada:
+                pagina[clave] = copy.deepcopy(heredada[clave])
     pagina["indice_pestana"] = pestana["indice"]
     return pagina
 
@@ -146,6 +170,17 @@ def _controles(ventana: Json) -> list[Any]:
     return vistos
 
 
+def _instancia_a_reemplazar(
+    clase: str, instancias: list[Json], remedio: Remedio
+) -> Json:
+    if remedio.reemplaza is None:
+        return instancias[0]
+    for instancia in instancias:
+        if instancia["abierta_con"] == remedio.reemplaza:
+            return instancia
+    raise KeyError(f"{clase}: no instance opened with {remedio.reemplaza!r}")
+
+
 def _remedir_ventana(clase: str, ventana: Json, medida: Json, remedio: Remedio) -> None:
     if medida["errores"]:
         raise ValueError(f"{clase}: the inventory reports errors {medida['errores']}")
@@ -156,13 +191,13 @@ def _remedir_ventana(clase: str, ventana: Json, medida: Json, remedio: Remedio) 
             _instancia(medida, medida["titulo"], remedio.anadir_con, {}, remedio.estado)
         )
     else:
-        vieja = instancias[0]
+        vieja = _instancia_a_reemplazar(clase, instancias, remedio)
         heredables = {
             p["pestana"]: p
             for p in vieja["paginas"]
             if p["pestana"] not in remedio.sin_rotulos_de
         }
-        instancias[0] = _instancia(
+        instancias[instancias.index(vieja)] = _instancia(
             medida, vieja["titulo"], vieja["abierta_con"], heredables, remedio.estado
         )
     ventana["controles"] = _controles(ventana)

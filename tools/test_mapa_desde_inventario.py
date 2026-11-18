@@ -208,6 +208,28 @@ def test_says_the_state_it_was_measured_in_and_what_is_still_truncated() -> None
     assert "TPerdidasForm, TSeguidorForm" in alcance[0]
 
 
+def test_replaces_the_instance_named_by_abierta_con_and_prefers_measured_rotulos(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        mapa_py, "REMEDIOS", {"TPerdidasForm": Remedio(reemplaza="bombeo > Perdidas")}
+    )
+    inventario = inventario_de_prueba()
+    del inventario["TSeguidorForm"]
+    uno = inventario["TPerdidasForm"]["pestanas"][1]
+    uno["rotulos"] = [["TGroupBox", "medido ahora"]]
+    original = mapa_de_prueba()
+
+    nuevo = remedir(original, inventario)
+
+    instancias = nuevo["ventanas"]["TPerdidasForm"]["instancias"]
+    assert instancias[0] == original["ventanas"]["TPerdidasForm"]["instancias"][0]
+    assert instancias[1]["abierta_con"] == "bombeo > Perdidas"
+    assert len(instancias[1]["paginas"]) == 3
+    assert instancias[1]["paginas"][1]["rotulos"] == [["TGroupBox", "medido ahora"]]
+    assert "sin_rotulo" not in instancias[1]["paginas"][1]
+
+
 @pytest.mark.usefixtures("remedios")
 def test_replaces_its_own_note_instead_of_appending_another() -> None:
     una_vez = remedir(mapa_de_prueba(), inventario_de_prueba())
