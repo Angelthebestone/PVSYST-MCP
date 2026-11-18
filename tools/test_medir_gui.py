@@ -114,6 +114,31 @@ def test_main_reports_presses_with_error_without_failing(
     assert "2 buttons" in inventario["TA"]["botones_abren"][0]["error"]
 
 
+def test_main_without_botones_keeps_the_presses_of_the_previous_measurement(
+    tmp_path: Path,
+) -> None:
+    f = formulario(["a"])
+    f["paginas"][0]["botones"] = botones_de("Ver detalles")
+    manifiesto, inventario, _ = preparar(tmp_path)
+    args = [
+        "--servidor",
+        "pvsyst-mcp.exe",
+        "--manifiesto",
+        str(manifiesto),
+        "--inventario",
+        str(inventario),
+    ]
+    c = PVsystFalso({"TA": f}, {"a": "TA"}, {"Ver detalles": {"cierra": None}})
+    assert main([*args, "--solo", "TA", "--botones"], fabrica_de(c)) == 0
+    pulsados = json.loads(inventario.read_text())["TA"]["botones_abren"]
+
+    c = PVsystFalso({"TA": f}, {"a": "TA"})
+    assert main([*args, "--solo", "TA"], fabrica_de(c)) == 0
+
+    medido = json.loads(inventario.read_text())
+    assert medido["TA"]["botones_abren"] == pulsados
+
+
 def test_main_merges_the_fields_when_a_press_cannot_reopen_the_host(
     tmp_path: Path,
 ) -> None:

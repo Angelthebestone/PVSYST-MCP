@@ -112,7 +112,12 @@ def volcar(datos: Json) -> str:
 
 
 def fusionar(inventario: Json, clave: str, medida: Json) -> None:
+    anterior = inventario.get(clave) or {}
     entrada = {k: medida[k] for k in ("ventana", "titulo", "pestanas", "errores")}
     if "botones_abren" in medida:
         entrada["botones_abren"] = medida["botones_abren"]
+    elif "botones_abren" in anterior:
+        # A run without --botones did not look at the presses: keeping the old list
+        # is not stale data, it is the last measurement of what they open.
+        entrada["botones_abren"] = anterior["botones_abren"]
     inventario[clave] = entrada
