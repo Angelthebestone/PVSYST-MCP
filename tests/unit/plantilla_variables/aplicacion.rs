@@ -29,6 +29,23 @@ fn should_create_and_list_rvt_file() {
     assert_eq!(res_listar["variables"], json!(["HSol", "AzSol", "E_Grid"]));
 }
 
+/// `simular accion:preparar` sends `archivo_rvt` to this manager, so the manager
+/// must read it as the path instead of asking for `batch_rvt_file`.
+#[test]
+fn should_read_archivo_rvt_as_the_rvt_path() {
+    let (_tmp, paths) = workspace_temporal();
+    let crear = json!({
+        "archivo_rvt": "ConAlias.RVT",
+        "operacion": "crear",
+        "variables": ["HSol", "E_Grid"]
+    });
+    assert_eq!(gestionar_rvt(&paths, &crear).expect("crear")["ok"], true);
+
+    let listar = json!({ "archivo_rvt": "ConAlias.RVT", "operacion": "listar" });
+    let res = gestionar_rvt(&paths, &listar).expect("listar");
+    assert_eq!(res["variables"], json!(["HSol", "E_Grid"]));
+}
+
 #[test]
 fn should_record_history_when_anadir_creates_the_rvt_file() {
     let (tmp, paths) = workspace_temporal();

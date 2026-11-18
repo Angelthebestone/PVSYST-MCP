@@ -17,9 +17,10 @@ use std::path::{Path, PathBuf};
 /// anything else goes through `resolver_ruta` (confined unless
 /// `permitir_fuera_del_workspace`).
 fn resolver_ruta_rvt(ws: &Path, args: &Value) -> Result<PathBuf> {
-    let ruta_rel = opt_str(args, &["batch_rvt_file"])
-        .or_else(|| opt_str(args, &["archivo"]))
-        .ok_or_else(|| Error::Invalid("Falta 'batch_rvt_file' o 'archivo'".into()))?;
+    let ruta_rel =
+        opt_str(args, &["batch_rvt_file", "archivo_rvt", "archivo"]).ok_or_else(|| {
+            Error::Invalid("Falta 'batch_rvt_file', 'archivo_rvt' o 'archivo'".into())
+        })?;
     let alcance = Alcance::de_args(args);
     let es_nombre = !ruta_rel.contains(['/', '\\']) && es_relativa_simple(Path::new(ruta_rel));
     if es_nombre {

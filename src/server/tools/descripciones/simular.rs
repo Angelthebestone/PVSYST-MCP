@@ -10,8 +10,8 @@ pub(super) const TABLA: &[Entrada] = &[
     ),
     entrada(
         "archivo_rvt",
-        "Solo con accion:preparar: entra en la rama de plantillas .RVT (la ruta la lee batch_rvt_file).",
-        "Only with accion:preparar: enters the .RVT template branch (the path read is batch_rvt_file).",
+        "Plantilla .RVT de accion:preparar; equivale a batch_rvt_file.",
+        "RVT template of accion:preparar; same as batch_rvt_file.",
     ),
     entrada(
         "azimut",
