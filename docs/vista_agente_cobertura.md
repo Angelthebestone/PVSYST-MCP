@@ -56,6 +56,16 @@ recorre las clases de `docs/gui_mapa.json` y falla si alguna no tiene exactament
   diálogo de Windows (`#32770`). No se añadieron al mapa.
 
 ## Por clase (82 de 89 abiertas en vivo; 7 solo clasificadas)
+
+> **Foto del 2026-10-29-30.** Las columnas «Abierta en vivo», «Campos vivos» y «Botones» no se han actualizado
+> con las remediciones del 2026-11-18 de `docs/gui_mapa.json` (lotes A y B, hechos con `tools/medir_gui.py` sobre
+> los demos de PVsyst; cada instancia dice su `estado_medido`). Donde difieren, manda el mapa: `TSystemegridDCForm`
+> se abrió en `_DEMO_DCGrid` (17 campos; aquí figura «no»), `TGeoSiteForm` se midió por «Detalles» en
+> `_DEMO_Pumping` (93 campos, 3 pestañas; aquí «0 campos legibles, solo acciones»), `TDomesticUseForm` tiene 47
+> campos en `_DEMO_StandAlone` (aquí 35), `TUserNeedsForm` 12 en la apertura independiente y
+> `TDetailedLossesForm` 123 en la variante (aquí 6, solo la primera pestaña). Los recuentos de cobertura que
+> publica `que:esquema` (`campos_en_mapa`, `botones_en_mapa`) salen del mapa y ya usan la unión de rótulos por
+> pestaña, no esta tabla.
 | Clase | Dominio | Estado | Abierta en vivo | Campos vivos | Botones | Instancias en el mapa |
 |---|---|---|---|---|---|---|
 | `MicrosoftWindowsTooltip` | aplicacion | 4 | no | — | — | 1 |
