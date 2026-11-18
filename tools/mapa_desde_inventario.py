@@ -77,6 +77,10 @@ ESTADO_PROYECTO_BOMBEO = (
     "Proyecto Z_E2E_Bombeo (tipo Bombeo, sitio Central Dakar) cargado; "
     "ventana recién abierta, sin editar"
 )
+ESTADO_INDEPENDIENTE = (
+    "Proyecto Z_MAPA_Aislado (sistema independiente con baterías, creado con "
+    "disenar_sistema simular:false) cargado; ventana recién abierta, sin editar"
+)
 ESTADO_NUEVO = (
     "Objeto nuevo sin completar ni guardar (diálogo «Nuevo» de la base de datos)"
 )
@@ -142,6 +146,32 @@ REMEDIOS: dict[str, Remedio] = {
             "TCurrenciesForm": "TEcoEvaluationForm>Tasas",
         }.items()
     },
+    "TSystemeBattForm": Remedio(
+        reemplaza="independiente > Sistema", estado=ESTADO_INDEPENDIENTE
+    ),
+    "TDetailedLossesForm#independiente > Pérdidas detalladas": Remedio(
+        reemplaza="independiente > Pérdidas detalladas", estado=ESTADO_INDEPENDIENTE
+    ),
+    "TOrientationForm#independiente > Orientación": Remedio(
+        reemplaza="independiente > Orientación", estado=ESTADO_INDEPENDIENTE
+    ),
+    "TOrientationForm#bombeo > Orientación": Remedio(
+        reemplaza="bombeo > Orientación", estado=ESTADO_PROYECTO_BOMBEO
+    ),
+    # `variante.necesidades_usuario_independiente` opens TUserNeedsForm here, not
+    # the TDomesticUseForm the catalogue declares: a new instance of the former.
+    "TUserNeedsForm#variante.necesidades_usuario_independiente": Remedio(
+        anadir_con="variante.necesidades_usuario_independiente",
+        estado=ESTADO_INDEPENDIENTE,
+    ),
+    "TGridInverterForm#TSystemegridForm>Abrir": Remedio(
+        reemplaza="TSystemegridForm>Abrir",
+        estado=(
+            "Proyecto _DEMO_Commercial cargado; inversor del sistema abierto con "
+            "Abrir desde la ventana de sistema; recién abierto, sin editar; "
+            "subpáginas anidadas no recorridas"
+        ),
+    ),
     **{
         clase: Remedio(reemplaza=abierta_con, estado=ESTADO_NUEVO)
         for clase, abierta_con in {
