@@ -107,6 +107,39 @@ fn error_sin_etiqueta(motivo: &str, vista: &Value) -> Error {
     Error::NotFound(format!("{motivo}. {}", sugerencia_de_relleno(vista)))
 }
 
+/// Whether the form answer reports the control enabled. A control the answer
+/// does not describe is not written either: nothing proves it takes the value.
+fn habilitado_en(ficha: &Value, hwnd: Hwnd) -> bool {
+    let descrito =
+        |c: &&Value| c["hwnd"].as_str().and_then(|t| hwnd_de_texto(t).ok()) == Some(hwnd);
+    ficha["campos"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .find(descrito)
+        .is_some_and(|c| c["habilitado"].as_bool() == Some(true))
+}
+
+/// A disabled control swallows the text and the click without a trace, so the
+/// answer would report a value PVsyst never took.
+fn deshabilitado(c: &CampoEtiquetado) -> Error {
+    let etiqueta = c.etiqueta.as_deref().unwrap_or(c.clase.as_str());
+    Error::Gui(format!(
+        "The field '{etiqueta}' ({}) is disabled: PVsyst ignores the text and the click and keeps its own value. Another control of the form enables it: gui_observar que:formulario (or que:controles with todos:true) shows which one, and gui_actuar accion:campo on it retries",
+        c.clase
+    ))
+}
+
+/// The field `etiqueta` names in `ficha`, if PVsyst reports it enabled.
+fn elegir_campo(ficha: &Value, etiqueta: &str, como: Desambiguador<'_>) -> Result<CampoEtiquetado> {
+    let campos = campos_de(ficha)?;
+    let elegido = campo_por_etiqueta(&campos, etiqueta, como)?.clone();
+    if habilitado_en(ficha, elegido.hwnd) {
+        return Ok(elegido);
+    }
+    Err(deshabilitado(&elegido))
+}
+
 /// Sets the field labelled `etiqueta` of the target form to `valor`. `clase` and
 /// `indice` pick one of several fields that share the label. When no label
 /// matches, `vista_de` reads the window so the error can suggest `rellenar`.
@@ -118,12 +151,11 @@ pub(crate) fn campo(
     let etiqueta = req_str(args, &["etiqueta"], "label of the field")?;
     let valor = req_str(args, &["valor"], "value to set")?;
     let ficha = ocr::formulario(paths, args)?;
-    let campos = campos_de(&ficha)?;
     let como = Desambiguador {
         clase: args.get("clase").and_then(Value::as_str),
         indice: opt_u32(args, "indice")?.map(|i| i as usize),
     };
-    let elegido = match campo_por_etiqueta(&campos, etiqueta, como) {
+    let elegido = match elegir_campo(&ficha, etiqueta, como) {
         Ok(elegido) => elegido,
         Err(Error::NotFound(motivo)) => {
             let vista = vista_de(paths, args).unwrap_or(Value::Null);
@@ -136,13 +168,17 @@ pub(crate) fn campo(
         .and_then(Value::as_str)
         .unwrap_or_default();
     let formulario = Formulario::de(hwnd_de_texto(ventana_str)?);
-    let antes = leer_valor(elegido);
-    poner_valor(&formulario, elegido, valor)?;
+    let antes = leer_valor(&elegido);
+    poner_valor(&formulario, &elegido, valor)?;
     Ok(json!({
         "accion": "campo",
         "etiqueta": elegido.etiqueta,
         "clase": elegido.clase,
         "antes": antes,
-        "despues": leer_valor(elegido),
+        "despues": leer_valor(&elegido),
     }))
 }
+
+#[cfg(test)]
+#[path = "../../../tests/unit/adapters/gui/campo_por_etiqueta.rs"]
+mod tests;
