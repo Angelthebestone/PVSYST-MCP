@@ -130,7 +130,7 @@ pub(crate) fn crear_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     let prj_src = fs::read(&src_prj).map_err(|e| Error::io("Read PRJ", e))?;
     let var_src = fs::read(&src_var).map_err(|e| Error::io("Read variant", e))?;
     let mut nuevo = personalizar(args, &prj_src, &var_src)?;
-    let sit = sit_pedido(&workspace, args)?;
+    let sit = sit_pedido(&workspace, args, paths.idioma)?;
     // The site goes into the project before the pair is written: a site that cannot be
     // linked leaves nothing behind, and it lands in this call's workspace and folder.
     let aviso_meteo = vincular_sitio_pedido(&mut nuevo, sit.as_deref())?;

@@ -8,7 +8,11 @@ fn should_reject_site_name_that_leaves_sites_folder() {
     let ajeno = fuera.path().join("Ajeno").to_string_lossy().into_owned();
 
     for sitio in ["..\\..\\Ajeno", "../Ajeno", ajeno.as_str()] {
-        let res = sit_pedido(ws.path(), &json!({ "sitio": sitio }));
+        let res = sit_pedido(
+            ws.path(),
+            &json!({ "sitio": sitio }),
+            crate::idioma::Idioma::Es,
+        );
         assert!(matches!(res, Err(Error::Invalid(_))), "{sitio}: {res:?}");
     }
 }
@@ -26,6 +30,14 @@ fn workspace_con_plantilla(sit: &str) -> tempfile::TempDir {
     std::fs::write(proyectos.join("SYNTH_Plant.VC0"), vc0).expect("vc0");
     std::fs::write(sitios.join("Lugar.SIT"), sit).expect("sit");
     ws
+}
+
+/// Test paths whose messages come out in `idioma`.
+fn paths_con_idioma(ws: &Path, idioma: crate::idioma::Idioma) -> Paths {
+    Paths {
+        idioma,
+        ..Paths::para_test(ws)
+    }
 }
 
 /// A `.SIT` whose site object differs from the template's, so the test can tell them apart.
@@ -61,7 +73,7 @@ fn crear_proyectos_de_cada_forma(ws: &Path, paths: &Paths, esperado: &str) -> Ve
 #[test]
 fn should_take_the_same_site_from_every_accepted_site_argument_form() {
     let ws = workspace_con_plantilla(SIT_VALIDO);
-    let paths = Paths::para_test(ws.path());
+    let paths = paths_con_idioma(ws.path(), crate::idioma::Idioma::Es);
     let esperado = ws.path().join("Sites").join("Lugar.SIT");
     let esperado = esperado.to_string_lossy().into_owned();
     let sitios = crear_proyectos_de_cada_forma(ws.path(), &paths, &esperado);
@@ -87,6 +99,21 @@ fn should_take_the_same_site_from_every_accepted_site_argument_form() {
         assert!(err.contains(forma), "{forma}: {err}");
         assert!(err.contains("Sites/X.SIT"), "{forma}: {err}");
     }
+
+    // The wording follows the client's language; both keep naming the value and the forms.
+    let en = paths_con_idioma(ws.path(), crate::idioma::Idioma::En);
+    let err = crear_proyecto(
+        &en,
+        &json!({
+            "plantilla": "SYNTH_Plant",
+            "nombre_nuevo": "InvalidoEn",
+            "sitio": absoluto.as_str(),
+        }),
+    )
+    .expect_err("en")
+    .to_string();
+    assert!(err.contains(absoluto.as_str()), "{err}");
+    assert!(err.contains("Sites/X.SIT"), "{err}");
 }
 
 #[test]
