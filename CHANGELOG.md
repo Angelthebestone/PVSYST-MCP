@@ -15,11 +15,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`pestana`, `subpestana`) pair is one page now: distinct sub-tabs are summed, repeats of one pair still
   keep its fullest page, and a page without `subpestana` counts as before. No page of the map carries the
   field yet, so today's `campos_en_mapa` and `botones_en_mapa` do not change.
-- **The catalogue no longer says «Necesidades usuario» always opens `TDomesticUseForm`.** Measured on
-  8.1.8, the demo `_DEMO_StandAlone` opens it, while a stand-alone project created with
-  `disenar_sistema tipo_sistema:aislado` opens `TUserNeedsForm`; the entry still declares the demo
-  window, and its module note now says which project each window was observed with. Documentation
-  only: the button, its caption and its declared window are unchanged.
+- **`gui_actuar accion:funcion` with `variante.necesidades_usuario_independiente` works on both kinds
+  of stand-alone project.** Measured on 8.1.8, the demo `_DEMO_StandAlone` makes that button open
+  `TDomesticUseForm`, while a project created with `disenar_sistema tipo_sistema:aislado` makes it open
+  `TUserNeedsForm`; the entry declared only the demo window, so the second case opened the window and
+  still answered `completo:false` with «PVsyst no abrió la ventana esperada (TDomesticUseForm) en el
+  plazo de espera». A catalogue entry can now declare an alternative window (`.o_tambien`) beside the
+  announced one, the wait counts either as arrived, and the error names every accepted class
+  (`TDomesticUseForm / TUserNeedsForm`). `abre` stays the announced class, so the `que:funciones`
+  listing and the `abierta_con` that `que:esquema` publishes keep naming only `TDomesticUseForm`; the
+  button, its caption and its note are unchanged.
 - **`gui_actuar accion:clic_texto` presses the button whose caption is that text, not the
   combo box that shows the same word (measured: `TChoixObjetPVForm` captions «Abrir» both a
   `TComboBox` and a `TButton`).** The click was aimed at the first place the search met (an OCR box,

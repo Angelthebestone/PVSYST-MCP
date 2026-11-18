@@ -74,6 +74,15 @@ fn should_keep_the_announced_class_when_a_function_declares_an_alternative() {
     }
 }
 
+/// Measured on 8.1.8: the demo `_DEMO_StandAlone` opens `TDomesticUseForm` and a
+/// project from `disenar_sistema tipo_sistema:aislado` opens `TUserNeedsForm`.
+#[test]
+fn should_accept_the_two_windows_the_user_needs_of_a_stand_alone_project_opens() {
+    let entrada = buscar(funciones(), "variante.necesidades_usuario_independiente");
+    let esperada = esperadas(entrada[0]).expect("la entrada declara su ventana");
+    assert_eq!(esperada.listadas(), "TDomesticUseForm / TUserNeedsForm");
+}
+
 /// The shape `variante.necesidades_usuario_independiente` measured on 8.1.8.
 fn de_dos_ventanas() -> Funcion {
     Funcion::boton("prueba.dos_ventanas", "TProjectForm", "Necesidades usuario")
