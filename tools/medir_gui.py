@@ -12,16 +12,21 @@ project loader (PVsyst's shipped `_DEMO_*` projects are read-only, so nothing is
 saved: any «¿Desea guardarla?» or «¿mantener modificaciones?» prompt is answered No).
 Only one agent may drive the PVsyst GUI at a time. Nothing is filled in or saved.
 
-`--botones` also presses the enabled buttons whose label is on a white list of
-read-only views (`Mostrar`, `Ver`, `Abrir`, `Curva`, `Gráfico`, `Tabla`, `Detalles`,
-`Ayuda`, `Vista`, `Diagrama`…), one `gui_actuar accion:clic_texto` per button, and
-records in the entry's `botones_abren` the windows each press opened, closing only
-those and reopening the host when the button closed it: most windows of the map are
-reached through a button, so reading the labels alone leaves them unmeasured. A
-label outside the white list is never pressed, because it may commit the window's
-state, destroy it or start a flow this script cannot unwind, and the verbs that do
-that (`OK`, `Aceptar`, `Sí`, `Guardar`, `Aplicar`, `Eliminar`, `Simular`…) change with
-every release. Each button it does not press is recorded with its motive
+`--botones` also presses the enabled buttons whose label is exactly one entry of a
+white list of read-only views (`Resumen del sistema`, `Gráfico de pérdidas`,
+`Gráfico`, `Tabla`, `Tabla mensual`, `Mostrar gráfico`, `Mostrar histograma`,
+`Mostrar optimización`, `Curva I/V`, `Diagrama unifilar`), one `gui_actuar
+accion:clic_texto` per button, and records in the entry's `botones_abren` the windows
+each press opened, closing only those and reopening the host when the button closed
+it: most windows of the map are reached through a button, so reading the labels alone
+leaves them unmeasured. The list is exact, not by prefix: a prefix of `Ver` presses
+«Ver el TNCO de todos modos», which skips a warning and writes the thermal parameter,
+and a prefix of `Abrir` presses «Abrir sitio» or «Abrir en explorer», which open a
+browser or the Windows Explorer, a window outside the process. A label the list does
+not hold is never pressed, because it may commit the window's state, destroy it or
+start a flow this script cannot unwind, and the verbs that do that (`OK`, `Aceptar`,
+`Sí`, `Guardar`, `Aplicar`, `Eliminar`, `Simular`…) change with every release. Each
+button it does not press is recorded with its motive
 (`no está en la lista blanca`, `deshabilitado`, `vacío`, `tope`), so the JSON tells
 «not pressed» apart from «pressed and opened nothing». At most `MAX_PULSACIONES`
 presses per target.

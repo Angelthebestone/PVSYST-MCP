@@ -2,7 +2,7 @@
 
 Every press is one `gui_actuar accion:clic_texto`; `botones_abren` records the
 windows each press opened, and only those are closed, reopening the host when the
-button closed it. Only a label whose normalized text starts with an entry of
+button closed it. Only a label whose normalized text is exactly one entry of
 `PERMITIDOS` is pressed: this tool measures, so it opens read-only views and never a
 label that commits the window's state, destroys it or starts a flow it cannot unwind.
 Every button it does not press is recorded with its motive, so the reader of the JSON
@@ -30,23 +30,24 @@ from medir_ventanas import (
 # A black list misses the next synonym, and the windows add one every release: one
 # unknown label that commits the window (Aceptar, Sí, Reemplazar, Simular, Ejecutar,
 # Calcular, Actualizar, Despejar, Crear, Elaborar, Conversión, Abortar) turns a
-# measurement into an edit. These prefixes only open a view. Compared in lower case,
-# without accents, `&` or ellipsis.
+# measurement into an edit. The list is exact, not by prefix, and each entry is a
+# label whose measured effect is opening a read-only view: a prefix of «ver» presses
+# «Ver el TNCO de todos modos», which skips a warning and writes the thermal
+# parameter, and a prefix of «abrir» presses «Abrir sitio», which opens a browser or
+# the Windows Explorer, a window outside the process. Adding a label requires having
+# seen which window it opens. Compared in lower case, without accents, `&` or
+# ellipsis, with spaces collapsed.
 PERMITIDOS = (
-    "mostrar",
-    "ver",
-    "abrir",
-    "curva",
-    "grafico",
-    "histograma",
-    "tabla",
     "resumen del sistema",
-    "detalles",
-    "detalle",
-    "ayuda",
-    "vista",
-    "perspectiva",
-    "diagrama",
+    "grafico de perdidas",
+    "grafico",
+    "tabla",
+    "tabla mensual",
+    "mostrar grafico",
+    "mostrar histograma",
+    "mostrar optimizacion",
+    "curva i/v",
+    "diagrama unifilar",
 )
 # A form with many tabs lists hundreds of buttons and each press costs a click, two
 # window reads and a wait; the cap keeps one target from eating the whole session.
@@ -117,9 +118,9 @@ def cerrar_nuevas(
 
 
 def _permitido(texto: str) -> bool:
-    """Whether a button text starts with a prefix of the white list."""
+    """Whether a button text is exactly one entry of the white list."""
     normal = normalizar_etiqueta(texto)
-    return any(normal.startswith(normalizar_etiqueta(p)) for p in PERMITIDOS)
+    return any(normal == normalizar_etiqueta(p) for p in PERMITIDOS)
 
 
 def _motivo(boton: Json) -> str | None:

@@ -28,6 +28,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   caption) and only when there was one, so a click that skipped nothing keeps the answer it had; the
   OCR and UIA paths never carry it. The refusal for a caption only disabled buttons carry now reads
   «El rótulo '{texto}' aparece solo en botones deshabilitados», grammatical for one button too.
+- **`tools/medir_gui.py --botones` presses only an exact white list of labels.** The list matched by
+  prefix, so it pressed «Ver el TNCO de todos modos» (a button that skips a warning and writes the
+  thermal parameter) and «Abrir», «Abrir sitio», «Abrir en explorer» or «Mostrar mapa» (a file selector,
+  a browser or the Windows Explorer, a window outside the process). The
+  ten labels it presses now are `Resumen del sistema`, `Gráfico de pérdidas`, `Gráfico`, `Tabla`,
+  `Tabla mensual`, `Mostrar gráfico`, `Mostrar histograma`, `Mostrar optimización`, `Curva I/V` and
+  `Diagrama unifilar`, compared after folding case, accents, `&`, ellipsis and repeated spaces; every
+  other label keeps its `no está en la lista blanca` motive, and adding one requires having seen which
+  window it opens.
 - **The coverage count of `gui_observar que:esquema` adds every sub-tab of a page.** A page of
   `docs/gui_mapa.json` may now carry `subpestana`, but the counter keyed pages by `pestana` alone, so a
   window with nested sheets (`TPVModuleForm`, «Parámetros del modelo» → «Degradación», «IAM

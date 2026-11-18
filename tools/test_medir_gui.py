@@ -79,18 +79,18 @@ def test_main_merges_what_it_measured_and_leaves_the_rest_of_the_inventory(
 
 def test_main_merges_botones_abren_only_when_it_pressed_them(tmp_path: Path) -> None:
     f = formulario([])
-    f["paginas"][0]["botones"] = botones_de("Ver detalles")
+    f["paginas"][0]["botones"] = botones_de("Mostrar histograma")
 
-    c = PVsystFalso({"TA": f}, {"a": "TA"}, {"Ver detalles": {"cierra": None}})
+    c = PVsystFalso({"TA": f}, {"a": "TA"}, {"Mostrar histograma": {"cierra": None}})
     assert main(argumentos(tmp_path, "--solo", "TA"), fabrica_de(c)) == 0
     sin_botones = json.loads((tmp_path / "inventario.json").read_text())
     assert "botones_abren" not in sin_botones["TA"]
 
-    c = PVsystFalso({"TA": f}, {"a": "TA"}, {"Ver detalles": {"cierra": None}})
+    c = PVsystFalso({"TA": f}, {"a": "TA"}, {"Mostrar histograma": {"cierra": None}})
     assert main(argumentos(tmp_path, "--solo", "TA", "--botones"), fabrica_de(c)) == 0
     con_botones = json.loads((tmp_path / "inventario.json").read_text())
     assert con_botones["TA"]["botones_abren"] == [
-        {"pestana": None, "boton": "Ver detalles", "abre": [], "error": None}
+        {"pestana": None, "boton": "Mostrar histograma", "abre": [], "error": None}
     ]
 
 
@@ -98,11 +98,11 @@ def test_main_reports_presses_with_error_without_failing(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     f = formulario([])
-    f["paginas"][0]["botones"] = botones_de("Abrir")
+    f["paginas"][0]["botones"] = botones_de("Tabla")
     c = PVsystFalso(
         {"TA": f},
         {"a": "TA"},
-        {"Abrir": {"error": "'Abrir' is the caption of 2 buttons"}},
+        {"Tabla": {"error": "'Tabla' is the caption of 2 buttons"}},
     )
 
     codigo = main(argumentos(tmp_path, "--solo", "TA", "--botones"), fabrica_de(c))
@@ -118,7 +118,7 @@ def test_main_without_botones_keeps_the_presses_of_the_previous_measurement(
     tmp_path: Path,
 ) -> None:
     f = formulario(["a"])
-    f["paginas"][0]["botones"] = botones_de("Ver detalles")
+    f["paginas"][0]["botones"] = botones_de("Mostrar histograma")
     manifiesto, inventario, _ = preparar(tmp_path)
     args = [
         "--servidor",
@@ -128,7 +128,7 @@ def test_main_without_botones_keeps_the_presses_of_the_previous_measurement(
         "--inventario",
         str(inventario),
     ]
-    c = PVsystFalso({"TA": f}, {"a": "TA"}, {"Ver detalles": {"cierra": None}})
+    c = PVsystFalso({"TA": f}, {"a": "TA"}, {"Mostrar histograma": {"cierra": None}})
     assert main([*args, "--solo", "TA", "--botones"], fabrica_de(c)) == 0
     pulsados = json.loads(inventario.read_text())["TA"]["botones_abren"]
 
@@ -143,8 +143,8 @@ def test_main_merges_the_fields_when_a_press_cannot_reopen_the_host(
     tmp_path: Path,
 ) -> None:
     f = formulario(["a"])
-    f["paginas"][0]["botones"] = botones_de("Ver estado")
-    c = PVsystFalso({"TA": f}, {"a": "TA"}, {"Ver estado": {"cierra": "TA"}})
+    f["paginas"][0]["botones"] = botones_de("Diagrama unifilar")
+    c = PVsystFalso({"TA": f}, {"a": "TA"}, {"Diagrama unifilar": {"cierra": "TA"}})
     llamar = c.tool
 
     def tool(nombre: str, a: dict[str, Any]) -> dict[str, Any]:

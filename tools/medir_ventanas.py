@@ -31,10 +31,12 @@ def _dormir(segundos: float) -> None:
 
 
 def normalizar_etiqueta(texto: str) -> str:
-    """Lower case without accents, `&` or ellipsis: how a label is compared."""
+    """Lower case without accents, `&` or ellipsis, spaces collapsed: how a label is
+    compared, so «Mostrar  &gráfico…» and «mostrar grafico» are the same label."""
     descompuesto = unicodedata.normalize("NFD", texto.lower())
     sin_acentos = "".join(c for c in descompuesto if not unicodedata.combining(c))
-    return sin_acentos.replace("&", "").replace("...", "").replace("…", "").strip()
+    limpio = sin_acentos.replace("&", "").replace("...", "").replace("…", "")
+    return " ".join(limpio.split())
 
 
 def _hasta(condicion: Callable[[], bool], plazo: float) -> bool:
