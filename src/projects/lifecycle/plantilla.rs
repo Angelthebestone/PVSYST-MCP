@@ -1,7 +1,7 @@
 //! Where a new project comes from: the template project, the site it is asked to
 //! take, and the folder the copy is written to.
 
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::workspace::Alcance;
 use serde_json::Value;
 use std::path::{Path, PathBuf};
@@ -39,18 +39,65 @@ pub(super) fn carpeta_de_salida(workspace: &Path, src_prj: &Path, src_parent: &P
     }
 }
 
+/// Site requested with `sitio`, already reduced to the name `Sites/<nombre>.SIT`.
+struct SitioPedido {
+    nombre: String,
+}
+
+impl TryFrom<&str> for SitioPedido {
+    type Error = crate::error::Error;
+
+    fn try_from(valor: &str) -> Result<Self> {
+        let normal = valor.replace('\\', "/");
+        let archivo = match normal.split_once('/') {
+            Some((carpeta, resto)) if carpeta.eq_ignore_ascii_case("Sites") => resto,
+            Some(_) => return Err(sitio_invalido(valor, "")),
+            None => normal.as_str(),
+        };
+        if archivo.contains('/') {
+            return Err(sitio_invalido(valor, ""));
+        }
+        let nombre = match archivo.rsplit_once('.') {
+            Some((nombre, extension)) if extension.eq_ignore_ascii_case("SIT") => nombre,
+            _ => archivo,
+        };
+        crate::workspace::validar_nombre(nombre)
+            .map_err(|e| sitio_invalido(valor, &e.to_string()))?;
+        Ok(Self {
+            nombre: nombre.to_string(),
+        })
+    }
+}
+
+impl SitioPedido {
+    fn ruta_en(&self, dir: &Path) -> PathBuf {
+        dir.join(format!("{}.SIT", self.nombre))
+    }
+}
+
+fn sitio_invalido(valor: &str, razon: &str) -> Error {
+    let detalle = if razon.is_empty() {
+        String::new()
+    } else {
+        format!(" ({razon})")
+    };
+    Error::Invalid(format!(
+        "'sitio' inválido '{valor}': se espera el nombre del sitio (con o sin '.SIT') o la ruta 'Sites/X.SIT'{detalle}"
+    ))
+}
+
 /// The workspace `Sites/<sitio>.SIT` requested with `sitio`; a missing site is an error.
 pub(super) fn sit_pedido(workspace: &Path, args: &Value) -> Result<Option<PathBuf>> {
-    let Some(sitio) = args.get("sitio").and_then(Value::as_str) else {
+    let Some(valor) = args.get("sitio").and_then(Value::as_str) else {
         return Ok(None);
     };
-    crate::workspace::validar_nombre(sitio)?;
+    let sitio = SitioPedido::try_from(valor)?;
     let dir = workspace.join("Sites");
-    let sit = dir.join(format!("{sitio}.SIT"));
+    let sit = sitio.ruta_en(&dir);
     if !sit.is_file() {
         return Err(crate::args::no_encontrado(
             crate::args::SITIO,
-            sitio,
+            valor,
             &[],
             &dir.to_string_lossy(),
         ));

@@ -176,6 +176,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   came back as «Site created with the weather data of the location». The answer now carries the CLI
   status at the top level as well, and keeps the envelope under `create_site` for `meteo_pvgis` and
   `disenar_sistema`.
+- **`proyecto crear` accepts the site as `X`, `X.SIT` or `Sites/X.SIT`.** The `sitio` argument was
+  validated as a bare file stem and joined as `Sites/<sitio>.SIT`, so `X.SIT` looked for `X.SIT.SIT` and
+  `Sites/X.SIT` was refused as a name with a forbidden character, while every other path argument of the
+  server takes the `Sites/X.SIT` form. The value is now parsed once into a `SitioPedido` that accepts the
+  three forms, keeps the file inside `Sites/` and rejects `..` or an absolute path with an error that
+  names the value and the accepted forms.
 - More findings of the same QA round:
   - **BUG-19**: `gui_actuar accion:campo` takes `indice` (from 0, top to bottom) and `clase` to pick one
     of several fields that share a label (the three «Núm. de inversores»); the error for an ambiguous
