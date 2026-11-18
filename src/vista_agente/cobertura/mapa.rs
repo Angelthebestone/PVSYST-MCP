@@ -13,14 +13,7 @@ pub(crate) struct ResumenMapa {
     pub(crate) botones: usize,
 }
 
-fn longitud(pagina: &Value, clave: &str) -> usize {
-    pagina
-        .get(clave)
-        .and_then(Value::as_array)
-        .map_or(0, Vec::len)
-}
-
-/// Fields and buttons of one page, the pair that exists together on screen.
+/// Fields and buttons of one instance, the pair that exists together on screen.
 type Conteo = (usize, usize);
 
 fn mas_lleno(a: Conteo, b: Conteo) -> Conteo {
@@ -31,57 +24,96 @@ fn mas_lleno(a: Conteo, b: Conteo) -> Conteo {
     }
 }
 
-/// The label a page records under `clave`. An empty, blank or non-text value is no
-/// label at all: the map writes one of those for a page that has no sub-tab, and a
-/// key of its own would hide that page behind a phantom sub-tab.
-fn etiqueta<'a>(pagina: &'a Value, clave: &str) -> Option<&'a str> {
+/// The list a page records under `clave`; absent or not a list reads as empty.
+fn lista<'a>(pagina: &'a Value, clave: &str) -> &'a [Value] {
     pagina
+        .get(clave)
+        .and_then(Value::as_array)
+        .map_or(&[][..], Vec::as_slice)
+}
+
+/// The label a page or a control records under `clave`. An empty, blank or non-text value
+/// is no label at all: the map writes one of those where it has none.
+fn etiqueta<'a>(valor: &'a Value, clave: &str) -> Option<&'a str> {
+    valor
         .get(clave)
         .and_then(Value::as_str)
         .filter(|texto| !texto.trim().is_empty())
 }
 
-/// Fields and buttons of one instance: per tab and sub-tab, its fullest page (the map
-/// repeats pages, a tab-less window can have several, and a tab with nested sub-tabs is
-/// one page per sub-tab), summed over tabs and sub-tabs. Both numbers come from the same
-/// page, never the best of each. A tab recorded with sub-tabs is counted by them alone:
-/// its own page is the screen of one of its sub-tabs, so adding both would count those
-/// fields twice, and a coverage figure that falls short is safer than one that claims too
-/// much.
-fn contar_instancia(instancia: &Value) -> Conteo {
-    let paginas = instancia
-        .get("paginas")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten();
-    let mut por_pagina: HashMap<(Option<&str>, Option<&str>), Conteo> = HashMap::new();
-    for p in paginas {
-        let pagina = (etiqueta(p, "pestana"), etiqueta(p, "subpestana"));
-        let conteo = (longitud(p, "campos"), longitud(p, "botones"));
-        let mejor = por_pagina.entry(pagina).or_insert(conteo);
-        *mejor = mas_lleno(*mejor, conteo);
+/// Identity of one control inside its tab: the label the map gives it or, with no label, its
+/// position in the page's list. Position tells two unlabelled fields of one page apart and
+/// makes the field at the same position of two pages of the tab the same one, which can only
+/// fall short.
+#[derive(Debug, PartialEq, Eq, Hash)]
+enum Rotulo<'a> {
+    Texto(&'a str),
+    Posicion(usize),
+}
+
+fn rotulo<'a>(control: &'a Value, clave: &str, posicion: usize) -> Rotulo<'a> {
+    match etiqueta(control, clave) {
+        Some(texto) => Rotulo::Texto(texto),
+        None => Rotulo::Posicion(posicion),
     }
-    let con_subpestanas: HashSet<Option<&str>> = por_pagina
-        .keys()
-        .filter(|(_, subpestana)| subpestana.is_some())
-        .map(|(pestana, _)| *pestana)
-        .collect();
-    por_pagina
-        .iter()
-        .filter(|((pestana, subpestana), _)| {
-            subpestana.is_some() || !con_subpestanas.contains(pestana)
-        })
-        .map(|(_, conteo)| *conteo)
-        .fold((0, 0), |(c, b), (campos, botones)| {
-            (c + campos, b + botones)
+}
+
+/// The distinct controls one tab shows, gathered from every page it appeared in: a field is its
+/// VCL class plus its `Rotulo`, a button its `Rotulo`. A caption names a button, as a label does
+/// a field.
+#[derive(Default)]
+struct Rotulos<'a> {
+    campos: HashSet<(&'a str, Rotulo<'a>)>,
+    botones: HashSet<Rotulo<'a>>,
+}
+
+/// The labels of each tab of one instance, by tab name; pages without a tab share an unnamed one.
+fn rotulos_por_pestana(instancia: &Value) -> HashMap<Option<&str>, Rotulos<'_>> {
+    let mut pestanas: HashMap<Option<&str>, Rotulos<'_>> = HashMap::new();
+    for pagina in lista(instancia, "paginas") {
+        let rotulos = pestanas.entry(etiqueta(pagina, "pestana")).or_default();
+        for (posicion, campo) in lista(pagina, "campos").iter().enumerate() {
+            let clase = campo
+                .get("clase")
+                .and_then(Value::as_str)
+                .unwrap_or_default();
+            rotulos
+                .campos
+                .insert((clase, rotulo(campo, "etiqueta", posicion)));
+        }
+        for (posicion, boton) in lista(pagina, "botones").iter().enumerate() {
+            rotulos.botones.insert(rotulo(boton, "texto", posicion));
+        }
+    }
+    pestanas
+}
+
+/// Fields and buttons of one instance: the distinct controls of each of its tabs, summed over
+/// tabs. `subpestana` takes no part: every page of a tab, with or without one, joins the same
+/// union, so what all its sub-tabs share counts once (the map records the form's own buttons,
+/// `OK` and `Cancelar` among them, in every page of a tab) and a sub-tab adds only the labels
+/// the others do not have. A page recorded with no sub-tab joins too: it is the parent page,
+/// and the fields that live outside the sub-tab control are only there. A page the map repeats
+/// for one tab adds only the labels the others lack, so the count is everything it saw on that
+/// tab.
+///
+/// The union can also fall short: two different fields of one tab that share class and label
+/// (two `TEdit` «Valor» on two pages) collapse into one. That is the safe error for a coverage
+/// figure, one that claims less than the window holds; counting what every sub-tab shares once
+/// is the point, not counting it once per sub-tab.
+fn contar_instancia(instancia: &Value) -> Conteo {
+    rotulos_por_pestana(instancia)
+        .values()
+        .fold((0, 0), |(campos, botones), rotulos| {
+            (
+                campos + rotulos.campos.len(),
+                botones + rotulos.botones.len(),
+            )
         })
 }
 
 pub(super) fn resumir(ventana: &Value) -> ResumenMapa {
-    let instancias = ventana
-        .get("instancias")
-        .and_then(Value::as_array)
-        .map_or(&[][..], Vec::as_slice);
+    let instancias = lista(ventana, "instancias");
     let (campos, botones) = instancias
         .iter()
         .map(contar_instancia)

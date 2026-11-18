@@ -1,7 +1,7 @@
 use serde_json::Value;
 
-/// A page that records a sub-tab labels it with text: the coverage counter keys the
-/// page by that label, and a blank or non-text one would fold it into its tab.
+/// A page that records a sub-tab labels it with text: an empty, blank or non-text one is a
+/// label no reader can group by, and it would pass for a page with no sub-tab at all.
 fn exigir_subpestana_con_texto(clase: &str, pagina: &Value) {
     let Some(subpestana) = pagina.get("subpestana") else {
         return;
@@ -14,8 +14,7 @@ fn exigir_subpestana_con_texto(clase: &str, pagina: &Value) {
 
 /// What is stable across PVsyst languages is recorded as structure: every page of
 /// the map says the position of its tab, so a caller never needs the tab's name, and a
-/// page that records a sub-tab labels it with text, which is what the coverage counter
-/// keys it by.
+/// page that records a sub-tab labels it with text.
 #[test]
 fn should_record_the_tab_index_of_every_page_of_the_window_map() {
     let mapa = super::recurso::mapa_de_ventanas();
