@@ -38,6 +38,22 @@ reporta el error; no inventes cifras de producción, PR ni pérdidas.
 5. Nunca modifiques archivos dentro de `C:\Program Files\PVsyst8.1.8\`: es la
    instalación del programa, no datos del usuario.
 
+## GUI: orden de operaciones
+
+1. `gui_actuar funcion` pulsa un botón de la ventana anfitriona del catálogo
+   (`ventana`): comprueba con `gui_observar que:ventanas` que está abierta y sin
+   `modal`; con uno encima la función falla nombrándolo (`modal: <clase> <hwnd>`),
+   y si la ventana falta la abre su `requiere` o el error dice cuál no está.
+2. `que:formulario` solo etiqueta la pestaña visible: cambia con
+   `gui_actuar accion:pagina` y vuelve a leer, o usa `que:inventario`.
+3. Una pestaña puede vetar el cambio por validación de sus campos: si `pagina`
+   responde «did not switch», rellena lo que falta en la pestaña actual antes de
+   seguir.
+4. Marcar una casilla puede desbloquear entre 1 y 22 campos nuevos: vuelve a leer
+   después y no reutilices la lista de antes.
+5. `docs/gui_mapa.json` es una foto de un estado y trunca campos por página
+   (muchas quedaron en 13): úsalo como pista, no como inventario.
+
 ## Alcance del proyecto
 
 Este proyecto no tiene nada que ver con AWS. Las skills `aws-*`,
