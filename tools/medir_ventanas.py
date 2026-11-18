@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import re
 import time
+import unicodedata
 from collections.abc import Callable
 
 from medir_cliente import Cliente, Json
@@ -27,6 +28,13 @@ PAUSA = 1.0
 
 def _dormir(segundos: float) -> None:
     time.sleep(segundos * PAUSA)
+
+
+def normalizar_etiqueta(texto: str) -> str:
+    """Lower case without accents, `&` or ellipsis: how a label is compared."""
+    descompuesto = unicodedata.normalize("NFD", texto.lower())
+    sin_acentos = "".join(c for c in descompuesto if not unicodedata.combining(c))
+    return sin_acentos.replace("&", "").replace("...", "").replace("…", "").strip()
 
 
 def _hasta(condicion: Callable[[], bool], plazo: float) -> bool:

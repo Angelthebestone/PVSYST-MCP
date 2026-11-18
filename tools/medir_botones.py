@@ -12,11 +12,18 @@ tells «not pressed» apart from «pressed and opened nothing». At most
 
 from __future__ import annotations
 
-import unicodedata
 from collections.abc import Collection
 
 from medir_cliente import Cliente, Json
-from medir_ventanas import MANTENER, _cerrar, _dormir, abrir, clases, ventanas
+from medir_ventanas import (
+    MANTENER,
+    _cerrar,
+    _dormir,
+    abrir,
+    clases,
+    normalizar_etiqueta,
+    ventanas,
+)
 
 # White list, not a black list: a label this tool does not know is left alone.
 # A black list misses the next synonym, and the windows add one every release: one
@@ -85,17 +92,10 @@ def cerrar_nuevas(c: Cliente, previas: Collection[tuple[str, str]]) -> list[Json
     return list(cerradas.values())
 
 
-def _normalizado(texto: str) -> str:
-    """Lower case without accents, `&` or ellipsis: what both lists compare."""
-    descompuesto = unicodedata.normalize("NFD", texto.lower())
-    sin_acentos = "".join(c for c in descompuesto if not unicodedata.combining(c))
-    return sin_acentos.replace("&", "").replace("...", "").replace("…", "").strip()
-
-
 def _permitido(texto: str) -> bool:
     """Whether a button text starts with a prefix of the white list."""
-    normal = _normalizado(texto)
-    return any(normal.startswith(_normalizado(p)) for p in PERMITIDOS)
+    normal = normalizar_etiqueta(texto)
+    return any(normal.startswith(normalizar_etiqueta(p)) for p in PERMITIDOS)
 
 
 def _motivo(boton: Json) -> str | None:
