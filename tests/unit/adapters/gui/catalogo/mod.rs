@@ -83,6 +83,25 @@ fn should_accept_the_two_windows_the_user_needs_of_a_stand_alone_project_opens()
     assert_eq!(esperada.listadas(), "TDomesticUseForm / TUserNeedsForm");
 }
 
+/// `que:esquema` counts a window as reachable by every function that shows it,
+/// not only by the one that announces it: on a stand-alone project
+/// `variante.necesidades_usuario_independiente` opens `TUserNeedsForm`, which no
+/// other entry opens, and it used to be published under `TDomesticUseForm` alone.
+#[test]
+fn should_publish_a_function_under_the_alternative_class_it_opens() {
+    assert_eq!(
+        super::funciones_que_abren("TUserNeedsForm"),
+        vec![
+            "variante.autoconsumo",
+            "variante.necesidades_usuario_independiente"
+        ]
+    );
+    assert_eq!(
+        super::funciones_que_abren("TDomesticUseForm"),
+        vec!["variante.necesidades_usuario_independiente"]
+    );
+}
+
 /// The shape `variante.necesidades_usuario_independiente` measured on 8.1.8.
 fn de_dos_ventanas() -> Funcion {
     Funcion::boton("prueba.dos_ventanas", "TProjectForm", "Necesidades usuario")

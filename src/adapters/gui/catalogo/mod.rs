@@ -14,10 +14,12 @@ pub(crate) use aplicacion::{listar, menu};
 pub(crate) use recurso::{como_recurso, mapa_de_ventanas, EnEjecucion};
 
 /// Keys of the catalogue functions that open window class `clase`, in catalogue
-/// order. O(n) in the number of catalogued functions.
+/// order: the class a function announces and the alternative one it shows for
+/// another kind of project both count, because PVsyst reaches the window through
+/// either. O(n) in the number of catalogued functions.
 pub(crate) fn funciones_que_abren(clase: &str) -> Vec<&'static str> {
     entradas::funciones()
-        .filter(|f| f.abre == Some(clase))
+        .filter(|f| f.abre == Some(clase) || f.abre_tambien == Some(clase))
         .map(|f| f.clave)
         .collect()
 }
