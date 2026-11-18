@@ -2,7 +2,13 @@
 
 import medir_ventanas
 from medir_cliente import Json
-from medir_ventanas import abrir, asegurar_pvsyst, cargar_proyecto, limpiar
+from medir_ventanas import (
+    abrir,
+    asegurar_pvsyst,
+    cargar_proyecto,
+    limpiar,
+    ventanas,
+)
 from pvsyst_falso import PVsystFalso, botones_de, formulario
 
 # pytest finds the autouse fixture through this import; the tests never call it.
@@ -24,6 +30,17 @@ def test_limpiar_answers_no_to_a_save_prompt_and_keeps_the_main_windows() -> Non
 
     assert [w["class"] for w in c.abiertas] == ["THomeForm", "TProjectForm"]
     assert c.clics == ["No"]
+
+
+def test_ventanas_ignores_the_tooltips_a_pointer_raises() -> None:
+    c = PVsystFalso({}, {})
+    c.abiertas += [
+        {"class": "THintWindow", "title": "Imprimir (Ctrl+P)"},
+        {"class": "MicrosoftWindowsTooltip", "title": ""},
+        {"class": "TSummaryForm", "title": "Resumen"},
+    ]
+
+    assert [w["class"] for w in ventanas(c)] == ["THomeForm", "TSummaryForm"]
 
 
 def test_asegurar_pvsyst_launches_it_only_when_it_is_not_running() -> None:

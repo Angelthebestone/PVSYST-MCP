@@ -54,9 +54,13 @@ def _es_proyecto(w: Json, nombre: str) -> bool:
     return w["class"] == "TProjectForm" and bool(re.search(patron, w.get("title", "")))
 
 
+# Tooltips PVsyst raises while the pointer rests on a button: not windows a press opened.
+EFIMERAS = ("THintWindow", "MicrosoftWindowsTooltip")
+
+
 def ventanas(c: Cliente) -> list[Json]:
     r = c.tool("gui_observar", {"que": "ventanas", "visibles": True})
-    return list(r.get("windows", []))
+    return [w for w in r.get("windows", []) if w["class"] not in EFIMERAS]
 
 
 def clases(c: Cliente) -> set[str]:
