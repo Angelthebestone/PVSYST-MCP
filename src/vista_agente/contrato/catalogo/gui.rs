@@ -396,8 +396,8 @@ pub(super) const ENTRADAS: &[Entrada] = &[
         "gui_actuar",
         "cerrar_todo",
         Texto {
-            es: "Ventanas de PVsyst cerradas.",
-            en: "PVsyst windows closed.",
+            es: "Ventanas de PVsyst cerradas (requiere confirmar:true).",
+            en: "PVsyst windows closed (requires confirmar:true).",
         },
     )
     .luego(&[VER_VENTANAS]),

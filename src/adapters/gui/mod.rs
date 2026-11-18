@@ -177,7 +177,7 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         "pagina" => campos::pagina(paths, args),
         "esperar_cierre" => campos::esperar_cierre_accion(args, paths.idioma),
         "lanzar" => proceso::lanzar(paths, args),
-        "cerrar_todo" => proceso::cerrar_todo(args),
+        "cerrar_todo" => proceso::cerrar_todo(args, paths.idioma),
         "reiniciar" => recuperacion::reiniciar(paths, args),
         "uia_invocar" => uia_paso::uia_invocar(args),
         "esperar" => esperas::esperar(args),

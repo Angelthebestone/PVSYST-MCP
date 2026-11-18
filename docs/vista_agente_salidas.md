@@ -157,7 +157,7 @@ ejecutó la acción real (la mayoría escribe o gasta ejecuciones de prueba).
 | `gui_actuar` | `rellenar` | Formulario rellenado por claves. | `gui_observar que=vista`; `gui_observar que=esquema` | unitaria (catálogo + validación) |
 | `gui_actuar` | `clic_texto` | Clic en el texto visible de la ventana. | `gui_observar que=vista`; `gui_observar que=ventanas` | unitaria (catálogo + validación) |
 | `gui_actuar` | `reiniciar` | PVsyst reiniciado. | `gui_observar que=ventanas` | unitaria (catálogo + validación) |
-| `gui_actuar` | `cerrar_todo` | Ventanas de PVsyst cerradas. | `gui_observar que=ventanas` | en vivo: ok |
+| `gui_actuar` | `cerrar_todo` | Ventanas de PVsyst cerradas (requiere `confirmar:true`). | `gui_observar que=ventanas` | en vivo: ok |
 | `gui_actuar` | `escena` | Escena 3D validada: objetos, formas y colisiones, sin tocar PVsyst. | `gui_observar que=esquema`; `gui_observar que=ventanas` | unitaria (catálogo + validación) |
 | `gui_actuar` | `escena_leer` | Objetos de la escena abierta en el editor 3D, leídos del archivo que PVsyst exportó. | `gui_observar que=ventanas` | en vivo (PVsyst 8.1.8) |
 | `gui_actuar` | `escena_importar` | Malla importada en el editor 3D por PVsyst; la escena que PVsyst exportó confirma los objetos. | `gui_observar que=ventanas` | en vivo (PVsyst 8.1.8) |

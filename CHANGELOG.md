@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   held, so the caller could take a read failure for the value PVsyst left. The read now returns an
   error that names the label, the class and the hwnd of the control, and points at
   `gui_observar que:formulario` (or `que:controles`) and a retry with `accion:campo`.
+- **BREAKING: `gui_actuar accion:cerrar_todo` now requires `confirmar:true`.** It closes every PVsyst
+  window and discards unsaved work, yet it asked for no confirmation. Without the flag the call closes
+  nothing and fails with an `invalid` error that says what it would discard, how to repeat it
+  (`confirmar:true`) and the alternative (`accion:cerrar`, one window at a time). Clients and scripts
+  that used the action must add the flag.
 - **`gui_actuar accion:campo` refuses a field PVsyst reports disabled (4.2 of the visual GUI test report).**
   A disabled control swallows the text and the click without a trace, so the call answered
   `vista.estado:"ok"` with `antes == despues` and the caller believed the value had been set. The

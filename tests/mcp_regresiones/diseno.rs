@@ -45,3 +45,22 @@ fn should_reject_launching_gui_when_the_executable_is_missing() {
         "expected missing GUI error, got: {msg}"
     );
 }
+
+#[test]
+fn should_refuse_cerrar_todo_without_confirmar() {
+    let mut c = Client::start(None);
+    c.initialize();
+
+    let resp = c.call(106, "gui_actuar", json!({ "accion": "cerrar_todo" }));
+    assert_eq!(resp["result"]["isError"], true, "resp={resp}");
+    let msg = error_text(&resp);
+    assert!(
+        msg.contains("closes every PVsyst window") || msg.contains("cierra todas las ventanas"),
+        "expected the discarded work to be named, got: {msg}"
+    );
+    assert!(msg.contains("confirmar:true"), "expected the retry: {msg}");
+    assert!(
+        msg.contains("accion:cerrar"),
+        "expected the alternative: {msg}"
+    );
+}

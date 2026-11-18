@@ -5,7 +5,7 @@ use super::ffi::{self, enum_windows, pids_de_ejecutable};
 use super::ventanas::{
     class_of, enum_windows_de, pid_of, ventanas, visible, window_brief, window_json,
 };
-use crate::args::flag;
+use crate::args::{flag, CONFIRMAR};
 use crate::error::{Error, Result};
 use crate::idioma::{Idioma, Texto};
 use crate::workspace::{resolver_ruta, Alcance};
@@ -19,6 +19,10 @@ const POLL_INTERVAL_MS: u64 = 250;
 /// Closing an editor can reopen its parent, so the list is read again each round.
 const MAX_RONDAS_CIERRE: usize = 12;
 const ESPERA_RONDA: std::time::Duration = std::time::Duration::from_millis(300);
+const CIERRE_TOTAL_SIN_CONFIRMAR: Texto = Texto {
+    es: "'cerrar_todo' no ha cerrado nada: cierra todas las ventanas de PVsyst y descarta lo no guardado. Si es lo que quieres, repite con confirmar:true; para cerrar una sola ventana, usa gui_actuar accion:cerrar.",
+    en: "'cerrar_todo' closed nothing: it closes every PVsyst window and discards unsaved work. If that is what you want, repeat with confirmar:true; to close one window, use gui_actuar accion:cerrar.",
+};
 
 /// Processes of the PVsyst executable currently running.
 pub(crate) fn pids_pvsyst() -> Vec<u32> {
@@ -29,9 +33,7 @@ pub(crate) fn gui_running() -> bool {
     !pids_pvsyst().is_empty()
 }
 
-/// `gui_actuar accion:cerrar_todo`: closes every visible top window of the
-/// running PVsyst. It presses Cancelar/No before the default buttons unless the call
-/// passes `cancelar:false`, so a save prompt is never accepted by accident.
+/// Visible windows of `pids`.
 fn visibles_de(pids: &[u32]) -> Vec<ffi::Hwnd> {
     pids.iter()
         .flat_map(|p| enum_windows_de(*p))
@@ -55,7 +57,16 @@ fn anotar_cerradas(quedan: &[ffi::Hwnd], vivas: &[ffi::Hwnd], cerradas: &mut Vec
     }
 }
 
-pub(crate) fn cerrar_todo(args: &Value) -> Result<Value> {
+/// `gui_actuar accion:cerrar_todo`: closes every visible top window of the
+/// running PVsyst. It demands `confirmar:true`, because it discards unsaved
+/// work. It presses Cancelar/No before the default buttons unless the call
+/// passes `cancelar:false`, so a save prompt is never accepted by accident.
+pub(crate) fn cerrar_todo(args: &Value, idioma: Idioma) -> Result<Value> {
+    if !flag(args, &[CONFIRMAR]) {
+        return Err(Error::Invalid(
+            CIERRE_TOTAL_SIN_CONFIRMAR.en_idioma(idioma).into(),
+        ));
+    }
     let pids = pids_pvsyst();
     let mut con_cancelar = args.clone();
     if let Some(argumentos) = con_cancelar.as_object_mut() {
@@ -157,8 +168,8 @@ fn comprobar_proyecto_libre(args: &Value, idioma: Idioma) -> Result<()> {
         return Ok(());
     }
     let ya_en_ejecucion = Texto {
-        es: "'proyecto' no se puede abrir: PVsyst ya está en ejecución. Ciérralo (gui_actuar accion:cerrar_todo) y repite lanzar con proyecto",
-        en: "'proyecto' cannot be opened: PVsyst is already running. Close it (gui_actuar accion:cerrar_todo) and repeat lanzar with proyecto",
+        es: "'proyecto' no se puede abrir: PVsyst ya está en ejecución. Ciérralo (gui_actuar accion:cerrar_todo confirmar:true) y repite lanzar con proyecto",
+        en: "'proyecto' cannot be opened: PVsyst is already running. Close it (gui_actuar accion:cerrar_todo confirmar:true) and repeat lanzar with proyecto",
     };
     Err(Error::Gui(ya_en_ejecucion.en_idioma(idioma).into()))
 }
