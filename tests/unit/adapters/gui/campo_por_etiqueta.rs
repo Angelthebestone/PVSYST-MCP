@@ -19,6 +19,26 @@ fn ficha(habilitado: bool) -> Value {
     })
 }
 
+/// A state PVsyst could not report used to answer "desconocido" as the value
+/// of the control (4.1 of the visual GUI test report).
+#[test]
+fn should_return_an_error_when_the_state_of_an_option_cannot_be_read() {
+    let casilla = CampoEtiquetado {
+        hwnd: 0,
+        clase: "TCheckBox".into(),
+        etiqueta: Some("Activar pérdidas por sombreado".into()),
+        posicion: (0, 0),
+    };
+
+    let error = leer_valor(&casilla)
+        .expect_err("an unreadable option is not a value")
+        .to_string();
+
+    assert!(error.contains("Activar pérdidas por sombreado"), "{error}");
+    assert!(error.contains("TCheckBox"), "{error}");
+    assert!(error.contains("gui_observar"), "{error}");
+}
+
 /// A disabled control swallows the text and the click without a trace, so
 /// `accion:campo` answered `vista.estado:"ok"` with `antes == despues` (4.2 of
 /// the visual GUI test report).

@@ -49,14 +49,27 @@ fn campos_de(ficha: &Value) -> Result<Vec<CampoEtiquetado>> {
         .collect()
 }
 
-/// Current value of a field as text, for the before/after report.
-fn leer_valor(c: &CampoEtiquetado) -> String {
+/// The error of an option whose state PVsyst did not report: it names the
+/// label, the class and the control, and says how to read it again.
+fn opcion_ilegible(c: &CampoEtiquetado) -> Error {
+    let etiqueta = c.etiqueta.as_deref().unwrap_or(c.clase.as_str());
+    Error::Gui(format!(
+        "Could not read the state of the option '{etiqueta}' ({}, 0x{:X}): PVsyst did not answer in {} ms. gui_observar que:formulario (or que:controles) shows the control, and gui_actuar accion:campo retries once the form answers",
+        c.clase,
+        c.hwnd,
+        ffi::TIMEOUT_MENSAJE_MS
+    ))
+}
+
+/// Current value of a field as text, for the before/after report. An option
+/// whose state cannot be read is an error, not a value the control never held.
+fn leer_valor(c: &CampoEtiquetado) -> Result<String> {
     if CLASES_OPCION.contains(&c.clase.as_str()) {
         return esta_marcado(c.hwnd)
             .map(|m| m.to_string())
-            .unwrap_or_else(|| "desconocido".to_string());
+            .ok_or_else(|| opcion_ilegible(c));
     }
-    ffi::texto_control(c.hwnd)
+    Ok(ffi::texto_control(c.hwnd))
 }
 
 fn poner_valor(f: &Formulario, c: &CampoEtiquetado, valor: &str) -> Result<()> {
@@ -168,14 +181,15 @@ pub(crate) fn campo(
         .and_then(Value::as_str)
         .unwrap_or_default();
     let formulario = Formulario::de(hwnd_de_texto(ventana_str)?);
-    let antes = leer_valor(&elegido);
+    let antes = leer_valor(&elegido)?;
     poner_valor(&formulario, &elegido, valor)?;
+    let despues = leer_valor(&elegido)?;
     Ok(json!({
         "accion": "campo",
         "etiqueta": elegido.etiqueta,
         "clase": elegido.clase,
         "antes": antes,
-        "despues": leer_valor(&elegido),
+        "despues": despues,
     }))
 }
 

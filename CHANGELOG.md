@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **`gui_actuar accion:campo` fails when it cannot read the state of a check box or radio button.**
+  An unreadable state was reported as `antes`/`despues:"desconocido"`, a value the control never
+  held, so the caller could take a read failure for the value PVsyst left. The read now returns an
+  error that names the label, the class and the hwnd of the control, and points at
+  `gui_observar que:formulario` (or `que:controles`) and a retry with `accion:campo`.
 - **`gui_actuar accion:campo` refuses a field PVsyst reports disabled (4.2 of the visual GUI test report).**
   A disabled control swallows the text and the click without a trace, so the call answered
   `vista.estado:"ok"` with `antes == despues` and the caller believed the value had been set. The
