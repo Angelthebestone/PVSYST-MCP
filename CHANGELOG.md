@@ -44,16 +44,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   naming the modal. A window still open after the rounds is now `parado`, with its class and title and the
   refusal `accion:cerrar` answered, and `pulsar_botones` stops there as it already did with an unknown
   dialog; nothing is pressed after it.
-- **The coverage count of `gui_observar que:esquema` adds every sub-tab of a page.** A page of
-  `docs/gui_mapa.json` may now carry `subpestana`, but the counter keyed pages by `pestana` alone, so a
-  window with nested sheets (`TPVModuleForm`, «Parámetros del modelo» → «Degradación», «IAM
-  personalizado») kept only the fullest sub-tab and the fields of the others were never counted. Each
-  (`pestana`, `subpestana`) pair is one page now: distinct sub-tabs are summed and repeats of one pair still
-  keep its fullest page. An empty, blank or non-text `subpestana` is no sub-tab at all, so the page falls
-  back to its tab instead of opening a key of its own (a blank key hid the parent page behind a phantom
-  sub-tab), and a tab recorded both with and without sub-tabs is counted by its sub-tabs alone: the parent
-  page is the screen of one of them, so adding both counted its fields twice. No page of the map carries the
-  field yet, so today's `campos_en_mapa` and `botones_en_mapa` do not change.
+- **The coverage count of `gui_observar que:esquema` counts a tab by the union of the labels on its
+  pages.** It kept one page per (`pestana`, `subpestana`) pair and, when a tab had sub-tabs (`TPVModuleForm`,
+  «Parámetros del modelo» → «Degradación», «IAM personalizado»), counted it by its sub-tabs alone. Two facts
+  about `docs/gui_mapa.json` contradict that: `paginas[].botones` is not per page (`tools/medir_inventario.py`
+  stores the whole form's buttons in every tab, so a tab with three sub-tabs brought OK, Cancelar and
+  Imprimir three times), and a parent page whose fields live outside the sub-tab control was dropped. A tab
+  now counts the distinct fields by (`clase`, `etiqueta`) and the distinct buttons by their text over every
+  page it recorded, with or without a sub-tab, so what every sub-tab shares counts once. `subpestana` no
+  longer takes part. A field with no label counts by its position in its page: two of them on one page stay
+  apart, and the same position on two pages of one tab is one field. The union can fall short, which is the
+  safe error for a coverage figure: two different fields of one tab that share class and label collapse into
+  one. The figures move even though no page of the map carries `subpestana` yet: 40 of the 89 classes change,
+  the sum of `campos_en_mapa` goes 1962 → 1837 and of `botones_en_mapa` 651 → 639, and three grow because the
+  old rule kept a single page per tab (`TTrackerFieldForm` 22 → 50 fields, `TShedFieldForm` 17 → 45 and
+  `TPolyFieldForm` 16 → 25).
 - **`gui_actuar accion:funcion` with `variante.necesidades_usuario_independiente` works on both kinds
   of stand-alone project.** Measured on 8.1.8, the demo `_DEMO_StandAlone` makes that button open
   `TDomesticUseForm`, while a project created with `disenar_sistema tipo_sistema:aislado` makes it open
