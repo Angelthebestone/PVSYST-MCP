@@ -162,8 +162,23 @@ def cargar_proyecto(c: Cliente, nombre: str) -> str | None:
     return None
 
 
+def _cerrar_proyecto(c: Cliente) -> str | None:
+    """Close a loaded project: a chain without `@proyecto` runs from the home window,
+    which a project window disables. An error text, or None."""
+    if not any(w["class"] == "TProjectForm" for w in ventanas(c)):
+        return None
+    c.tool("gui_actuar", {"accion": "cerrar", "ventana": "TProjectForm"})
+    _dormir(0.8)
+    quedan = limpiar(c)
+    return f"could not close the project window: {quedan}" if quedan else None
+
+
 def abrir(c: Cliente, cadena: str, clase: str) -> str | None:
     """Run the chain of steps; an error text, or None when `clase` is open."""
+    if not cadena.startswith("@proyecto:"):
+        fallo = _cerrar_proyecto(c)
+        if fallo:
+            return fallo
     for paso in cadena.split(","):
         if paso.startswith("@proyecto:"):
             fallo = cargar_proyecto(c, paso.split(":", 1)[1])

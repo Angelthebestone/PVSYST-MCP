@@ -62,6 +62,22 @@ def test_abrir_runs_the_chain_and_reports_a_window_that_did_not_open() -> None:
     assert "unknown function z" in str(abrir(c, "z", "TA"))
 
 
+def test_abrir_a_chain_without_project_closes_the_loaded_one_first() -> None:
+    c = PVsystFalso({}, {"herramientas.x": "TX"})
+    c.abiertas.append({"class": "TProjectForm", "title": "Proyecto _DEMO_Foo"})
+
+    assert abrir(c, "herramientas.x", "TX") is None
+    assert [w["class"] for w in c.abiertas] == ["THomeForm", "TX"]
+
+
+def test_abrir_a_chain_with_project_keeps_the_loaded_one() -> None:
+    c = PVsystFalso({}, {"variante.x": "TX"})
+    c.abiertas.append({"class": "TProjectForm", "title": "Proyecto _DEMO_Foo"})
+
+    assert abrir(c, "@proyecto:_DEMO_Foo,variante.x", "TX") is None
+    assert "TProjectForm" in [w["class"] for w in c.abiertas]
+
+
 def test_abrir_tolerates_the_host_window_opening_another_one() -> None:
     c = PVsystFalso({}, {"a": "TA"})
     llamar = c.tool
