@@ -1,4 +1,5 @@
 use super::*;
+use crate::adapters::gui::ventana_falsa::{Hijo, VentanaFalsa};
 use crate::idioma::Idioma;
 use crate::vista_agente::contrato::{construir, Contexto};
 
@@ -49,6 +50,39 @@ fn should_leave_a_click_with_an_ocr_match_as_it_was() {
     marcar_sin_ocr(&mut resultado, Origen::Ocr, Idioma::Es);
 
     assert!(resultado.get("error").is_none());
+}
+
+/// The shortcut the CHANGELOG recorded and the README now states: `indice` counts the texts drawn
+/// on screen, so it skips the button whose caption is that text. `clic_texto {texto:"Abrir",
+/// indice:0}` on a form with two «Abrir» buttons presses the drawn text instead of refusing the
+/// shared caption.
+#[test]
+fn should_skip_the_button_of_that_caption_when_an_index_picks_the_drawn_text() {
+    let form = VentanaFalsa::crear(
+        "TSystemegridForm",
+        "Sistema",
+        vec![
+            Hijo::de("TButton", (20, 40, 100, 64)).con_texto("Abrir"),
+            Hijo::de("TBitBtn", (200, 40, 280, 64)).con_texto("&Abrir"),
+        ],
+    );
+    let completo = Pedido {
+        texto: "Abrir",
+        indice: None,
+    };
+    let con_indice = Pedido {
+        texto: "Abrir",
+        indice: Some(0),
+    };
+
+    let atajo = boton_del_pedido(form.hwnd(0), con_indice, Idioma::Es).expect("no error");
+    let todo = boton_del_pedido(form.hwnd(0), completo, Idioma::Es);
+
+    assert_eq!(atajo, None, "con 'indice' se salta el paso del botón");
+    assert!(
+        todo.is_err(),
+        "sin 'indice' el rótulo compartido se rechaza: {todo:?}"
+    );
 }
 
 /// 4.1-4: a click that changed nothing used to answer as a success.

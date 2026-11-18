@@ -131,6 +131,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `descartar_cambios` by name, since it presses Cancelar/No and never accepts a question.
 
 ### Changed
+- **The READMEs say that `clic_texto`'s `indice` skips the button whose caption is the text.** The
+  shortcut was deliberate (`indice` counts the texts drawn on screen, not the buttons) but only the
+  CHANGELOG recorded it, so passing `indice` to a form with two «Abrir» buttons got the drawn text
+  without a word on why, and nothing failed if it stopped working. Both READMEs say it next to the
+  shared-caption refusal, and a test pins it: with `indice` the button search does not run, without it
+  the caption two buttons share is still refused. Documentation and one test only: the behaviour is
+  unchanged.
 - **`gui_observar` says what each `que` costs and which `que` each argument applies to.**
   The description repeated the fifteen `que` values the schema already lists and said nothing about
   their cost, so an agent could spend an OCR pass (`que:formulario`, which only labels the visible

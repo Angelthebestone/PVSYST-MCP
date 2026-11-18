@@ -152,15 +152,11 @@ struct Destino {
 
 /// Screen point to click for `texto`. The caption a control carries wins: a
 /// person asking for «Abrir» means the button, not the combo box that shows the
-/// same word. `indice` counts the drawn matches, so it skips that step; without
-/// a control named that, the OCR box it picks, or the UIA element of that name
-/// when OCR does not draw the text (VCL buttons sometimes lack pixels).
+/// same word. Without a control named that, the OCR box it picks, or the UIA
+/// element of that name when OCR does not draw the text (VCL buttons sometimes
+/// lack pixels).
 fn destino_de_clic(h: Hwnd, pedido: Pedido<'_>, idioma: Idioma) -> Result<Destino> {
-    let boton = match pedido.indice {
-        None => boton_con_caption(h, pedido.texto, idioma)?,
-        Some(_) => None,
-    };
-    if let Some(punto) = boton {
+    if let Some(punto) = boton_del_pedido(h, pedido, idioma)? {
         return Ok(Destino {
             punto,
             origen: Origen::Control,
@@ -186,6 +182,17 @@ fn destino_de_clic(h: Hwnd, pedido: Pedido<'_>, idioma: Idioma) -> Result<Destin
         }
         Err(ocr) => Err(ocr),
     }
+}
+
+/// The button this request presses, if any. `indice` counts the texts drawn on
+/// screen, so it skips the search for a button whose caption is that text:
+/// `clic_texto {texto:"Abrir", indice:0}` presses the drawn text even when a
+/// button shows the same word, and never refuses a shared caption.
+fn boton_del_pedido(h: Hwnd, pedido: Pedido<'_>, idioma: Idioma) -> Result<Option<(i32, i32)>> {
+    if pedido.indice.is_some() {
+        return Ok(None);
+    }
+    boton_con_caption(h, pedido.texto, idioma)
 }
 
 /// UIA stands in only when OCR drew no match at all. A match refused for its
