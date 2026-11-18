@@ -198,3 +198,7 @@ def test_running_it_twice_leaves_the_same_bytes_as_once(tmp_path: Path) -> None:
     assert mapa.read_bytes() == una_vez
     assert main(["--check", *argumentos]) == 0
     assert len(cargar(mapa)["ventanas"]["TSeguidorForm"]["instancias"]) == 2
+
+
+def test_the_committed_map_is_what_the_committed_inventory_generates() -> None:
+    assert main(["--check"]) == 0
