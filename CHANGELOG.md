@@ -20,11 +20,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and `habilitado` per field); `TOrientationForm` keeps the tracker instance and gains the fixed-tilt one.
   Each regenerated instance carries `estado_medido` (`"Sin almacenamiento"`, `"P50-P90 con Activo
   desmarcado"`, the fixed tilt of the demo project, or `"no registrado"` where the report does not say),
-  and `limites` states that everything else is still truncated at 13 (72 of 265 pages hold exactly 13),
-  that `TPVModuleForm` has four tabs recorded as the first one, and that some OCR labels are values. The
-  rest of the map is unchanged byte for byte; `python tools/mapa_desde_inventario.py --check` fails when
-  the map is not what the script writes. Pending, needs a live PVsyst: `TPVModuleForm`, the remaining
-  ~80 windows, the other openings of the regenerated ones.
+  and `limites` states that everything else is still truncated at 13 (72 of 265 pages held exactly 13
+  then), and that some OCR labels are values. The rest of the map is unchanged byte for byte; `python
+  tools/mapa_desde_inventario.py --check` fails when the map is not what the script writes.
+  A second pass measured live on PVsyst 8.1.8 (0 trial executions, nothing saved) 20 more windows:
+  `TPVModuleForm` (its 5 tabs were the same page; now 6 distinct ones, `Parámetros del modelo` exists only
+  once the module is complete, and the form vetoes the tab change until it is), `TGridInverterForm` (76 →
+  122 fields in the `bases_de_datos.inversores_red>Nuevo` instance), `TBatteryForm`, `TArrayCharactForm`,
+  `TParamSolForm`, `TPreferencesForm`, `TSAControllerForm`, `TPumpForm`, `TPumpControllerForm`,
+  `TGeneratorForm`, `TContactForm`, `TMeteoImportForm`, `TMeteoTablesGraphsForm`, `TVoltageOptimiseForm`,
+  `TTranspositionForm`, and on a pumping project `TSettingsForm`, `TGeoSiteForm`, `TSystemPumpingForm`,
+  `TWaterUseForm` and `TCurrenciesForm`. Pages that hold exactly 13 fields: 33 of 265. The inventory now
+  keeps `etiqueta_fuente` per field and the tab and group-box captions per page. Corrected: the first pass
+  said its labels were free of OCR; they come from `que:formulario`, which includes it. Still pending:
+  `TGeoSiteForm` via `Nuevo` (button disabled), the windows of stand-alone, DC-grid and 3D-scene projects,
+  the other openings of the regenerated windows, nested sheets (`pagina` only changes the main page
+  control), and the seven `no registrado` states.
 - **`vista.recortado` names a list `detalle` cut inside an object.** A project with more than 13 variants
   answered `truncado:true`, 13 `variants` and `variants_total:16` inside the project, and `vista.recortado`
   stayed empty: the trimmer writes `<clave>_total` next to the list it cut at whatever depth, but the vista
