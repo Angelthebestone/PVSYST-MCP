@@ -7,14 +7,20 @@ use super::conduccion::Formulario;
 use super::ffi::{self, Hwnd};
 use super::ocr::seleccion::{campo_por_etiqueta, valor_logico, CampoEtiquetado, Desambiguador};
 use super::ocr::{self, esta_marcado};
+use super::sondeo::sondear_hasta;
 use crate::args::{opt_u32, req_str};
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
+use std::time::Duration;
 
 pub(crate) const CLASES_TEXTO: &[&str] =
     &["TEdit", "TMemo", "TLabeledEdit", "TMaskEdit", "TSpinEdit"];
 pub(crate) const CLASES_LISTA: &[&str] = &["TComboBox", "TComboBoxEx", "TListBox"];
 const CLASES_OPCION: &[&str] = &["TCheckBox", "TRadioButton"];
+/// How long a check box gets to show the state the click asked for: the click
+/// is posted, so a read right after it can still return the old state.
+const ESPERA_CASILLA: Duration = Duration::from_millis(1_000);
+const SONDEO_CASILLA: Duration = Duration::from_millis(50);
 
 fn hwnd_de_texto(texto: &str) -> Result<Hwnd> {
     texto
@@ -72,6 +78,34 @@ fn leer_valor(c: &CampoEtiquetado) -> Result<String> {
     Ok(ffi::texto_control(c.hwnd))
 }
 
+/// The click was posted but the control did not show the requested state:
+/// answering success would send the old state back as the new one.
+fn error_marca(c: &CampoEtiquetado, pedido: bool, leido: Option<bool>) -> Error {
+    let etiqueta = c.etiqueta.as_deref().unwrap_or(c.clase.as_str());
+    let leido = leido.map_or_else(
+        || "no answer from PVsyst".to_string(),
+        |marcado| marcado.to_string(),
+    );
+    Error::Gui(format!(
+        "The option '{etiqueta}' ({}) asked for '{pedido}' still reads '{leido}' when its {} ms deadline ran out. gui_observar que:formulario (or que:controles) shows the current state; gui_actuar accion:campo retries once the form answers",
+        c.clase,
+        ESPERA_CASILLA.as_millis()
+    ))
+}
+
+fn esperar_marca(c: &CampoEtiquetado, pedido: bool) -> Result<()> {
+    let mut leido = None;
+    let alcanzado = sondear_hasta(ESPERA_CASILLA, SONDEO_CASILLA, || {
+        leido = esta_marcado(c.hwnd);
+        leido.filter(|marcado| *marcado == pedido)
+    })
+    .is_some();
+    if alcanzado {
+        return Ok(());
+    }
+    Err(error_marca(c, pedido, leido))
+}
+
 fn poner_valor(f: &Formulario, c: &CampoEtiquetado, valor: &str) -> Result<()> {
     let clase = c.clase.as_str();
     if CLASES_TEXTO.contains(&clase) {
@@ -85,11 +119,11 @@ fn poner_valor(f: &Formulario, c: &CampoEtiquetado, valor: &str) -> Result<()> {
         return Err(Error::Invalid(format!("The list offers no '{valor}'")));
     }
     if CLASES_OPCION.contains(&clase) {
-        let marcado = esta_marcado(c.hwnd).ok_or_else(|| {
-            Error::Gui("PVsyst did not answer in 3 s when reading the check box state".into())
-        })?;
-        if marcado != valor_logico(valor)? {
+        let pedido = valor_logico(valor)?;
+        let marcado = esta_marcado(c.hwnd).ok_or_else(|| opcion_ilegible(c))?;
+        if marcado != pedido {
             clic_por_mensajes(c.hwnd)?;
+            esperar_marca(c, pedido)?;
         }
         return Ok(());
     }

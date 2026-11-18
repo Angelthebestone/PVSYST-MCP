@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **`gui_actuar accion:campo` reports the check box state PVsyst actually holds after the click.**
+  The click is posted, so the immediate read returned the old state and `despues` repeated `antes`
+  even when PVsyst had applied the value. After clicking an option the call now waits, with a 1 s
+  deadline, for `BM_GETCHECK` to report the requested state and answers `despues` from that real read;
+  if the state never matches, it fails and names what was requested and what the control still reads
+  instead of reporting success. `TEdit` and the other field types keep their path.
 - **`gui_actuar accion:campo` fails when it cannot read the state of a check box or radio button.**
   An unreadable state was reported as `antes`/`despues:"desconocido"`, a value the control never
   held, so the caller could take a read failure for the value PVsyst left. The read now returns an

@@ -39,6 +39,34 @@ fn should_return_an_error_when_the_state_of_an_option_cannot_be_read() {
     assert!(error.contains("gui_observar"), "{error}");
 }
 
+/// 4.1: the posted click was not awaited, so a check box that ignored it still
+/// answered success with the old value as `despues`.
+#[test]
+fn should_fail_when_the_check_box_does_not_take_the_requested_value() {
+    use crate::adapters::gui::ventana_falsa::{Hijo, VentanaFalsa};
+    let forma = VentanaFalsa::crear(
+        "TFormaCasilla",
+        "Casilla",
+        vec![Hijo::de("TCheckBox", (5, 5, 220, 30)).con_texto("Sombreado")],
+    );
+    let casilla = CampoEtiquetado {
+        hwnd: forma.hwnd(1),
+        clase: "TCheckBox".into(),
+        etiqueta: Some("Sombreado".into()),
+        posicion: (0, 0),
+    };
+    let formulario = Formulario::de(forma.hwnd(0));
+
+    let error = poner_valor(&formulario, &casilla, "true")
+        .expect_err("a click the control did not take is not a success")
+        .to_string();
+
+    assert!(error.contains("Sombreado"), "{error}");
+    assert!(error.contains("'true'"), "{error}");
+    assert!(error.contains("'false'"), "{error}");
+    assert!(error.contains("gui_observar"), "{error}");
+}
+
 /// A disabled control swallows the text and the click without a trace, so
 /// `accion:campo` answered `vista.estado:"ok"` with `antes == despues` (4.2 of
 /// the visual GUI test report).
