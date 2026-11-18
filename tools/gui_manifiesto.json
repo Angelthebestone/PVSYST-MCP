@@ -1,0 +1,15 @@
+[
+  {"clave": "TArrayCharactForm", "ventana": "TArrayCharactForm", "cadena": "inicio.herramientas,herramientas.comportamiento_electrico"},
+  {"clave": "TParamSolForm", "ventana": "TParamSolForm", "cadena": "inicio.herramientas,herramientas.parametros_solares"},
+  {"clave": "TVoltageOptimiseForm", "ventana": "TVoltageOptimiseForm", "cadena": "inicio.herramientas,herramientas.optimizacion_voltaje"},
+  {"clave": "TTranspositionForm", "ventana": "TTranspositionForm", "cadena": "inicio.herramientas,herramientas.factor_transposicion"},
+  {"clave": "TPreferencesForm", "ventana": "TPreferencesForm", "cadena": "configuraciones.preferencias"},
+  {"clave": "TBatteryForm", "ventana": "TBatteryForm", "cadena": "inicio.bases_de_datos,bases_de_datos.baterias,bases_de_datos.baterias.nuevo"},
+  {"clave": "TPumpForm", "ventana": "TPumpForm", "cadena": "inicio.bases_de_datos,bases_de_datos.bombas,bases_de_datos.bombas.nuevo"},
+  {"clave": "TPumpControllerForm", "ventana": "TPumpControllerForm", "cadena": "inicio.bases_de_datos,bases_de_datos.controladores_bombeo,bases_de_datos.controladores_bombeo.nuevo"},
+  {"clave": "TSAControllerForm", "ventana": "TSAControllerForm", "cadena": "inicio.bases_de_datos,bases_de_datos.controladores_independientes,bases_de_datos.controladores_independientes.nuevo"},
+  {"clave": "TGeneratorForm", "ventana": "TGeneratorForm", "cadena": "inicio.bases_de_datos,bases_de_datos.generadores,bases_de_datos.generadores.nuevo"},
+  {"clave": "TContactForm", "ventana": "TContactForm", "cadena": "inicio.bases_de_datos,bases_de_datos.fabricantes_minoristas,bases_de_datos.fabricantes_minoristas.nuevo"},
+  {"clave": "TMeteoImportForm", "ventana": "TMeteoImportForm", "cadena": "inicio.bases_de_datos,bases_de_datos.importar_formato_conocido"},
+  {"clave": "TMeteoTablesGraphsForm", "ventana": "TMeteoTablesGraphsForm", "cadena": "inicio.bases_de_datos,bases_de_datos.tablas_graficos_meteo"}
+]
