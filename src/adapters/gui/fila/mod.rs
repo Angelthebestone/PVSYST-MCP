@@ -16,35 +16,33 @@ mod error;
 mod geometria;
 mod lectura;
 mod registro;
+mod verificacion;
 
 use super::acciones::exigir_escritorio;
-use super::captura::{rgb_de_control, ImagenRgb};
+use super::captura::rgb_de_control;
 use super::clic_fisico::{clic_fisico_en_control, PuntoPedido};
-use super::conduccion::formularios;
 use super::efecto::{Efecto, Instantanea};
 use super::escritorio;
 use super::ffi::{self, Hwnd, GA_ROOT};
 use super::modal;
 use super::primer_plano;
-use super::ventanas::{class_of, hwnd_de, pid_of, text_of, visible};
+use super::ventanas::{class_of, hwnd_de, text_of, visible};
 use crate::args::{flag, missing, opt_u32};
 use crate::error::{Error, Result};
 use crate::idioma::{Idioma, Texto};
-use banda::Capturas;
 use error::ErrorFila;
 use geometria::Geometria;
 use registro::Control;
 use serde_json::{json, Value};
 use std::time::Duration;
+use verificacion::{
+    exigir_banda_en, exigir_foco, exigir_sin_activacion, exigir_texto_pedido, ventanas_del_proceso,
+};
 
 /// Time PVsyst needs to repaint the selection after the click.
 const REPINTADO: Duration = Duration::from_millis(250);
-/// Time Windows needs to finish bringing a window to the front.
-const ESPERA_PRIMER_PLANO: Duration = Duration::from_millis(80);
 /// Time PVsyst needs to open (or close) the element after Enter.
 const ESPERA_APERTURA: Duration = Duration::from_millis(700);
-/// Hint windows come and go with the mouse: they are not what the click did.
-const CLASE_AVISO: &str = "THintWindow";
 /// Virtual key of Enter: the default button of the form (its OK) answers it.
 const VK_RETURN: u8 = 0x0D;
 
@@ -55,8 +53,6 @@ struct Pedido<'a> {
     indice: usize,
 }
 
-type VentanaConClase = (Hwnd, String);
-
 fn indice_de(args: &Value) -> Result<usize> {
     let indice = opt_u32(args, "indice")?.ok_or_else(|| {
         missing(
@@ -65,81 +61,6 @@ fn indice_de(args: &Value) -> Result<usize> {
         )
     })?;
     Ok(usize::try_from(indice).unwrap_or(usize::MAX))
-}
-
-/// Windows of the process of `h`, with their class: what a click must not change.
-fn ventanas_del_proceso(h: Hwnd) -> Vec<VentanaConClase> {
-    formularios(pid_of(h))
-        .into_iter()
-        .map(|v| (v, class_of(v)))
-        .filter(|(_, clase)| clase != CLASE_AVISO)
-        .collect()
-}
-
-/// Classes of the windows of `de` that are not in `contra`.
-fn clases_de_las_que_faltan(de: &[VentanaConClase], contra: &[VentanaConClase]) -> String {
-    de.iter()
-        .filter(|(v, _)| !contra.iter().any(|(c, _)| c == v))
-        .map(|(_, clase)| clase.as_str())
-        .collect::<Vec<_>>()
-        .join(", ")
-}
-
-/// The click must not have closed the control, opened a window or closed one:
-/// that is PVsyst taking the click as an action on the element.
-fn exigir_sin_activacion(p: &Pedido<'_>, antes: &[VentanaConClase]) -> Result<()> {
-    if !ffi::es_ventana(p.h) || !visible(p.h) {
-        let clase = class_of(p.h);
-        return Err(ErrorFila::ControlCerrado {
-            indice: p.indice,
-            clase,
-        }
-        .a_error());
-    }
-    let despues = ventanas_del_proceso(p.h);
-    let abiertas = clases_de_las_que_faltan(&despues, antes);
-    if !abiertas.is_empty() {
-        let (indice, clases) = (p.indice, abiertas);
-        return Err(ErrorFila::Activada { indice, clases }.a_error());
-    }
-    let cerradas = clases_de_las_que_faltan(antes, &despues);
-    if !cerradas.is_empty() {
-        let (indice, clases) = (p.indice, cerradas);
-        return Err(ErrorFila::VentanaCerrada { indice, clases }.a_error());
-    }
-    Ok(())
-}
-
-/// The band that appeared (or stayed) must be exactly the requested row.
-fn exigir_banda_en(p: &Pedido<'_>, antes: &ImagenRgb) -> Result<()> {
-    let despues = rgb_de_control(p.h)?;
-    let capturas = Capturas {
-        antes,
-        despues: &despues,
-    };
-    let filas = banda::filas_seleccionadas(&capturas, p.geom);
-    match filas.as_slice() {
-        [leida] if *leida == p.indice => Ok(()),
-        [leida] => Err(ErrorFila::FilaDistinta {
-            pedida: p.indice,
-            leida: *leida,
-        }
-        .a_error()),
-        [] => Err(ErrorFila::NingunaResaltada { indice: p.indice }.a_error()),
-        _ => Err(ErrorFila::Ambigua { filas }.a_error()),
-    }
-}
-
-/// With the focus on another control (a combo) the first click only moves the
-/// focus and the row stays as it was, and a second click would be a double click
-/// that opens the element: so the click is only sent once the window is in front
-/// and the control has the focus.
-fn exigir_foco(h: Hwnd) -> Result<()> {
-    if ffi::traer_y_focar(h, ESPERA_PRIMER_PLANO) {
-        return Ok(());
-    }
-    let clase = class_of(ffi::get_ancestor(h, GA_ROOT));
-    Err(ErrorFila::SinFoco { clase }.a_error())
 }
 
 fn exigir_escritorio_medido() -> Result<()> {
@@ -237,16 +158,6 @@ fn clases_visibles(hijos: &[(Hwnd, String)]) -> String {
     } else {
         clases.join(", ")
     }
-}
-
-/// Row text the caller expects, read by OCR and compared. `None` when none was asked.
-fn exigir_texto_pedido(args: &Value, p: &Pedido<'_>) -> Result<Option<String>> {
-    let Some(pedido) = args.get("texto").and_then(Value::as_str) else {
-        return Ok(None);
-    };
-    let leido = lectura::leer(p.h, p.geom, p.indice).map_err(ErrorFila::a_error)?;
-    lectura::exigir_texto(&leido, pedido, p.indice).map_err(ErrorFila::a_error)?;
-    Ok(Some(leido))
 }
 
 /// `abrir:true` and `confirmar:true` both press Enter on the selected row.
