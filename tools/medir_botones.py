@@ -2,11 +2,12 @@
 
 Every press is one `gui_actuar accion:clic_texto`; `botones_abren` records the
 windows each press opened, and only those are closed, reopening the host when the
-button closed it. Pressing is where a measurement could stop being
-one: a text starting with an entry of `DENEGADOS` is never pressed because it
-commits the window's state, destroys it or starts a flow this tool cannot unwind, and
-those words (`OK`, `Guardar`, `Aplicar`, `Eliminar`, `Siguiente`…) are the buttons of
-almost every dialog. At most `MAX_PULSACIONES` presses per target.
+button closed it. Only a label whose normalized text starts with an entry of
+`PERMITIDOS` is pressed: this tool measures, so it opens read-only views and never a
+label that commits the window's state, destroys it or starts a flow it cannot unwind.
+Every button it does not press is recorded with its motive, so the reader of the JSON
+tells «not pressed» apart from «pressed and opened nothing». At most
+`MAX_PULSACIONES` presses per target.
 """
 
 from __future__ import annotations
@@ -17,37 +18,27 @@ from collections.abc import Collection
 from medir_cliente import Cliente, Json
 from medir_ventanas import _cerrar, _dormir, abrir, clases, ventanas
 
-# Never pressed while measuring, matched as a prefix of the text in lower case and
-# without accents: `OK`, `Cancelar` and `Cerrar` are the buttons of every dialog and
-# close the window being measured; the `Guardar`/`Aplicar`/`Establecer` family writes
-# the window's state (PVsyst then offers to save the demo project); `Eliminar`,
-# `Borrar`, `Reset` and `Reiniciar` destroy what is being measured; and `Nuevo`,
-# `Añadir`, `Importar`, `Exportar`, `Imprimir`, `Siguiente` and `Previo` leave the
-# window in a flow the measurement does not know how to unwind.
-DENEGADOS = (
-    "ok",
-    "cancelar",
-    "cerrar",
-    "guardar",
-    "eliminar",
-    "borrar",
-    "pegar",
-    "copiar",
-    "establecer",
-    "aplicar",
-    "optimizar",
-    "linealizar",
-    "imprimir",
-    "exportar",
-    "siguiente",
-    "previo",
-    "añadir",
-    "nuevo",
-    "importar",
-    "leer / importar",
-    "horizonte despejado",
-    "reiniciar",
-    "reset",
+# White list, not a black list: a label this tool does not know is left alone.
+# A black list misses the next synonym, and the windows add one every release: one
+# unknown label that commits the window (Aceptar, Sí, Reemplazar, Simular, Ejecutar,
+# Calcular, Actualizar, Despejar, Crear, Elaborar, Conversión, Abortar) turns a
+# measurement into an edit. These prefixes only open a view. Compared in lower case,
+# without accents, `&` or ellipsis.
+PERMITIDOS = (
+    "mostrar",
+    "ver",
+    "abrir",
+    "curva",
+    "grafico",
+    "histograma",
+    "tabla",
+    "resumen del sistema",
+    "detalles",
+    "detalle",
+    "ayuda",
+    "vista",
+    "perspectiva",
+    "diagrama",
 )
 # A form with many tabs lists hundreds of buttons and each press costs a click, two
 # window reads and a wait; the cap keeps one target from eating the whole session.
@@ -72,24 +63,27 @@ def cerrar_nuevas(c: Cliente, previas: Collection[str]) -> dict[str, str]:
     return pulsados
 
 
-def _sin_acentos(texto: str) -> str:
-    """Lower case without accents: «Añadir» and «anadir» must compare equal."""
+def _normalizado(texto: str) -> str:
+    """Lower case without accents, `&` or ellipsis: what both lists compare."""
     descompuesto = unicodedata.normalize("NFD", texto.lower())
-    return "".join(c for c in descompuesto if not unicodedata.combining(c))
+    sin_acentos = "".join(c for c in descompuesto if not unicodedata.combining(c))
+    return sin_acentos.replace("&", "").replace("...", "").replace("…", "").strip()
 
 
-def _denegado(texto: str) -> bool:
-    """Whether a button text is on the list this run never presses."""
-    normal = _sin_acentos(texto)
-    return any(normal.startswith(_sin_acentos(d)) for d in DENEGADOS)
+def _permitido(texto: str) -> bool:
+    """Whether a button text starts with a prefix of the white list."""
+    normal = _normalizado(texto)
+    return any(normal.startswith(_normalizado(p)) for p in PERMITIDOS)
 
 
-def _pulsable(boton: Json) -> str | None:
-    """The text to press, or None for a button this run must not press."""
+def _motivo(boton: Json) -> str | None:
+    """Why this run does not press the button, or None when it does."""
     texto = str(boton.get("texto") or "").strip()
-    if not texto or boton.get("habilitado") is not True:
-        return None
-    return None if _denegado(texto) else texto
+    if not texto:
+        return "vacío"
+    if boton.get("habilitado") is not True:
+        return "deshabilitado"
+    return None if _permitido(texto) else "no está en la lista blanca"
 
 
 def _error_de(respuesta: Json) -> str | None:
@@ -156,13 +150,18 @@ def pulsar_botones(c: Cliente, objetivo: Json, medida: Json) -> list[Json]:
     """
     clase = objetivo["ventana"]
     registros: list[Json] = []
+    pulsados = 0
     for pestana in medida["pestanas"]:
         for boton in pestana["botones"]:
-            texto = _pulsable(boton)
-            if texto is None:
+            texto = str(boton.get("texto") or "").strip()
+            motivo = _motivo(boton)
+            if motivo is not None:
+                registros.append({"boton": texto, "pulsado": False, "motivo": motivo})
                 continue
-            if len(registros) >= MAX_PULSACIONES:
-                return registros
+            if pulsados >= MAX_PULSACIONES:
+                registros.append({"boton": texto, "pulsado": False, "motivo": "tope"})
+                continue
+            pulsados += 1
             # A press can switch the tab: the buttons on screen are not always the
             # ones this tab lists, and a text shared by two tabs would hit the wrong one.
             previas = clases(c)

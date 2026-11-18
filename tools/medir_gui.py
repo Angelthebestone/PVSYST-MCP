@@ -12,15 +12,19 @@ project loader (PVsyst's shipped `_DEMO_*` projects are read-only, so nothing is
 saved: any «¿Desea guardarla?» or «¿mantener modificaciones?» prompt is answered No).
 Only one agent may drive the PVsyst GUI at a time. Nothing is filled in or saved.
 
-`--botones` also presses the enabled buttons of every tab, one `gui_actuar
-accion:clic_texto` per button, and records in the entry's `botones_abren` the windows
-each press opened, closing only those and reopening the host when the button closed
-it: most windows of the map are reached through a button, so reading the labels alone
-leaves them unmeasured. Pressing is where a measurement could stop being one: a text
-that starts with an entry of `DENEGADOS` is never pressed because it commits the
-window's state, destroys it or starts a flow this script cannot unwind, and those
-words (`OK`, `Guardar`, `Aplicar`, `Eliminar`, `Siguiente`…) are the buttons of almost
-every dialog. At most `MAX_PULSACIONES` presses per target.
+`--botones` also presses the enabled buttons whose label is on a white list of
+read-only views (`Mostrar`, `Ver`, `Abrir`, `Curva`, `Gráfico`, `Tabla`, `Detalles`,
+`Ayuda`, `Vista`, `Diagrama`…), one `gui_actuar accion:clic_texto` per button, and
+records in the entry's `botones_abren` the windows each press opened, closing only
+those and reopening the host when the button closed it: most windows of the map are
+reached through a button, so reading the labels alone leaves them unmeasured. A
+label outside the white list is never pressed, because it may commit the window's
+state, destroy it or start a flow this script cannot unwind, and the verbs that do
+that (`OK`, `Aceptar`, `Sí`, `Guardar`, `Aplicar`, `Eliminar`, `Simular`…) change with
+every release. Each button it does not press is recorded with its motive
+(`no está en la lista blanca`, `deshabilitado`, `vacío`, `tope`), so the JSON tells
+«not pressed» apart from «pressed and opened nothing». At most `MAX_PULSACIONES`
+presses per target.
 
 This module is the command line only: the target, the client, the windows, the tabs
 and the presses live in the sibling modules `medir_objetivo.py`, `medir_cliente.py`,
