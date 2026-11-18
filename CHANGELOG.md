@@ -12,8 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `docs/gui_mapa.json` may now carry `subpestana`, but the counter keyed pages by `pestana` alone, so a
   window with nested sheets (`TPVModuleForm`, «Parámetros del modelo» → «Degradación», «IAM
   personalizado») kept only the fullest sub-tab and the fields of the others were never counted. Each
-  (`pestana`, `subpestana`) pair is one page now: distinct sub-tabs are summed, repeats of one pair still
-  keep its fullest page, and a page without `subpestana` counts as before. No page of the map carries the
+  (`pestana`, `subpestana`) pair is one page now: distinct sub-tabs are summed and repeats of one pair still
+  keep its fullest page. An empty, blank or non-text `subpestana` is no sub-tab at all, so the page falls
+  back to its tab instead of opening a key of its own (a blank key hid the parent page behind a phantom
+  sub-tab), and a tab recorded both with and without sub-tabs is counted by its sub-tabs alone: the parent
+  page is the screen of one of them, so adding both counted its fields twice. No page of the map carries the
   field yet, so today's `campos_en_mapa` and `botones_en_mapa` do not change.
 - **`gui_actuar accion:funcion` with `variante.necesidades_usuario_independiente` works on both kinds
   of stand-alone project.** Measured on 8.1.8, the demo `_DEMO_StandAlone` makes that button open

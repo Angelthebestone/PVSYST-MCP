@@ -93,3 +93,38 @@ fn should_count_every_sub_tab_of_a_page_as_a_page_of_its_own() {
         );
     }
 }
+
+/// A tab drawn with sub-tabs keeps the screen of one of them: the page recorded without a sub-tab
+/// is that same screen, so adding it to the sub-tabs counts its fields twice. Counting short is the
+/// safe error for a coverage figure.
+#[test]
+fn should_count_a_tab_recorded_with_sub_tabs_by_its_sub_tabs_alone() {
+    let paginas = [
+        pagina("Parámetros del modelo", None, (4, 1)),
+        pagina("Parámetros del modelo", Some("Degradación"), (3, 1)),
+        pagina("Parámetros del modelo", Some("IAM personalizado"), (2, 2)),
+    ];
+
+    let resumen = super::mapa::resumir(&ventana(&paginas));
+
+    assert_eq!((resumen.campos, resumen.botones), (5, 3));
+}
+
+/// An empty, blank or non-text `subpestana` is no sub-tab at all: the page falls back to its tab
+/// instead of opening a key of its own, which would hide the tab's page behind a phantom sub-tab.
+#[test]
+fn should_treat_a_blank_or_non_text_sub_tab_as_the_page_of_its_tab() {
+    for (rotulo, subpestana) in [
+        ("vacía", json!("")),
+        ("solo espacios", json!("  ")),
+        ("no es texto", json!(3)),
+    ] {
+        let mut con_subpestana = pagina("Datos básicos", None, (2, 2));
+        con_subpestana["subpestana"] = subpestana;
+        let paginas = [con_subpestana, pagina("Datos básicos", None, (4, 1))];
+
+        let resumen = super::mapa::resumir(&ventana(&paginas));
+
+        assert_eq!((resumen.campos, resumen.botones), (4, 1), "{rotulo}");
+    }
+}

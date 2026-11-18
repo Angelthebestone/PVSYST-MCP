@@ -268,7 +268,9 @@ fn should_say_the_title_is_language_dependent_when_the_host_is_open_under_anothe
 }
 
 /// What is stable across PVsyst languages is recorded as structure: every page of
-/// the map says the position of its tab, so a caller never needs the tab's name.
+/// the map says the position of its tab, so a caller never needs the tab's name, and a
+/// page that records a sub-tab labels it with text, which is what the coverage counter
+/// keys it by.
 #[test]
 fn should_record_the_tab_index_of_every_page_of_the_window_map() {
     let mapa = super::recurso::mapa_de_ventanas();
@@ -291,6 +293,12 @@ fn should_record_the_tab_index_of_every_page_of_the_window_map() {
             let esperado = nombres.iter().position(|n| *n == pagina["pestana"]);
             let registrado = pagina["indice_pestana"].as_u64().map(|i| i as usize);
             assert_eq!(registrado, esperado, "{clase}: {}", pagina["pestana"]);
+            if let Some(subpestana) = pagina.get("subpestana") {
+                assert!(
+                    subpestana.as_str().is_some_and(|s| !s.trim().is_empty()),
+                    "{clase}: subpestana debe ser un texto no vacío, no {subpestana}"
+                );
+            }
             paginas += 1;
         }
     }
