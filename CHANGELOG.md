@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **The coverage count of `gui_observar que:esquema` adds every sub-tab of a page.** A page of
+  `docs/gui_mapa.json` may now carry `subpestana`, but the counter keyed pages by `pestana` alone, so a
+  window with nested sheets (`TPVModuleForm`, «Parámetros del modelo» → «Degradación», «IAM
+  personalizado») kept only the fullest sub-tab and the fields of the others were never counted. Each
+  (`pestana`, `subpestana`) pair is one page now: distinct sub-tabs are summed, repeats of one pair still
+  keep its fullest page, and a page without `subpestana` counts as before. No page of the map carries the
+  field yet, so today's `campos_en_mapa` and `botones_en_mapa` do not change.
 - **The README no longer says the `workspace` argument reaches the actions that run PVsystCLI (A.4.4 of the visual GUI test report).** It moves the confinement root for the file tools, but `sitio crear`, `sitio convertir_meteo` and `simular` reject a workspace other than the one configured in PVsyst (`DataPath` of `PVsyst.ini`) with a named error. Documentation only: the error was already right.
 - **`simular accion:preparar` with only `archivo_rvt` no longer fails asking for `batch_rvt_file`.** The tool declared `archivo_rvt` and routed to the RVT manager on it, but the manager read only `batch_rvt_file` or `archivo`, so the call stopped with `Falta 'batch_rvt_file' o 'archivo'`. It now reads `batch_rvt_file`, then `archivo_rvt`, then `archivo`, and the error names the three.
 - **`docs/gui_mapa.json` is remeasured for 10 windows, and says the state it was measured in and what
