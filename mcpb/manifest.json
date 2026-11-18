@@ -426,7 +426,7 @@
       "name": "simular"
     },
     {
-      "description": "Results: KPIs, CSV, losses, monthly, comparison, P50/P90, carbon, economics and deliverable. que:resumen returns the KPIs, the monthly table and the main losses in one call.",
+      "description": "Results: KPIs, summary, CSV, losses, monthly, comparison, P50/P90, carbon, economics, deliverable and todo. que:resumen returns the KPIs, the monthly table and the main losses in one call; que:todo returns each section (summary, carbon, economics, p50_p90) with its state, and a section that is not configured does not fail the call.",
       "name": "resultados"
     },
     {

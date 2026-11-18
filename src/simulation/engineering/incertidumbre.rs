@@ -105,6 +105,19 @@ const APROXIMACION_P50: crate::aproximaciones::Aproximacion =
 
 /// P50/P90 from PVsyst's report page, or the MCP's approximation with `via`.
 pub(crate) fn p50_p90(paths: &Paths, args: &Value) -> Result<Value> {
+    exigir_ruta_pvsyst(paths, args)?;
+    let c = caso(paths, args)?;
+    p50_p90_con_caso(paths, &c, args)
+}
+
+/// P50/P90 from a case whose report is already parsed.
+pub(crate) fn p50_p90_de(paths: &Paths, c: &Caso, args: &Value) -> Result<Value> {
+    exigir_ruta_pvsyst(paths, args)?;
+    p50_p90_con_caso(paths, c, args)
+}
+
+/// An explicit workspace only exists on the MCP's approximation route.
+fn exigir_ruta_pvsyst(paths: &Paths, args: &Value) -> Result<()> {
     crate::aproximaciones::exigir_ruta_pvsyst_sin_workspace(
         paths,
         args,
@@ -112,8 +125,10 @@ pub(crate) fn p50_p90(paths: &Paths, args: &Value) -> Result<Value> {
             es: "El P50/P90",
             en: "The P50/P90",
         },
-    )?;
-    let c = caso(paths, args)?;
+    )
+}
+
+fn p50_p90_con_caso(paths: &Paths, c: &Caso, args: &Value) -> Result<Value> {
     let v = crate::aproximaciones::segun_via(
         paths,
         args,
@@ -124,10 +139,10 @@ pub(crate) fn p50_p90(paths: &Paths, args: &Value) -> Result<Value> {
                 v["origen"] = json!("pvsyst");
                 Ok(v)
             },
-            || aproximar(&c, args),
+            || aproximar(c, args),
         ),
     )?;
-    Ok(con_cabecera(&c, v))
+    Ok(con_cabecera(c, v))
 }
 
 fn aproximar(c: &Caso, args: &Value) -> Result<Value> {

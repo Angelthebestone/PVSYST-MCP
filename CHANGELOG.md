@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   truncation itself is unchanged.
 
 ### Added
+- **`resultados que:todo` answers the whole panorama in one call (B.4.2 and B.7 row 5 of the visual GUI test report).**
+  It returns `secciones` with one entry per section (`resumen`, `carbono`, `economia`, `p50_p90`), each
+  `{estado:"ok", datos}` with what the individual call returns, or `{estado:"no_disponible", motivo}` with the
+  reason that section gave. A section that is not configured no longer costs a failed call: the answer is
+  `vista.estado:"parcial"` and the report is read once for every section. Input errors (a project that does
+  not exist, an invalid argument) still fail before any section runs.
 - **`gui_actuar accion:cerrar descartar_cambios:true` answers PVsyst's discard question in the same call
   (5.2 point 4 of the visual GUI test report).** Closing an editor that has changes leaves the window open on a
   `TMessageForm` that asks «¿Quiere cancelar las modificaciones?»: it took a second call (`clic_texto "Sí"`),

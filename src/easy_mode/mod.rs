@@ -11,6 +11,7 @@ mod dimensionado;
 mod diseno;
 mod fallo_simulacion;
 mod foto_proyecto;
+mod kpis;
 mod lectura_argumentos;
 mod meteonorm;
 mod modulo_de_plantilla;
@@ -33,4 +34,4 @@ mod tests;
 mod tests_pasos;
 
 pub(crate) use diagnostico::preflight;
-pub(crate) use simulacion::leer_kpis;
+pub(crate) use kpis::{kpis_de, leer_kpis, InformeLeido};

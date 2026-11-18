@@ -1,7 +1,7 @@
 //! Linking the site a design created into its project: the `SitePrj` of the PRJ and
 //! the site of the variant's `pvMeteo`, which is the one a simulation reads.
 
-use super::simulacion::meteo_de_metadatos;
+use super::kpis::meteo_de_metadatos;
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::edit;

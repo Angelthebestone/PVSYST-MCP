@@ -63,7 +63,7 @@ fn should_extract_kpis_when_the_report_pdf_is_a_real_report() {
         env!("CARGO_MANIFEST_DIR"),
         "/tests/fixtures/results/MCP_E2E.pdf"
     );
-    let kpis = super::simulacion::leer_kpis(&paths, &json!({ "report_pdf": pdf_path })).unwrap();
+    let kpis = super::kpis::leer_kpis(&paths, &json!({ "report_pdf": pdf_path })).unwrap();
     assert_eq!(kpis["energia_anual_kwh"], 14299.0);
     assert_eq!(kpis["produccion_especifica_kwh_kwp"], 1589.0);
     assert_eq!(kpis["pr_pct"], 83.68);

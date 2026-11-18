@@ -154,12 +154,22 @@ pub(super) fn markdown(
 
 pub(crate) fn perdidas(paths: &Paths, args: &Value) -> Result<Value> {
     let c = caso(paths, args)?;
-    Ok(con_cabecera(&c, report_pdf::perdidas(&c.tokens)?))
+    perdidas_de(&c)
+}
+
+/// Loss breakdown from a case whose report is already parsed.
+pub(crate) fn perdidas_de(c: &Caso) -> Result<Value> {
+    Ok(con_cabecera(c, report_pdf::perdidas(&c.tokens)?))
 }
 
 pub(crate) fn mensual(paths: &Paths, args: &Value) -> Result<Value> {
     let c = caso(paths, args)?;
-    Ok(con_cabecera(&c, report_pdf::mensual(&c.tokens)?))
+    mensual_de(&c)
+}
+
+/// Monthly table from a case whose report is already parsed.
+pub(crate) fn mensual_de(c: &Caso) -> Result<Value> {
+    Ok(con_cabecera(c, report_pdf::mensual(&c.tokens)?))
 }
 
 fn calcular_p50(paths: &Paths, c: &Caso, args: &Value) -> Result<(Option<Value>, Option<String>)> {

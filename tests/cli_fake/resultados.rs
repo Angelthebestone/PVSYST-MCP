@@ -1,4 +1,4 @@
-use super::cliente_mcp::{fixture, synthetic_workspace, tool_text, Client};
+use super::cliente_mcp::{error_text, fixture, synthetic_workspace, tool_text, Client};
 use serde_json::json;
 use std::fs;
 use std::path::Path;
@@ -80,6 +80,65 @@ fn workspace_con_resultado() -> tempfile::TempDir {
     )
     .unwrap();
     ws
+}
+
+#[test]
+fn should_answer_todo_with_each_section_state_and_not_fail_the_call() {
+    let ws = workspace_con_resultado();
+    let mut client = Client::start_env(Some(&ws_str(ws.path())), &fake_env());
+    client.initialize();
+
+    let csv = ws.path().join("Results").join("MCP_E2E.csv");
+    let resp = client.call(
+        2,
+        "resultados",
+        json!({ "que": "todo", "archivo": csv.to_string_lossy() }),
+    );
+    assert_ne!(
+        resp["result"]["isError"],
+        json!(true),
+        "una sección no configurada no debe hacer fallar la llamada: {resp}"
+    );
+    let out = tool_text(&resp);
+
+    let resumen = &out["secciones"]["resumen"];
+    assert_eq!(resumen["estado"], "ok", "{out}");
+    assert_eq!(
+        resumen["datos"]["kpis"]["energia_anual_kwh"].as_f64(),
+        Some(14299.0),
+        "{out}"
+    );
+    assert!(
+        resumen["datos"]["mensual"]["meses"]
+            .as_array()
+            .is_some_and(|meses| !meses.is_empty()),
+        "{out}"
+    );
+
+    for seccion in ["carbono", "economia", "p50_p90"] {
+        let estado = &out["secciones"][seccion];
+        assert_eq!(estado["estado"], "no_disponible", "{seccion}: {out}");
+        assert!(
+            estado["motivo"].as_str().is_some_and(|m| !m.is_empty()),
+            "{seccion}: {out}"
+        );
+    }
+    assert_eq!(out["vista"]["estado"], "parcial", "{out}");
+}
+
+#[test]
+fn should_fail_todo_when_the_project_does_not_exist() {
+    let ws = workspace_con_resultado();
+    let mut client = Client::start_env(Some(&ws_str(ws.path())), &fake_env());
+    client.initialize();
+
+    let resp = client.call(
+        2,
+        "resultados",
+        json!({ "que": "todo", "proyecto": "NoExiste" }),
+    );
+    let fallo = error_text(&resp);
+    assert!(fallo.contains("NoExiste"), "{fallo}");
 }
 
 #[test]

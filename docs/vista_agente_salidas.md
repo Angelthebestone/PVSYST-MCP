@@ -85,7 +85,7 @@ con más de 8 escalares. En respuestas pequeñas el aumento relativo es grande y
 
 ## Verificación
 
-- **Unitaria (`cargo test --lib`):** cobertura de las 108 combinaciones tool × acción (resumen, estado `ok` y un
+- **Unitaria (`cargo test --lib`):** cobertura de las 109 combinaciones tool × acción (resumen, estado `ok` y un
   `siguiente` que la tool de destino acepta), entradas huérfanas, estados `parcial`/`error`, confirmación, ensayo,
   recortes, avisos y errores con `claves_validas`.
 - **Protocolo (`tests/protocol.rs`):** `vista` en un éxito y en un fallo con `structuredContent`.
@@ -102,7 +102,7 @@ con más de 8 escalares. En respuestas pequeñas el aumento relativo es grande y
 
 ## Matriz tool × acción
 
-Las 15 tools, las 108 combinaciones. «Unitaria» = lo cubre el test que enumera `Discriminador.valores`; no se
+Las 15 tools, las 109 combinaciones. «Unitaria» = lo cubre el test que enumera `Discriminador.valores`; no se
 ejecutó la acción real (la mayoría escribe o gasta ejecuciones de prueba).
 
 | Tool | Acción (`accion`/`que`) | `vista.resumen` | `vista.siguiente` (`*` = toma el valor de la petición o la respuesta) | Verificación |
@@ -194,6 +194,7 @@ ejecutó la acción real (la mayoría escribe o gasta ejecuciones de prueba).
 | `resultados` | `economia` | Resultados económicos leídos. | `? `; `? ` | unitaria (catálogo + validación) |
 | `resultados` | `entregable` | Entregable del proyecto generado. | `? `; `? ` | unitaria (catálogo + validación) |
 | `resultados` | `resumen` | Resumen de resultados del proyecto. | `? `; `? ` | unitaria (catálogo + validación) |
+| `resultados` | `todo` | Resultados completos del proyecto: resumen, carbono, economía y P50/P90. | `resultados que=perdidas*`; `listar que=proyectos` | unitaria (catálogo + validación) |
 | `sitio` | `crear` | Sitio creado con la meteorología de la ubicación. | `leer *`; `? ` | unitaria (catálogo + validación) |
 | `sitio` | `convertir_meteo` | Archivo meteorológico convertido al formato de PVsyst. | `leer *`; `? ` | unitaria (catálogo + validación) |
 | `sitio` | `geometria_solar` | Geometría solar calculada para la ubicación. | `? ` | unitaria (catálogo + validación) |

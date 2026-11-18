@@ -190,4 +190,13 @@ pub(super) const ENTRADAS: &[Entrada] = &[
         },
     )
     .luego(&[VER_PERDIDAS, VER_PROYECTOS]),
+    entrada(
+        "resultados",
+        "todo",
+        Texto {
+            es: "Resultados completos del proyecto: resumen, carbono, economía y P50/P90.",
+            en: "Full project results: summary, carbon, economics and P50/P90.",
+        },
+    )
+    .luego(&[VER_PERDIDAS, VER_PROYECTOS]),
 ];

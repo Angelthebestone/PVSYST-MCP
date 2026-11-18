@@ -36,7 +36,7 @@ Everything else is a convenience layer on top. So coverage is bounded by the
 
 **Site & weather:** `sitio` (`accion`: `crear` with `origen` `coordenadas`|`csv`, `convertir_meteo`, `geometria_solar`, `horizonte_pvgis`, `meteo_pvgis`).
 
-**Simulation, batch & results:** `simular` (`accion`: `ejecutar`, `preparar`, `estado`, `preestimar`, `barrido`), `resultados` (`que`: `kpis`, `csv`, `perdidas`, `mensual`, `comparar`, `medido_vs_simulado`, `p50_p90`, `carbono`, `economia`, `entregable`).
+**Simulation, batch & results:** `simular` (`accion`: `ejecutar`, `preparar`, `estado`, `preestimar`, `barrido`), `resultados` (`que`: `kpis`, `csv`, `perdidas`, `mensual`, `comparar`, `medido_vs_simulado`, `p50_p90`, `carbono`, `economia`, `entregable`, `resumen`, `todo`).
 
 **Workspace / admin:** `workspace` (`accion`: `crear`, `exportar`, `importar`, `exportar_proyecto`, `historial`, `restaurar`).
 

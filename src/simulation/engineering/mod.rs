@@ -11,12 +11,12 @@ mod entregable;
 mod incertidumbre;
 mod supuestos;
 
-pub(crate) use carbono::carbono;
-pub(crate) use caso::{caso, con_cabecera};
+pub(crate) use carbono::{carbono, carbono_de};
+pub(crate) use caso::{caso, con_cabecera, Caso};
 pub(crate) use comparacion::comparar;
-pub(crate) use economia::economia;
-pub(crate) use entregable::{entregable, mensual, perdidas};
-pub(crate) use incertidumbre::p50_p90;
+pub(crate) use economia::{economia, economia_de};
+pub(crate) use entregable::{entregable, mensual, mensual_de, perdidas, perdidas_de};
+pub(crate) use incertidumbre::{p50_p90, p50_p90_de};
 
 #[cfg(test)]
 #[path = "../../../tests/unit/simulation/engineering/mod.rs"]

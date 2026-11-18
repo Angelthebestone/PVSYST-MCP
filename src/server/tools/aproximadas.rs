@@ -127,8 +127,8 @@ static DESCRIPCIONES_SIN_APROXIMACIONES: &[(&str, Texto)] = &[
     (
         "resultados",
         Texto {
-            es: "Resultados: KPIs, CSV, perdidas, mensual, comparacion, P50/P90, carbono, economia y entregable. que:resumen devuelve KPIs, la tabla mensual y las perdidas principales en una sola llamada.",
-            en: "Results: KPIs, CSV, losses, monthly, comparison, P50/P90, carbon, economics and deliverable. que:resumen returns the KPIs, the monthly table and the main losses in one call.",
+            es: "Resultados: KPIs, resumen, CSV, perdidas, mensual, comparacion, P50/P90, carbono, economia, entregable y todo. que:resumen devuelve KPIs, la tabla mensual y las perdidas principales en una sola llamada; que:todo devuelve cada seccion (resumen, carbono, economia, p50_p90) con su estado, y una seccion no configurada no hace fallar la llamada.",
+            en: "Results: KPIs, summary, CSV, losses, monthly, comparison, P50/P90, carbon, economics, deliverable and todo. que:resumen returns the KPIs, the monthly table and the main losses in one call; que:todo returns each section (summary, carbon, economics, p50_p90) with its state, and a section that is not configured does not fail the call.",
         },
     ),
 ];
