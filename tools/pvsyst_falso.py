@@ -82,6 +82,7 @@ class PVsystFalso:
         self.acciones: list[str] = []
         self.ilegibles: set[str] = set()
         self.vetadas: set[int] = set()
+        self.fuera_de_rango: set[int] = set()
         self.incerrables: set[str] = set()
 
     def tool(self, nombre: str, a: Json) -> Json:
@@ -113,6 +114,11 @@ class PVsystFalso:
                 return {"error": f"unknown function {a['funcion']}"}
             self.abiertas.append({"class": self.abre[a["funcion"]], "title": "t"})
         elif accion == "pagina":
+            if a["indice"] in self.fuera_de_rango:
+                n = a["indice"]
+                return {
+                    "error": f"'indice' {n} out of range: 'W' has {n} tab pages (0 to {n - 1})"
+                }
             if a["indice"] in self.vetadas:
                 return {"error": "the window vetoed the tab change"}
             self.pagina[a["ventana"]] = a["indice"]

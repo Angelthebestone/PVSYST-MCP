@@ -56,6 +56,13 @@ def _cerrar_dialogos(c: Cliente, indice: int, errores: list[Json]) -> None:
         _dormir(0.5)
 
 
+def _no_es_pagina(respuesta: Json) -> bool:
+    """`formulario.pestanas` also lists nested sheets and panels (the pumping
+    sizing suggestions); the page control answers that index is out of range."""
+    texto = str(respuesta.get("error", ""))
+    return "out of range" in texto and "tab pages" in texto
+
+
 def inventariar(c: Cliente, clase: str) -> Json:
     """Every tab of the open window: fields, buttons and captions of the tab."""
     if c.tool("gui_observar", {"que": "formulario", "ventana": clase}).get("pestanas"):
@@ -70,6 +77,8 @@ def inventariar(c: Cliente, clase: str) -> Json:
             r = c.tool(
                 "gui_actuar", {"accion": "pagina", "ventana": clase, "indice": i}
             )
+            if _no_es_pagina(r):
+                continue
             if r.get("error") or r.get("jsonrpc_error"):
                 errores.append(
                     {"indice": i, "pestana": nombres[i], "texto": str(r)[:300]}

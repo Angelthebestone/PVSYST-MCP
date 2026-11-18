@@ -26,6 +26,17 @@ def test_inventariar_reads_every_tab_with_its_fields_and_captions() -> None:
     assert r["errores"] == [] and c.pagina["TX"] == 0
 
 
+def test_inventariar_skips_a_listed_tab_that_is_not_a_page() -> None:
+    f = formulario(["a"], ["b"], ["panel"], pestanas=["Uno", "Dos", "Sugerencias"])
+    c = PVsystFalso({"TX": f}, {})
+    c.fuera_de_rango = {2}
+
+    r = inventariar(c, "TX")
+
+    assert [p["pestana"] for p in r["pestanas"]] == ["Uno", "Dos"]
+    assert r["errores"] == []
+
+
 def test_inventariar_a_window_without_tabs_gives_one_page_with_no_index() -> None:
     c = PVsystFalso({"TX": formulario(["a"])}, {})
 
