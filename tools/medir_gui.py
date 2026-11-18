@@ -12,6 +12,16 @@ project loader (PVsyst's shipped `_DEMO_*` projects are read-only, so nothing is
 saved: any «¿Desea guardarla?» or «¿mantener modificaciones?» prompt is answered No).
 Only one agent may drive the PVsyst GUI at a time. Nothing is filled in or saved.
 
+`--botones` also presses the enabled buttons of every tab, one `gui_actuar
+accion:clic_texto` per button, and records in the entry's `botones_abren` the windows
+each press opened, closing only those and reopening the host when the button closed
+it: most windows of the map are reached through a button, so reading the labels alone
+leaves them unmeasured. Pressing is where a measurement could stop being one: a text
+that starts with an entry of `DENEGADOS` is never pressed because it commits the
+window's state, destroys it or starts a flow this script cannot unwind, and those
+words (`OK`, `Guardar`, `Aplicar`, `Eliminar`, `Siguiente`…) are the buttons of almost
+every dialog. At most `MAX_PULSACIONES` presses per target.
+
 The transport (`ClienteMcp`) is exercised live only; the rest takes any object with
 `tool(nombre, argumentos)`, which the tests fake.
 """
