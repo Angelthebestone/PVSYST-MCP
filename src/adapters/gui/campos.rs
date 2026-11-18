@@ -189,7 +189,14 @@ where
         .get("timeout_ms")
         .and_then(Value::as_u64)
         .unwrap_or(10_000);
-    if args.get("proceso").is_none() && !super::proceso::gui_running() {
+    // A process that is not running has no window left to wait for, whether it is the
+    // default PVsyst or one named in `proceso`: `target_pids` only fails for that.
+    let sin_proceso = if args.get("proceso").is_none() && args.get("pids").is_none() {
+        !super::proceso::gui_running()
+    } else {
+        super::ventanas::target_pids(args).is_err()
+    };
+    if sin_proceso {
         return Ok(respuesta_ya_cerrada(args, espera_ms));
     }
     let h = match resolver(args) {

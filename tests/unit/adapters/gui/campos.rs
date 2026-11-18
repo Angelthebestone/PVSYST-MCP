@@ -22,6 +22,19 @@ fn should_treat_an_already_closed_window_as_a_trivial_success() {
         .contains("already closed"));
 }
 
+/// After `cerrar` ends the process, `esperar_cierre proceso:<ese>` finds no process
+/// at all: that is the same trivial success, not the «not running» error.
+#[test]
+fn should_treat_a_process_that_is_not_running_as_an_already_closed_window() {
+    let args = json!({"ventana": "TPVModuleForm", "proceso": "pvsyst-mcp-no-existe.exe"});
+
+    let respuesta = esperar_cierre_accion(&args, crate::idioma::Idioma::Es)
+        .expect("a process that is gone leaves nothing to wait for");
+
+    assert_eq!(respuesta["ya_cerrada"], true);
+    assert_eq!(respuesta["cerrado"], true);
+}
+
 /// BUG-03: `cerrado:false` used to carry `vista.estado:"ok"` and the summary
 /// "Cierre de la ventana esperado".
 #[test]
@@ -53,7 +66,7 @@ fn should_report_a_wait_that_timed_out_as_partial() {
 
 #[test]
 fn should_not_mask_an_error_that_is_not_a_missing_window() {
-    let args = json!({"ventana": "x", "proceso": "PVsyst.exe"});
+    let args = json!({"ventana": "x", "pids": [4]});
 
     let error = esperar_cierre_con(
         &args,
