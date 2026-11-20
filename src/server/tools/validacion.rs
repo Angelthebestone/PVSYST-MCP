@@ -33,6 +33,7 @@ impl Herramienta {
     pub(crate) fn validar(&self, args: &Value, paths: &Paths) -> Result<String> {
         let accion = self.validar_discriminador(args, paths)?;
         self.validar_detalle(args, paths.idioma)?;
+        self.validar_vista(args, paths.idioma)?;
         self.validar_requeridos(args, &accion)?;
         self.validar_tipos(args, paths.idioma)?;
         self.validar_via(args, paths.idioma)?;
@@ -138,6 +139,24 @@ impl Herramienta {
             )));
         }
         Ok(())
+    }
+
+    /// `vista` is not a declared property, so `validar_tipos` never sees it.
+    fn validar_vista(&self, args: &Value, idioma: Idioma) -> Result<()> {
+        let Some(v) = valor_no_nulo(args, "vista") else {
+            return Ok(());
+        };
+        if v.is_boolean() {
+            return Ok(());
+        }
+        Err(Error::Invalid(TIPO_INCORRECTO.texto_con(
+            idioma,
+            &[
+                ("campo", "vista"),
+                ("esperado", "boolean"),
+                ("recibido", nombre_tipo_recibido(v)),
+            ],
+        )))
     }
 
     fn validar_via(&self, args: &Value, idioma: Idioma) -> Result<()> {

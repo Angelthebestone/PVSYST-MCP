@@ -166,6 +166,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `detalle` level and is left out when the file has no object, so a file read as raw bytes or by a reader of
   its own pays nothing; nothing else in the answer changed. At `detalle:resumen` the list follows the rule of
   every other list (13 names plus `objetos_total`), and `detalle:completo` returns all of them.
+- **Every tool accepts `vista:false` (B.5.1 of the visual GUI test report).** The `vista` block carried 60-69 % of
+  the bytes of a data answer (`resultados kpis` 69 %, `proyecto doctor` 63 %, `leer` 60 %) while repeating keys the
+  answer already had. The switch is declared on every tool and defaults to `true`: the block is absent only when the
+  call finished (`estado:ok`) and nothing is pending, so a failure, a `parcial` answer, a confirmation request and a
+  rehearsal (`dry_run`) keep it — an agent must never lose why an action did not apply. A non-boolean value is
+  refused by the boundary check as `Wrong type for 'vista'`. `vista` is added like `detalle`, outside the declared
+  properties, so no tool repeats it; its description lives in `src/server/tools/descripciones/comunes.rs`. Tests pin
+  each case of the rule and that no tool reports the switch in `ignorados`.
 - **`tools/mapa_desde_inventario.py` copies the nested sheets of a tab into the map as `subpestana`.**
   A page whose inventory entry names a sub-sheet (`TPVModuleForm`, «Parámetros del modelo» →
   «Degradación», «IAM personalizado») carries it right after `pestana`, repeats the `indice_pestana` of

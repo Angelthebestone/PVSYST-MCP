@@ -88,6 +88,11 @@ pub(super) fn detalle(idioma: Idioma) -> &'static str {
     describir("", "detalle", idioma).unwrap_or_default()
 }
 
+/// The `vista` every tool accepts; the schema adds it outside the declared keys.
+pub(super) fn vista(idioma: Idioma) -> &'static str {
+    describir("", "vista", idioma).unwrap_or_default()
+}
+
 #[cfg(test)]
 #[path = "../../../../tests/unit/server/tools/descripciones_tests.rs"]
 mod tests;

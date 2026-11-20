@@ -148,6 +148,8 @@ model latency plus the size of tool output**. Two mitigations are built in:
   executable as written) and `recortado` (`{clave, mostrados, total, pedir_resto}`). A failure adds `error`
   (`codigo`, `motivo`, `causa_probable`, `que_hacer`, `claves_validas` for input errors). Existing keys do not change.
   `vista` is the answer's block; `gui_observar que:vista` is the form view by keys — a GUI answer can carry both.
+  Pass `vista:false` to leave the block out of a call that finished (`estado:ok`); a failure, a partial
+  answer, a confirmation request or a dry run keeps it.
 
 
 Other levers: batch independent calls in one turn, avoid long `esperar_segundos`

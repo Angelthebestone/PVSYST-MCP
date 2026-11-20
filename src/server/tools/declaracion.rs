@@ -187,6 +187,13 @@ impl Herramienta {
                 "description": super::descripciones::detalle(idioma),
             }),
         );
+        props.insert(
+            "vista".to_string(),
+            json!({
+                "type": "boolean",
+                "description": super::descripciones::vista(idioma),
+            }),
+        );
 
         let mut entrada = json!({ "type": "object", "properties": props });
         self.anotar_requisitos(&mut entrada);

@@ -27,6 +27,25 @@ fn should_reject_a_string_when_the_property_is_boolean() {
     );
 }
 
+/// `vista` is not a declared property, so the generic type check does not cover it.
+#[test]
+fn should_reject_a_string_when_the_view_switch_is_boolean() {
+    let paths = Paths::para_test(std::env::temp_dir());
+    let err = call(
+        &paths,
+        "leer",
+        &json!({ "archivo": "test.PAN", "vista": "no" }),
+    )
+    .expect_err("should reject string for the vista switch");
+    let msg = err.to_string();
+    assert!(
+        msg.contains("Wrong type for 'vista'")
+            && msg.contains("expected boolean")
+            && msg.contains("got string"),
+        "{msg}"
+    );
+}
+
 /// `tools/list` and the boundary check agree on what `menu` and `uia_invocar` need.
 #[test]
 fn should_require_an_id_or_a_menu_and_item_for_the_menu_action() {

@@ -143,7 +143,7 @@ impl Herramienta {
     }
 
     pub(super) fn declara(&self, clave: &str) -> bool {
-        matches!(clave, "detalle" | "via")
+        matches!(clave, "detalle" | "via" | "vista")
             || self
                 .discriminador
                 .as_ref()

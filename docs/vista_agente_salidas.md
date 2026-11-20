@@ -36,6 +36,10 @@ Cambios respecto a la propuesta del handoff, con motivo:
 - **Dónde vive el texto:** `src/vista_agente/contrato/catalogo/` (un archivo por feature). Un test falla si una
   tool declara una acción sin entrada, o si el catálogo conserva una acción que ya no existe. El `siguiente` de
   una línea que ya existía en la raíz sale de la misma entrada (`pista`).
+- **`vista:false` deja el bloque fuera de una llamada que terminó.** Solo cuando `estado` es `ok` y no queda nada
+  pendiente: un fallo, un `parcial`, una confirmación y un ensayo (`dry_run`) lo llevan siempre, porque el agente
+  no puede perder la verdad de lo que no se aplicó. El bloque ocupa el 60-69 % de los bytes de una respuesta de
+  datos (B.5.1 del informe de pruebas de GUI visual).
 - **`vista` (bloque de salida) y `gui_observar que:vista` (formularios por claves) son distintos.** Una respuesta de
   GUI puede llevar los dos. En una vista de formulario, `vista.campos` repite `{clave, valor, unidad, editable}` de
   los campos que la respuesta ya trae completos en `campos`; no se recortan.

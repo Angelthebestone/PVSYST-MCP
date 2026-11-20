@@ -59,6 +59,17 @@ pub(super) fn con_vista((tool, accion): (&str, &str), args: &Value, salida: Valu
     v["vista"].clone()
 }
 
+/// The whole answer of a call, to assert what it does *not* carry.
+fn respuesta_decorada(tool: &str, args: &Value, salida: Value) -> Value {
+    let mut v = salida;
+    anadir_vista(
+        &Paths::para_test(std::env::temp_dir()),
+        &contexto(tool, "", args),
+        &mut v,
+    );
+    v
+}
+
 #[test]
 fn should_give_an_executable_next_step_when_summarizing_any_action() {
     let paths = Paths::para_test(std::env::temp_dir());
@@ -123,6 +134,47 @@ fn should_cap_the_view_fields_without_cutting_the_answer_when_the_form_has_many(
     assert_eq!(vista["recortado"][0]["clave"], "vista.campos");
     assert_eq!(vista["recortado"][0]["total"], 60);
     assert_eq!(respuesta["campos"].as_array().map(Vec::len), Some(60));
+}
+
+/// B.5.1 of the visual GUI test report: the block takes 60-69 % of a data answer.
+#[test]
+fn should_drop_the_view_when_a_finished_call_asks_for_none() {
+    let salida = json!({ "projects": [] });
+    let respuesta = respuesta_decorada("listar", &json!({ "vista": false }), salida);
+    assert!(respuesta.get("vista").is_none(), "{respuesta}");
+}
+
+#[test]
+fn should_keep_the_view_of_a_failed_call_when_it_asks_for_none() {
+    let salida = json!({ "ok": false, "errores": ["paso 'simulacion' fallido"] });
+    let respuesta = respuesta_decorada("disenar_sistema", &json!({ "vista": false }), salida);
+    assert_eq!(respuesta["vista"]["estado"], "error", "{respuesta}");
+}
+
+#[test]
+fn should_keep_the_view_of_a_partial_call_when_it_asks_for_none() {
+    let salida = json!({
+        "ok": false,
+        "pasos": [{ "ok": true, "paso": "sitio" }, { "ok": false, "paso": "simulacion" }],
+        "errores": ["paso 'simulacion' fallido"],
+    });
+    let respuesta = respuesta_decorada("disenar_sistema", &json!({ "vista": false }), salida);
+    assert_eq!(respuesta["vista"]["estado"], "parcial", "{respuesta}");
+}
+
+/// A rehearsal is `ok` but not final: dropping its view would hide that nothing was applied.
+#[test]
+fn should_keep_the_view_of_a_rehearsal_when_it_asks_for_none() {
+    let salida = json!({ "dry_run": true });
+    let respuesta = respuesta_decorada("sitio", &json!({ "vista": false }), salida);
+    assert_eq!(respuesta["vista"]["estado"], "ok", "{respuesta}");
+}
+
+#[test]
+fn should_keep_the_view_when_the_call_does_not_ask_for_none() {
+    let salida = json!({ "projects": [] });
+    let respuesta = respuesta_decorada("listar", &json!({}), salida);
+    assert_eq!(respuesta["vista"]["estado"], "ok", "{respuesta}");
 }
 
 #[test]

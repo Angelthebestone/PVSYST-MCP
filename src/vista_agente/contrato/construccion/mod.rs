@@ -89,3 +89,9 @@ pub(crate) fn construir(ctx: &Contexto<'_>, salida: &Value) -> Vista {
         },
     }
 }
+
+/// Whether the answer closed the call: it succeeded and nothing is pending, so
+/// its `vista` repeats what the answer says and the caller may drop it.
+pub(crate) fn es_final(vista: &Vista, salida: &Value) -> bool {
+    vista.estado == Estado::Ok && pendiente_de(salida, vista.estado).is_none()
+}

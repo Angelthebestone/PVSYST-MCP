@@ -92,6 +92,20 @@ fn should_not_report_a_batch_key_as_ignored_when_the_argument_that_reads_it_is_p
     );
 }
 
+/// The decorator reads `vista`, not a handler: answering it as ignored would say
+/// the switch was not applied when it was.
+#[test]
+fn should_not_report_the_view_switch_as_an_ignored_argument() {
+    for h in REGISTRO {
+        let args = json!({ "vista": false });
+        assert!(
+            !h.desconocidos(&args, "").contains(&"vista".to_string()),
+            "{}: 'vista' reaches the caller as ignored",
+            h.nombre
+        );
+    }
+}
+
 #[test]
 fn should_declare_every_key_a_tool_consumes_for_another_action() {
     let consumos = REGISTRO.iter().flat_map(|h| {

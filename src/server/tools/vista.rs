@@ -1,11 +1,12 @@
-//! Adds the `vista` block to every tool answer, success or failure. Next steps
-//! are kept only when the target tool accepts them exactly as written.
+//! Adds the `vista` block to every tool answer, success or failure, unless the
+//! caller asks for none on a call that closed. Next steps are kept only when the
+//! target tool accepts them exactly as written.
 
 use super::recorte::SIN_RECORTE;
 use super::{aproximadas, Herramienta, Solicitud, REGISTRO};
 use crate::config::Paths;
 use crate::error::{Error, KIND_MISSING_ARG};
-use crate::vista_agente::contrato::{construir, desde_error, Contexto, Vista};
+use crate::vista_agente::contrato::{construir, desde_error, es_final, Contexto, Vista};
 use serde_json::Value;
 
 fn herramienta(nombre: &str) -> Option<&'static Herramienta> {
@@ -37,12 +38,22 @@ fn solo_ejecutables(paths: &Paths, vista: &mut Vista) {
     });
 }
 
-/// Adds `vista` to an answer that arrived. Answers that are not objects are left as they are.
+/// Whether the caller wants the block; only an explicit `false` drops it.
+fn pide_vista(args: &Value) -> bool {
+    args.get("vista").and_then(Value::as_bool).unwrap_or(true)
+}
+
+/// Adds `vista` to an answer that arrived, unless the call asked for none and
+/// closed: a failure, a partial answer, a confirmation and a rehearsal keep it.
+/// Answers that are not objects are left as they are.
 pub(super) fn anadir_vista(paths: &Paths, contexto: &Contexto<'_>, respuesta: &mut Value) {
     if !respuesta.is_object() {
         return;
     }
     let mut vista = construir(contexto, respuesta);
+    if !pide_vista(contexto.args) && es_final(&vista, respuesta) {
+        return;
+    }
     solo_ejecutables(paths, &mut vista);
     if let Err(motivo) = vista.validar(SIN_RECORTE) {
         tracing::warn!(tool = contexto.tool, %motivo, "vista incoherente");

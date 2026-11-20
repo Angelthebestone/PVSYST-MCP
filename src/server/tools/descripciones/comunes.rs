@@ -13,4 +13,9 @@ pub(super) const TABLA: &[Entrada] = &[
         "true permite rutas fuera del workspace (por defecto, confinadas).",
         "true allows paths outside the workspace (default: confined).",
     ),
+    entrada(
+        "vista",
+        "false omite el bloque vista en una respuesta correcta (por defecto true).",
+        "false omits the vista block on a successful answer (default true).",
+    ),
 ];

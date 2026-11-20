@@ -114,10 +114,10 @@ fn describe(props: &[(&String, &Value)], clave: &str) -> bool {
 }
 
 #[test]
-fn should_describe_detalle_and_the_workspace_guard_in_every_tool() {
+fn should_describe_detalle_vista_and_the_workspace_guard_in_every_tool() {
     for esquema in esquemas(Idioma::Es, false) {
         let props = propiedades(&esquema);
-        for clave in ["detalle", "permitir_fuera_del_workspace"] {
+        for clave in ["detalle", "vista", "permitir_fuera_del_workspace"] {
             assert!(
                 describe(&props, clave),
                 "{}.{clave} has no description",

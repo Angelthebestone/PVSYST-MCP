@@ -149,7 +149,8 @@ modelo por turno más el tamaño de la salida de la tool**. Hay dos mitigaciones
   paso ejecutable tal cual) y `recortado` (`{clave, mostrados, total, pedir_resto}`). Un fallo añade `error`
   (`codigo`, `motivo`, `causa_probable`, `que_hacer`, `claves_validas` si el fallo es de entrada). Las claves
   existentes no cambian. `vista` es el bloque de la respuesta; `gui_observar que:vista` es la vista de formularios
-  por claves: una respuesta de GUI puede llevar ambos.
+  por claves: una respuesta de GUI puede llevar ambos. Pasa `vista:false` para dejar el bloque fuera en una llamada
+  que terminó (`estado:ok`); un fallo, una respuesta parcial, una petición de confirmación o un ensayo lo conservan.
 
 
 Otras palancas: agrupar llamadas independientes en un mismo turno, evitar `esperar_segundos`
