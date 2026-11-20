@@ -139,9 +139,15 @@ class PVsystFalso:
         # A class listed here ignores both the close and the click: a native dialog
         # (#32770) that refuses WM_CLOSE, which no press of the tool can dismiss.
         self.incerrables: set[str] = set()
+        # The `que` of a read or the `accion` of an action whose answer is a JSON-RPC
+        # failure instead of a result: what `ClienteMcp` builds from `{"error": ...}`.
+        self.jsonrpc: set[str] = set()
 
     def tool(self, nombre: str, a: Json) -> Json:
         self.acciones.append(a.get("accion", ""))
+        llave = a.get("que") or a.get("accion") or ""
+        if llave in self.jsonrpc:
+            return {"jsonrpc_error": f"-32603 {llave} failed"}
         if nombre == "gui_observar":
             if a["que"] == "ventanas":
                 if not self.corriendo:

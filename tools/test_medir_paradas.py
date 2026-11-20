@@ -98,3 +98,21 @@ def test_a_run_refuses_a_session_it_did_not_start_with_a_window_it_did_not_open(
 
     assert main(acepta, fabrica_de(c)) == 0
     assert "TPVModuleForm" not in [w["class"] for w in c.abiertas]
+
+
+def test_a_jsonrpc_failure_of_a_chain_step_or_of_a_form_read_is_an_error(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """`abrir` and `inventariar` both read the refusal the client turns into a failure."""
+    for que in ("funcion", "formulario"):
+        c = PVsystFalso({"TA": formulario(["a"])}, {"a": "TA"})
+        c.jsonrpc = {que}
+
+        codigo = main(argumentos(tmp_path, "--solo", "TA"), fabrica_de(c))
+
+        salida = capsys.readouterr().out
+        assert codigo == 1, que
+        assert que in salida, que
+        assert json.loads((tmp_path / "inventario.json").read_text())["TA"] == {
+            "viejo": True
+        }, que
