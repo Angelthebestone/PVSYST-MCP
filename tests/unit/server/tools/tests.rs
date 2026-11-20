@@ -106,6 +106,37 @@ fn should_not_report_the_view_switch_as_an_ignored_argument() {
     }
 }
 
+/// `gui_observar` has one schema for every `que`. The wire test names what an
+/// `esquema` call ignores; `inventario` and the `que` that do read `compacto` and
+/// `recorte` need an open window there, so that part is pinned here (B.5.4 and D.5).
+#[test]
+fn should_name_detalle_as_ignored_by_inventario_and_not_the_keys_the_other_que_read() {
+    let observar = REGISTRO
+        .iter()
+        .find(|h| h.nombre == "gui_observar")
+        .expect("gui_observar");
+
+    let inventario = json!({ "que": "inventario", "detalle": "normal" });
+    assert!(
+        observar
+            .desconocidos(&inventario, "inventario")
+            .contains(&"detalle".to_string()),
+        "el inventario se limita a sí mismo y 'detalle' no cambia nada"
+    );
+
+    for (que, clave) in [
+        ("ventanas", "compacto"),
+        ("controles", "compacto"),
+        ("vista", "compacto"),
+        ("capturar", "recorte"),
+    ] {
+        let mut args = json!({ "que": que });
+        args[clave] = json!(true);
+        let ignorados = observar.desconocidos(&args, que);
+        assert!(!ignorados.contains(&clave.to_string()), "{que} lee {clave}");
+    }
+}
+
 #[test]
 fn should_declare_every_key_a_tool_consumes_for_another_action() {
     let consumos = REGISTRO.iter().flat_map(|h| {
