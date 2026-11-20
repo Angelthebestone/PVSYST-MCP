@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **`gui_observar` names in `ignorados` the arguments the chosen `que` does not read (B.5.4 and D.5 of
+  the visual GUI test report).** `detalle` on `que:inventario` was accepted and changed nothing (68 339 /
+  68 338 / 68 338 bytes for `resumen` / `normal` / `completo`: an inventory caps itself at 500 controls
+  with `total` and `truncado` and keeps its lists out of the trimmer), and `compacto` or `recorte` on a
+  `que` that ignores them failed silently too — the schema said `ignored on another que` while the answer
+  said nothing. The answer now carries `ignorados: ["detalle"]`, `["compacto"]` or `["recorte"]`, the
+  mechanism `leer` already uses for the keys of another branch. `compacto` is read by `que:ventanas`,
+  `que:controles` and `que:vista`; `recorte` by `que:capturar`. No other answer changes.
 - **`gui_observar que:esquema` publishes a window under every catalogue function that opens it, not
   only under the one that announces it.** `abierta_con` was built from `Funcion::abre` alone, so
   `TUserNeedsForm` listed `variante.autoconsumo` and hid `variante.necesidades_usuario_independiente`,

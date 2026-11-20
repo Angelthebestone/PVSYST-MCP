@@ -113,3 +113,32 @@ fn should_point_the_leer_hint_at_detalle_completo() {
         "detalle:completo devuelve el árbol: {completo}"
     );
 }
+
+/// `gui_observar` has one schema for every `que`: an argument the chosen one does
+/// not read is named in `ignorados`, not accepted in silence (D.5 of the report).
+#[test]
+fn should_name_the_argument_the_chosen_que_does_not_read() {
+    let ws = synthetic_workspace();
+    let mut c = servidor(&ws);
+
+    let esquema = tool_text(&c.call(
+        16,
+        "gui_observar",
+        json!({ "que": "esquema", "recorte": true }),
+    ));
+    assert_eq!(esquema["ignorados"], json!(["recorte"]), "resp={esquema}");
+
+    let funciones = tool_text(&c.call(
+        17,
+        "gui_observar",
+        json!({ "que": "funciones", "compacto": true }),
+    ));
+    assert_eq!(
+        funciones["ignorados"],
+        json!(["compacto"]),
+        "resp={funciones}"
+    );
+
+    let limpio = tool_text(&c.call(18, "gui_observar", json!({ "que": "funciones" })));
+    assert!(limpio.get("ignorados").is_none(), "resp={limpio}");
+}

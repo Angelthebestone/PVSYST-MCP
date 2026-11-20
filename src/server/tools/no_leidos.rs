@@ -67,6 +67,10 @@ pub(super) const NO_LEIDOS: &[NoLeido] = &[
     no_leido!("sitio", "convertir_meteo", "output_sit_file", &[]),
     no_leido!("sitio", "convertir_meteo", "sit_file", &[]),
     no_leido!("sitio", "convertir_meteo", "weather_data_file", &[]),
+    // `detalle` trims lists and strings; an inventory caps itself (500 controls, with
+    // `total` and `truncado`) and keeps every list of its answer out of the trimmer, so
+    // the level changes nothing there.
+    no_leido!("gui_observar", "inventario", "detalle", &[]),
 ];
 
 /// Declared keys an action never reads, grouped per action to keep the table short.
@@ -121,7 +125,32 @@ const NO_LEIDOS_SIEMPRE: &[(&str, &str, &[&str])] = &[(
     ],
 )];
 
-/// Declared keys `accion` of `herramienta` does not read for these `args`.
+/// A key a tool declares for all its actions but only some of them read, with the
+/// actions that do read it. Every other action names the key in `ignorados`
+/// instead of accepting it in silence.
+pub(super) struct ClaveParcial {
+    pub(super) herramienta: &'static str,
+    pub(super) clave: &'static str,
+    pub(super) acciones: &'static [&'static str],
+}
+
+/// `gui_observar` has one schema for fifteen `que` values. `compacto` also drives
+/// `que:vista`, whose answer is the agent view, not a GUI adapter.
+pub(super) const CLAVES_PARCIALES: &[ClaveParcial] = &[
+    ClaveParcial {
+        herramienta: "gui_observar",
+        clave: "compacto",
+        acciones: &["ventanas", "controles", "vista"],
+    },
+    ClaveParcial {
+        herramienta: "gui_observar",
+        clave: "recorte",
+        acciones: &["capturar"],
+    },
+];
+
+/// One declared key `accion` of `herramienta` does not read for these `args`, from
+/// the two tables above.
 pub(super) fn no_leidos(herramienta: &str, accion: &str, args: &Value) -> Vec<&'static str> {
     let siempre = NO_LEIDOS_SIEMPRE
         .iter()
@@ -136,5 +165,14 @@ pub(super) fn no_leidos(herramienta: &str, accion: &str, args: &Value) -> Vec<&'
                 .all(|clave| args.get(*clave).is_none_or(Value::is_null))
         })
         .map(|n| n.clave);
-    siempre.iter().copied().chain(condicionales).collect()
+    let de_otras_acciones = CLAVES_PARCIALES
+        .iter()
+        .filter(|c| c.herramienta == herramienta && !c.acciones.contains(&accion))
+        .map(|c| c.clave);
+    siempre
+        .iter()
+        .copied()
+        .chain(condicionales)
+        .chain(de_otras_acciones)
+        .collect()
 }
