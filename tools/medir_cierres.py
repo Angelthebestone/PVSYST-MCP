@@ -18,6 +18,7 @@ from medir_ventanas import (
     _dormir,
     _error_de,
     _responder,
+    cerrable,
     ventanas,
 )
 
@@ -25,12 +26,17 @@ from medir_ventanas import (
 def _nuevas(
     abiertas: Collection[Json], previas: Collection[tuple[str, str]]
 ) -> list[Json]:
-    """The open windows that were not there before the press, the main ones aside."""
+    """The windows the press opened and this run may close.
+
+    A window is new when its `(class, title)` pair was not in `previas`; `cerrable`
+    drops the ones a run keeps open, the main windows and the trial notice a project
+    window sits above.
+    """
     return [
         w
         for w in abiertas
-        if w["class"] not in MANTENER
-        and (w["class"], str(w.get("title") or "")) not in previas
+        if (w["class"], str(w.get("title") or "")) not in previas
+        and cerrable(w, abiertas)
     ]
 
 
@@ -56,25 +62,18 @@ def _parado(quedan: Collection[Json], fallo: str | None) -> str:
 def cerrar_nuevas(
     c: Cliente, previas: Collection[tuple[str, str]]
 ) -> tuple[list[Json], str | None]:
-    """Close only the windows that were not open before; entries and a stop reason.
+    """Close the windows a press opened, never one it found; entries and a stop reason.
 
-    A window is new when its `(class, title)` pair was not in `previas`: comparing
-    the class alone missed a second window of a class that was already open and
-    collapsed two new windows of that class into one. A new window of a class
-    `MANTENER` keeps is not closed at all: it is a stop naming the window, since one
-    more window of that class would leave the close choosing between them. Each close
-    asks by class and never by title: a title is also matched by substring over every
-    window of the process, so a new window titled like the host would close the host.
-    The main windows of `MANTENER` are never closed. `limpiar` closes everything but
-    the main windows, host included, so it cannot run between two presses; this one
-    leaves `previas` alone. A class with two new windows keeps its two entries even
-    when one close removes both from the screen. A dialog opened by the press is
-    answered with a rejection (`_responder`); when it offers none it stays open and its
-    text is the stop reason. Twelve rounds that leave a window open are a stop too:
-    its reason names what is still open and the refusal `accion:cerrar` answered,
-    because a press that left a modal open is not a press that opened a window
-    cleanly. Every press after it fails on the disabled window and would blame the
-    label.
+    `previas` is the `(class, title)` pair of every window the harness saw before the
+    press, and a window whose pair is not in it is the press's. Every close names a
+    class and never a title: a title is matched by substring over every window of the
+    process, so a new window titled like the host would close the host. A new window of
+    a class `MANTENER` keeps is not closed at all but a stop naming it, and `cerrable`
+    keeps the main windows and the trial notice a project window sits above. A dialog
+    is answered with `_responder`, and one it cannot answer stays open and its reason is
+    the stop. Twelve rounds that leave a window open are a stop too: a press that left
+    a modal open is not a clean press, and every press after it would fail on the
+    disabled window and blame the label.
     """
     cerradas: dict[tuple[str, str], Json] = {}
     fallo: str | None = None

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import time
 import unicodedata
+from collections.abc import Collection
 from dataclasses import dataclass
 
 from medir_cliente import Cliente, Json
@@ -104,8 +105,9 @@ def clases(c: Cliente) -> set[str]:
 
 
 # The one read error that is a state of the machine and not a failed read: the server
-# answers it when no process of that name exists (`target_pids` in ventanas.rs), in the
-# client's language. Measured in 8.1.8: «Process 'PVsyst.exe' is not running…».
+# answers it when no process of that name exists (`target_pids` in ventanas.rs). The
+# text is the server's own, not PVsyst's, and follows the client's language:
+# «Process 'PVsyst.exe' is not running…».
 NO_ARRANCA = ("is not running", "no está en ejecución")
 
 
@@ -249,19 +251,27 @@ def _cerrar(c: Cliente, clase: str) -> Json:
     return {"texto": respuesta.boton}
 
 
+def cerrable(w: Json, abiertas: Collection[Json]) -> bool:
+    """Whether the harness may close `w` while `abiertas` are on screen.
+
+    The main windows (`MANTENER`) are never closed. The trial notice (`TDEMOForm`) is
+    closed only while no project window is above it: the project window is modal above
+    the notice and the server refuses the close then (measured), and the next chain
+    without a project closes the project and then the notice. Everything else is the
+    harness's to close.
+    """
+    if w["class"] in MANTENER:
+        return False
+    return not (
+        w["class"] == "TDEMOForm"
+        and any(o["class"] == "TProjectForm" for o in abiertas)
+    )
+
+
 def _sobran(c: Cliente) -> list[Json]:
-    """The windows `limpiar` must close. The trial notice (`TDEMOForm`) is skipped
-    while a project is open: the project window is modal above it, the server
-    refuses to close it (measured), and the next chain without a project closes
-    the project and then the notice."""
+    """The windows `limpiar` may close now: everything that `cerrable` allows."""
     abiertas = ventanas(c)
-    con_proyecto = any(w["class"] == "TProjectForm" for w in abiertas)
-    return [
-        w
-        for w in abiertas
-        if w["class"] not in MANTENER
-        and not (con_proyecto and w["class"] == "TDEMOForm")
-    ]
+    return [w for w in abiertas if cerrable(w, abiertas)]
 
 
 def limpiar(c: Cliente) -> list[str]:

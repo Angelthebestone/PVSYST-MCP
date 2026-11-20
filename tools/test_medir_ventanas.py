@@ -130,6 +130,24 @@ def test_a_chain_without_project_closes_a_project_this_run_loaded() -> None:
     assert [w["class"] for w in c.abiertas] == ["THomeForm", "TY"]
 
 
+def test_a_chain_step_closes_the_trial_notice_only_when_no_project_is_above_it() -> None:
+    """The project window is modal above the notice: the server refuses that close."""
+    for con_proyecto in (True, False):
+        c = PVsystFalso({}, {"variante.x": "TX"})
+        c.abiertas.append({"class": "TDEMOForm", "title": "Modo DEMO"})
+        cadena = "variante.x"
+        if con_proyecto:
+            c.abiertas.append(
+                {"class": "TProjectForm", "title": "Proyecto _DEMO_Commercial"}
+            )
+            cadena = "@proyecto:_DEMO_Commercial,variante.x"
+
+        assert abrir(c, objetivo_de("TX", cadena)) is None
+
+        cerrado = "TDEMOForm" not in [w["class"] for w in c.abiertas]
+        assert cerrado == (not con_proyecto)
+
+
 def test_a_project_window_that_refuses_the_close_is_an_error() -> None:
     c = PVsystFalso({}, {"herramientas.x": "TX"})
     c.abiertas.append({"class": "TProjectForm", "title": "Proyecto _DEMO_Commercial"})

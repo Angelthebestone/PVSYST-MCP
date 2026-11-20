@@ -19,7 +19,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from medir_cliente import Cliente, Json
-from medir_ventanas import _cerrar, _dormir, _error_de, limpiar, ventanas
+from medir_ventanas import _cerrar, _dormir, _error_de, cerrable, limpiar, ventanas
 
 # Search box of TProjectLoadForm, client coordinates at 96 DPI.
 BUSCADOR = {"clase": "TEdit", "x": 1077, "y": 49}
@@ -185,6 +185,21 @@ def _cerrar_proyecto(c: Cliente, propiedad: Propiedad) -> str | None:
     return motivo if fallo is None else f"{motivo}; the close answered: {fallo[:200]}"
 
 
+def _cerrar_aviso(c: Cliente) -> str | None:
+    """Close the trial notice when it is in the way of a chain step; an error text.
+
+    The notice is modal and blocks every GUI call of a chain, so a step closes it
+    first, and `cerrable` decides whether this run may. A refused close is an error
+    here: letting the step run would fail on the disabled window and blame the
+    function instead.
+    """
+    abiertas = ventanas(c)
+    if not any(w["class"] == "TDEMOForm" and cerrable(w, abiertas) for w in abiertas):
+        return None
+    fallo = _error_de(_cerrar(c, "TDEMOForm"))
+    return None if fallo is None else f"closing the trial notice failed: {fallo[:200]}"
+
+
 def abrir(c: Cliente, objetivo: Objetivo) -> str | None:
     """Run the chain of steps; an error text, or None when its window is open."""
     if not objetivo.cadena.startswith("@proyecto:"):
@@ -198,8 +213,9 @@ def abrir(c: Cliente, objetivo: Objetivo) -> str | None:
             if fallo:
                 return fallo
             continue
-        if any(w["class"] == "TDEMOForm" for w in ventanas(c)):
-            c.tool("gui_actuar", {"accion": "cerrar", "ventana": "TDEMOForm"})
+        fallo = _cerrar_aviso(c)
+        if fallo:
+            return fallo
         r = c.tool("gui_actuar", {"accion": "funcion", "funcion": paso})
         error = _error_de(r)
         # A host window that opens a different one than the catalogue expects still

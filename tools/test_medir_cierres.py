@@ -94,3 +94,25 @@ def test_pulsar_botones_stops_when_a_new_window_cannot_be_closed() -> None:
     assert "#32770" in abren[0]["parado"] and "'t'" in abren[0]["parado"]
     assert "#32770" in [w["class"] for w in c.abiertas]
     assert 1 <= c.acciones.count("cerrar") - intentos <= 12
+
+
+def test_a_press_leaves_the_trial_notice_under_an_open_project() -> None:
+    """A notice a press opens stays while a project window is above it, with no stop."""
+    f = formulario([])
+    f["paginas"][0]["botones"] = botones_de("Gráfico", "Tabla")
+    c = PVsystFalso(
+        {"TX": f},
+        {"a": "TX"},
+        {"Gráfico": {"abre": "TDEMOForm", "cierra": None}, "Tabla": {"cierra": None}},
+    )
+    c.abiertas.append({"class": "TProjectForm", "title": "Proyecto _DEMO_Commercial"})
+    c.incerrables = {"TDEMOForm"}
+    objetivo = objetivo_de("TX", "@proyecto:_DEMO_Commercial,a")
+    assert abrir(c, objetivo) is None
+
+    abren = pulsar_botones(c, objetivo, inventariar(c, "TX"))
+
+    assert c.clics == ["Gráfico", "Tabla"]
+    assert [e for e in abren if "parado" in e] == []
+    assert "TDEMOForm" in [w["class"] for w in c.abiertas]
+    assert "TDEMOForm" not in c.cierres
