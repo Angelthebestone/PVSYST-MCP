@@ -1,7 +1,7 @@
 //! Handlers for workspace management, file reading/writing, editing and listing.
 
 use super::declaracion::con;
-use super::proyeccion::{aplicar, pedir_campos, Proyeccion};
+use super::proyeccion::{aplicar, pedir_campos};
 use crate::admin;
 use crate::args::{flag, workspace_of};
 use crate::components::{self, pan};
@@ -245,9 +245,7 @@ pub(super) fn ejecutar_listar(paths: &Paths, args: &Value) -> Result<Value> {
             "Value '{valor}' not supported for listar"
         ))),
     }?;
-    if aplicar(&mut resultado, campos) == Proyeccion::SinLista {
-        anotar_no_leidos(&mut resultado, args, &["campos"]);
-    }
+    aplicar(&mut resultado, campos);
     Ok(resultado)
 }
 

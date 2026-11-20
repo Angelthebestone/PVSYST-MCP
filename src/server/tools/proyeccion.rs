@@ -77,19 +77,6 @@ pub(super) struct CamposPedidos {
     nombres: Vec<String>,
 }
 
-/// What a projection did with an answer.
-#[must_use]
-#[derive(PartialEq, Eq)]
-pub(super) enum Proyeccion {
-    /// The call named no `campos`: every field of every item stays.
-    Ninguna,
-    /// Each item of each list the answer carries keeps only the named fields.
-    Aplicada,
-    /// `campos` was given but the answer carries none of the lists of its `que`, so
-    /// the caller names it in `ignorados` instead of failing.
-    SinLista,
-}
-
 /// Reads `campos` against the contract of `que`, before the listing runs: `None`
 /// when the call names none, the names it asks for when every one is a field of the
 /// `que`, and otherwise a refusal that lists those fields.
@@ -139,37 +126,25 @@ pub(super) fn pedir_campos(
 }
 
 /// Projects every list of objects the answer of this `que` carries, so no list is left
-/// with the fields the caller asked to drop.
-pub(super) fn aplicar(resultado: &mut Value, campos: Option<CamposPedidos>) -> Proyeccion {
+/// with the fields the caller asked to drop. Without `campos` the answer is untouched.
+pub(super) fn aplicar(resultado: &mut Value, campos: Option<CamposPedidos>) {
     let Some(campos) = campos else {
-        return Proyeccion::Ninguna;
+        return;
     };
-    let mut aplicada = false;
     for &clave in campos.listas {
-        aplicada |= proyectar_lista(resultado, clave, &campos.nombres);
-    }
-    if aplicada {
-        Proyeccion::Aplicada
-    } else {
-        Proyeccion::SinLista
+        proyectar_lista(resultado, clave, &campos.nombres);
     }
 }
 
-/// Keeps in each item of the list `clave` only the keys `nombres` names; `false` when
-/// the answer carries no such list of objects.
-fn proyectar_lista(resultado: &mut Value, clave: &str, nombres: &[String]) -> bool {
-    let Some(items) = resultado.get(clave).and_then(Value::as_array) else {
-        return false;
+/// Keeps in each item of the list `clave` only the keys `nombres` names.
+fn proyectar_lista(resultado: &mut Value, clave: &str, nombres: &[String]) {
+    let Some(items) = resultado.get_mut(clave).and_then(Value::as_array_mut) else {
+        return;
     };
-    let mut proyectados = Vec::with_capacity(items.len());
-    for item in items {
-        proyectados.push(proyectar_item(item, nombres));
+    for item in items.iter_mut() {
+        let proyectado = proyectar_item(item, nombres);
+        *item = proyectado;
     }
-    let Some(slot) = resultado.get_mut(clave) else {
-        return false;
-    };
-    *slot = Value::Array(proyectados);
-    true
 }
 
 /// The contract of one `listar` `que`, `None` for a `que` this table does not know.

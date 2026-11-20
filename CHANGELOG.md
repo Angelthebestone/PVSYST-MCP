@@ -289,8 +289,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that could not, `solo_lectura` on a template), so a filtered, empty or warning-free answer accepts the
   same names as a full one; a name outside that table is an input error that lists the fields of the
   `que`, and a `campos` that names no field or is not a list of names is refused instead of leaving every
-  item empty. `campos` on an answer with no list of objects is named in `ignorados` instead of failing.
-  Without `campos` the answer is the one it was, and `detalle` keeps its meaning: the fields are projected
+  item empty. Without `campos` the answer is the one it was, and `detalle` keeps its meaning: the fields are projected
   before the lists are cut to 13, 50 or all.
 - **`tools/mapa_desde_inventario.py` copies the nested sheets of a tab into the map as `subpestana`.**
   A page whose inventory entry names a sub-sheet (`TPVModuleForm`, «Parámetros del modelo» →
