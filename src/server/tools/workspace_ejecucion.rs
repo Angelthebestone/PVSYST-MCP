@@ -1,6 +1,7 @@
 //! Handlers for workspace management, file reading/writing, editing and listing.
 
 use super::declaracion::con;
+use super::proyeccion::{aplicar, pedir_campos, Proyeccion};
 use crate::admin;
 use crate::args::{flag, workspace_of};
 use crate::components::{self, pan};
@@ -233,7 +234,7 @@ pub(super) fn ejecutar_listar(paths: &Paths, args: &Value) -> Result<Value> {
     let valor = super::workspace::TOOL_LISTAR.accion(args);
     // Checked against the contract of the `que` before a folder is walked, because the
     // items of one answer are not the list of names the listing accepts.
-    let campos = super::proyeccion::pedir_campos(args, valor, paths.idioma)?;
+    let campos = pedir_campos(args, valor, paths.idioma)?;
     let mut resultado = match valor {
         "proyectos" => projects::listar_proyectos(paths, args),
         "componentes" => components::listar_componentes(paths, args),
@@ -244,7 +245,7 @@ pub(super) fn ejecutar_listar(paths: &Paths, args: &Value) -> Result<Value> {
             "Value '{valor}' not supported for listar"
         ))),
     }?;
-    if !super::proyeccion::aplicar(&mut resultado, campos) {
+    if aplicar(&mut resultado, campos) == Proyeccion::SinLista {
         anotar_no_leidos(&mut resultado, args, &["campos"]);
     }
     Ok(resultado)

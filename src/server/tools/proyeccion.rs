@@ -1,8 +1,8 @@
 //! `listar` field projection: with `campos` an item keeps only the keys the caller
 //! named, so a caller that needs two fields of a project does not pay for the other
-//! five. The names a `que` accepts come from its contract, never from the items an
-//! answer happens to carry: a filtered, empty or warning-free answer accepts the
-//! same names as a full one.
+//! five. The names a `que` accepts and the lists it answers with come from its
+//! contract, never from the items an answer happens to carry: a filtered, empty or
+//! warning-free answer accepts the same names as a full one.
 
 use super::declaracion::nombre_tipo_recibido;
 use super::validacion::TIPO_INCORRECTO;
@@ -19,17 +19,22 @@ const CAMPOS_VACIOS: Texto = Texto {
     en: "'campos' cannot be empty: name at least one field of listar {que}; fields: {campos}",
 };
 
-/// The fields every item of one `listar` `que` can carry — the optional ones
-/// (`aviso`, written when a .PRJ cannot be parsed; `error`, when a .PAN cannot)
-/// included, because this is the list a `campos` name is checked against.
+/// The contract of one `listar` `que`: the lists of objects its answer carries and
+/// every field their items can hold — the optional ones (`aviso`, written when a
+/// .PRJ cannot be parsed; `error`, when a .PAN cannot) included, because this is the
+/// list a `campos` name is checked against.
 struct Contrato {
     que: &'static str,
+    listas: &'static [&'static str],
     campos: &'static [&'static str],
 }
 
 const CONTRATOS: &[Contrato] = &[
     Contrato {
         que: "proyectos",
+        // The workspace projects and the read-only demo templates: an item keeps the
+        // named keys it has, and one of the two lists lacks `aviso` or `solo_lectura`.
+        listas: &["projects", "templates"],
         campos: &[
             "name",
             "prj",
@@ -44,28 +49,45 @@ const CONTRATOS: &[Contrato] = &[
     },
     Contrato {
         que: "componentes",
+        listas: &["components"],
         campos: &["file", "size_bytes"],
     },
     Contrato {
         que: "modulos",
+        listas: &["modules"],
         campos: &["modulo", "pnom_w", "vendor", "model", "error"],
     },
     Contrato {
         que: "archivos",
+        listas: &["files"],
         campos: &["relative", "size_bytes", "modified_unix"],
     },
     Contrato {
         que: "objetos",
+        listas: &["objects"],
         campos: &["type", "role", "depth", "line_open", "line_close"],
     },
 ];
 
-/// The field names a checked `campos` asks for: holding one proves each name is a
-/// field of its `que`, so the projection itself cannot fail.
+/// The field names a checked `campos` asks for, with the lists they apply to: holding
+/// one proves each name is a field of its `que`, so the projection cannot fail.
 #[must_use]
 pub(super) struct CamposPedidos {
-    que: &'static str,
+    listas: &'static [&'static str],
     nombres: Vec<String>,
+}
+
+/// What a projection did with an answer.
+#[must_use]
+#[derive(PartialEq, Eq)]
+pub(super) enum Proyeccion {
+    /// The call named no `campos`: every field of every item stays.
+    Ninguna,
+    /// Each item of each list the answer carries keeps only the named fields.
+    Aplicada,
+    /// `campos` was given but the answer carries none of the lists of its `que`, so
+    /// the caller names it in `ignorados` instead of failing.
+    SinLista,
 }
 
 /// Reads `campos` against the contract of `que`, before the listing runs: `None`
@@ -110,28 +132,38 @@ pub(super) fn pedir_campos(
         }
     }
     let campos = CamposPedidos {
-        que: contrato.que,
+        listas: contrato.listas,
         nombres,
     };
     Ok(Some(campos))
 }
 
-/// Keeps in each item of the answer's list only the keys `campos` names. `false`
-/// when nothing was projected: no `campos`, or an answer with no list of objects,
-/// and only the second case leaves a given `campos` to be reported as ignored.
-pub(super) fn aplicar(resultado: &mut Value, campos: Option<CamposPedidos>) -> bool {
+/// Projects every list of objects the answer of this `que` carries, so no list is left
+/// with the fields the caller asked to drop.
+pub(super) fn aplicar(resultado: &mut Value, campos: Option<CamposPedidos>) -> Proyeccion {
     let Some(campos) = campos else {
-        return false;
+        return Proyeccion::Ninguna;
     };
-    let Some(clave) = clave_de_lista(campos.que) else {
-        return false;
-    };
+    let mut aplicada = false;
+    for &clave in campos.listas {
+        aplicada |= proyectar_lista(resultado, clave, &campos.nombres);
+    }
+    if aplicada {
+        Proyeccion::Aplicada
+    } else {
+        Proyeccion::SinLista
+    }
+}
+
+/// Keeps in each item of the list `clave` only the keys `nombres` names; `false` when
+/// the answer carries no such list of objects.
+fn proyectar_lista(resultado: &mut Value, clave: &str, nombres: &[String]) -> bool {
     let Some(items) = resultado.get(clave).and_then(Value::as_array) else {
         return false;
     };
     let mut proyectados = Vec::with_capacity(items.len());
     for item in items {
-        proyectados.push(proyectar_item(item, &campos.nombres));
+        proyectados.push(proyectar_item(item, nombres));
     }
     let Some(slot) = resultado.get_mut(clave) else {
         return false;
@@ -143,18 +175,6 @@ pub(super) fn aplicar(resultado: &mut Value, campos: Option<CamposPedidos>) -> b
 /// The contract of one `listar` `que`, `None` for a `que` this table does not know.
 fn contrato_de(que: &str) -> Option<&'static Contrato> {
     CONTRATOS.iter().find(|contrato| contrato.que == que)
-}
-
-/// The array of objects each `listar` action answers with.
-fn clave_de_lista(accion: &str) -> Option<&'static str> {
-    match accion {
-        "proyectos" => Some("projects"),
-        "componentes" => Some("components"),
-        "modulos" => Some("modules"),
-        "archivos" => Some("files"),
-        "objetos" => Some("objects"),
-        _ => None,
-    }
 }
 
 /// The names `campos` asks for; an element that is not a string is a wrong input.
