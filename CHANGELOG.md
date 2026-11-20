@@ -154,6 +154,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   disabled and an enabled button presses the enabled one as before instead of refusing both.
 
 ### Added
+- **`gui_observar que:formulario` says where the text of each button was read (`etiqueta_fuente`).** A button
+  answered its `texto` with no origin, so a client could not tell the caption the control draws for itself
+  (`window_text`) from a text the OCR read inside its rectangle (`ocr`), and `gui_actuar clic_texto` can
+  fall back to OCR substring matching on the second one and press another button whose caption contains
+  it. The key carries the same values as the field labels (`window_text`, `ocr`) and is `null` when the
+  button has no text. `tools/medir_gui.py` presses a button only when this key says `window_text`.
 - **`pvsyst://gui/<clase>` serves one window of the GUI map (D.1 of the visual GUI test report).**
   `pvsyst://gui` weighed 395 587 B (89 windows and 209 catalogue functions), so reading the nine tabs
   of `TDetailedLossesForm` loaded the whole file. The new form returns that window alone: `clase`,

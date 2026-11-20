@@ -73,15 +73,21 @@ fn ubicar(obj: &mut Value, c: &Control) {
 /// `lineas` are the OCR lines of the form: pass none for a control that is not
 /// shown, since the text drawn where it sits belongs to another page.
 pub(super) fn procesar_boton(c: &Control, lineas: &[LineaOcr]) -> Value {
-    let texto = if c.texto.trim().is_empty() {
-        texto_dibujado(&c.rect, lineas)
+    let (texto, fuente) = if c.texto.trim().is_empty() {
+        let dibujado = texto_dibujado(&c.rect, lineas);
+        let fuente = (!dibujado.is_empty()).then_some(FuenteEtiqueta::Ocr);
+        (dibujado, fuente)
     } else {
-        normalizar_etiqueta(&c.texto)
+        (
+            normalizar_etiqueta(&c.texto),
+            Some(FuenteEtiqueta::TextoDeVentana),
+        )
     };
     let mut obj = json!({
         "hwnd": c.hwnd,
         "clase": c.clase,
         "texto": texto,
+        "etiqueta_fuente": fuente,
         "habilitado": c.enabled,
         "rect": rect_json(&c.rect),
     });
@@ -147,3 +153,7 @@ pub(super) fn es_campo(clase: &str) -> bool {
         .iter()
         .any(|clases| clases.contains(&clase))
 }
+
+#[cfg(test)]
+#[path = "../../../../tests/unit/adapters/gui/ocr/controles.rs"]
+mod tests;
