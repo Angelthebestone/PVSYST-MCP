@@ -238,6 +238,19 @@ REMEDIOS: dict[str, Remedio] = {
     },
 }
 
+# Batch C: the windows opened from the catalogue (`tools/gui_manifiesto.json` has the
+# chain of each). Data, not code: `{clave: {reemplaza, estado}}`.
+REMEDIOS.update(
+    {
+        clave: Remedio(reemplaza=dato["reemplaza"], estado=dato["estado"])
+        for clave, dato in json.loads(
+            (Path(__file__).resolve().parent / "remedios_lote_c.json").read_text(
+                encoding="utf-8"
+            )
+        ).items()
+    }
+)
+
 
 def cargar(ruta: Path) -> Json:
     datos: Json = json.loads(ruta.read_bytes())

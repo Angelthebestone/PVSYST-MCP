@@ -183,6 +183,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `descartar_cambios` by name, since it presses Cancelar/No and never accepts a question.
 
 ### Changed
+- **`docs/gui_mapa.json` is remeasured for 38 more windows (batch C) and 24 earlier targets gain their
+  button effects.** `tools/medir_gui.py --botones` ran the 62 targets still unmeasured on the shipped
+  demos; `docs/gui_inventario_pestanas.json` records for each target the dialogs its whitelisted
+  buttons open (`botones_abren`), and 17 presses carry the error that stopped them (a caption drawn
+  several times, or one the OCR did not find) instead of a guessed effect. `TBacktrackingForm` and
+  `TShedElecShadingForm` open on `_DEMO_Tracking` and not on `_DEMO_Commercial` (the menu entry is
+  disabled there, and «Detalles y gráfico» is not drawn). `THelpForm` (an embedded browser) and
+  `TPlotLossDiagramF` (a plot) read back no control at all, so they leave the manifest and keep the
+  instance they had. The REMEDIOS of the batch live in `tools/remedios_lote_c.json`, read by
+  `tools/mapa_desde_inventario.py`; the manifest has 83 targets.
 - **The READMEs say that `clic_texto`'s `indice` skips the button whose caption is the text.** The
   shortcut was deliberate (`indice` counts the texts drawn on screen, not the buttons) but only the
   CHANGELOG recorded it, so passing `indice` to a form with two «Abrir» buttons got the drawn text
