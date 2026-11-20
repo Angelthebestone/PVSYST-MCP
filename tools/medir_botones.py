@@ -13,6 +13,8 @@ apart from «pressed and opened nothing». At most `MAX_PULSACIONES` presses per
 
 from __future__ import annotations
 
+from collections.abc import Collection
+
 from medir_cierres import cerrar_nuevas
 from medir_cliente import Cliente, Json
 from medir_inventario import origen_de_boton
@@ -58,6 +60,11 @@ MAX_PULSACIONES = 40
 # name UI Automation gives it, and `clic_texto` then falls back to OCR substring and to
 # UIA: «Tabla» can reach «Guardar tabla...», so the label names no control.
 ORIGENES_DE_CAPTION = ("window_text", "control")
+
+# `clic_texto` answers in `origen` how it resolved the text it pressed: `control` is a
+# visible button whose own caption it is, and it is the only value this run may go on
+# with. `ocr` and `uia` are its fallbacks (`clic_por_texto.rs`) and press a text.
+ORIGEN_DE_CONTROL = "control"
 
 
 def huellas(c: Cliente) -> set[tuple[str, str]]:
@@ -113,8 +120,37 @@ def _abrir_pestana(c: Cliente, clase: str, indice: int | None) -> str | None:
     return None if error is None else error[:300]
 
 
+def _fallo_de_origen(texto: str, r: Json, nuevas: Collection[Json]) -> str | None:
+    """Why the click answer does not vouch for the button, or None.
+
+    `clic_texto` presses a visible button whose own caption is the text, and otherwise
+    falls back to OCR substring matching and to the name UI Automation gives it,
+    naming the path it took in `origen`. A fallback pressed a text: the button was
+    hidden or covered, so `«Tabla»` could reach `«Guardar tabla...»` and the label
+    names no control of this window. A click the server refused answers with an error
+    and no origin, and its error is already the press's reason.
+    """
+    origen = r.get("origen")
+    if origen == ORIGEN_DE_CONTROL:
+        return None
+    if origen is None and _error_de(r) is not None:
+        return None
+    abiertas = ", ".join(f"{w['class']} {w.get('title')!r}" for w in nuevas)
+    return (
+        f"after pressing {texto!r}: the click answer says "
+        f"origen={origen or 'ninguno'}, so it pressed a text and not the caption of a "
+        f"visible button of this window; it opened {abiertas or 'nothing'}"
+    )
+
+
 def _pulsar(c: Cliente, clase: str, texto: str) -> Json:
-    """Press one button of the window and dismiss what it opened: its entry."""
+    """Press one button of the window and dismiss what it opened: its entry.
+
+    The entry stops the run when the answer says the press was resolved by OCR or by
+    UI Automation (see `_fallo_de_origen`) or when a window it opened could not be
+    closed: the fields already measured still merge, the presses of this target do
+    not go on.
+    """
     previas = huellas(c)
     r = c.tool("gui_actuar", {"accion": "clic_texto", "ventana": clase, "texto": texto})
     _dormir(0.8)
@@ -122,6 +158,7 @@ def _pulsar(c: Cliente, clase: str, texto: str) -> Json:
         w for w in ventanas(c) if (w["class"], str(w.get("title") or "")) not in previas
     ]
     cerradas, parado = cerrar_nuevas(c, previas)
+    parado = parado or _fallo_de_origen(texto, r, nuevas)
     entrada: Json = {
         "boton": texto,
         "abre": _abre(nuevas, cerradas),

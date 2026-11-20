@@ -70,6 +70,23 @@ def objetivo_de(
     )
 
 
+def respuesta_de_clic(efecto: Json) -> Json:
+    """The answer `gui_actuar clic_texto` gives for one press effect.
+
+    A successful click always names in `origen` where it resolved the text, and a
+    refused one answers the error alone; the UIA fallback answers both
+    (`clic_por_texto.rs`).
+    """
+    respuesta: Json = {}
+    if "error" in efecto:
+        respuesta["error"] = efecto["error"]
+    if "origen" in efecto:
+        respuesta["origen"] = efecto["origen"]
+    elif "error" not in efecto:
+        respuesta["origen"] = "control"
+    return respuesta
+
+
 def botones_de(*textos: str, origen: str | None = "window_text") -> list[Json]:
     """Buttons as a form read reports them; `origen=None` is a server that reports none."""
     botones: list[Json] = []
@@ -172,13 +189,15 @@ class PVsystFalso:
         elif accion == "clic_texto":
             self.clics.append(a["texto"])
             efecto = self.botones.get(a["texto"], {})
+            # A click the server refused does nothing.
             if "error" in efecto:
-                return {"error": efecto["error"]}
+                return respuesta_de_clic(efecto)
             if "abre" in efecto:
                 self.abiertas.append({"class": efecto["abre"], "title": "t"})
             cierra = efecto.get("cierra", a["ventana"])
             if cierra and cierra not in self.incerrables:
                 self.abiertas = [w for w in self.abiertas if w["class"] != cierra]
+            return respuesta_de_clic(efecto)
         elif accion == "escribir":
             self.escrito = a["texto"]
         elif accion == "fila":

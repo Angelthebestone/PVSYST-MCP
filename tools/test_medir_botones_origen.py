@@ -1,6 +1,7 @@
 """Tests for medir_botones.py: which labels it accepts and where their text came from."""
 
 from medir_botones import pulsar_botones
+from medir_cliente import Json
 from medir_inventario import inventariar
 from medir_proyectos import abrir
 from pvsyst_falso import PVsystFalso, botones_de, formulario, objetivo_de
@@ -149,3 +150,32 @@ def test_pulsar_botones_records_the_origin_of_the_label_it_presses() -> None:
     assert medida["pestanas"][0]["botones"] == [
         {"texto": "Gráfico", "habilitado": True, "origen": "window_text"}
     ]
+
+
+def test_pulsar_botones_stops_when_the_click_answer_does_not_say_control() -> None:
+    """A fallback of `clic_texto` presses a text, not this window's button of that text."""
+    casos: list[Json] = [
+        {"abre": "TY", "cierra": None, "origen": "ocr"},
+        {
+            "abre": "TY",
+            "cierra": None,
+            "origen": "uia",
+            "error": "OCR did not find 'Tabla' (matches:0)",
+        },
+        {"abre": "TY", "cierra": None, "origen": None},
+    ]
+    for efecto in casos:
+        f = formulario([])
+        f["paginas"][0]["botones"] = botones_de("Tabla")
+        c = PVsystFalso({"TX": f}, {"a": "TX"}, {"Tabla": efecto})
+        assert abrir(c, objetivo_de("TX")) is None
+
+        abren = pulsar_botones(c, objetivo_de("TX"), inventariar(c, "TX"))
+
+        origen = efecto["origen"] or "ninguno"
+        assert c.clics == ["Tabla"], efecto
+        assert len(abren) == 1 and "parado" in abren[0], efecto
+        assert f"origen={origen}" in abren[0]["parado"], efecto
+        assert "'Tabla'" in abren[0]["parado"], efecto
+        # What it opened is closed as any other press's windows are.
+        assert "TY" not in [w["class"] for w in c.abiertas], efecto
