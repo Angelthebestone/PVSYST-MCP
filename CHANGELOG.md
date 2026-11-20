@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **`tools/medir_objetivo.py` closes the target it opened when the measurement raises anything, not only
+  `ErrorMedicion`.** An `ErrorDeLectura` from `abrir` or `inventariar` (a `RuntimeError`) or a
+  `TimeoutError` left `medir` as an exception `main` stops on, with the target's window still open, and the
+  next run then refused the session as somebody else's. The cleanup now runs on every path: the exception
+  is raised again naming the cleanup that could not finish after it, never in place of the reason it was
+  raised for.
 - **Both READMEs say the top-level `siguiente` string was removed and that `detalle:resumen` trims to 13
   items.** The `vista` section still said existing keys do not change, although the string was removed in
   favour of `vista.siguiente` (B.5.2 of the visual GUI test report), and the `detalle` bullet said 10

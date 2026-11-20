@@ -13,7 +13,7 @@ from medir_botones import pulsar_botones
 from medir_cliente import Cliente, Json
 from medir_inventario import ErrorMedicion, inventariar
 from medir_proyectos import Objetivo, abrir
-from medir_ventanas import ErrorDeLectura, limpiar
+from medir_ventanas import limpiar
 
 
 def _rechazar(medida: Json) -> str | None:
@@ -47,13 +47,13 @@ def _medido(c: Cliente, objetivo: Objetivo, botones: bool) -> Json | str:
 def _limpiar_despues(c: Cliente) -> str | None:
     """Close what the target left open, best effort: why it could not, or None.
 
-    This runs while the error that ended the target, if any, is on its way out, so a
-    screen that cannot be read here is reported and never raised: the reason the
-    target failed is the one that must reach the caller.
+    This runs while the error that ended the target, if any, is on its way out, so
+    anything a cleanup raises here is reported and never raised: the reason the target
+    failed is the one that must reach the caller.
     """
     try:
         quedan = limpiar(c)
-    except ErrorDeLectura as e:
+    except Exception as e:
         return str(e)
     return f"still open: {quedan}" if quedan else None
 
@@ -64,7 +64,8 @@ def medir(c: Cliente, objetivo: Objetivo, botones: bool = False) -> Json | str:
     A cleanup that cannot close what the target opened does not throw away what it
     measured: the measurement comes back carrying that reason in `parado`, so the
     fields are merged and `main` counts the target as failed. When the target failed
-    already, the reason it failed is returned with the cleanup's own reason appended.
+    already, the reason it failed is returned with the cleanup's own reason appended;
+    any other exception is raised the same way, after the target is closed.
     """
     previas = limpiar(c)
     if previas:
@@ -73,6 +74,13 @@ def medir(c: Cliente, objetivo: Objetivo, botones: bool = False) -> Json | str:
         resultado: Json | str = _medido(c, objetivo, botones)
     except ErrorMedicion as e:
         resultado = str(e)
+    except Exception as e:
+        # A read or a wait failed with the target open: close it anyway, so the next
+        # run does not find the window of this one, and keep the reason it failed.
+        fallo_limpieza = _limpiar_despues(c)
+        if fallo_limpieza is None:
+            raise
+        raise type(e)(f"{e}; and closing the target failed: {fallo_limpieza}") from e
     fallo_limpieza = _limpiar_despues(c)
     if fallo_limpieza is None:
         return resultado

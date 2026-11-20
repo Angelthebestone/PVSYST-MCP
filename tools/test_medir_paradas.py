@@ -76,6 +76,32 @@ def test_a_failed_cleanup_does_not_replace_the_error_that_stopped_the_target(
     assert "access denied" in salida
 
 
+def test_a_read_error_while_opening_the_target_closes_what_it_opened(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    c = PVsystFalso({"TA": formulario(["a"])}, {"a": "TA"})
+    llamar = c.tool
+    fallos = 0
+
+    def tool(nombre: str, a: Json) -> Json:
+        """The first read of the windows after the chain ran fails, once."""
+        nonlocal fallos
+        if c.funciones and a.get("que") == "ventanas" and fallos == 0:
+            fallos += 1
+            return {"error": "access denied reading the windows"}
+        return llamar(nombre, a)
+
+    c.tool = tool  # type: ignore[method-assign]
+
+    codigo = main(argumentos(tmp_path, "--solo", "TA"), fabrica_de(c))
+
+    salida = capsys.readouterr().out
+    assert codigo == 1
+    assert "reading the open windows failed" in salida
+    assert "access denied" in salida
+    assert "TA" not in [w["class"] for w in c.abiertas]
+
+
 def test_a_run_refuses_a_session_it_did_not_start_with_a_window_it_did_not_open(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
