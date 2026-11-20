@@ -68,6 +68,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`sin origen`) until the window is measured again. The server's form read does not report the
   origin of a button's text yet, so a `--botones` run presses nothing until it does: that is the
   fail-closed side of the rule, not a silent skip.
+- **`tools/medir_gui.py` no longer fails every target after the trial notice appears under a loaded
+  project.** The notice (`TDEMOForm`) came up while a demo project was open, the server refuses to
+  close it there (the project window is modal above it) and the cleanup reported it as a window it
+  could not close, so 25 of 26 targets of a run failed with «could not close the windows left open».
+  The cleanup now skips the notice while a project is open; the next chain without a project closes
+  the project and then the notice.
 - **`gui_observar que:esquema` publishes a window under every catalogue function that opens it, not
   only under the one that announces it.** `abierta_con` was built from `Funcion::abre` alone, so
   `TUserNeedsForm` listed `variante.autoconsumo` and hid `variante.necesidades_usuario_independiente`,

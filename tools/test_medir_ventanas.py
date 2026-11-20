@@ -251,3 +251,20 @@ def test_limpiar_reports_what_it_could_not_close() -> None:
     c.incerrables = {"TTerco"}
 
     assert limpiar(c) == ["TTerco"]
+
+
+def test_limpiar_leaves_the_trial_notice_while_a_project_is_open_and_closes_it_after() -> (
+    None
+):
+    c = PVsystFalso({}, {})
+    c.abiertas += [
+        {"class": "TProjectForm", "title": "Proyecto: _DEMO_X.PRJ"},
+        {"class": "TDEMOForm", "title": "Modo DEMO"},
+    ]
+    c.incerrables = {"TDEMOForm"}
+
+    assert limpiar(c) == []
+
+    c.abiertas = [w for w in c.abiertas if w["class"] != "TProjectForm"]
+
+    assert limpiar(c) == ["TDEMOForm"]

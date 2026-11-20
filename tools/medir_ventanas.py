@@ -167,12 +167,27 @@ def _cerrar(c: Cliente, clase: str) -> Json:
     )
 
 
+def _sobran(c: Cliente) -> list[Json]:
+    """The windows `limpiar` must close. The trial notice (`TDEMOForm`) is skipped
+    while a project is open: the project window is modal above it, the server
+    refuses to close it (measured), and the next chain without a project closes
+    the project and then the notice."""
+    abiertas = ventanas(c)
+    con_proyecto = any(w["class"] == "TProjectForm" for w in abiertas)
+    return [
+        w
+        for w in abiertas
+        if w["class"] not in MANTENER
+        and not (con_proyecto and w["class"] == "TDEMOForm")
+    ]
+
+
 def limpiar(c: Cliente) -> list[str]:
     """Close every window but the main ones; the classes still open if it gives up."""
     for _ in range(12):
-        sobra = [w for w in ventanas(c) if w["class"] not in MANTENER]
+        sobra = _sobran(c)
         if not sobra:
             return []
         _cerrar(c, sobra[0]["class"])
         _dormir(0.6)
-    return [w["class"] for w in ventanas(c) if w["class"] not in MANTENER]
+    return [w["class"] for w in _sobran(c)]
