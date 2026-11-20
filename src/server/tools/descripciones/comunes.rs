@@ -15,7 +15,7 @@ pub(super) const TABLA: &[Entrada] = &[
     ),
     entrada(
         "vista",
-        "false omite el bloque vista en una respuesta correcta (por defecto true).",
-        "false omits the vista block on a successful answer (default true).",
+        "false omite vista solo al terminar la llamada; errores y dry_run la conservan (true por defecto).",
+        "false drops vista only on a finished call; errors and dry_run keep it (default true).",
     ),
 ];

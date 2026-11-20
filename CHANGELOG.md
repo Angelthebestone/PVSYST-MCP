@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **The texts say when `vista:false` drops the block: only a call that finished (B.5.1 of the visual GUI
+  test report).** Server instruction 12, both READMEs and the bundle manifest said every answer carries
+  `vista`, and the `vista` argument description said a successful answer loses it. A rehearsal is `ok`
+  and keeps the block, and so do errors and partial answers whatever the switch says. They now name the
+  switch and those cases. No answer changes.
 - **`gui_observar` names in `ignorados` the arguments the chosen `que` does not read (B.5.4 and D.5 of
   the visual GUI test report).** `detalle` on `que:inventario` was accepted and changed nothing (68 339 /
   68 338 / 68 338 bytes for `resumen` / `normal` / `completo`: an inventory caps itself at 500 controls

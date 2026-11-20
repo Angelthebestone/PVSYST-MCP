@@ -142,7 +142,8 @@ modelo por turno más el tamaño de la salida de la tool**. Hay dos mitigaciones
   latencia en vez de suponerla.
 - **`detalle`** en todas las tools: `resumen` (por defecto) recorta los arrays a 10 elementos y
   las cadenas largas; `normal` y `completo` devuelven más. Usa `completo` solo cuando haga falta.
-- **`vista`** en toda respuesta, correcta o con fallo, es el mismo bloque para cada tool y acción:
+- **`vista`** en toda respuesta, correcta o con fallo, es el mismo bloque para cada tool y acción; solo
+  una llamada que terminó puede omitirlo con `vista:false`:
   `estado` (`ok`, `parcial`, `error`), `resumen` (una frase), `campos` (`{clave, valor, unidad, origen, editable}`;
   `origen` es `pvsyst`, `mcp` o `aproximacion_mcp`), `avisos`, `siguiente` (`[{tool, argumentos, motivo}]`, cada
   paso ejecutable tal cual) y `recortado` (`{clave, mostrados, total, pedir_resto}`). Un fallo añade `error`
