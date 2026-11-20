@@ -19,7 +19,15 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from medir_cliente import Cliente, Json
-from medir_ventanas import _cerrar, _dormir, _error_de, cerrable, limpiar, ventanas
+from medir_ventanas import (
+    AVISO,
+    _cerrar,
+    _dormir,
+    _error_de,
+    cerrable,
+    limpiar,
+    ventanas,
+)
 
 # Search box of TProjectLoadForm, client coordinates at 96 DPI.
 BUSCADOR = {"clase": "TEdit", "x": 1077, "y": 49}
@@ -205,9 +213,9 @@ def _cerrar_aviso(c: Cliente) -> str | None:
     function instead.
     """
     abiertas = ventanas(c)
-    if not any(w["class"] == "TDEMOForm" and cerrable(w, abiertas) for w in abiertas):
+    if not any(w["class"] == AVISO and cerrable(w, abiertas) for w in abiertas):
         return None
-    fallo = _error_de(_cerrar(c, "TDEMOForm"))
+    fallo = _error_de(_cerrar(c, AVISO))
     return None if fallo is None else f"closing the trial notice failed: {fallo[:200]}"
 
 

@@ -126,11 +126,12 @@ def _en_marcha(c: Cliente) -> tuple[bool, str | None]:
     return True, None
 
 
-# The windows a PVsyst this run did not start may show without holding the user's work:
-# the trial notice, which PVsyst raises by itself (measured). Every other class outside
-# `MANTENER` is a window somebody opened — the user's component editor, say, or the
-# leftover of a run that was killed — and closing it answers No to its save prompt.
-PROPIAS = ("TDEMOForm",)
+# The trial notice PVsyst raises by itself (measured), modal and in the way of every GUI
+# call, and the one window a session this run did not start may show without holding the
+# user's work. Every other class outside `MANTENER` is a window somebody opened, and
+# closing it answers No to its save prompt.
+AVISO = "TDEMOForm"
+PROPIAS = (AVISO,)
 
 
 def _ajenas(c: Cliente) -> str | None:
@@ -263,7 +264,7 @@ def cerrable(w: Json, abiertas: Collection[Json]) -> bool:
     """
     if w["class"] in MANTENER:
         return False
-    if w["class"] != "TDEMOForm":
+    if w["class"] != AVISO:
         return True
     return not any(o["class"] == "TProjectForm" for o in abiertas)
 
