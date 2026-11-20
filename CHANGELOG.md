@@ -221,6 +221,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   disabled and an enabled button presses the enabled one as before instead of refusing both.
 
 ### Added
+- **`tools/medir_condicionales.py` measures what a switch of a tab shows, hides or enables.** The map is a
+  photo of one state (a tab showed 1 field or 23 depending on a checkbox), and nothing said which control
+  changes what. For each entry of `tools/gui_condicionales.json` the tool opens the window on a shipped demo,
+  goes to the tab, sets the steps one by one (`campo`) and reads the tab after each; `docs/gui_condicionales.json`
+  keeps `aparecen`, `desaparecen`, `habilitan` and `deshabilitan` per step (buttons count). Measured on
+  PVsyst 8.1.8: «Activo» of the P50-P90 tab of `TSystemeAddForm` shows 12 labels; «Consumo auxiliares
+  definidos» of `TDetailedLossesForm` enables two edits; the ohmic-loss tab chains «Utiliza pérdida óhmica del
+  circuito CA» → «Utiliza uno o varios transformadores MT» → «Utiliza un transformador de AT», each enabling
+  the next; «Tipo de sistema: Autoconsumo» of `TGridStorageForm` shows 8 labels and the buttons «Abrir» and
+  «Autoconsumo». Not measured: the «Eficiencia definida para 3 voltajes» checkbox of `TGridInverterForm`,
+  which needs an inverter chosen in a chooser whose rows the server cannot select. Labels can be OCR text, so
+  a label may be listed on both sides of a step with two spellings.
 - **`gui_observar que:formulario` says where the text of each button was read (`etiqueta_fuente`).** A button
   answered its `texto` with no origin, so a client could not tell the caption the control draws for itself
   (`window_text`) from a text the OCR read inside its rectangle (`ocr`), and `gui_actuar clic_texto` can
