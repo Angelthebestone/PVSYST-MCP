@@ -25,10 +25,6 @@ pub(super) const ENTRADAS: &[Entrada] = &[
             en: "Project created from a template.",
         },
     )
-    .pista(Texto {
-        es: "proyecto dimensionar {proyecto,n_mod_serie,n_strings}",
-        en: "proyecto dimensionar {proyecto,n_mod_serie,n_strings}",
-    })
     .luego(&[REVISAR, VER_PROYECTOS]),
     entrada(
         "proyecto",
@@ -65,10 +61,6 @@ pub(super) const ENTRADAS: &[Entrada] = &[
             en: "Project sized with modules in series and strings.",
         },
     )
-    .pista(Texto {
-        es: "proyecto doctor {proyecto}",
-        en: "proyecto doctor {proyecto}",
-    })
     .luego(&[REVISAR, VER_PROYECTOS]),
     entrada(
         "proyecto",
@@ -78,10 +70,6 @@ pub(super) const ENTRADAS: &[Entrada] = &[
             en: "Project checked: coherence of the variant and its files.",
         },
     )
-    .pista(Texto {
-        es: "simular {proyecto}",
-        en: "simular {proyecto}",
-    })
     .luego(&[SIMULAR, VER_PROYECTOS]),
     entrada(
         "proyecto",

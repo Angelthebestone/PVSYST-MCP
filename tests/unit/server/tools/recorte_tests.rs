@@ -1,4 +1,4 @@
-use crate::server::tools::recorte::{decorar, Respuesta};
+use crate::server::tools::recorte::{decorar_con, Respuesta};
 use serde_json::json;
 
 fn respuesta(
@@ -17,7 +17,7 @@ fn respuesta(
 #[test]
 fn should_mark_the_answer_as_trimmed_when_the_detail_level_cuts_items() {
     let mut v = json!({ "items": (0..20).collect::<Vec<u32>>() });
-    decorar(
+    decorar_con(
         &mut v,
         &json!({}),
         respuesta("listar", "proyectos", Vec::new()),
@@ -32,7 +32,7 @@ fn should_mark_the_answer_as_trimmed_when_the_detail_level_cuts_items() {
 #[test]
 fn should_make_count_say_how_many_items_are_left_when_the_list_it_counts_is_cut() {
     let mut v = json!({ "count": 24, "controls": (0..24).collect::<Vec<u32>>() });
-    decorar(
+    decorar_con(
         &mut v,
         &json!({}),
         respuesta("gui_observar", "controles", Vec::new()),
@@ -50,7 +50,7 @@ fn should_keep_up_to_500_controls_when_a_gui_inventory_is_asked_without_detail()
     let pedido = json!({ "que": "controles", "todos": true });
 
     let mut cabe = controles(300);
-    decorar(
+    decorar_con(
         &mut cabe,
         &pedido,
         respuesta("gui_observar", "controles", Vec::new()),
@@ -59,7 +59,7 @@ fn should_keep_up_to_500_controls_when_a_gui_inventory_is_asked_without_detail()
     assert!(cabe.get("truncado").is_none());
 
     let mut excede = controles(520);
-    decorar(
+    decorar_con(
         &mut excede,
         &pedido,
         respuesta("gui_observar", "controles", Vec::new()),
@@ -72,7 +72,7 @@ fn should_keep_up_to_500_controls_when_a_gui_inventory_is_asked_without_detail()
 
     let mut con_detalle = controles(300);
     let resumen = json!({ "que": "controles", "todos": true, "detalle": "resumen" });
-    decorar(
+    decorar_con(
         &mut con_detalle,
         &resumen,
         respuesta("gui_observar", "controles", Vec::new()),
@@ -85,7 +85,7 @@ fn should_keep_up_to_500_controls_when_a_gui_inventory_is_asked_without_detail()
 #[test]
 fn should_not_summarise_the_lists_of_the_inventory_and_the_form_view() {
     let mut v = json!({ "controles": (0..40).collect::<Vec<u32>>(), "otros": (0..40).collect::<Vec<u32>>() });
-    decorar(
+    decorar_con(
         &mut v,
         &json!({}),
         respuesta("gui_observar", "inventario", Vec::new()),
@@ -93,4 +93,16 @@ fn should_not_summarise_the_lists_of_the_inventory_and_the_form_view() {
     assert_eq!(v["controles"].as_array().map(Vec::len), Some(40));
     assert_eq!(v["otros"].as_array().map(Vec::len), Some(40));
     assert!(v.get("truncado").is_none());
+}
+
+/// B.5.2: the next step travels once, as `vista.siguiente`, never as a top-level string.
+#[test]
+fn should_not_add_a_next_step_string_to_the_answer() {
+    let mut v = json!({ "report_pdf": "Results/X.PDF" });
+    decorar_con(
+        &mut v,
+        &json!({}),
+        respuesta("resultados", "kpis", Vec::new()),
+    );
+    assert!(v.get("siguiente").is_none(), "{v}");
 }

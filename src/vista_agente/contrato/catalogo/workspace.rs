@@ -141,10 +141,6 @@ pub(super) const ENTRADAS: &[Entrada] = &[
             en: "Fields edited with a copy in the history.",
         },
     )
-    .pista(Texto {
-        es: "proyecto doctor",
-        en: "proyecto doctor",
-    })
     .luego(&[REVISAR, LEER, VER_HISTORIAL]),
     entrada(
         "editar",

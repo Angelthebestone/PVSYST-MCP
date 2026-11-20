@@ -221,6 +221,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `TPlotLossDiagramF` (a plot) read back no control at all, so they leave the manifest and keep the
   instance they had. The REMEDIOS of the batch live in `tools/remedios_lote_c.json`, read by
   `tools/mapa_desde_inventario.py`; the manifest has 83 targets.
+- **BREAKING: the top-level `siguiente` string is removed; `vista.siguiente` replaces it (B.5.2 of the visual GUI
+  test report).** Every answer carried the next step twice: as a string that cannot be parsed
+  (`"resultados que:perdidas"`, 246 B and 27 % of `resultados kpis`) and as the structured `vista.siguiente` array
+  of `{tool, argumentos, motivo}` that a caller can send as written. The string, the `pista` texts of
+  `src/vista_agente/contrato/catalogo/` that only fed it, and the language argument of the decorator that computed
+  it are gone. Nothing else in an answer changes: a client that read the string reads `vista.siguiente[0]` instead.
 - **The READMEs say that `clic_texto`'s `indice` skips the button whose caption is the text.** The
   shortcut was deliberate (`indice` counts the texts drawn on screen, not the buttons) but only the
   CHANGELOG recorded it, so passing `indice` to a form with two «Abrir» buttons got the drawn text

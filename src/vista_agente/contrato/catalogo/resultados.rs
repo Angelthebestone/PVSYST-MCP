@@ -46,10 +46,6 @@ pub(super) const ENTRADAS: &[Entrada] = &[
             en: "Simulation run with PVsystCLI.",
         },
     )
-    .pista(Texto {
-        es: "resultados que:perdidas",
-        en: "resultados que:perdidas",
-    })
     .luego(&[VER_KPIS, VER_PERDIDAS, VER_ESTADO, VER_PROYECTOS]),
     entrada(
         "simular",
@@ -95,10 +91,6 @@ pub(super) const ENTRADAS: &[Entrada] = &[
             en: "Simulation indicators read from the report.",
         },
     )
-    .pista(Texto {
-        es: "resultados que:perdidas",
-        en: "resultados que:perdidas",
-    })
     .luego(&[VER_PERDIDAS, VER_PROYECTOS]),
     entrada(
         "resultados",

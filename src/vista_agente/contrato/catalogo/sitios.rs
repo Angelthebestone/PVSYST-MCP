@@ -21,10 +21,6 @@ pub(super) const ENTRADAS: &[Entrada] = &[
             en: "Site created with the weather data of the location.",
         },
     )
-    .pista(Texto {
-        es: "proyecto crear {plantilla,nombre_nuevo}",
-        en: "proyecto crear {plantilla,nombre_nuevo}",
-    })
     .luego(&[LEER, VER_ARCHIVOS]),
     entrada(
         "sitio",

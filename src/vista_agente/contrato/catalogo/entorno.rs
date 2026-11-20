@@ -30,10 +30,6 @@ pub(super) const ENTRADAS: &[Entrada] = &[
             en: "Environment diagnosis: PVsyst, CLI, workspace and tools.",
         },
     )
-    .pista(Texto {
-        es: "disenar_sistema {latitud,longitud,kwp}",
-        en: "disenar_sistema {latitud,longitud,kwp}",
-    })
     .luego(&[VER_PROYECTOS, VER_LICENCIA]),
     entrada(
         "entorno",
@@ -97,10 +93,6 @@ pub(super) const ENTRADAS: &[Entrada] = &[
             en: "PVsyst preferences read.",
         },
     )
-    .pista(Texto {
-        es: "entorno preferencias {seccion:'Preferences'}",
-        en: "entorno preferencias {seccion:'Preferences'}",
-    })
     .luego(&[VER_ENTORNO]),
     entrada(
         "entorno",
@@ -119,9 +111,5 @@ pub(super) const ENTRADAS: &[Entrada] = &[
             en: "System designed end to end: site, project, sizing and simulation.",
         },
     )
-    .pista(Texto {
-        es: "resultados que:perdidas",
-        en: "resultados que:perdidas",
-    })
     .luego(&[VER_PERDIDAS, VER_KPIS, VER_ENTORNO]),
 ];

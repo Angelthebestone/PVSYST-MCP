@@ -1,7 +1,5 @@
-//! Result trimming by detail level and next-step recommendations for callers.
+//! Result trimming by detail level and the per-call metadata of an answer.
 
-use crate::idioma::Idioma;
-use crate::vista_agente::contrato::catalogo;
 use serde_json::{Map, Value};
 
 /// Accepted detail levels; `resumen` is the default.
@@ -87,13 +85,6 @@ pub(crate) fn recortar(v: &mut Value, lim: (usize, usize)) -> bool {
     }
 }
 
-/// Suggested next step after a successful call, as a short hint for the caller.
-pub(crate) fn siguiente(tool: &str, valor: &str, idioma: Idioma) -> Option<&'static str> {
-    catalogo::buscar(tool, valor)?
-        .pista
-        .map(|p| p.en_idioma(idioma))
-}
-
 /// A `count` that counted the list now cut says how many are left, not how many there were.
 fn ajustar_count(mapa: &mut Map<String, Value>, totales: &[(String, usize)], max_arr: usize) {
     let contado = mapa.get("count").and_then(Value::as_u64);
@@ -173,12 +164,8 @@ fn limites_de(r: &Respuesta<'_>, args: &Value) -> Option<(usize, usize)> {
     limites(args)
 }
 
-/// Trims the result to `detalle` and adds `elapsed_ms`, `siguiente`, `ignorados`, and, when cut, `truncado`, `hint` and `total`.
-#[expect(
-    clippy::too_many_arguments,
-    reason = "the decorator needs the answer, the request, its metadata and the language"
-)]
-pub(crate) fn decorar_con(v: &mut Value, args: &Value, r: Respuesta<'_>, idioma: Idioma) {
+/// Trims the result to `detalle` and adds `elapsed_ms`, `ignorados`, and, when cut, `truncado`, `hint` and `total`.
+pub(crate) fn decorar_con(v: &mut Value, args: &Value, r: Respuesta<'_>) {
     let lim = limites_de(&r, args);
     let total = lim.and_then(|l| total_principal(v, l));
     let truncado = lim.is_some_and(|l| recortar(v, l));
@@ -193,9 +180,6 @@ pub(crate) fn decorar_con(v: &mut Value, args: &Value, r: Respuesta<'_>, idioma:
         return;
     };
     obj.insert("elapsed_ms".to_string(), Value::from(r.ms));
-    if let Some(sig) = siguiente(r.herramienta, r.accion, idioma) {
-        obj.insert("siguiente".to_string(), Value::from(sig));
-    }
     if !ignorados.is_empty() {
         obj.insert("ignorados".to_string(), Value::from(ignorados));
     }
@@ -206,13 +190,6 @@ pub(crate) fn decorar_con(v: &mut Value, args: &Value, r: Respuesta<'_>, idioma:
     if let Some(n) = total {
         obj.entry("total").or_insert(Value::from(n));
     }
-}
-
-/// The same decoration in the language of the installation. The trimming tests
-/// decorate without a `Paths`; the server passes `paths.idioma` to [`decorar_con`].
-#[cfg(test)]
-pub(crate) fn decorar(v: &mut Value, args: &Value, r: Respuesta<'_>) {
-    decorar_con(v, args, r, Idioma::de_entorno());
 }
 
 /// Original length of the longest top-level list that the detail level trims.

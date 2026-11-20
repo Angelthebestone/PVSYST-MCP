@@ -21,10 +21,6 @@ pub(super) const ENTRADAS: &[Entrada] = &[
             en: "Component created from a template.",
         },
     )
-    .pista(Texto {
-        es: "proyecto crear {modulo|inversor}",
-        en: "proyecto crear {modulo|inversor}",
-    })
     .luego(&[VER_COMPONENTES, VER_MODULOS]),
     entrada(
         "componente",
@@ -70,9 +66,5 @@ pub(super) const ENTRADAS: &[Entrada] = &[
             en: "Component created from the data of a datasheet.",
         },
     )
-    .pista(Texto {
-        es: "proyecto crear {modulo|inversor}",
-        en: "proyecto crear {modulo|inversor}",
-    })
     .luego(&[VER_COMPONENTES, VER_MODULOS]),
 ];

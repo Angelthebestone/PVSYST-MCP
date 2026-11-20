@@ -141,7 +141,6 @@ model latency plus the size of tool output**. Two mitigations are built in:
   latency can be measured instead of guessed.
 - **`detalle`** on every tool: `resumen` (default) trims arrays to 10 items and long
   strings; `normal` and `completo` return more. Use `completo` only when needed.
-- **`siguiente`** on successful results suggests the next call in the flow.
 - **`vista`** on every answer, success or failure, is the same block for every tool and action:
   `estado` (`ok`, `parcial`, `error`), `resumen` (one sentence), `campos` (`{clave, valor, unidad, origen, editable}`;
   `origen` is `pvsyst`, `mcp` or `aproximacion_mcp`), `avisos`, `siguiente` (`[{tool, argumentos, motivo}]`, each

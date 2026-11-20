@@ -51,14 +51,12 @@ impl Paso {
     }
 }
 
-/// What one action reports and suggests. `pista` is the short text kept under
-/// the top-level `siguiente` key for callers that already read it.
+/// What one action reports and suggests.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Entrada {
     pub(crate) tool: &'static str,
     pub(crate) accion: &'static str,
     pub(crate) resumen: Texto,
-    pub(crate) pista: Option<Texto>,
     pub(crate) siguiente: &'static [Paso],
 }
 
@@ -67,19 +65,11 @@ pub(super) const fn entrada(tool: &'static str, accion: &'static str, resumen: T
         tool,
         accion,
         resumen,
-        pista: None,
         siguiente: &[],
     }
 }
 
 impl Entrada {
-    pub(super) const fn pista(self, pista: Texto) -> Self {
-        Entrada {
-            pista: Some(pista),
-            ..self
-        }
-    }
-
     pub(super) const fn luego(self, siguiente: &'static [Paso]) -> Self {
         Entrada { siguiente, ..self }
     }

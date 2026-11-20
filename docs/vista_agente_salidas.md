@@ -34,8 +34,7 @@ Cambios respecto a la propuesta del handoff, con motivo:
 - **Cliente sin `structuredContent`** (protocolo anterior a 2025-06-18): el fallo lleva el `vista` como segundo
   elemento de texto de `content`, con la forma `{"vista": {...}}`. El primero sigue siendo el mensaje.
 - **Dónde vive el texto:** `src/vista_agente/contrato/catalogo/` (un archivo por feature). Un test falla si una
-  tool declara una acción sin entrada, o si el catálogo conserva una acción que ya no existe. El `siguiente` de
-  una línea que ya existía en la raíz sale de la misma entrada (`pista`).
+  tool declara una acción sin entrada, o si el catálogo conserva una acción que ya no existe.
 - **`vista:false` deja el bloque fuera de una llamada que terminó.** Solo cuando `estado` es `ok` y no queda nada
   pendiente: un fallo, un `parcial`, una confirmación y un ensayo (`dry_run`) lo llevan siempre, porque el agente
   no puede perder la verdad de lo que no se aplicó. El bloque ocupa el 60-69 % de los bytes de una respuesta de
