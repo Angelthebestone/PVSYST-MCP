@@ -3,7 +3,7 @@
 import pytest
 
 from medir_cliente import Json
-from medir_inventario import ErrorMedicion, inventariar
+from medir_inventario import ErrorMedicion, fusionar, inventariar
 from medir_ventanas import ventanas
 from pvsyst_falso import PVsystFalso, botones_de, formulario
 
@@ -113,3 +113,21 @@ def test_a_tab_dialog_with_no_rejection_stops_the_measurement_naming_it() -> Non
     assert c.clics == []
     assert "TMessageForm" in [w["class"] for w in ventanas(c)]
 
+
+def test_fusionar_drops_the_old_presses_when_the_tabs_change() -> None:
+    vieja: Json = {"indice": 0, "pestana": "Vieja", "campos": [], "botones": []}
+    inventario: Json = {
+        "TX": {
+            "ventana": "TX",
+            "titulo": "Ventana de prueba",
+            "pestanas": [vieja],
+            "errores": [],
+            "botones_abren": [{"boton": "Tabla", "abre": [], "error": None}],
+        }
+    }
+    medida = inventariar(PVsystFalso({"TX": formulario(["a"])}, {}), "TX")
+
+    fusionar(inventario, "TX", medida)
+
+    assert "botones_abren" not in inventario["TX"]
+    assert inventario["TX"]["pestanas"] == medida["pestanas"]

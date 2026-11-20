@@ -33,13 +33,14 @@ from medir_ventanas import (
 # A black list misses the next synonym, and the windows add one every release: one
 # unknown label that commits the window (Aceptar, Sí, Reemplazar, Simular, Ejecutar,
 # Calcular, Actualizar, Despejar, Crear, Elaborar, Conversión, Abortar) turns a
-# measurement into an edit. The list is exact, not by prefix, and each entry is a
-# label whose measured effect is opening a read-only view: a prefix of «ver» presses
-# «Ver el TNCO de todos modos», which skips a warning and writes the thermal
+# measurement into an edit. The list is exact, not by prefix: a prefix of «ver»
+# presses «Ver el TNCO de todos modos», which skips a warning and writes the thermal
 # parameter, and a prefix of «abrir» presses «Abrir sitio», which opens a browser or
-# the Windows Explorer, a window outside the process. Adding a label requires having
-# seen which window it opens. Compared in lower case, without accents, `&` or
-# ellipsis, with spaces collapsed.
+# the Windows Explorer, a window outside the process. It is a ceiling drawn from the
+# labels the inventory lists, not a record of measured effects: the run itself
+# records in `botones_abren` the window each label it presses opens, and a label
+# whose recorded window is not a read-only view comes out of the list.
+# Compared in lower case, without accents, `&` or ellipsis, with spaces collapsed.
 PERMITIDOS = (
     "resumen del sistema",
     "grafico de perdidas",

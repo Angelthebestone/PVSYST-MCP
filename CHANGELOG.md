@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   said nothing. The answer now carries `ignorados: ["detalle"]`, `["compacto"]` or `["recorte"]`, the
   mechanism `leer` already uses for the keys of another branch. `compacto` is read by `que:ventanas`,
   `que:controles` and `que:vista`; `recorte` by `que:capturar`. No other answer changes.
+- **`medir_gui` reads a JSON-RPC failure of a chain step, drops the presses of a remeasured tab set,
+  and its white-list comment says what the list is.** `abrir` compared `r.get("error")` alone, so a
+  `jsonrpc_error` answer counted as a success; `fusionar` kept the old `botones_abren` whenever the run
+  carried no `--botones`, even when the tabs had been remeasured, so presses recorded against tabs the
+  window no longer has were credited to the new ones (they are now dropped unless the tab set is the
+  same); and the comment above `PERMITIDOS` claimed every label had been seen opening a window, when
+  the repository has no recorded run yet: the list is a ceiling drawn from the labels the inventory
+  lists, and the run itself records in `botones_abren` the window each label it presses opens.
 - **The windows a press opened are closed by class, never by title.** `cerrar_nuevas` passed `titulo or
   clase` to `gui_actuar accion:cerrar`, and the server resolves a title by substring over every window
   of the process (`resolucion.rs`), the host included: a new window whose title equalled the host's

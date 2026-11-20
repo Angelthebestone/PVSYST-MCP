@@ -151,13 +151,23 @@ def volcar(datos: Json) -> str:
     return json.dumps(datos, indent=1, ensure_ascii=False)
 
 
+def _pestanas(e: Json) -> list[object]:
+    """The names of the tabs an inventory entry recorded, in order."""
+    return [p.get("pestana") for p in e.get("pestanas") or []]
+
+
 def fusionar(inventario: Json, clave: str, medida: Json) -> None:
+    """Merge one measurement into the inventory, keeping the old presses when they hold.
+
+    A run without `--botones` did not look at the presses: keeping the old list is not
+    stale data, it is the last measurement of what they open. It does not hold when the
+    tabs were remeasured, because those presses were recorded against tabs this window
+    no longer has and the entry would credit them to the new ones.
+    """
     anterior = inventario.get(clave) or {}
     entrada = {k: medida[k] for k in ("ventana", "titulo", "pestanas", "errores")}
     if "botones_abren" in medida:
         entrada["botones_abren"] = medida["botones_abren"]
-    elif "botones_abren" in anterior:
-        # A run without --botones did not look at the presses: keeping the old list
-        # is not stale data, it is the last measurement of what they open.
+    elif "botones_abren" in anterior and _pestanas(anterior) == _pestanas(medida):
         entrada["botones_abren"] = anterior["botones_abren"]
     inventario[clave] = entrada

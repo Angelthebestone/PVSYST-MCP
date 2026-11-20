@@ -183,7 +183,11 @@ def test_main_closes_on_a_later_target_the_project_it_loaded_itself(
     manifiesto.write_text(
         json.dumps(
             [
-                {"clave": "TA", "ventana": "TA", "cadena": "@proyecto:Planta,variante.x"},
+                {
+                    "clave": "TA",
+                    "ventana": "TA",
+                    "cadena": "@proyecto:Planta,variante.x",
+                },
                 {"clave": "TB", "ventana": "TB", "cadena": "herramientas.x"},
             ]
         ),

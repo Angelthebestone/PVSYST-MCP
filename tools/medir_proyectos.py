@@ -155,10 +155,11 @@ def abrir(
         if any(w["class"] == "TDEMOForm" for w in ventanas(c)):
             c.tool("gui_actuar", {"accion": "cerrar", "ventana": "TDEMOForm"})
         r = c.tool("gui_actuar", {"accion": "funcion", "funcion": paso})
+        error = _error_de(r)
         # A host window that opens a different one than the catalogue expects still
         # leaves the target open; the check below decides.
-        if r.get("error") and "did not open the expected window" not in str(r["error"]):
-            return f"{paso}: {str(r['error'])[:200]}"
+        if error is not None and "did not open the expected window" not in error:
+            return f"{paso}: {error[:200]}"
         _dormir(1.0)
     if _hasta(lambda: any(w["class"] == clase for w in ventanas(c)), 5):
         return None
