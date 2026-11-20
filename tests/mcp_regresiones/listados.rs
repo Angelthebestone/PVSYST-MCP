@@ -272,3 +272,40 @@ fn should_keep_every_project_field_when_campos_is_absent() {
         );
     }
 }
+
+/// A `que` that `listar` declares without a contract in the projection would take
+/// `campos` and drop it without a word. The aliases of each `que` count, so the names
+/// come from the schema the server publishes and not from the cases above.
+#[test]
+fn should_refuse_an_unknown_field_for_every_que_listar_declares() {
+    let ws = synthetic_workspace();
+    let mut s = Sesion::nueva(ws.path());
+    let respuesta = s.cliente.request(900, "tools/list", json!({}));
+    let declarados: Vec<String> = respuesta["result"]["tools"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|tool| tool["name"] == "listar")
+        .flat_map(|tool| tool["inputSchema"]["properties"]["que"]["enum"].as_array())
+        .flatten()
+        .filter_map(|valor| valor.as_str().map(str::to_string))
+        .collect();
+    assert!(
+        !declarados.is_empty(),
+        "listar no declara ningún que: {respuesta}"
+    );
+    for que in declarados {
+        let args = json!({
+            "que": que,
+            "campos": [CAMPO_INEXISTENTE],
+            "tipo": "PAN",
+            "carpeta": "Projects",
+            "archivo": "Projects/SYNTH_Plant.VC0",
+        });
+        let msg = s.error(args);
+        assert!(
+            msg.contains(CAMPO_INEXISTENTE),
+            "con que:{que} un campo inexistente debe rechazarse nombrando los válidos: {msg}"
+        );
+    }
+}
