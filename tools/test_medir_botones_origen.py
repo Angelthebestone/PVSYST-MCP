@@ -116,8 +116,8 @@ def test_pulsar_botones_never_presses_a_label_the_white_list_does_not_equal() ->
 def test_pulsar_botones_does_not_press_a_label_that_is_not_its_own_caption() -> None:
     f = formulario([])
     f["paginas"][0]["botones"] = [
-        *botones_de("Tabla", origen="ocr"),
-        *botones_de("Gráfico", origen=None),
+        *botones_de("Tabla", etiqueta_fuente="ocr"),
+        *botones_de("Gráfico", etiqueta_fuente=None),
         *botones_de("Tabla mensual"),
     ]
     c = PVsystFalso(

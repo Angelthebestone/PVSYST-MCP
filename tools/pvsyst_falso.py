@@ -39,7 +39,7 @@ def formulario(*paginas: list[str], pestanas: list[str] | None = None) -> Json:
         "paginas": [
             {
                 "campos": [campo(e) for e in etiquetas],
-                "botones": [{"texto": "OK", "habilitado": True}],
+                "botones": botones_de("OK"),
                 "otros": [
                     {"clase": "TTabSheet", "texto": f"hoja {i}"},
                     {"clase": "TPanel", "texto": "no es rótulo"},
@@ -87,13 +87,20 @@ def respuesta_de_clic(efecto: Json) -> Json:
     return respuesta
 
 
-def botones_de(*textos: str, origen: str | None = "window_text") -> list[Json]:
-    """Buttons as a form read reports them; `origen=None` is a server that reports none."""
+def botones_de(*textos: str, etiqueta_fuente: str | None = "window_text") -> list[Json]:
+    """Buttons as `procesar_boton` reports them.
+
+    `etiqueta_fuente` is `window_text` for a control that draws its own caption, `ocr`
+    for text recognised inside it and None when it has none; a measurement recorded
+    before the server reported it carries no such key at all.
+    """
     botones: list[Json] = []
     for texto in textos:
-        boton: Json = {"texto": texto, "habilitado": True}
-        if origen is not None:
-            boton["origen"] = origen
+        boton: Json = {
+            "texto": texto,
+            "habilitado": True,
+            "etiqueta_fuente": etiqueta_fuente,
+        }
         botones.append(boton)
     return botones
 

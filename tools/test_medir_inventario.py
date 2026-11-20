@@ -53,7 +53,7 @@ def test_inventariar_records_where_the_text_of_each_button_was_read() -> None:
     f = formulario([])
     f["paginas"][0]["botones"] = [
         *botones_de("Tabla"),
-        *botones_de("Gráfico", origen="ocr"),
+        *botones_de("Gráfico", etiqueta_fuente="ocr"),
         {"texto": "Dibujada", "habilitado": True},
     ]
 

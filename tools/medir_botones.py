@@ -17,7 +17,6 @@ from collections.abc import Collection, Iterator
 
 from medir_cierres import cerrar_nuevas
 from medir_cliente import Cliente, Json
-from medir_inventario import origen_de_boton
 from medir_proyectos import Objetivo, abrir
 from medir_ventanas import (
     ErrorDeLectura,
@@ -56,11 +55,12 @@ PERMITIDOS = (
 # window reads and a wait; the cap keeps one target from eating the whole session.
 MAX_PULSACIONES = 40
 
-# A button whose own caption is its text (`window_text` in a form read, `control` in a
-# click answer) names one control. Any other origin is text recognised inside it or the
-# name UI Automation gives it, and `clic_texto` then falls back to OCR substring and to
-# UIA: «Tabla» can reach «Guardar tabla...», so the label names no control.
-ORIGENES_DE_CAPTION = ("window_text", "control")
+# What a form read says about a button whose own caption is its text (`etiqueta_fuente`
+# in `procesar_boton`, `ocr/controles.rs`; the inventory records it as `origen`). The
+# other value is text recognised inside the control, and `clic_texto` then falls back to
+# OCR substring matching: «Tabla» can reach «Guardar tabla...», so the label names
+# no control of this window.
+FUENTE_DE_CAPTION = "window_text"
 
 # `clic_texto` answers in `origen` how it resolved the text it pressed: `control` is a
 # visible button whose own caption it is, and it is the only value this run may go on
@@ -90,10 +90,10 @@ def _motivo(boton: Json) -> str | None:
         return "vacío"
     if boton.get("habilitado") is not True:
         return "deshabilitado"
-    origen = origen_de_boton(boton)
+    origen = boton.get("origen")
     if origen is None:
         return "sin origen"
-    if origen not in ORIGENES_DE_CAPTION:
+    if origen != FUENTE_DE_CAPTION:
         return "texto de OCR"
     return None if _permitido(texto) else "no está en la lista blanca"
 

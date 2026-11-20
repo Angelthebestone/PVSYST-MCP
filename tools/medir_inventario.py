@@ -21,22 +21,14 @@ class ErrorMedicion(Exception):
     """A read or a step failed: the measurement of this target cannot be trusted."""
 
 
-def origen_de_boton(boton: Json) -> str | None:
-    """Where the server says the text of a button was read, or None.
-
-    A form read names it `etiqueta_fuente` per control: `window_text` when the control
-    carries the caption itself, `ocr` when the text was recognised inside it. A click
-    answer names it `origen`: `control`, `ocr` or `uia`. A server that reports neither,
-    and a measurement recorded before it did, answer None.
-    """
-    for clave in ("origen", "etiqueta_fuente"):
-        valor = boton.get(clave)
-        if isinstance(valor, str) and valor:
-            return valor
-    return None
-
-
 def leer_pagina(c: Cliente, clase: str) -> Json:
+    """Read the tab on screen: its fields, buttons, captions and the tab names.
+
+    Each button carries `origen`, the `etiqueta_fuente` of the server's answer: where
+    the text of that button was read (`window_text` when the control draws it, `ocr`
+    when it was recognised inside it, null when the button has no text; see
+    `procesar_boton` in `ocr/controles.rs`).
+    """
     f = c.tool("gui_observar", {"que": "formulario", "ventana": clase})
     fallo = _error_de(f)
     if fallo is not None:
@@ -47,7 +39,7 @@ def leer_pagina(c: Cliente, clase: str) -> Json:
             {
                 "texto": b.get("texto"),
                 "habilitado": b.get("habilitado"),
-                "origen": origen_de_boton(b),
+                "origen": b.get("etiqueta_fuente"),
             }
             for b in f.get("botones") or []
         ],
