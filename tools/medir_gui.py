@@ -34,7 +34,8 @@ not press is recorded with its motive (`no está en la lista blanca`, `texto de 
 `sin origen`, `deshabilitado`, `vacío`, `tope`), so the JSON tells «not pressed» apart
 from «pressed and opened nothing». A press run that stops is merged all the same, but
 it leaves the exit code non-zero: the windows it could not clean say the measurement
-is incomplete. At most `MAX_PULSACIONES` presses per target.
+is incomplete. So does a target whose cleanup could not close what it opened, which
+is merged with it under `parado`. At most `MAX_PULSACIONES` presses per target.
 
 This module is the command line only: the target, the client, the windows, the tabs,
 the projects, the presses and the closes live in the sibling modules
@@ -125,9 +126,10 @@ def _resumen(clave: str, medida: Json) -> str:
     """The line `main` prints for one measured target.
 
     `presses` counts only entries that pressed a button: the list also carries the
-    buttons it refused and the truncation markers. A press error is not an
+    buttons it refused, the truncation markers and the stops. A press error is not an
     inventory error (it does not block the merge), so it is counted apart; a stopped
-    entry is named too, because it is what turns the exit code non-zero.
+    entry is named too, because it is what turns the exit code non-zero, and so is a
+    cleanup that could not close what the target opened.
     """
     n = sum(len(p["campos"]) for p in medida["pestanas"])
     pulsados = ""
@@ -138,6 +140,8 @@ def _resumen(clave: str, medida: Json) -> str:
         paradas = _paradas(medida)
         if paradas:
             pulsados += f", {len(paradas)} stopped"
+    if "parado" in medida:
+        pulsados += ", closing it stopped"
     return (
         f"{clave}: {len(medida['pestanas'])} tabs, {n} fields, "
         f"{len(medida['errores'])} errors{pulsados}"
@@ -184,7 +188,10 @@ def main(
             fusionar(inventario, o.clave, r)
             fusionados += 1
             print(_resumen(o.clave, r))
-            if _paradas(r):
+            # A press that stopped and a cleanup that could not close what the target
+            # opened both leave the measurement incomplete, and both are merged: the
+            # fields are valid, the exit code says the run is not finished.
+            if _paradas(r) or "parado" in r:
                 fallos += 1
     finally:
         c.cerrar()

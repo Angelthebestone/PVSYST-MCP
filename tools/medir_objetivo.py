@@ -13,7 +13,7 @@ from medir_botones import pulsar_botones
 from medir_cliente import Cliente, Json
 from medir_inventario import ErrorMedicion, inventariar
 from medir_proyectos import Objetivo, abrir
-from medir_ventanas import limpiar
+from medir_ventanas import ErrorDeLectura, limpiar
 
 
 def _rechazar(medida: Json) -> str | None:
@@ -25,28 +25,58 @@ def _rechazar(medida: Json) -> str | None:
     return None
 
 
-def medir(c: Cliente, objetivo: Objetivo, botones: bool = False) -> Json | str:
-    """Open, inventory and close one target: the measurement, or an error text.
+def _medido(c: Cliente, objetivo: Objetivo, botones: bool) -> Json | str:
+    """Measure one target while its window is open: the measurement, or an error text.
 
     `botones` presses the allowed buttons of every tab, which is what `--botones`
     asks for. The projects the run loaded itself, and so may close, travel inside
     `objetivo`, so a target whose chain loads none may close those and no others.
     """
+    fallo = abrir(c, objetivo)
+    if fallo:
+        return fallo
+    medida = inventariar(c, objetivo.ventana)
+    fallo = _rechazar(medida)
+    if fallo:
+        return fallo
+    if botones:
+        medida["botones_abren"] = pulsar_botones(c, objetivo, medida)
+    return medida
+
+
+def _limpiar_despues(c: Cliente) -> str | None:
+    """Close what the target left open, best effort: why it could not, or None.
+
+    This runs while the error that ended the target, if any, is on its way out, so a
+    screen that cannot be read here is reported and never raised: the reason the
+    target failed is the one that must reach the caller.
+    """
+    try:
+        quedan = limpiar(c)
+    except ErrorDeLectura as e:
+        return str(e)
+    return f"still open: {quedan}" if quedan else None
+
+
+def medir(c: Cliente, objetivo: Objetivo, botones: bool = False) -> Json | str:
+    """Open, inventory and close one target: the measurement, or an error text.
+
+    A cleanup that cannot close what the target opened does not throw away what it
+    measured: the measurement comes back carrying that reason in `parado`, so the
+    fields are merged and `main` counts the target as failed. When the target failed
+    already, the reason it failed is returned with the cleanup's own reason appended.
+    """
     previas = limpiar(c)
     if previas:
         return f"could not close the windows left open: {previas}"
     try:
-        fallo = abrir(c, objetivo)
-        if fallo:
-            return fallo
-        medida = inventariar(c, objetivo.ventana)
-        fallo = _rechazar(medida)
-        if fallo:
-            return fallo
-        if botones:
-            medida["botones_abren"] = pulsar_botones(c, objetivo, medida)
-        return medida
+        resultado: Json | str = _medido(c, objetivo, botones)
     except ErrorMedicion as e:
-        return str(e)
-    finally:
-        limpiar(c)
+        resultado = str(e)
+    fallo_limpieza = _limpiar_despues(c)
+    if fallo_limpieza is None:
+        return resultado
+    if isinstance(resultado, str):
+        return f"{resultado}; and closing the target failed: {fallo_limpieza}"
+    resultado["parado"] = fallo_limpieza
+    return resultado

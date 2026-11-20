@@ -75,7 +75,10 @@ def ventanas(c: Cliente) -> list[Json]:
 
     A read that failed raises `ErrorDeLectura`: an empty list means PVsyst answered
     with no window, and a caller that took a refusal for it would report a clean
-    screen, close nothing, or launch a second instance over an unknown one.
+    screen, close nothing, or launch a second instance over an unknown one. A window
+    without a `class` is a read error of the same kind: every caller names and closes
+    windows by their class, so a `KeyError` raised down the line would end the tool
+    with a traceback that does not say which window the answer was talking about.
     """
     r = c.tool("gui_observar", {"que": "ventanas", "visibles": True})
     fallo = _error_de(r)
@@ -86,6 +89,12 @@ def ventanas(c: Cliente) -> list[Json]:
         raise ErrorDeLectura(
             "reading the open windows failed: the answer carries no 'windows' list"
         )
+    for w in crudas:
+        if not isinstance(w, dict) or not isinstance(w.get("class"), str):
+            raise ErrorDeLectura(
+                "reading the open windows failed: a window carries no 'class': "
+                f"{str(w)[:200]}"
+            )
     return [w for w in crudas if w["class"] not in EFIMERAS]
 
 

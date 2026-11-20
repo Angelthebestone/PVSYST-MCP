@@ -13,13 +13,14 @@ apart from «pressed and opened nothing». At most `MAX_PULSACIONES` presses per
 
 from __future__ import annotations
 
-from collections.abc import Collection
+from collections.abc import Collection, Iterator
 
 from medir_cierres import cerrar_nuevas
 from medir_cliente import Cliente, Json
 from medir_inventario import origen_de_boton
 from medir_proyectos import Objetivo, abrir
 from medir_ventanas import (
+    ErrorDeLectura,
     _dormir,
     _error_de,
     clases,
@@ -178,16 +179,9 @@ def _reabrir(c: Cliente, objetivo: Objetivo, pestana: Json) -> str | None:
     return abrir(c, objetivo) or _abrir_pestana(c, clase, pestana["indice"])
 
 
-def pulsar_botones(c: Cliente, objetivo: Objetivo, medida: Json) -> list[Json]:
-    """Press every allowed button of the measured tabs: the `botones_abren` list.
-
-    One entry per press, plus a `parado` entry when a press closes the host and it
-    cannot be reopened or its tab cannot be selected again. Those failures stay
-    here and not in `medida["errores"]`: the fields already measured are valid and
-    are still merged.
-    """
+def _pulsaciones(c: Cliente, objetivo: Objetivo, medida: Json) -> Iterator[Json]:
+    """The entries of one press run, up to the press that stops it."""
     clase = objetivo.ventana
-    registros: list[Json] = []
     pulsados = 0
     quedan = 0
     for pestana in medida["pestanas"]:
@@ -195,11 +189,11 @@ def pulsar_botones(c: Cliente, objetivo: Objetivo, medida: Json) -> list[Json]:
             texto = str(boton.get("texto") or "").strip()
             motivo = _motivo(boton)
             if motivo is not None:
-                registros.append({"boton": texto, "pulsado": False, "motivo": motivo})
+                yield {"boton": texto, "pulsado": False, "motivo": motivo}
                 continue
             if pulsados >= MAX_PULSACIONES:
                 quedan += 1
-                registros.append({"boton": texto, "pulsado": False, "motivo": "tope"})
+                yield {"boton": texto, "pulsado": False, "motivo": "tope"}
                 continue
             pulsados += 1
             # A press can switch the tab: the buttons on screen are not always the
@@ -208,22 +202,37 @@ def pulsar_botones(c: Cliente, objetivo: Objetivo, medida: Json) -> list[Json]:
             fallo = _abrir_pestana(c, clase, pestana["indice"])
             if fallo:
                 cerrar_nuevas(c, previas)
-                registros.append({"pestana": pestana["pestana"], "parado": fallo})
-                return registros
-            registros.append(
-                {"pestana": pestana["pestana"], **_pulsar(c, clase, texto)}
-            )
-            if "parado" in registros[-1]:
-                return registros
+                yield {"pestana": pestana["pestana"], "parado": fallo}
+                return
+            entrada = {"pestana": pestana["pestana"], **_pulsar(c, clase, texto)}
+            yield entrada
+            if "parado" in entrada:
+                return
             fallo = _reabrir(c, objetivo, pestana)
             if fallo:
-                registros.append(
-                    {
-                        "pestana": pestana["pestana"],
-                        "parado": f"after pressing {texto!r}: {fallo}",
-                    }
-                )
-                return registros
+                yield {
+                    "pestana": pestana["pestana"],
+                    "parado": f"after pressing {texto!r}: {fallo}",
+                }
+                return
     if quedan:
-        registros.append({"truncado": True, "quedan": quedan})
+        yield {"truncado": True, "quedan": quedan}
+
+
+def pulsar_botones(c: Cliente, objetivo: Objetivo, medida: Json) -> list[Json]:
+    """Press every allowed button of the measured tabs: the `botones_abren` list.
+
+    One entry per press, plus a `parado` entry when a press stops the run: the host
+    it closed cannot be reopened, its tab cannot be selected again, the click answer
+    does not say `control`, a window it opened will not close, or the screen can no
+    longer be read. Those failures stay here and not in `medida["errores"]`: the
+    fields already measured are valid and are still merged, together with the entries
+    the presses produced before the stop.
+    """
+    registros: list[Json] = []
+    try:
+        for entrada in _pulsaciones(c, objetivo, medida):
+            registros.append(entrada)
+    except ErrorDeLectura as e:
+        registros.append({"parado": str(e)})
     return registros

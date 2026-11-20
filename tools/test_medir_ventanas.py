@@ -40,6 +40,16 @@ def test_ventanas_ignores_the_tooltips_a_pointer_raises() -> None:
     assert [w["class"] for w in ventanas(c)] == ["THomeForm", "TSummaryForm"]
 
 
+def test_a_window_that_carries_no_class_is_a_read_error_too() -> None:
+    c = PVsystFalso({}, {})
+    c.abiertas.append({"title": "una ventana sin clase"})
+
+    with pytest.raises(ErrorDeLectura) as fallo:
+        ventanas(c)
+
+    assert "una ventana sin clase" in str(fallo.value)
+
+
 def test_a_failed_read_of_the_windows_raises_instead_of_answering_none() -> None:
     c = PVsystFalso({}, {})
     c.falla_ventanas = "access denied reading the windows"
