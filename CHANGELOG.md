@@ -174,6 +174,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   refused by the boundary check as `Wrong type for 'vista'`. `vista` is added like `detalle`, outside the declared
   properties, so no tool repeats it; its description lives in `src/server/tools/descripciones/comunes.rs`. Tests pin
   each case of the rule and that no tool reports the switch in `ignorados`.
+- **`listar` answers only the fields the caller asks for (`campos`, B.5.3 of the visual GUI test report).**
+  A listing carried the same seven fields of every project (about 241 B each) whatever `detalle` said, so
+  asking for `name` and `variants` cost the other five: `comment`, `meteo_file`, `modified_unix` and
+  `version` were 55 % of the values of the 13 projects `detalle:resumen` returns. A call with
+  `campos:["name","variants"]` keeps those keys in each item of the list and nothing else, in every `que`
+  of `listar` (projects, components, modules, files, objects), while the counters and the metadata of the
+  answer (`count`, `truncado`, `projects_total`) stay as they were. A name that no item carries is an input
+  error that lists the fields the items do carry, and `campos` on an answer with no list of objects is
+  named in `ignorados` instead of failing. Without `campos` the answer is the one it was, and `detalle`
+  keeps its meaning: the fields are projected before the lists are cut to 13, 50 or all.
 - **`tools/mapa_desde_inventario.py` copies the nested sheets of a tab into the map as `subpestana`.**
   A page whose inventory entry names a sub-sheet (`TPVModuleForm`, «Parámetros del modelo» →
   «Degradación», «IAM personalizado») carries it right after `pestana`, repeats the `indice_pestana` of

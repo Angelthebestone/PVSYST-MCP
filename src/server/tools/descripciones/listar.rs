@@ -4,6 +4,11 @@ use super::{entrada, Entrada};
 
 pub(super) const TABLA: &[Entrada] = &[
     entrada(
+        "campos",
+        "Campos que se conservan en cada elemento; uno desconocido es un error que lista los válidos.",
+        "Fields kept in each item; an unknown one is an error that lists the valid ones.",
+    ),
+    entrada(
         "extension",
         "Filtra que:archivos por extensión; el punto es opcional y no distingue mayúsculas.",
         "Filters que:archivos by extension; the dot is optional and case is ignored.",

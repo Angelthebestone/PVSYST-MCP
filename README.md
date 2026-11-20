@@ -85,7 +85,7 @@ and only run the MCP calculation when called with `via: "aproximacion"` and the 
 |---|---|---|
 | `entorno` | `accion`: `diagnostico` (default), `licencia`, `licencia_sync`, `licencia_activar`, `licencia_desactivar`, `exportar_logs`, `logs_cli`, `preferencias`, `preferencias_editar` | Environment, licence, logs, PVsyst preferences. `licencia_sync`/`licencia_activar`/`licencia_desactivar` never execute; they return the command template. |
 | `disenar_sistema` | — | Coordinates + kWp → site, project, sizing, simulation, KPIs in one call. |
-| `listar` | `que`: `proyectos` (default), `componentes`, `modulos`, `archivos`, `objetos` | Lists projects, components, modules (with `pnom_min`/`pnom_max`/`texto` filters), files, objects. |
+| `listar` | `que`: `proyectos` (default), `componentes`, `modulos`, `archivos`, `objetos` | Lists projects, components, modules (with `pnom_min`/`pnom_max`/`texto` filters), files, objects; `campos:["name","variants"]` keeps only those fields of each item, and an unknown name is refused with the valid ones. |
 | `leer` | type detected from `archivo` | Reads a project, module (`.PAN`), site, meteo, component, PVObject file, or raw file bytes. A file with named objects also answers `objetos`: their names in file order, which are the ones `editar` takes as `objeto`. |
 | `editar` | `accion`: `campos` (default), `insertar_objeto`, `eliminar_objeto` | Edits fields of any object (byte-preserving, snapshot first) or inserts/removes objects. |
 | `escribir_archivo` | — | Writes a workspace file (snapshot first; path-guarded). An existing file is only replaced with `sobrescribir: true`. |

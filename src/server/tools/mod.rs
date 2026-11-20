@@ -21,6 +21,7 @@ mod descripciones;
 pub(crate) mod entorno;
 pub(crate) mod nativos;
 mod no_leidos;
+mod proyeccion;
 pub(crate) mod proyectos;
 pub(crate) mod recorte;
 mod redaccion;

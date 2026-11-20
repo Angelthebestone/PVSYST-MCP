@@ -239,6 +239,7 @@ pub(crate) const TOOL_LISTAR: Herramienta = Herramienta {
         usa_red: false,
     },
     propiedades: &[
+        ("campos", TipoDato::Array),
         ("include_variants", TipoDato::Boolean),
         ("workspace", TipoDato::String),
         ("tipo", TipoDato::String),

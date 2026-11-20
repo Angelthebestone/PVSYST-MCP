@@ -86,7 +86,7 @@ cálculo del MCP con `via: "aproximacion"` y la variable activada.
 |---|---|---|
 | `entorno` | `accion`: `diagnostico` (por defecto), `licencia`, `licencia_sync`, `licencia_activar`, `licencia_desactivar`, `exportar_logs`, `logs_cli`, `preferencias`, `preferencias_editar` | Entorno, licencia, logs y preferencias de PVsyst. `licencia_sync`/`licencia_activar`/`licencia_desactivar` nunca ejecutan: devuelven la plantilla del comando. |
 | `disenar_sistema` | — | Coordenadas + kWp → sitio, proyecto, dimensionado, simulación y KPIs en una sola llamada. |
-| `listar` | `que`: `proyectos` (por defecto), `componentes`, `modulos`, `archivos`, `objetos` | Lista proyectos, componentes, módulos (con filtros `pnom_min`/`pnom_max`/`texto`), archivos y objetos. |
+| `listar` | `que`: `proyectos` (por defecto), `componentes`, `modulos`, `archivos`, `objetos` | Lista proyectos, componentes, módulos (con filtros `pnom_min`/`pnom_max`/`texto`), archivos y objetos; `campos:["name","variants"]` conserva solo esos campos de cada elemento, y un nombre desconocido se rechaza listando los válidos. |
 | `leer` | tipo detectado desde `archivo` | Lee un proyecto, un módulo (`.PAN`), un sitio, meteo, un componente, un archivo PVObject o bytes crudos. Un archivo con objetos con nombre devuelve además `objetos`: sus nombres en el orden del archivo, los que `editar` toma como `objeto`. |
 | `editar` | `accion`: `campos` (por defecto), `insertar_objeto`, `eliminar_objeto` | Edita campos de cualquier objeto (preservando bytes, con snapshot previo) o inserta/elimina objetos. |
 | `escribir_archivo` | — | Escribe un archivo del workspace (snapshot previo; ruta acotada). Un archivo existente solo se reemplaza con `sobrescribir: true`. |

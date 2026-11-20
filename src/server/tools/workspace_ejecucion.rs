@@ -231,7 +231,7 @@ pub(super) fn ejecutar_editar(paths: &Paths, args: &Value) -> Result<Value> {
 
 pub(super) fn ejecutar_listar(paths: &Paths, args: &Value) -> Result<Value> {
     let valor = super::workspace::TOOL_LISTAR.accion(args);
-    match valor {
+    let mut resultado = match valor {
         "proyectos" => projects::listar_proyectos(paths, args),
         "componentes" => components::listar_componentes(paths, args),
         "modulos" => pan::listar_modulos(paths, args),
@@ -240,7 +240,16 @@ pub(super) fn ejecutar_listar(paths: &Paths, args: &Value) -> Result<Value> {
         _ => Err(Error::Invalid(format!(
             "Value '{valor}' not supported for listar"
         ))),
+    }?;
+    let peticion = super::proyeccion::Peticion {
+        accion: valor,
+        args,
+        idioma: paths.idioma,
+    };
+    if !super::proyeccion::aplicar(&mut resultado, &peticion)? {
+        anotar_no_leidos(&mut resultado, args, &["campos"]);
     }
+    Ok(resultado)
 }
 
 fn extension_mayuscula(archivo: &str) -> String {
