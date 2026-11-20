@@ -19,7 +19,9 @@ def test_cerrar_nuevas_compares_class_and_title_and_keeps_the_main_windows() -> 
         {"class": "TProjectForm", "title": "Proyecto"},
     ]
 
-    cerradas, parado = cerrar_nuevas(c, {("THomeForm", "PVsyst"), ("TA", "vieja")})
+    cerradas, parado = cerrar_nuevas(
+        c, {("THomeForm", "PVsyst"), ("TA", "vieja"), ("TProjectForm", "Proyecto")}
+    )
 
     assert parado is None
 
@@ -28,6 +30,29 @@ def test_cerrar_nuevas_compares_class_and_title_and_keeps_the_main_windows() -> 
         ("TA", "otra"),
     ]
     assert [w["title"] for w in c.abiertas] == ["PVsyst", "vieja", "Proyecto"]
+
+
+def test_cerrar_nuevas_closes_by_class_and_never_by_a_title_the_host_shares() -> None:
+    c = PVsystFalso({}, {})
+    c.abiertas.append({"class": "TA", "title": "PVsyst"})
+
+    cerradas, parado = cerrar_nuevas(c, {("THomeForm", "PVsyst")})
+
+    assert parado is None and cerradas == [{"clase": "TA", "titulo": "PVsyst"}]
+    assert c.cierres == ["TA"]
+    assert "THomeForm" in [w["class"] for w in c.abiertas]
+
+
+def test_cerrar_nuevas_refuses_a_new_window_of_a_class_it_keeps() -> None:
+    c = PVsystFalso({}, {})
+    c.abiertas.append({"class": "TProjectForm", "title": "Proyecto de otro"})
+
+    cerradas, parado = cerrar_nuevas(c, {("THomeForm", "PVsyst")})
+
+    assert parado is not None and "TProjectForm" in parado
+    assert "Proyecto de otro" in parado
+    assert c.cierres == [] and cerradas == []
+    assert "TProjectForm" in [w["class"] for w in c.abiertas]
 
 
 def test_cerrar_nuevas_names_what_stayed_open_and_the_close_refusal() -> None:

@@ -87,6 +87,8 @@ class PVsystFalso:
         self.corriendo = True
         self.lanza = True
         self.acciones: list[str] = []
+        # Every reference `accion:cerrar` asked for, in order.
+        self.cierres: list[str] = []
         # A read of the window list that fails while the process keeps running; a
         # launch clears it, since the new process answers again.
         self.falla_ventanas: str | None = None
@@ -139,7 +141,12 @@ class PVsystFalso:
                 return {"error": "the window vetoed the tab change"}
             self.pagina[a["ventana"]] = a["indice"]
         elif accion == "cerrar":
-            for i, w in enumerate(self.abiertas):
+            self.cierres.append(str(a["ventana"]))
+            # The server closes the front-most window whose class or title is the
+            # reference; this fake lists them in the order they opened, so the search
+            # starts at the end: the window a press has just opened.
+            for i in reversed(range(len(self.abiertas))):
+                w = self.abiertas[i]
                 if a["ventana"] not in (w["class"], w.get("title")):
                     continue
                 if w["class"] not in self.incerrables:

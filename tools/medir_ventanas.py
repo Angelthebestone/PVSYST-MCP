@@ -147,15 +147,17 @@ def _boton_de(f: Json) -> str | None:
     return None
 
 
-def _cerrar(c: Cliente, clase: str, titulo: str | None = None) -> Json:
+def _cerrar(c: Cliente, clase: str) -> Json:
     """Close one window, answering its prompts as `_boton_de` says; the tool answer.
 
-    `titulo` picks one of several windows that share a class; without it the class
-    is the reference. The answer is returned and not dropped: a caller that must
-    stop when a window does not close has to name the refusal it carries.
+    The window is named by its class and never by a title: `accion:cerrar` resolves a
+    reference by substring over every window of the process, so a title a window the
+    harness keeps open also holds would close that one instead. The answer is returned
+    and not dropped: a caller that must stop when a window does not close has to name
+    the refusal it carries.
     """
     if clase != "TMessageForm":
-        return c.tool("gui_actuar", {"accion": "cerrar", "ventana": titulo or clase})
+        return c.tool("gui_actuar", {"accion": "cerrar", "ventana": clase})
     f = c.tool("gui_observar", {"que": "formulario", "ventana": clase})
     boton = _boton_de(f)
     if boton is None:
@@ -174,4 +176,3 @@ def limpiar(c: Cliente) -> list[str]:
         _cerrar(c, sobra[0]["class"])
         _dormir(0.6)
     return [w["class"] for w in ventanas(c) if w["class"] not in MANTENER]
-

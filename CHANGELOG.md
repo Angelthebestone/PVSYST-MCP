@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   said nothing. The answer now carries `ignorados: ["detalle"]`, `["compacto"]` or `["recorte"]`, the
   mechanism `leer` already uses for the keys of another branch. `compacto` is read by `que:ventanas`,
   `que:controles` and `que:vista`; `recorte` by `que:capturar`. No other answer changes.
+- **The windows a press opened are closed by class, never by title.** `cerrar_nuevas` passed `titulo or
+  clase` to `gui_actuar accion:cerrar`, and the server resolves a title by substring over every window
+  of the process (`resolucion.rs`), the host included: a new window whose title equalled the host's
+  closed the host and left the new one open. The close now names the class, `_cerrar` no longer takes
+  a title at all, and a new window whose class is one that `MANTENER` keeps (`THomeForm`, `TApplication`,
+  `TProjectForm`) is a stop naming it, because one more window of that class would leave the close
+  choosing between two. `test_cerrar_nuevas_...` learns that `previas` lists every window that was
+  open, which is what a real run passes.
 - **A `--botones` run that stopped exits non-zero and says how many entries stopped.** The console line
   built `prensas` from the entries carrying `abre`, so the `{pestana, parado}` entries a stopped run
   writes were counted nowhere: the run printed «0 with error» and `main` returned 0. `_resumen` now
