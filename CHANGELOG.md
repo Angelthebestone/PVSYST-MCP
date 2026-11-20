@@ -294,6 +294,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `descartar_cambios` by name, since it presses Cancelar/No and never accepts a question.
 
 ### Changed
+- **`docs/gui_mapa.json` is remeasured for 24 instances of windows that other kinds of project
+  open (batch D).** The stand-alone, pumping and DC-grid demos give the `independiente`, `bombeo` and
+  `red_cc` instances of `TAdvancedSimForm`, `TEcoEvaluationForm`, `THorizonForm`, `TResultForm` and
+  `TShadingsForm`; the preliminary design, the project notes, the 3D scene summary, two more
+  `TShedFieldForm` menus, the single-line diagram from the system window and the measured-data tables
+  complete the rest. Two stay as they were: `TUserNeedsForm` of `red_cc` (the DC-grid demo draws no
+  «Autoconsumo» button) and `TDimensSituationForm` «Horizonte» of the grid-connected design (its
+  button is disabled). The manifest has 107 targets.
 - **`docs/gui_mapa.json` is remeasured for 38 more windows (batch C) and 24 earlier targets gain their
   button effects.** `tools/medir_gui.py --botones` ran the 62 targets still unmeasured on the shipped
   demos; `docs/gui_inventario_pestanas.json` records for each target the dialogs its whitelisted
@@ -303,7 +311,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   disabled there, and «Detalles y gráfico» is not drawn). `THelpForm` (an embedded browser) and
   `TPlotLossDiagramF` (a plot) read back no control at all, so they leave the manifest and keep the
   instance they had. The REMEDIOS of the batch live in `tools/remedios_lote_c.json`, read by
-  `tools/mapa_desde_inventario.py`; the manifest has 83 targets.
+  `tools/mapa_desde_inventario.py`.
 - **BREAKING: the top-level `siguiente` string is removed; `vista.siguiente` replaces it (B.5.2 of the visual GUI
   test report).** Every answer carried the next step twice: as a string that cannot be parsed
   (`"resultados que:perdidas"`, 246 B and 27 % of `resultados kpis`) and as the structured `vista.siguiente` array

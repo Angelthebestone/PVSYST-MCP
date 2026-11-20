@@ -30058,5 +30058,4688 @@
     "motivo": "no está en la lista blanca"
    }
   ]
+ },
+ "TAdvancedSimForm#independiente > Simulación avanzada": {
+  "ventana": "TAdvancedSimForm",
+  "titulo": "Simulación, Variante  \"SHS SolarHome System, 2.2 kWh/day, 570 Wp, controller without MPPT\"",
+  "pestanas": [
+   {
+    "indice": null,
+    "pestana": null,
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Activar archivo de salida",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Paso de tiempo",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TDateTimePicker",
+      "etiqueta": "hasta el",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Fin de datos meteo",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TDateTimePicker",
+      "etiqueta": "desde",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Inicio de datos meteo",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Variante",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Simulación",
+      "habilitado": true
+     },
+     {
+      "texto": "Resultados",
+      "habilitado": true
+     },
+     {
+      "texto": "Cerrar",
+      "habilitado": true
+     },
+     {
+      "texto": "Herramienta de envejecimiento",
+      "habilitado": false
+     },
+     {
+      "texto": "Simulación por lotes",
+      "habilitado": true
+     },
+     {
+      "texto": "Gráficos especiales",
+      "habilitado": true
+     },
+     {
+      "texto": "Almacen. de datos por hora",
+      "habilitado": true
+     },
+     {
+      "texto": "Archivo de salida",
+      "habilitado": true
+     },
+     {
+      "texto": "Comparaciones",
+      "habilitado": false
+     },
+     {
+      "texto": "Herramienta de optimización",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TGroupBox",
+      "Archivo de salida .csv"
+     ],
+     [
+      "TGroupBox",
+      "Fechas de simulación e intervalo de tiempo"
+     ],
+     [
+      "TGroupBox",
+      "Herramientas avanzadas"
+     ],
+     [
+      "TGroupBox",
+      "Parámetros de simulación"
+     ]
+    ]
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "boton": "Simulación",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Resultados",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cerrar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Herramienta de envejecimiento",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Simulación por lotes",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Gráficos especiales",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Almacen. de datos por hora",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Archivo de salida",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Comparaciones",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Herramienta de optimización",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   }
+  ]
+ },
+ "TAdvancedSimForm#bombeo > Simulación avanzada": {
+  "ventana": "TAdvancedSimForm",
+  "titulo": "Simulación, Variante  \"Supply of drinking and sanitary water _ Village supply well depth\"",
+  "pestanas": [
+   {
+    "indice": null,
+    "pestana": null,
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Activar archivo de salida",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Paso de tiempo",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TDateTimePicker",
+      "etiqueta": "hasta el",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Fin de datos meteo",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TDateTimePicker",
+      "etiqueta": "desde",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Inicio de datos meteo",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Variante",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Simulación",
+      "habilitado": true
+     },
+     {
+      "texto": "Resultados",
+      "habilitado": true
+     },
+     {
+      "texto": "Cerrar",
+      "habilitado": true
+     },
+     {
+      "texto": "Herramienta de envejecimiento",
+      "habilitado": true
+     },
+     {
+      "texto": "Simulación por lotes",
+      "habilitado": true
+     },
+     {
+      "texto": "Gráficos especiales",
+      "habilitado": true
+     },
+     {
+      "texto": "Almacen. de datos por hora",
+      "habilitado": true
+     },
+     {
+      "texto": "Archivo de salida",
+      "habilitado": true
+     },
+     {
+      "texto": "Comparaciones",
+      "habilitado": false
+     },
+     {
+      "texto": "Herramienta de optimización",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TGroupBox",
+      "Archivo de salida .csv"
+     ],
+     [
+      "TGroupBox",
+      "Fechas de simulación e intervalo de tiempo"
+     ],
+     [
+      "TGroupBox",
+      "Herramientas avanzadas"
+     ],
+     [
+      "TGroupBox",
+      "Parámetros de simulación"
+     ]
+    ]
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "boton": "Simulación",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Resultados",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cerrar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Herramienta de envejecimiento",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Simulación por lotes",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Gráficos especiales",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Almacen. de datos por hora",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Archivo de salida",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Comparaciones",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Herramienta de optimización",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   }
+  ]
+ },
+ "TAdvancedSimForm#red_cc > Simulación avanzada": {
+  "ventana": "TAdvancedSimForm",
+  "titulo": "Simulación, Variante  \"150 kWp array, 650VDC nom, 35 strings of 23 modules\"",
+  "pestanas": [
+   {
+    "indice": null,
+    "pestana": null,
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Activar archivo de salida",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Paso de tiempo",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TDateTimePicker",
+      "etiqueta": "hasta el",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Fin de datos meteo",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TDateTimePicker",
+      "etiqueta": "desde",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Inicio de datos meteo",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Variante",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Resumen del sistema",
+      "habilitado": true
+     },
+     {
+      "texto": "Simulación",
+      "habilitado": true
+     },
+     {
+      "texto": "Resultados",
+      "habilitado": true
+     },
+     {
+      "texto": "Cerrar",
+      "habilitado": true
+     },
+     {
+      "texto": "Herramienta de envejecimiento",
+      "habilitado": true
+     },
+     {
+      "texto": "Simulación por lotes",
+      "habilitado": true
+     },
+     {
+      "texto": "Gráficos especiales",
+      "habilitado": true
+     },
+     {
+      "texto": "Almacen. de datos por hora",
+      "habilitado": true
+     },
+     {
+      "texto": "Archivo de salida",
+      "habilitado": true
+     },
+     {
+      "texto": "Comparaciones",
+      "habilitado": false
+     },
+     {
+      "texto": "Herramienta de optimización",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TGroupBox",
+      "Archivo de salida .csv"
+     ],
+     [
+      "TGroupBox",
+      "Fechas de simulación e intervalo de tiempo"
+     ],
+     [
+      "TGroupBox",
+      "Herramientas avanzadas"
+     ],
+     [
+      "TGroupBox",
+      "Parámetros de simulación"
+     ]
+    ]
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "pestana": null,
+    "boton": "Resumen del sistema",
+    "abre": [
+     {
+      "clase": "TSummaryForm",
+      "titulo": "Notas de usuario y resumen del sistema"
+     }
+    ],
+    "error": null
+   },
+   {
+    "boton": "Simulación",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Resultados",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cerrar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Herramienta de envejecimiento",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Simulación por lotes",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Gráficos especiales",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Almacen. de datos por hora",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Archivo de salida",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Comparaciones",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Herramienta de optimización",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   }
+  ]
+ },
+ "TEcoEvaluationForm#independiente > Evaluación económica": {
+  "ventana": "TEcoEvaluationForm",
+  "titulo": "Evaluación económica",
+  "pestanas": [
+   {
+    "indice": 0,
+    "pestana": "Inversión y cargos",
+    "campos": [
+     {
+      "clase": "TComboBox",
+      "etiqueta": "por m2",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "OK",
+      "habilitado": false
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "Tasas",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Inversión y cargos"
+     ],
+     [
+      "TGroupBox",
+      "Costos de operación (anual)"
+     ],
+     [
+      "TGroupBox",
+      "Costes de instalación"
+     ],
+     [
+      "TRadioGroup",
+      "Valores"
+     ],
+     [
+      "TGroupBox",
+      "Moneda"
+     ],
+     [
+      "TGroupBox",
+      "Resumen del sistema"
+     ],
+     [
+      "TGroupBox",
+      "Resumen financiero"
+     ]
+    ]
+   },
+   {
+    "indice": 1,
+    "pestana": "Parámetros financieros",
+    "campos": [
+     {
+      "clase": "TEdit",
+      "etiqueta": "Otro impuesto sobre la",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Impuesto sobre la renta",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Dividendos",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Resultados de la herramienta de envejecimiento",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Lineal",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Tasa de descuento",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Inflación",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Año de inicio",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Vida del proyecto",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "0.00",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Fondos propios",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "OK",
+      "habilitado": false
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Parámetros financieros"
+     ],
+     [
+      "TGroupBox",
+      "Gastos dependientes de ingresos"
+     ],
+     [
+      "TGroupBox",
+      "Variaciones proyectadas"
+     ],
+     [
+      "TGroupBox",
+      "Amortización fiscal"
+     ],
+     [
+      "TGroupBox",
+      "Período de simulación"
+     ],
+     [
+      "TGroupBox",
+      "Financiamiento"
+     ],
+     [
+      "TGroupBox",
+      "Resumen del sistema"
+     ],
+     [
+      "TGroupBox",
+      "Resumen financiero"
+     ]
+    ]
+   },
+   {
+    "indice": 2,
+    "pestana": "Venta de electricidad",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Este análisis debe aparecer en el informe impreso",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Sin venta",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Tarifa fija",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Tarifa variable",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Tarifa horaria horas de punta/horas valle",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Tarifa estacional",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     }
+    ],
+    "botones": [
+     {
+      "texto": "OK",
+      "habilitado": false
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Venta de electricidad"
+     ],
+     [
+      "TGroupBox",
+      "Tipo de tarifa (microrred)"
+     ],
+     [
+      "TGroupBox",
+      "Resumen del sistema"
+     ],
+     [
+      "TGroupBox",
+      "Resumen financiero"
+     ]
+    ]
+   },
+   {
+    "indice": 3,
+    "pestana": "Ahorro autoconsumo",
+    "campos": [
+     {
+      "clase": "TEdit",
+      "etiqueta": "Variación de tarifa anual",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Tarifa fija de consumo",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Tarifa variable",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Tarifa fija",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Tarifa horaria horas de punta/horas valle",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Tarifa estacional",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Tarifa del archivo CSV",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Este análisis debe aparecer en el informe impreso",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "OK",
+      "habilitado": false
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Ahorro autoconsumo"
+     ],
+     [
+      "TGroupBox",
+      "Tarifa de consumo"
+     ],
+     [
+      "TGroupBox",
+      "Tipo de tarifa"
+     ],
+     [
+      "TGroupBox",
+      "Resumen del sistema"
+     ],
+     [
+      "TGroupBox",
+      "Resumen financiero"
+     ]
+    ]
+   },
+   {
+    "indice": 4,
+    "pestana": "Resultados financieros",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Este análisis debe aparecer en el informe impreso",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "OK",
+      "habilitado": false
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "Flujo de caja anual",
+      "habilitado": true
+     },
+     {
+      "texto": "Resultados detallados",
+      "habilitado": true
+     },
+     {
+      "texto": "Asignación de ingresos",
+      "habilitado": true
+     },
+     {
+      "texto": "Flujo de caja acumulativo",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Resultados financieros"
+     ],
+     [
+      "TGroupBox",
+      "Costes de instalación (CAPEX)"
+     ],
+     [
+      "TGroupBox",
+      "Gastos"
+     ],
+     [
+      "TGroupBox",
+      "Financiamiento"
+     ],
+     [
+      "TGroupBox",
+      "Retorno de la inversión"
+     ],
+     [
+      "TGroupBox",
+      "Resultados económicos detallados"
+     ],
+     [
+      "TGroupBox",
+      "Resumen del sistema"
+     ],
+     [
+      "TGroupBox",
+      "Resumen financiero"
+     ]
+    ]
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "boton": "OK",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Tasas",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "OK",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "OK",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "OK",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "OK",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Flujo de caja anual",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Resultados detallados",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Asignación de ingresos",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Flujo de caja acumulativo",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   }
+  ]
+ },
+ "TEcoEvaluationForm#bombeo > Evaluación económica": {
+  "ventana": "TEcoEvaluationForm",
+  "titulo": "Evaluación económica",
+  "pestanas": [
+   {
+    "indice": 0,
+    "pestana": "Inversión y cargos",
+    "campos": [
+     {
+      "clase": "TComboBox",
+      "etiqueta": "por m2",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "OK",
+      "habilitado": false
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "Tasas",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Inversión y cargos"
+     ],
+     [
+      "TGroupBox",
+      "Costos de operación (anual)"
+     ],
+     [
+      "TGroupBox",
+      "Costes de instalación"
+     ],
+     [
+      "TRadioGroup",
+      "Valores"
+     ],
+     [
+      "TGroupBox",
+      "Moneda"
+     ],
+     [
+      "TGroupBox",
+      "Resumen del sistema"
+     ],
+     [
+      "TGroupBox",
+      "Costo del Agua"
+     ]
+    ]
+   },
+   {
+    "indice": 1,
+    "pestana": "Parámetros financieros",
+    "campos": [
+     {
+      "clase": "TEdit",
+      "etiqueta": "Otro impuesto sobre la",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Impuesto sobre la renta",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Dividendos",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Tasa de descuento",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Inflación",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Año de inicio",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Vida del proyecto",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "0.00",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Fondos propios",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "OK",
+      "habilitado": false
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Parámetros financieros"
+     ],
+     [
+      "TGroupBox",
+      "Gastos dependientes de ingresos"
+     ],
+     [
+      "TGroupBox",
+      "Variaciones proyectadas"
+     ],
+     [
+      "TGroupBox",
+      "Amortización fiscal"
+     ],
+     [
+      "TGroupBox",
+      "Período de simulación"
+     ],
+     [
+      "TGroupBox",
+      "Financiamiento"
+     ],
+     [
+      "TGroupBox",
+      "Resumen del sistema"
+     ],
+     [
+      "TGroupBox",
+      "Costo del Agua"
+     ]
+    ]
+   },
+   {
+    "indice": 2,
+    "pestana": "Venta de agua",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Este análisis debe aparecer en el informe impreso",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Sin venta",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Tarifa fija",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Tarifa variable",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Tarifa horaria horas de punta/horas valle",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Tarifa estacional",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "de agua vendida",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     }
+    ],
+    "botones": [
+     {
+      "texto": "OK",
+      "habilitado": false
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Venta de agua"
+     ],
+     [
+      "TGroupBox",
+      "Tipo de tarifa"
+     ],
+     [
+      "TGroupBox",
+      "Resumen del sistema"
+     ],
+     [
+      "TGroupBox",
+      "Costo del Agua"
+     ]
+    ]
+   },
+   {
+    "indice": 3,
+    "pestana": "Resultados financieros",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Este análisis debe aparecer en el informe impreso",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "OK",
+      "habilitado": false
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "Flujo de caja anual",
+      "habilitado": true
+     },
+     {
+      "texto": "Resultados detallados",
+      "habilitado": true
+     },
+     {
+      "texto": "Asignación de ingresos",
+      "habilitado": true
+     },
+     {
+      "texto": "Flujo de caja acumulativo",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Resultados financieros"
+     ],
+     [
+      "TGroupBox",
+      "Costes de instalación (CAPEX)"
+     ],
+     [
+      "TGroupBox",
+      "Gastos"
+     ],
+     [
+      "TGroupBox",
+      "Financiamiento"
+     ],
+     [
+      "TGroupBox",
+      "Retorno de la inversión"
+     ],
+     [
+      "TGroupBox",
+      "Resultados económicos detallados"
+     ],
+     [
+      "TGroupBox",
+      "Resumen del sistema"
+     ],
+     [
+      "TGroupBox",
+      "Costo del Agua"
+     ]
+    ]
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "boton": "OK",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Tasas",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "OK",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "OK",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "OK",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Flujo de caja anual",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Resultados detallados",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Asignación de ingresos",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Flujo de caja acumulativo",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   }
+  ]
+ },
+ "THorizonForm#independiente > Horizonte": {
+  "ventana": "THorizonForm",
+  "titulo": "Definición de horizonte (sombreados lejanos) en Central Dakar",
+  "pestanas": [
+   {
+    "indice": 0,
+    "pestana": "Puntos",
+    "campos": [
+     {
+      "clase": "TEdit",
+      "etiqueta": "4",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "3",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Altua[Zl",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "1",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "4",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "3",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Azi-rut",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "1",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Comentario",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Resumen del sistema",
+      "habilitado": true
+     },
+     {
+      "texto": "Horizonte despejado",
+      "habilitado": true
+     },
+     {
+      "texto": "Imprimir",
+      "habilitado": true
+     },
+     {
+      "texto": "Guardar",
+      "habilitado": true
+     },
+     {
+      "texto": "Leer / Importar",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Puntos"
+     ]
+    ]
+   },
+   {
+    "indice": 1,
+    "pestana": "Factor difuso",
+    "campos": [
+     {
+      "clase": "TEdit",
+      "etiqueta": "Comentario",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Resumen del sistema",
+      "habilitado": true
+     },
+     {
+      "texto": "Imprimir",
+      "habilitado": true
+     },
+     {
+      "texto": "Guardar",
+      "habilitado": true
+     },
+     {
+      "texto": "Leer / Importar",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Factor difuso"
+     ]
+    ]
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "pestana": "Puntos",
+    "boton": "Resumen del sistema",
+    "abre": [
+     {
+      "clase": "TSummaryForm",
+      "titulo": "Notas de usuario y resumen del sistema"
+     }
+    ],
+    "error": null
+   },
+   {
+    "boton": "Horizonte despejado",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Imprimir",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Guardar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Leer / Importar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "OK",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "pestana": "Factor difuso",
+    "boton": "Resumen del sistema",
+    "abre": [
+     {
+      "clase": "TSummaryForm",
+      "titulo": "Notas de usuario y resumen del sistema"
+     }
+    ],
+    "error": null
+   },
+   {
+    "boton": "Imprimir",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Guardar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Leer / Importar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "OK",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   }
+  ]
+ },
+ "THorizonForm#bombeo > Horizonte": {
+  "ventana": "THorizonForm",
+  "titulo": "Definición de horizonte (sombreados lejanos) en Central Dakar",
+  "pestanas": [
+   {
+    "indice": 0,
+    "pestana": "Puntos",
+    "campos": [
+     {
+      "clase": "TEdit",
+      "etiqueta": "4",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "3",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Altua[Zl",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "1",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "4",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "3",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Azi-rut",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "1",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Comentario",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Resumen del sistema",
+      "habilitado": true
+     },
+     {
+      "texto": "Horizonte despejado",
+      "habilitado": true
+     },
+     {
+      "texto": "Imprimir",
+      "habilitado": true
+     },
+     {
+      "texto": "Guardar",
+      "habilitado": true
+     },
+     {
+      "texto": "Leer / Importar",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Puntos"
+     ]
+    ]
+   },
+   {
+    "indice": 1,
+    "pestana": "Factor difuso",
+    "campos": [
+     {
+      "clase": "TEdit",
+      "etiqueta": "Comentario",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Resumen del sistema",
+      "habilitado": true
+     },
+     {
+      "texto": "Imprimir",
+      "habilitado": true
+     },
+     {
+      "texto": "Guardar",
+      "habilitado": true
+     },
+     {
+      "texto": "Leer / Importar",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Factor difuso"
+     ]
+    ]
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "pestana": "Puntos",
+    "boton": "Resumen del sistema",
+    "abre": [
+     {
+      "clase": "TSummaryForm",
+      "titulo": "Notas de usuario y resumen del sistema"
+     }
+    ],
+    "error": null
+   },
+   {
+    "boton": "Horizonte despejado",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Imprimir",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Guardar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Leer / Importar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "OK",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "pestana": "Factor difuso",
+    "boton": "Resumen del sistema",
+    "abre": [
+     {
+      "clase": "TSummaryForm",
+      "titulo": "Notas de usuario y resumen del sistema"
+     }
+    ],
+    "error": null
+   },
+   {
+    "boton": "Imprimir",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Guardar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Leer / Importar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "OK",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   }
+  ]
+ },
+ "THorizonForm#red_cc > Horizonte": {
+  "ventana": "THorizonForm",
+  "titulo": "Definición de horizonte (sombreados lejanos) en Geneva/Cointrin",
+  "pestanas": [
+   {
+    "indice": 0,
+    "pestana": "Puntos",
+    "campos": [
+     {
+      "clase": "TEdit",
+      "etiqueta": "Y 23 ago",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "juno",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "juno",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Y 23 ago",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "juno",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "juno",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Línea de horizonte en Gen",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Resumen del sistema",
+      "habilitado": true
+     },
+     {
+      "texto": "Horizonte despejado",
+      "habilitado": true
+     },
+     {
+      "texto": "Imprimir",
+      "habilitado": true
+     },
+     {
+      "texto": "Guardar",
+      "habilitado": true
+     },
+     {
+      "texto": "Leer / Importar",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Puntos"
+     ]
+    ]
+   },
+   {
+    "indice": 1,
+    "pestana": "Factor difuso",
+    "campos": [
+     {
+      "clase": "TEdit",
+      "etiqueta": "Línea de horizonte en Gen",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Resumen del sistema",
+      "habilitado": true
+     },
+     {
+      "texto": "Imprimir",
+      "habilitado": true
+     },
+     {
+      "texto": "Guardar",
+      "habilitado": true
+     },
+     {
+      "texto": "Leer / Importar",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Factor difuso"
+     ]
+    ]
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "pestana": "Puntos",
+    "boton": "Resumen del sistema",
+    "abre": [
+     {
+      "clase": "TSummaryForm",
+      "titulo": "Notas de usuario y resumen del sistema"
+     }
+    ],
+    "error": "OCR did not find 'Resumen del sistema' (matches:0): the UIA element with that name was clicked; check the effect with gui_observar que:ventanas"
+   },
+   {
+    "boton": "Horizonte despejado",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Imprimir",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Guardar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Leer / Importar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "OK",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "pestana": "Factor difuso",
+    "boton": "Resumen del sistema",
+    "abre": [
+     {
+      "clase": "TSummaryForm",
+      "titulo": "Notas de usuario y resumen del sistema"
+     }
+    ],
+    "error": "OCR did not find 'Resumen del sistema' (matches:0): the UIA element with that name was clicked; check the effect with gui_observar que:ventanas"
+   },
+   {
+    "boton": "Imprimir",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Guardar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Leer / Importar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "OK",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   }
+  ]
+ },
+ "TResultForm#independiente > Resultados detallados": {
+  "ventana": "TResultForm",
+  "titulo": "Resultados, variante VC0  \"SHS SolarHome System, 2.2 kWh/day, 570 Wp, controller without MPPT\"",
+  "pestanas": [
+   {
+    "indice": null,
+    "pestana": null,
+    "campos": [
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Global efectivo, corr. para AM y sorrbre",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "10",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Sep",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "0.0",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Diagrama de pérdida",
+      "habilitado": true
+     },
+     {
+      "texto": "Tablas",
+      "habilitado": true
+     },
+     {
+      "texto": "Gráficos predefinidos",
+      "habilitado": true
+     },
+     {
+      "texto": "Informe",
+      "habilitado": true
+     },
+     {
+      "texto": "Gráficos por hora",
+      "habilitado": true
+     },
+     {
+      "texto": "Evaluación económica",
+      "habilitado": true
+     },
+     {
+      "texto": "Recentrar",
+      "habilitado": true
+     },
+     {
+      "texto": "Carga",
+      "habilitado": true
+     },
+     {
+      "texto": "Cerrar",
+      "habilitado": true
+     },
+     {
+      "texto": "Guardar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TGroupBox",
+      "Resultados principales"
+     ],
+     [
+      "TGroupBox",
+      "Parámetros de simulación"
+     ]
+    ]
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "boton": "Diagrama de pérdida",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Tablas",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Gráficos predefinidos",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Informe",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Gráficos por hora",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Evaluación económica",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Recentrar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Carga",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cerrar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Guardar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   }
+  ]
+ },
+ "TResultForm#bombeo > Resultados detallados": {
+  "ventana": "TResultForm",
+  "titulo": "Resultados, variante VC0  \"Supply of drinking and sanitary water _ Village supply well depth\"",
+  "pestanas": [
+   {
+    "indice": null,
+    "pestana": null,
+    "campos": [
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Global efectivo, corr. para AM y sorrbre",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "100",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Sep",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "10",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Diagrama de pérdida",
+      "habilitado": true
+     },
+     {
+      "texto": "Tablas",
+      "habilitado": true
+     },
+     {
+      "texto": "Gráficos predefinidos",
+      "habilitado": true
+     },
+     {
+      "texto": "Informe",
+      "habilitado": true
+     },
+     {
+      "texto": "Gráficos por hora",
+      "habilitado": true
+     },
+     {
+      "texto": "Evaluación económica",
+      "habilitado": true
+     },
+     {
+      "texto": "Recentrar",
+      "habilitado": true
+     },
+     {
+      "texto": "Carga",
+      "habilitado": true
+     },
+     {
+      "texto": "Cerrar",
+      "habilitado": true
+     },
+     {
+      "texto": "Guardar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TGroupBox",
+      "Resultados principales"
+     ],
+     [
+      "TGroupBox",
+      "Parámetros de simulación"
+     ]
+    ]
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "boton": "Diagrama de pérdida",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Tablas",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Gráficos predefinidos",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Informe",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Gráficos por hora",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Evaluación económica",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Recentrar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Carga",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cerrar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Guardar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   }
+  ]
+ },
+ "TShadingsForm#independiente > Sombreados cercanos": {
+  "ventana": "TShadingsForm",
+  "titulo": "Definición de sombreados cercanos, Variante \"SHS SolarHome System, 2.2 kWh/day, 570 Wp, controller without MPPT\"",
+  "pestanas": [
+   {
+    "indice": null,
+    "pestana": null,
+    "campos": [
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Según cadenas de módulos",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Sombreados lineales",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Sin sombreados",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Comentario",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Orientaciones",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "Imprimir",
+      "habilitado": false
+     },
+     {
+      "texto": "Gráfico",
+      "habilitado": false
+     },
+     {
+      "texto": "Tabla",
+      "habilitado": false
+     },
+     {
+      "texto": "Exportar",
+      "habilitado": false
+     },
+     {
+      "texto": "Importar",
+      "habilitado": true
+     },
+     {
+      "texto": "Construcción / Perspectiva",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TGroupBox",
+      "Compatibilidad entre los parámetros del sistema y las definiciones de sombreado"
+     ],
+     [
+      "TGroupBox",
+      "Modo de cálculo"
+     ],
+     [
+      "TGroupBox",
+      "Utilizar en simulación"
+     ],
+     [
+      "TGroupBox",
+      "Factores de sombreado"
+     ],
+     [
+      "TGroupBox",
+      "Escena 3D de sombreados cercanos"
+     ]
+    ]
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "boton": "Orientaciones",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "OK",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Imprimir",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Gráfico",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Tabla",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Exportar",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Importar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Construcción / Perspectiva",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   }
+  ]
+ },
+ "TShadingsForm#bombeo > Sombreados cercanos": {
+  "ventana": "TShadingsForm",
+  "titulo": "Definición de sombreados cercanos, Variante \"Supply of drinking and sanitary water _ Village supply well depth\"",
+  "pestanas": [
+   {
+    "indice": null,
+    "pestana": null,
+    "campos": [
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Según cadenas de módulos",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Sombreados lineales",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Sin sombreados",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Comentario",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Orientaciones",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "Imprimir",
+      "habilitado": false
+     },
+     {
+      "texto": "Gráfico",
+      "habilitado": false
+     },
+     {
+      "texto": "Tabla",
+      "habilitado": false
+     },
+     {
+      "texto": "Exportar",
+      "habilitado": false
+     },
+     {
+      "texto": "Importar",
+      "habilitado": true
+     },
+     {
+      "texto": "Construcción / Perspectiva",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TGroupBox",
+      "Compatibilidad entre los parámetros del sistema y las definiciones de sombreado"
+     ],
+     [
+      "TGroupBox",
+      "Modo de cálculo"
+     ],
+     [
+      "TGroupBox",
+      "Utilizar en simulación"
+     ],
+     [
+      "TGroupBox",
+      "Factores de sombreado"
+     ],
+     [
+      "TGroupBox",
+      "Escena 3D de sombreados cercanos"
+     ]
+    ]
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "boton": "Orientaciones",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "OK",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Imprimir",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Gráfico",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Tabla",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Exportar",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Importar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Construcción / Perspectiva",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   }
+  ]
+ },
+ "TShadingsForm#red_cc > Sombreados cercanos": {
+  "ventana": "TShadingsForm",
+  "titulo": "Definición de sombreados cercanos, Variante \"150 kWp array, 650VDC nom, 35 strings of 23 modules\"",
+  "pestanas": [
+   {
+    "indice": null,
+    "pestana": null,
+    "campos": [
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Según cadenas de módulos",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Sombreados lineales",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Sin sombreados",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Comentario",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Orientaciones",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "Imprimir",
+      "habilitado": false
+     },
+     {
+      "texto": "Resumen del sistema",
+      "habilitado": true
+     },
+     {
+      "texto": "Gráfico",
+      "habilitado": false
+     },
+     {
+      "texto": "Tabla",
+      "habilitado": false
+     },
+     {
+      "texto": "Exportar",
+      "habilitado": false
+     },
+     {
+      "texto": "Importar",
+      "habilitado": true
+     },
+     {
+      "texto": "Construcción / Perspectiva",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TGroupBox",
+      "Compatibilidad entre los parámetros del sistema y las definiciones de sombreado"
+     ],
+     [
+      "TGroupBox",
+      "Modo de cálculo"
+     ],
+     [
+      "TGroupBox",
+      "Utilizar en simulación"
+     ],
+     [
+      "TGroupBox",
+      "Factores de sombreado"
+     ],
+     [
+      "TGroupBox",
+      "Escena 3D de sombreados cercanos"
+     ]
+    ]
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "boton": "Orientaciones",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "OK",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Imprimir",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "pestana": null,
+    "boton": "Resumen del sistema",
+    "abre": [
+     {
+      "clase": "TSummaryForm",
+      "titulo": "Notas de usuario y resumen del sistema"
+     }
+    ],
+    "error": null
+   },
+   {
+    "boton": "Gráfico",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Tabla",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Exportar",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Importar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Construcción / Perspectiva",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   }
+  ]
+ },
+ "TDimensForm#diseno_preliminar.conectado_a_la_red": {
+  "ventana": "TDimensForm",
+  "titulo": "Pre-dimensionamiento sistema de red",
+  "pestanas": [
+   {
+    "indice": null,
+    "pestana": null,
+    "campos": [],
+    "botones": [
+     {
+      "texto": "Horizonte",
+      "habilitado": false
+     },
+     {
+      "texto": "Sistema",
+      "habilitado": false
+     },
+     {
+      "texto": "Resultados",
+      "habilitado": false
+     },
+     {
+      "texto": "Sitio y datos meteo",
+      "habilitado": true
+     },
+     {
+      "texto": "Cerrar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": []
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "boton": "Horizonte",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Sistema",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Resultados",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Sitio y datos meteo",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cerrar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   }
+  ]
+ },
+ "TDimensForm#diseno_preliminar.independiente": {
+  "ventana": "TDimensForm",
+  "titulo": "Pre-dimensionamiento sistema independiente",
+  "pestanas": [
+   {
+    "indice": null,
+    "pestana": null,
+    "campos": [],
+    "botones": [
+     {
+      "texto": "Necesidades del usuario",
+      "habilitado": false
+     },
+     {
+      "texto": "Horizonte",
+      "habilitado": false
+     },
+     {
+      "texto": "Sistema",
+      "habilitado": false
+     },
+     {
+      "texto": "Resultados",
+      "habilitado": false
+     },
+     {
+      "texto": "Sitio y datos meteo",
+      "habilitado": true
+     },
+     {
+      "texto": "Cerrar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": []
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "boton": "Necesidades del usuario",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Horizonte",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Sistema",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Resultados",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   },
+   {
+    "boton": "Sitio y datos meteo",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cerrar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   }
+  ]
+ },
+ "TDimensSituationForm#diseno_preliminar.conectado_a_la_red>Sitio y datos meteo": {
+  "ventana": "TDimensSituationForm",
+  "titulo": "Localización del proyecto",
+  "pestanas": [
+   {
+    "indice": null,
+    "pestana": null,
+    "campos": [
+     {
+      "clase": "TComboBox",
+      "etiqueta": "País",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Sitio",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Nombre del proyecto",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Abrir sitio",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TGroupBox",
+      "Ubicación"
+     ],
+     [
+      "TGroupBox",
+      "Proyecto"
+     ]
+    ]
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "OK",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Abrir sitio",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   }
+  ]
+ },
+ "TDimensSituationForm#diseno_preliminar.independiente>Sitio y datos meteo": {
+  "ventana": "TDimensSituationForm",
+  "titulo": "Localización del proyecto",
+  "pestanas": [
+   {
+    "indice": null,
+    "pestana": null,
+    "campos": [
+     {
+      "clase": "TComboBox",
+      "etiqueta": "País",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Sitio",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Nombre del proyecto",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "OK",
+      "habilitado": true
+     },
+     {
+      "texto": "Abrir sitio",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TGroupBox",
+      "Ubicación"
+     ],
+     [
+      "TGroupBox",
+      "Proyecto"
+     ]
+    ]
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "OK",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Abrir sitio",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   }
+  ]
+ },
+ "TSummaryForm#ventana_proyecto.notas.proyecto": {
+  "ventana": "TSummaryForm",
+  "titulo": "Notas de usuario y resumen del sistema",
+  "pestanas": [
+   {
+    "indice": null,
+    "pestana": null,
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Incluir en el informe final (Portada)",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Abrir siempre con el proyecto",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cerrar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": []
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "boton": "Cerrar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   }
+  ]
+ },
+ "TSummaryForm#ventana_proyecto.notas.variante": {
+  "ventana": "TSummaryForm",
+  "titulo": "Notas de usuario y resumen del sistema",
+  "pestanas": [
+   {
+    "indice": null,
+    "pestana": null,
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Incluir en el informe final",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Abrir siempre con el proyecto",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cerrar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": []
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "boton": "Cerrar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   }
+  ]
+ },
+ "TSummaryForm#TPerspectiveForm menu 6.6 (Resumen de escena de sombreado)": {
+  "ventana": "TSummaryForm",
+  "titulo": "Notas de usuario y resumen del sistema",
+  "pestanas": [
+   {
+    "indice": null,
+    "pestana": null,
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Actualización automática del resumen (puede ser lenta)",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Abrir siempre con el proyecto",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cerrar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": []
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "boton": "Cerrar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   }
+  ]
+ },
+ "TShedFieldForm#TPerspectiveForm menu 1.6 (Conjunto de tablas)": {
+  "ventana": "TShedFieldForm",
+  "titulo": "Campo de colectores en cobertizos",
+  "pestanas": [
+   {
+    "indice": 0,
+    "pestana": "Parámetros básicos",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Activar proyección de sombras",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Utiliza el promedio",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Afo.",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "etéos",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "etéos",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "etéos",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "etéos",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cerrar objeto",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "Abrir",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Parámetros básicos"
+     ],
+     [
+      "TGroupBox",
+      "Descripción"
+     ],
+     [
+      "TGroupBox",
+      "Posición y Orientación"
+     ],
+     [
+      "TGroupBox",
+      "Parámetros del conjunto"
+     ],
+     [
+      "TGroupBox",
+      "Área sensible global"
+     ],
+     [
+      "TGroupBox",
+      "Orientación"
+     ]
+    ]
+   },
+   {
+    "indice": 1,
+    "pestana": "Tamaños de los cobertizos",
+    "campos": [
+     {
+      "clase": "TComboBox",
+      "etiqueta": "a eco",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "a eco",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Por tamaños sensibles",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Por módulos (ajustar tamaños)",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Os",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cerrar objeto",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Tamaños de los cobertizos"
+     ],
+     [
+      "TGroupBox",
+      "Marco alrededor de módulos"
+     ],
+     [
+      "TGroupBox",
+      "Definición de tamaños"
+     ],
+     [
+      "TGroupBox",
+      "Área sensible"
+     ],
+     [
+      "TGroupBox",
+      "Por módulos"
+     ]
+    ]
+   },
+   {
+    "indice": 2,
+    "pestana": "Partición",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Definir partición",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Todas las mesas en la misma orientación",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Estado",
+      "etiqueta_fuente": "ocr",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Estado",
+      "etiqueta_fuente": "ocr",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Cancela todas las particiones",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Todas las tablas de la escena",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Todas las tablas del mismo tamaño",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "La selección de tablas",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Núm. de rectángulos en altura (Y)",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Núm. de rectángulos en ancho (X)",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Núm. de rectángulos en altura (Y)",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Núm. de rectángulos en ancho (X)",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Altura de los rectángulos",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Longitud de los rectángulos",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cerrar objeto",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "Aplicar",
+      "habilitado": false
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Partición"
+     ],
+     [
+      "TGroupBox",
+      "Aplicar la partición a:"
+     ],
+     [
+      "TGroupBox",
+      "Número de particiones"
+     ],
+     [
+      "TGroupBox",
+      "Tamaño de las particiones"
+     ]
+    ]
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "boton": "Cerrar objeto",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Abrir",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cerrar objeto",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cerrar objeto",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Aplicar",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   }
+  ]
+ },
+ "TShedFieldForm#TPerspectiveForm menu 1.8 (Conjunto de protectores solares)": {
+  "ventana": "TShedFieldForm",
+  "titulo": "Campo de colectores en cobertizos",
+  "pestanas": [
+   {
+    "indice": 0,
+    "pestana": "Parámetros básicos",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Activar proyección de sombras",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Nombre",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Pendiente cobertizo a cobertizo",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Pendiente cobertizo a cobertizo",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Núm. de cobertizos",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Desalineación",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Distancia N-S",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Núm. de cobertizos",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Utiliza el promedio",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "rientació",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Azimut",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Azimut",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Pendiente de la línea de base",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Pendiente de la línea de base",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Inclin. cobertizo",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Inclin. cobertizo",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cerrar objeto",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "Abrir",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Parámetros básicos"
+     ],
+     [
+      "TGroupBox",
+      "Descripción"
+     ],
+     [
+      "TGroupBox",
+      "Posición y Orientación"
+     ],
+     [
+      "TGroupBox",
+      "Parámetros del conjunto"
+     ],
+     [
+      "TGroupBox",
+      "Área sensible global"
+     ],
+     [
+      "TGroupBox",
+      "Orientación"
+     ]
+    ]
+   },
+   {
+    "indice": 1,
+    "pestana": "Tamaños de los cobertizos",
+    "campos": [
+     {
+      "clase": "TComboBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Arriba/abajo",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Izquierda/derecha",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Arriba/abajo",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Izquierda/derecha",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Por tamaños sensibles",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Por módulos (ajustar tamaños)",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Longitud",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Altura",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Orientación",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Espaciado de módulos Y",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Núm. de módulos en altura (Y)",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Núm. de módulos en altura (Y)",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Espaciado de módulos X",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Núm. de módulos en longitud (X)",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Núm. de módulos en longitud (X)",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cerrar objeto",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Tamaños de los cobertizos"
+     ],
+     [
+      "TGroupBox",
+      "Marco alrededor de módulos"
+     ],
+     [
+      "TGroupBox",
+      "Definición de tamaños"
+     ],
+     [
+      "TGroupBox",
+      "Área sensible"
+     ],
+     [
+      "TGroupBox",
+      "Por módulos"
+     ]
+    ]
+   },
+   {
+    "indice": 2,
+    "pestana": "Partición",
+    "campos": [
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Definir partición",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Todas las mesas en la misma orientación",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Estado",
+      "etiqueta_fuente": "ocr",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Estado",
+      "etiqueta_fuente": "ocr",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Cancela todas las particiones",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Todas las tablas de la escena",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Todas las tablas del mismo tamaño",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "La selección de tablas",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": false
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Núm. de rectángulos en altura (Y)",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TUpDown",
+      "etiqueta": "Núm. de rectángulos en ancho (X)",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Núm. de rectángulos en altura (Y)",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Núm. de rectángulos en ancho (X)",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Altura de los rectángulos",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Longitud de los rectángulos",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cerrar objeto",
+      "habilitado": true
+     },
+     {
+      "texto": "Cancelar",
+      "habilitado": true
+     },
+     {
+      "texto": "Aplicar",
+      "habilitado": false
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Partición"
+     ],
+     [
+      "TGroupBox",
+      "Aplicar la partición a:"
+     ],
+     [
+      "TGroupBox",
+      "Número de particiones"
+     ],
+     [
+      "TGroupBox",
+      "Tamaño de las particiones"
+     ]
+    ]
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "boton": "Cerrar objeto",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Abrir",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cerrar objeto",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cerrar objeto",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cancelar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Aplicar",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   }
+  ]
+ },
+ "TSystemCircuitForm#TSystemegridForm>Diagrama unifilar": {
+  "ventana": "TSystemCircuitForm",
+  "titulo": "Diagrama unifilar",
+  "pestanas": [
+   {
+    "indice": 0,
+    "pestana": "Editar",
+    "campos": [
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Material",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Sección fransv.",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "2x60kVA",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Personalizado",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Personalizado",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cerrar",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Editar"
+     ],
+     [
+      "TGroupBox",
+      "Propiedades de los cables"
+     ]
+    ]
+   },
+   {
+    "indice": 1,
+    "pestana": "Vista",
+    "campos": [
+     {
+      "clase": "TComboBox",
+      "etiqueta": "SiTbolo pa-nto de hyección",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "SiTbolo del aversor",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Etiquetas detalladas",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Centrado en el punto de inyección",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TTrackBar",
+      "etiqueta": null,
+      "etiqueta_fuente": null,
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Mostrar cuadro de leyenda",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Etiquetas principales",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Formato",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Retrato",
+      "etiqueta_fuente": "window_text",
+      "marcado": true,
+      "habilitado": true
+     },
+     {
+      "clase": "TRadioButton",
+      "etiqueta": "Paisaje",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Cerrar",
+      "habilitado": true
+     },
+     {
+      "texto": "Imprimir",
+      "habilitado": true
+     },
+     {
+      "texto": "Copiar al portapapeles",
+      "habilitado": true
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Vista"
+     ],
+     [
+      "TGroupBox",
+      "Símbolos"
+     ],
+     [
+      "TGroupBox",
+      "Opciones"
+     ],
+     [
+      "TGroupBox",
+      "Propiedades del papel"
+     ]
+    ]
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "boton": "Cerrar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cerrar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Imprimir",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Copiar al portapapeles",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   }
+  ]
+ },
+ "TMeteoTablesGraphsForm#datos_medidos.tablas_graficos": {
+  "ventana": "TMeteoTablesGraphsForm",
+  "titulo": "Tablas de datos y gráficos",
+  "pestanas": [
+   {
+    "indice": null,
+    "pestana": null,
+    "campos": [
+     {
+      "clase": "TEdit",
+      "etiqueta": "Oct",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TCheckBox",
+      "etiqueta": "Aplicar la corrección de cambio de hora",
+      "etiqueta_fuente": "window_text",
+      "marcado": false,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "País",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": false
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Nombre del sitio",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "TOO / año",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TEdit",
+      "etiqueta": "Fuente",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     },
+     {
+      "clase": "TComboBox",
+      "etiqueta": "Datos medidos",
+      "etiqueta_fuente": "ocr",
+      "marcado": null,
+      "habilitado": true
+     }
+    ],
+    "botones": [
+     {
+      "texto": "Mejores días despejados Ktcs",
+      "habilitado": true
+     },
+     {
+      "texto": "Mejores días despejados mensuales",
+      "habilitado": true
+     },
+     {
+      "texto": "Kt por hora mañana/tarde",
+      "habilitado": true
+     },
+     {
+      "texto": "Exportar sitio",
+      "habilitado": true
+     },
+     {
+      "texto": "Abrir sitio",
+      "habilitado": true
+     },
+     {
+      "texto": "Cerrar",
+      "habilitado": true
+     },
+     {
+      "texto": "Guardar",
+      "habilitado": true
+     },
+     {
+      "texto": "Imprimir",
+      "habilitado": true
+     },
+     {
+      "texto": "Eliminar",
+      "habilitado": false
+     }
+    ],
+    "rotulos": [
+     [
+      "TTabSheet",
+      "Verificar la calidad de los datos"
+     ],
+     [
+      "TGroupBox",
+      "Sitio geográfico incluido"
+     ]
+    ]
+   }
+  ],
+  "errores": [],
+  "botones_abren": [
+   {
+    "boton": "Mejores días despejados Ktcs",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Mejores días despejados mensuales",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Kt por hora mañana/tarde",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Exportar sitio",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Abrir sitio",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Cerrar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Guardar",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Imprimir",
+    "pulsado": false,
+    "motivo": "no está en la lista blanca"
+   },
+   {
+    "boton": "Eliminar",
+    "pulsado": false,
+    "motivo": "deshabilitado"
+   }
+  ]
  }
 }

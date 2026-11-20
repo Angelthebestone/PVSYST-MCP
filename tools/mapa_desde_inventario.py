@@ -238,18 +238,16 @@ REMEDIOS: dict[str, Remedio] = {
     },
 }
 
-# Batch C: the windows opened from the catalogue (`tools/gui_manifiesto.json` has the
-# chain of each). Data, not code: `{clave: {reemplaza, estado}}`.
-REMEDIOS.update(
-    {
-        clave: Remedio(reemplaza=dato["reemplaza"], estado=dato["estado"])
-        for clave, dato in json.loads(
-            (Path(__file__).resolve().parent / "remedios_lote_c.json").read_text(
-                encoding="utf-8"
-            )
-        ).items()
-    }
-)
+# Batches C and D: the windows opened from the catalogue, and the instances of one
+# window on each kind of project (`tools/gui_manifiesto.json` has the chain of each).
+# Data, not code: `{clave: {reemplaza, estado}}` in `remedios_lote_*.json`.
+for _lote in sorted(Path(__file__).resolve().parent.glob("remedios_lote_*.json")):
+    REMEDIOS.update(
+        {
+            clave: Remedio(reemplaza=dato["reemplaza"], estado=dato["estado"])
+            for clave, dato in json.loads(_lote.read_text(encoding="utf-8")).items()
+        }
+    )
 
 
 def cargar(ruta: Path) -> Json:

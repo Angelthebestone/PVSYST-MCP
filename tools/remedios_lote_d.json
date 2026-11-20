@@ -1,0 +1,98 @@
+{
+ "TAdvancedSimForm#independiente > Simulación avanzada": {
+  "reemplaza": "independiente > Simulación avanzada",
+  "estado": "Proyecto demo _DEMO_StandAlone (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TAdvancedSimForm#bombeo > Simulación avanzada": {
+  "reemplaza": "bombeo > Simulación avanzada",
+  "estado": "Proyecto demo _DEMO_Pumping (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TAdvancedSimForm#red_cc > Simulación avanzada": {
+  "reemplaza": "red_cc > Simulación avanzada",
+  "estado": "Proyecto demo _DEMO_DCGrid (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TEcoEvaluationForm#independiente > Evaluación económica": {
+  "reemplaza": "independiente > Evaluación económica",
+  "estado": "Proyecto demo _DEMO_StandAlone (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TEcoEvaluationForm#bombeo > Evaluación económica": {
+  "reemplaza": "bombeo > Evaluación económica",
+  "estado": "Proyecto demo _DEMO_Pumping (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "THorizonForm#independiente > Horizonte": {
+  "reemplaza": "independiente > Horizonte",
+  "estado": "Proyecto demo _DEMO_StandAlone (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "THorizonForm#bombeo > Horizonte": {
+  "reemplaza": "bombeo > Horizonte",
+  "estado": "Proyecto demo _DEMO_Pumping (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "THorizonForm#red_cc > Horizonte": {
+  "reemplaza": "red_cc > Horizonte",
+  "estado": "Proyecto demo _DEMO_DCGrid (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TResultForm#independiente > Resultados detallados": {
+  "reemplaza": "independiente > Resultados detallados",
+  "estado": "Proyecto demo _DEMO_StandAlone (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TResultForm#bombeo > Resultados detallados": {
+  "reemplaza": "bombeo > Resultados detallados",
+  "estado": "Proyecto demo _DEMO_Pumping (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TShadingsForm#independiente > Sombreados cercanos": {
+  "reemplaza": "independiente > Sombreados cercanos",
+  "estado": "Proyecto demo _DEMO_StandAlone (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TShadingsForm#bombeo > Sombreados cercanos": {
+  "reemplaza": "bombeo > Sombreados cercanos",
+  "estado": "Proyecto demo _DEMO_Pumping (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TShadingsForm#red_cc > Sombreados cercanos": {
+  "reemplaza": "red_cc > Sombreados cercanos",
+  "estado": "Proyecto demo _DEMO_DCGrid (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TDimensForm#diseno_preliminar.conectado_a_la_red": {
+  "reemplaza": "diseno_preliminar.conectado_a_la_red",
+  "estado": "Sin proyecto cargado; ventana recién abierta, sin editar"
+ },
+ "TDimensForm#diseno_preliminar.independiente": {
+  "reemplaza": "diseno_preliminar.independiente",
+  "estado": "Sin proyecto cargado; ventana recién abierta, sin editar"
+ },
+ "TDimensSituationForm#diseno_preliminar.conectado_a_la_red>Sitio y datos meteo": {
+  "reemplaza": "diseno_preliminar.conectado_a_la_red>Sitio y datos meteo",
+  "estado": "Sin proyecto cargado; ventana recién abierta, sin editar"
+ },
+ "TDimensSituationForm#diseno_preliminar.independiente>Sitio y datos meteo": {
+  "reemplaza": "diseno_preliminar.independiente>Sitio y datos meteo",
+  "estado": "Sin proyecto cargado; ventana recién abierta, sin editar"
+ },
+ "TSummaryForm#ventana_proyecto.notas.proyecto": {
+  "reemplaza": "ventana_proyecto.notas.proyecto",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TSummaryForm#ventana_proyecto.notas.variante": {
+  "reemplaza": "ventana_proyecto.notas.variante",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TSummaryForm#TPerspectiveForm menu 6.6 (Resumen de escena de sombreado)": {
+  "reemplaza": "TPerspectiveForm menu 6.6 (Resumen de escena de sombreado)",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TShedFieldForm#TPerspectiveForm menu 1.6 (Conjunto de tablas)": {
+  "reemplaza": "TPerspectiveForm menu 1.6 (Conjunto de tablas)",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TShedFieldForm#TPerspectiveForm menu 1.8 (Conjunto de protectores solares)": {
+  "reemplaza": "TPerspectiveForm menu 1.8 (Conjunto de protectores solares)",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TSystemCircuitForm#TSystemegridForm>Diagrama unifilar": {
+  "reemplaza": "TSystemegridForm>Diagrama unifilar",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TMeteoTablesGraphsForm#datos_medidos.tablas_graficos": {
+  "reemplaza": "datos_medidos.tablas_graficos",
+  "estado": "Sin proyecto cargado; ventana recién abierta, sin editar"
+ }
+}
