@@ -166,9 +166,17 @@ fn limites_de(r: &Respuesta<'_>, args: &Value) -> Option<(usize, usize)> {
 
 /// Trims the result to `detalle` and adds `elapsed_ms`, `ignorados`, and, when cut, `truncado`, `hint` and `total`.
 pub(crate) fn decorar_con(v: &mut Value, args: &Value, r: Respuesta<'_>) {
+    // The names `leer` lists are the answer, not a list to summarise; the scene
+    // report of `gui_actuar` also has an `objetos` list and stays trimmed.
+    let nombres = (r.herramienta == "leer")
+        .then(|| v.get_mut("objetos").map(Value::take))
+        .flatten();
     let lim = limites_de(&r, args);
     let total = lim.and_then(|l| total_principal(v, l));
     let truncado = lim.is_some_and(|l| recortar(v, l));
+    if let (Some(nombres), Some(obj)) = (nombres, v.as_object_mut()) {
+        obj.insert("objetos".to_string(), nombres);
+    }
     // A handler knows which of its own arguments the branch it took did not read.
     let mut ignorados = r.ignorados;
     if let Some(previos) = v.get("ignorados").and_then(Value::as_array) {

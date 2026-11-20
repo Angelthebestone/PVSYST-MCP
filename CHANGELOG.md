@@ -172,8 +172,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   type, and each one a name `editar` takes as its whole `objeto` selector (a type repeated in the file adds
   no name an edit could use; `listar que:objetos` still reports every instance). The key travels at every
   `detalle` level and is left out when the file has no object, so a file read as raw bytes or by a reader of
-  its own pays nothing; nothing else in the answer changed. At `detalle:resumen` the list follows the rule of
-  every other list (13 names plus `objetos_total`), and `detalle:completo` returns all of them.
+  its own pays nothing; nothing else in the answer changed. The list is never cut by `detalle`, since the
+  names are what `editar` takes and a project can hold more than 13 object types; the other lists of the
+  answer still follow `detalle`.
 - **Every tool accepts `vista:false` (B.5.1 of the visual GUI test report).** The `vista` block carried 60-69 % of
   the bytes of a data answer (`resultados kpis` 69 %, `proyecto doctor` 63 %, `leer` 60 %) while repeating keys the
   answer already had. The switch is declared on every tool and defaults to `true`: the block is absent only when the

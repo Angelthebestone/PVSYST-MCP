@@ -106,3 +106,31 @@ fn should_not_add_a_next_step_string_to_the_answer() {
     );
     assert!(v.get("siguiente").is_none(), "{v}");
 }
+
+/// The names `leer` lists are what `editar` takes: cutting them at 13 would hide the
+/// objects of a file with many types, while another list of the answer is still cut.
+#[test]
+fn should_not_cut_the_object_names_of_leer_but_keep_trimming_its_other_lists() {
+    let mut v = json!({
+        "objetos": (0..20).map(|n| format!("pvObj{n}")).collect::<Vec<String>>(),
+        "items": (0..20).collect::<Vec<u32>>(),
+    });
+    decorar_con(&mut v, &json!({}), respuesta("leer", "", Vec::new()));
+    assert_eq!(v["objetos"].as_array().map(Vec::len), Some(20));
+    assert!(v.get("objetos_total").is_none(), "{v}");
+    assert_eq!(v["items"].as_array().map(Vec::len), Some(13));
+    assert_eq!(v["total"], 20);
+}
+
+/// The exemption belongs to `leer`: the scene report keeps its own `objetos` trimmed.
+#[test]
+fn should_keep_trimming_an_objetos_list_that_is_not_from_leer() {
+    let mut v = json!({ "objetos": (0..20).collect::<Vec<u32>>() });
+    decorar_con(
+        &mut v,
+        &json!({}),
+        respuesta("gui_actuar", "escena", Vec::new()),
+    );
+    assert_eq!(v["objetos"].as_array().map(Vec::len), Some(13));
+    assert_eq!(v["objetos_total"], 20);
+}
