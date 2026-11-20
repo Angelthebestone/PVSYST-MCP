@@ -1,6 +1,7 @@
 """Tests for closing the windows a press opened: what `cerrar_nuevas` leaves open."""
 
-from medir_botones import cerrar_nuevas, pulsar_botones
+from medir_botones import pulsar_botones
+from medir_cierres import cerrar_nuevas
 from medir_cliente import Json
 from medir_inventario import inventariar
 from medir_proyectos import abrir

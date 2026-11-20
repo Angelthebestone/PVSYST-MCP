@@ -37,9 +37,9 @@ it leaves the exit code non-zero: the windows it could not clean say the measure
 is incomplete. At most `MAX_PULSACIONES` presses per target.
 
 This module is the command line only: the target, the client, the windows, the tabs,
-the projects and the presses live in the sibling modules `medir_objetivo.py`,
-`medir_cliente.py`, `medir_ventanas.py`, `medir_proyectos.py`, `medir_inventario.py`
-and `medir_botones.py`. The transport
+the projects, the presses and the closes live in the sibling modules
+`medir_objetivo.py`, `medir_cliente.py`, `medir_ventanas.py`, `medir_proyectos.py`,
+`medir_inventario.py`, `medir_botones.py` and `medir_cierres.py`. The transport
 (`ClienteMcp`) is exercised live only; the rest takes any object with
 `tool(nombre, argumentos)`, which the tests fake.
 """
