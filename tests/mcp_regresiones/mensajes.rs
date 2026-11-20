@@ -141,4 +141,15 @@ fn should_name_the_argument_the_chosen_que_does_not_read() {
 
     let limpio = tool_text(&c.call(18, "gui_observar", json!({ "que": "funciones" })));
     assert!(limpio.get("ignorados").is_none(), "resp={limpio}");
+
+    let dos = tool_text(&c.call(
+        19,
+        "gui_observar",
+        json!({ "que": "esquema", "compacto": true, "recorte": true }),
+    ));
+    assert_eq!(
+        dos["ignorados"],
+        json!(["compacto", "recorte"]),
+        "resp={dos}"
+    );
 }
