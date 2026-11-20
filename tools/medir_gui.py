@@ -32,7 +32,9 @@ is a label the measurement did not record as the button's own caption: text OCR 
 inside an icon-only button reaches another control by substring. Each button it does
 not press is recorded with its motive (`no está en la lista blanca`, `texto de OCR`,
 `sin origen`, `deshabilitado`, `vacío`, `tope`), so the JSON tells «not pressed» apart
-from «pressed and opened nothing». At most `MAX_PULSACIONES` presses per target.
+from «pressed and opened nothing». A press run that stops is merged all the same, but
+it leaves the exit code non-zero: the windows it could not clean say the measurement
+is incomplete. At most `MAX_PULSACIONES` presses per target.
 
 This module is the command line only: the target, the client, the windows, the tabs,
 the projects and the presses live in the sibling modules `medir_objetivo.py`,
@@ -103,12 +105,18 @@ def _leer_inventario(ruta: Path) -> Json | None:
     return inventario
 
 
+def _paradas(medida: Json) -> list[Json]:
+    """The entries that stopped the presses: what is still open, or where it failed."""
+    return [e for e in medida.get("botones_abren") or [] if "parado" in e]
+
+
 def _resumen(clave: str, medida: Json) -> str:
     """The line `main` prints for one measured target.
 
     `presses` counts only entries that pressed a button: the list also carries the
     buttons it refused and the truncation markers. A press error is not an
-    inventory error (it does not block the merge), so it is counted apart.
+    inventory error (it does not block the merge), so it is counted apart; a stopped
+    entry is named too, because it is what turns the exit code non-zero.
     """
     n = sum(len(p["campos"]) for p in medida["pestanas"])
     pulsados = ""
@@ -116,6 +124,9 @@ def _resumen(clave: str, medida: Json) -> str:
         prensas = [e for e in medida["botones_abren"] if "abre" in e]
         fallidas = [e for e in prensas if e.get("error")]
         pulsados = f", {len(prensas)} presses, {len(fallidas)} with error"
+        paradas = _paradas(medida)
+        if paradas:
+            pulsados += f", {len(paradas)} stopped"
     return (
         f"{clave}: {len(medida['pestanas'])} tabs, {n} fields, "
         f"{len(medida['errores'])} errors{pulsados}"
@@ -162,6 +173,8 @@ def main(
             fusionar(inventario, o["clave"], r)
             fusionados += 1
             print(_resumen(o["clave"], r))
+            if _paradas(r):
+                fallos += 1
     finally:
         c.cerrar()
         if fusionados:

@@ -140,7 +140,7 @@ def test_main_without_botones_keeps_the_presses_of_the_previous_measurement(
 
 
 def test_main_merges_the_fields_when_a_press_cannot_reopen_the_host(
-    tmp_path: Path,
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     f = formulario(["a"])
     f["paginas"][0]["botones"] = botones_de("Diagrama unifilar")
@@ -158,7 +158,8 @@ def test_main_merges_the_fields_when_a_press_cannot_reopen_the_host(
     codigo = main(argumentos(tmp_path, "--solo", "TA", "--botones"), fabrica_de(c))
 
     inventario = json.loads((tmp_path / "inventario.json").read_text())
-    assert codigo == 0
+    assert codigo == 1
+    assert "1 stopped" in capsys.readouterr().out
     assert inventario["TA"]["pestanas"][0]["campos"][0]["etiqueta"] == "a"
     assert inventario["TA"]["errores"] == []
     assert "PVsyst is not running" in inventario["TA"]["botones_abren"][-1]["parado"]

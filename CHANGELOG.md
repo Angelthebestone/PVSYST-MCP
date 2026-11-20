@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   said nothing. The answer now carries `ignorados: ["detalle"]`, `["compacto"]` or `["recorte"]`, the
   mechanism `leer` already uses for the keys of another branch. `compacto` is read by `que:ventanas`,
   `que:controles` and `que:vista`; `recorte` by `que:capturar`. No other answer changes.
+- **A `--botones` run that stopped exits non-zero and says how many entries stopped.** The console line
+  built `prensas` from the entries carrying `abre`, so the `{pestana, parado}` entries a stopped run
+  writes were counted nowhere: the run printed «0 with error» and `main` returned 0. `_resumen` now
+  names the stopped entries and `main` returns 1 when there is one, while a press that failed and
+  recovered (a refused click, a window closed and reopened) still merges and exits 0.
 - **`tools/medir_gui.py` closes a project window only when it loaded that project itself or it is a
   `_DEMO_`.** A chain without `@proyecto:` closed whatever `TProjectForm` was open and answered No to
   «¿Desea guardarla?», which throws away the unsaved work of a project the harness merely found open.
