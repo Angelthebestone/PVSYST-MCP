@@ -3,11 +3,12 @@
 Every press is one `gui_actuar accion:clic_texto`; `botones_abren` records the
 windows each press opened, and only those are closed, reopening the host when the
 button closed it. Only a label whose normalized text is exactly one entry of
-`PERMITIDOS` is pressed: this tool measures, so it opens read-only views and never a
-label that commits the window's state, destroys it or starts a flow it cannot unwind.
-Every button it does not press is recorded with its motive, so the reader of the JSON
-tells «not pressed» apart from «pressed and opened nothing». At most
-`MAX_PULSACIONES` presses per target.
+`PERMITIDOS` is pressed, and only when the measurement recorded that the text is the
+button's own caption: this tool measures, so it opens read-only views and never a
+label that commits the window's state, destroys it or starts a flow it cannot unwind,
+nor a label OCR read off the pixels of a control it cannot name. Every button it does
+not press is recorded with its motive, so the reader of the JSON tells «not pressed»
+apart from «pressed and opened nothing». At most `MAX_PULSACIONES` presses per target.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from __future__ import annotations
 from collections.abc import Collection
 
 from medir_cliente import Cliente, Json
+from medir_inventario import origen_de_boton
 from medir_ventanas import (
     MANTENER,
     _boton_de,
@@ -52,6 +54,12 @@ PERMITIDOS = (
 # A form with many tabs lists hundreds of buttons and each press costs a click, two
 # window reads and a wait; the cap keeps one target from eating the whole session.
 MAX_PULSACIONES = 40
+
+# A button whose own caption is its text (`window_text` in a form read, `control` in a
+# click answer) names one control. Any other origin is text recognised inside it or the
+# name UI Automation gives it, and `clic_texto` then falls back to OCR substring and to
+# UIA: «Tabla» can reach «Guardar tabla...», so the label names no control.
+ORIGENES_DE_CAPTION = ("window_text", "control")
 
 
 def huellas(c: Cliente) -> set[tuple[str, str]]:
@@ -143,12 +151,21 @@ def _permitido(texto: str) -> bool:
 
 
 def _motivo(boton: Json) -> str | None:
-    """Why this run does not press the button, or None when it does."""
+    """Why this run does not press the button, or None when it does.
+
+    The text must come from the button's own caption and the entry must say so: one
+    recorded before the origin was is not pressed until the window is measured again.
+    """
     texto = str(boton.get("texto") or "").strip()
     if not texto:
         return "vacío"
     if boton.get("habilitado") is not True:
         return "deshabilitado"
+    origen = origen_de_boton(boton)
+    if origen is None:
+        return "sin origen"
+    if origen not in ORIGENES_DE_CAPTION:
+        return "texto de OCR"
     return None if _permitido(texto) else "no está en la lista blanca"
 
 

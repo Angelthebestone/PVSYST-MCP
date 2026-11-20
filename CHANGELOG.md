@@ -16,6 +16,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   said nothing. The answer now carries `ignorados: ["detalle"]`, `["compacto"]` or `["recorte"]`, the
   mechanism `leer` already uses for the keys of another branch. `compacto` is read by `que:ventanas`,
   `que:controles` and `que:vista`; `recorte` by `que:capturar`. No other answer changes.
+- **`tools/medir_gui.py --botones` presses a label only when the measurement says it is the button's
+  own caption.** The white list compared the text alone, and the text of an icon-only button is OCR
+  of the pixels drawn inside it: `gui_actuar accion:clic_texto` then falls back to OCR substring
+  matching and to UI Automation, so `Tabla` reached `Guardar tabla...`. `medir_inventario` now
+  records where each button's text was read (`origen`, the field a click answer uses, or
+  `etiqueta_fuente` of a form read) and `_motivo` refuses `texto de OCR`; an entry with no origin at
+  all, which is what a measurement recorded before this change carries, is not pressed
+  (`sin origen`) until the window is measured again. The server's form read does not report the
+  origin of a button's text yet, so a `--botones` run presses nothing until it does: that is the
+  fail-closed side of the rule, not a silent skip.
 - **`gui_observar que:esquema` publishes a window under every catalogue function that opens it, not
   only under the one that announces it.** `abierta_con` was built from `Funcion::abre` alone, so
   `TUserNeedsForm` listed `variante.autoconsumo` and hid `variante.necesidades_usuario_independiente`,

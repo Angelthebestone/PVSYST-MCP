@@ -138,6 +138,45 @@ def test_pulsar_botones_never_presses_a_label_the_white_list_does_not_equal() ->
     ]
 
 
+def test_pulsar_botones_does_not_press_a_label_that_is_not_its_own_caption() -> None:
+    f = formulario([])
+    f["paginas"][0]["botones"] = [
+        *botones_de("Tabla", origen="ocr"),
+        *botones_de("Gráfico", origen=None),
+        *botones_de("Tabla mensual"),
+    ]
+    c = PVsystFalso(
+        {"TX": f},
+        {"a": "TX"},
+        {t: {"cierra": None} for t in ("Tabla", "Gráfico", "Tabla mensual")},
+    )
+    assert abrir(c, "a", "TX") is None
+
+    abren = pulsar_botones(c, objetivo_de("TX"), inventariar(c, "TX"))
+
+    assert c.clics == ["Tabla mensual"]
+    assert abren == [
+        {"boton": "Tabla", "pulsado": False, "motivo": "texto de OCR"},
+        {"boton": "Gráfico", "pulsado": False, "motivo": "sin origen"},
+        {"pestana": None, "boton": "Tabla mensual", "abre": [], "error": None},
+    ]
+
+
+def test_pulsar_botones_records_the_origin_of_the_label_it_presses() -> None:
+    f = formulario([])
+    f["paginas"][0]["botones"] = botones_de("Gráfico")
+    c = PVsystFalso({"TX": f}, {"a": "TX"}, {"Gráfico": {"cierra": None}})
+    assert abrir(c, "a", "TX") is None
+
+    medida = inventariar(c, "TX")
+    pulsar_botones(c, objetivo_de("TX"), medida)
+
+    assert c.clics == ["Gráfico"]
+    assert medida["pestanas"][0]["botones"] == [
+        {"texto": "Gráfico", "habilitado": True, "origen": "window_text"}
+    ]
+
+
 def test_pulsar_botones_answers_the_prompt_a_button_opens_and_records_it() -> None:
     f = formulario([])
     f["paginas"][0]["botones"] = botones_de("Mostrar histograma")

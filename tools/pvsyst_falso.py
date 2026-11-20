@@ -53,8 +53,15 @@ def objetivo_de(clave: str) -> Json:
     return {"clave": clave, "ventana": clave, "cadena": "a"}
 
 
-def botones_de(*textos: str) -> list[Json]:
-    return [{"texto": t, "habilitado": True} for t in textos]
+def botones_de(*textos: str, origen: str | None = "window_text") -> list[Json]:
+    """Buttons as a form read reports them; `origen=None` is a server that reports none."""
+    botones: list[Json] = []
+    for texto in textos:
+        boton: Json = {"texto": texto, "habilitado": True}
+        if origen is not None:
+            boton["origen"] = origen
+        botones.append(boton)
+    return botones
 
 
 class PVsystFalso:
