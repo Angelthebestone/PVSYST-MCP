@@ -175,6 +175,38 @@ def test_main_exits_1_and_keeps_the_old_entry_when_a_target_does_not_open(
     assert "TB" not in json.loads((tmp_path / "inventario.json").read_text())
 
 
+def test_main_closes_on_a_later_target_the_project_it_loaded_itself(
+    tmp_path: Path,
+) -> None:
+    manifiesto = tmp_path / "manifiesto.json"
+    manifiesto.write_text(
+        json.dumps(
+            [
+                {"clave": "TA", "ventana": "TA", "cadena": "@proyecto:Planta,variante.x"},
+                {"clave": "TB", "ventana": "TB", "cadena": "herramientas.x"},
+            ]
+        ),
+        encoding="utf-8",
+    )
+    inventario = tmp_path / "inventario.json"
+    inventario.write_text(volcar({}) + "\n")
+    c = PVsystFalso(
+        {"TA": formulario(["a"]), "TB": formulario(["b"])},
+        {"variante.x": "TA", "herramientas.x": "TB"},
+    )
+    args = [
+        "--servidor",
+        "pvsyst-mcp.exe",
+        "--manifiesto",
+        str(manifiesto),
+        "--inventario",
+        str(inventario),
+    ]
+
+    assert main(args, fabrica_de(c)) == 0
+    assert set(json.loads(inventario.read_text())) == {"TA", "TB"}
+
+
 def test_main_stops_when_the_windows_cannot_be_read(tmp_path: Path) -> None:
     c = PVsystFalso({"TA": formulario(["a"])}, {"a": "TA"})
     c.falla_ventanas = "access denied reading the windows"

@@ -12,7 +12,8 @@ from __future__ import annotations
 from medir_botones import pulsar_botones
 from medir_cliente import Cliente, Json
 from medir_inventario import ErrorMedicion, inventariar
-from medir_ventanas import abrir, limpiar
+from medir_proyectos import abrir
+from medir_ventanas import limpiar
 
 
 def _rechazar(medida: Json) -> str | None:
@@ -24,13 +25,19 @@ def _rechazar(medida: Json) -> str | None:
     return None
 
 
-def medir(c: Cliente, objetivo: Json, botones: bool = False) -> Json | str:
-    """Open, inventory and close one target: the measurement, or an error text."""
+def medir(
+    c: Cliente, objetivo: Json, botones: bool = False, cargados: set[str] | None = None
+) -> Json | str:
+    """Open, inventory and close one target: the measurement, or an error text.
+
+    `cargados` is the run's record of the projects it opened itself: a later target
+    whose chain loads no project may close those and no others.
+    """
     previas = limpiar(c)
     if previas:
         return f"could not close the windows left open: {previas}"
     try:
-        fallo = abrir(c, objetivo["cadena"], objetivo["ventana"])
+        fallo = abrir(c, objetivo["cadena"], objetivo["ventana"], cargados)
         if fallo:
             return fallo
         medida = inventariar(c, objetivo["ventana"])

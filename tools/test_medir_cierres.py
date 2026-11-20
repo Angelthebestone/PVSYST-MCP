@@ -3,7 +3,7 @@
 from medir_botones import cerrar_nuevas, pulsar_botones
 from medir_cliente import Json
 from medir_inventario import inventariar
-from medir_ventanas import abrir
+from medir_proyectos import abrir
 from pvsyst_falso import PVsystFalso, botones_de, formulario, objetivo_de
 
 # pytest finds the autouse fixture through this import; the tests never call it.

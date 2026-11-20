@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 
 from medir_cliente import Cliente, Json
-from medir_ventanas import _dormir, _error_de, ventanas
+from medir_ventanas import _boton_de, _dormir, _error_de, ventanas
 
 CLASES_ROTULO = ("TTabSheet", "TGroupBox", "TRadioGroup")
 CLAVES_CAMPO = ("clase", "etiqueta", "etiqueta_fuente", "marcado", "habilitado")
@@ -62,17 +62,38 @@ def leer_pagina(c: Cliente, clase: str) -> Json:
 
 
 def _cerrar_dialogos(c: Cliente, indice: int, errores: list[Json]) -> None:
-    """A tab change can raise a message box (the window vetoes it): note it, dismiss it."""
+    """A tab change can raise a message box (the window vetoes it): note it, answer it.
+
+    The answer is the one `_boton_de` gives every other dialog of this tool, so a box
+    that asks whether to lose the tab's data is rejected here as it is there; a box
+    that offers no such button stays open and stops the measurement naming it.
+    """
     for _ in range(3):
         if not any(w["class"] == "TMessageForm" for w in ventanas(c)):
             return
         m = c.tool("gui_observar", {"que": "formulario", "ventana": "TMessageForm"})
+        fallo = _error_de(m)
+        if fallo is not None:
+            raise ErrorMedicion(f"reading TMessageForm failed: {fallo[:200]}")
         errores.append({"indice": indice, "dialogo": m.get("textos")})
-        c.tool(
+        boton = _boton_de(m)
+        if boton is None:
+            botones = [b.get("texto") for b in m.get("botones") or []]
+            raise ErrorMedicion(
+                f"the dialog of tab {indice} offers no rejection: "
+                f"{m.get('textos')} (buttons: {botones})"
+            )
+        r = c.tool(
             "gui_actuar",
-            {"accion": "clic_texto", "ventana": "TMessageForm", "texto": "OK"},
+            {"accion": "clic_texto", "ventana": "TMessageForm", "texto": boton},
         )
         _dormir(0.5)
+        fallo = _error_de(r)
+        if fallo is not None:
+            raise ErrorMedicion(
+                f"answering the dialog of tab {indice} with {boton!r} failed: "
+                f"{fallo[:200]}"
+            )
 
 
 def _no_es_pagina(respuesta: Json) -> bool:

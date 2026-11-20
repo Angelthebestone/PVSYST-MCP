@@ -16,6 +16,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   said nothing. The answer now carries `ignorados: ["detalle"]`, `["compacto"]` or `["recorte"]`, the
   mechanism `leer` already uses for the keys of another branch. `compacto` is read by `que:ventanas`,
   `que:controles` and `que:vista`; `recorte` by `que:capturar`. No other answer changes.
+- **`tools/medir_gui.py` closes a project window only when it loaded that project itself or it is a
+  `_DEMO_`.** A chain without `@proyecto:` closed whatever `TProjectForm` was open and answered No to
+  «¿Desea guardarla?», which throws away the unsaved work of a project the harness merely found open.
+  The run now records the projects it loaded (`cargados`, owned by `main` and threaded through
+  `medir` and `abrir`) and any other loaded project stops the chain with an error naming it;
+  `cargar_proyecto` no longer discards what `limpiar` could not close; and after a close the window
+  must be gone, or the chain stops. The project chain moves to `tools/medir_proyectos.py` (the window
+  primitives stay in `medir_ventanas.py`, which the change pushed past 300 lines): nothing about the
+  protocol changed.
+- **A message box a tab change raises is answered by the same decision as every other dialog.**
+  `tools/medir_inventario.py` pressed `OK` on any `TMessageForm` without passing through
+  `_boton_de`, so a box offering OK/Cancel — «Los datos se pierden, ¿continuar?» — was accepted and
+  its result ignored. It now uses `_boton_de`, raises when the box offers no rejection (naming its
+  texts and buttons), and raises when the answer cannot be pressed.
 - **A failed read of the open windows is an error, not a clean screen, and never a second PVsyst.**
   `tools/medir_ventanas.py` built its window list from `r.get("windows", [])`, so an answer carrying
   `error` or `jsonrpc_error` became an empty list: `limpiar` reported a clean screen, `cerrar_nuevas`

@@ -1,17 +1,11 @@
-"""Tests for medir_ventanas.py: open, close and wait on the measured windows."""
+"""Tests for the window, project and wait steps of the measurement harness."""
 
 import pytest
 
-import medir_ventanas
+import medir_proyectos
 from medir_cliente import Json
-from medir_ventanas import (
-    ErrorDeLectura,
-    abrir,
-    asegurar_pvsyst,
-    cargar_proyecto,
-    limpiar,
-    ventanas,
-)
+from medir_proyectos import abrir, cargar_proyecto
+from medir_ventanas import ErrorDeLectura, asegurar_pvsyst, limpiar, ventanas
 from pvsyst_falso import PVsystFalso, botones_de, formulario
 
 # pytest finds the autouse fixture through this import; the tests never call it.
@@ -103,6 +97,60 @@ def test_abrir_a_chain_without_project_closes_the_loaded_one_first() -> None:
     assert [w["class"] for w in c.abiertas] == ["THomeForm", "TX"]
 
 
+def test_a_chain_without_project_leaves_a_project_it_did_not_load_open() -> None:
+    c = PVsystFalso({}, {"herramientas.x": "TX"})
+    c.abiertas.append({"class": "TProjectForm", "title": "Proyecto Planta del cliente"})
+
+    fallo = abrir(c, "herramientas.x", "TX")
+
+    assert fallo is not None
+    assert "Planta del cliente" in fallo and "not loaded by this run" in fallo
+    assert "TProjectForm" in [w["class"] for w in c.abiertas]
+    assert c.clics == []
+
+
+def test_a_chain_without_project_closes_a_project_this_run_loaded() -> None:
+    c = PVsystFalso({}, {"variante.x": "TX", "herramientas.x": "TY"})
+    cargados: set[str] = set()
+
+    assert abrir(c, "@proyecto:Planta del cliente,variante.x", "TX", cargados) is None
+    assert abrir(c, "herramientas.x", "TY", cargados) is None
+
+    assert [w["class"] for w in c.abiertas] == ["THomeForm", "TY"]
+
+
+def test_a_project_window_that_refuses_the_close_is_an_error() -> None:
+    c = PVsystFalso({}, {"herramientas.x": "TX"})
+    c.abiertas.append({"class": "TProjectForm", "title": "Proyecto _DEMO_Foo"})
+    c.incerrables = {"TProjectForm"}
+
+    fallo = abrir(c, "herramientas.x", "TX")
+
+    assert fallo is not None and "TProjectForm" in fallo
+
+
+def test_cargar_proyecto_reports_the_windows_it_could_not_close() -> None:
+    c = PVsystFalso({}, {})
+    c.abiertas.append({"class": "TTerco", "title": "t"})
+    c.incerrables = {"TTerco"}
+
+    fallo = cargar_proyecto(c, "_DEMO_Foo")
+
+    assert fallo is not None and "TTerco" in fallo
+    assert c.escrito == ""
+
+
+def test_cargar_proyecto_refuses_to_replace_a_project_it_did_not_load() -> None:
+    c = PVsystFalso({}, {})
+    c.abiertas.append({"class": "TProjectForm", "title": "Proyecto Planta del cliente"})
+
+    fallo = cargar_proyecto(c, "_DEMO_Foo")
+
+    assert fallo is not None and "Planta del cliente" in fallo
+    assert c.escrito == ""
+    assert "TProjectForm" in [w["class"] for w in c.abiertas]
+
+
 def test_abrir_a_chain_with_project_keeps_the_loaded_one() -> None:
     c = PVsystFalso({}, {"variante.x": "TX"})
     c.abiertas.append({"class": "TProjectForm", "title": "Proyecto _DEMO_Foo"})
@@ -151,10 +199,10 @@ def test_a_project_whose_name_contains_the_requested_one_is_not_it() -> None:
     c.abiertas.append({"class": "TProjectForm", "title": "Proyecto _DEMO_Commercial2"})
     c.abiertas.append({"class": "TProjectForm", "title": "Proyecto X_DEMO_Commercial"})
 
-    assert medir_ventanas._es_proyecto(c.abiertas[-1], "_DEMO_Commercial") is False
-    assert medir_ventanas._es_proyecto(c.abiertas[-2], "_DEMO_Commercial") is False
+    assert medir_proyectos._es_proyecto(c.abiertas[-1], "_DEMO_Commercial") is False
+    assert medir_proyectos._es_proyecto(c.abiertas[-2], "_DEMO_Commercial") is False
     ok = {"class": "TProjectForm", "title": "Proyecto _DEMO_Commercial - VC0"}
-    assert medir_ventanas._es_proyecto(ok, "_DEMO_Commercial") is True
+    assert medir_proyectos._es_proyecto(ok, "_DEMO_Commercial") is True
 
 
 def test_the_discard_question_is_answered_si_and_the_save_one_no() -> None:

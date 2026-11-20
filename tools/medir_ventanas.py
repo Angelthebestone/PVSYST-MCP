@@ -1,11 +1,10 @@
-"""Opening, closing and waiting on PVsyst windows through the MCP server.
+"""Reading, closing and waiting on PVsyst windows through the MCP server.
 
-A chain step `@proyecto:NOMBRE` loads that project through the search box of the
-project loader (PVsyst's shipped `_DEMO_*` projects are read-only, so nothing is
-saved: any «¿Desea guardarla?» or «¿mantener modificaciones?» prompt is answered No).
-Only one agent may drive the PVsyst GUI at a time. Nothing is filled in or saved.
-A read of the open windows that failed is an error the callers stop on, never an
-empty screen: no windows and no answer are two different facts.
+`limpiar` closes every window but the main ones, answering each prompt with a
+rejection (`_boton_de`); `asegurar_pvsyst` starts PVsyst when no process answers.
+The project a chain loads, and which project windows this run may close, live in
+`medir_proyectos.py`. Only one agent may drive the PVsyst GUI at a time, and nothing
+is filled in or saved.
 
 Every wait of the whole tool goes through `_dormir`, which reads `PAUSA` from this
 module: one patch here makes every wait free, whichever module asks for it.
@@ -13,16 +12,12 @@ module: one patch here makes every wait free, whichever module asks for it.
 
 from __future__ import annotations
 
-import re
 import time
 import unicodedata
-from collections.abc import Callable
 
 from medir_cliente import Cliente, Json
 
 MANTENER = ("THomeForm", "TApplication", "TProjectForm")
-# Search box of TProjectLoadForm, client coordinates at 96 DPI.
-BUSCADOR = {"clase": "TEdit", "x": 1077, "y": 49}
 
 # Multiplies every wait; the tests set it to 0.
 PAUSA = 1.0
@@ -47,21 +42,6 @@ def normalizar_etiqueta(texto: str) -> str:
     sin_acentos = "".join(c for c in descompuesto if not unicodedata.combining(c))
     limpio = sin_acentos.replace("&", "").replace("...", "").replace("…", "")
     return " ".join(limpio.split())
-
-
-def _hasta(condicion: Callable[[], bool], plazo: float) -> bool:
-    """Poll every half second until `condicion()` holds or `plazo` seconds pass."""
-    for _ in range(int(plazo / 0.5) + 1):
-        if condicion():
-            return True
-        _dormir(0.5)
-    return condicion()
-
-
-def _es_proyecto(w: Json, nombre: str) -> bool:
-    """The project window of exactly `nombre` (not `nombre2`, not `x_nombre`)."""
-    patron = rf"(?<!\w){re.escape(nombre)}(?!\w)"
-    return w["class"] == "TProjectForm" and bool(re.search(patron, w.get("title", "")))
 
 
 # Tooltips PVsyst raises while the pointer rests on a button: not windows a press opened.
@@ -195,69 +175,3 @@ def limpiar(c: Cliente) -> list[str]:
         _dormir(0.6)
     return [w["class"] for w in ventanas(c) if w["class"] not in MANTENER]
 
-
-def cargar_proyecto(c: Cliente, nombre: str) -> str | None:
-    """Load a project through the loader's search box; an error text, or None."""
-    if any(_es_proyecto(w, nombre) for w in ventanas(c)):
-        return None
-    limpiar(c)
-    if any(w["class"] == "TProjectForm" for w in ventanas(c)):
-        c.tool("gui_actuar", {"accion": "cerrar", "ventana": "TProjectForm"})
-        _dormir(0.8)
-        limpiar(c)
-    c.tool("gui_actuar", {"accion": "funcion", "funcion": "proyecto.cargar"})
-    _dormir(1.0)
-    c.tool(
-        "gui_actuar",
-        {
-            "accion": "escribir",
-            "ventana": "TProjectLoadForm",
-            "campo": BUSCADOR,
-            "texto": nombre,
-        },
-    )
-    _dormir(1.0)
-    c.tool(
-        "gui_actuar",
-        {"accion": "fila", "ventana": "TProjectLoadForm", "indice": 0, "abrir": True},
-    )
-    if not _hasta(lambda: any(_es_proyecto(w, nombre) for w in ventanas(c)), 15):
-        titulos = [w.get("title") for w in ventanas(c)]
-        return f"project {nombre} did not load: {titulos}"
-    return None
-
-
-def _cerrar_proyecto(c: Cliente) -> str | None:
-    """Close a loaded project: a chain without `@proyecto` runs from the home window,
-    which a project window disables. An error text, or None."""
-    if not any(w["class"] == "TProjectForm" for w in ventanas(c)):
-        return None
-    c.tool("gui_actuar", {"accion": "cerrar", "ventana": "TProjectForm"})
-    _dormir(0.8)
-    quedan = limpiar(c)
-    return f"could not close the project window: {quedan}" if quedan else None
-
-
-def abrir(c: Cliente, cadena: str, clase: str) -> str | None:
-    """Run the chain of steps; an error text, or None when `clase` is open."""
-    if not cadena.startswith("@proyecto:"):
-        fallo = _cerrar_proyecto(c)
-        if fallo:
-            return fallo
-    for paso in cadena.split(","):
-        if paso.startswith("@proyecto:"):
-            fallo = cargar_proyecto(c, paso.split(":", 1)[1])
-            if fallo:
-                return fallo
-            continue
-        if any(w["class"] == "TDEMOForm" for w in ventanas(c)):
-            c.tool("gui_actuar", {"accion": "cerrar", "ventana": "TDEMOForm"})
-        r = c.tool("gui_actuar", {"accion": "funcion", "funcion": paso})
-        # A host window that opens a different one than the catalogue expects still
-        # leaves the target open; the check below decides.
-        if r.get("error") and "did not open the expected window" not in str(r["error"]):
-            return f"{paso}: {str(r['error'])[:200]}"
-        _dormir(1.0)
-    if _hasta(lambda: any(w["class"] == clase for w in ventanas(c)), 5):
-        return None
-    return f"{clase} did not open: {[w['class'] for w in ventanas(c)]}"

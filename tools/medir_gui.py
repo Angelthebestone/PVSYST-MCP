@@ -9,7 +9,9 @@ under the target's `clave`. `tools/mapa_desde_inventario.py` then regenerates th
 
 A chain step `@proyecto:NOMBRE` loads that project through the search box of the
 project loader (PVsyst's shipped `_DEMO_*` projects are read-only, so nothing is
-saved: any «¿Desea guardarla?» or «¿mantener modificaciones?» prompt is answered No).
+saved). A chain without one closes the loaded project first, and only a project this
+run loaded itself or a demo is ever closed: any other may hold the user's unsaved
+work, so the chain stops naming it instead of answering No to its save prompt.
 Only one agent may drive the PVsyst GUI at a time. Nothing is filled in or saved.
 
 `--botones` also presses the enabled buttons whose label is exactly one entry of a
@@ -25,15 +27,17 @@ and a prefix of `Abrir` presses «Abrir sitio» or «Abrir en explorer», which 
 browser or the Windows Explorer, a window outside the process. A label the list does
 not hold is never pressed, because it may commit the window's state, destroy it or
 start a flow this script cannot unwind, and the verbs that do that (`OK`, `Aceptar`,
-`Sí`, `Guardar`, `Aplicar`, `Eliminar`, `Simular`…) change with every release. Each
-button it does not press is recorded with its motive
-(`no está en la lista blanca`, `deshabilitado`, `vacío`, `tope`), so the JSON tells
-«not pressed» apart from «pressed and opened nothing». At most `MAX_PULSACIONES`
-presses per target.
+`Sí`, `Guardar`, `Aplicar`, `Eliminar`, `Simular`…) change with every release. Neither
+is a label the measurement did not record as the button's own caption: text OCR read
+inside an icon-only button reaches another control by substring. Each button it does
+not press is recorded with its motive (`no está en la lista blanca`, `texto de OCR`,
+`sin origen`, `deshabilitado`, `vacío`, `tope`), so the JSON tells «not pressed» apart
+from «pressed and opened nothing». At most `MAX_PULSACIONES` presses per target.
 
-This module is the command line only: the target, the client, the windows, the tabs
-and the presses live in the sibling modules `medir_objetivo.py`, `medir_cliente.py`,
-`medir_ventanas.py`, `medir_inventario.py` and `medir_botones.py`. The transport
+This module is the command line only: the target, the client, the windows, the tabs,
+the projects and the presses live in the sibling modules `medir_objetivo.py`,
+`medir_cliente.py`, `medir_ventanas.py`, `medir_proyectos.py`, `medir_inventario.py`
+and `medir_botones.py`. The transport
 (`ClienteMcp`) is exercised live only; the rest takes any object with
 `tool(nombre, argumentos)`, which the tests fake.
 """
@@ -133,6 +137,8 @@ def main(
     workspace = Path(tempfile.mkdtemp(prefix="pvsyst_medir_")) / "PVsyst8.1_Data"
     workspace.mkdir(parents=True)
     c = fabrica(args.servidor, workspace)
+    # The projects this run opens itself: the only non-demo ones it may close later.
+    cargados: set[str] = set()
     fallos = 0
     fusionados = 0
     try:
@@ -142,9 +148,10 @@ def main(
             return 1
         for o in objetivos:
             try:
-                r = medir(c, o, args.botones)
+                r = medir(c, o, args.botones, cargados)
             except (RuntimeError, TimeoutError) as e:
-                # The server is gone or stuck: keep what was measured, stop here.
+                # The server is gone, stuck or could not read the screen: keep what was
+                # measured, stop here.
                 print(f"{o['clave']}: {e}")
                 fallos += 1
                 break

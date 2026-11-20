@@ -1,6 +1,10 @@
 """Tests for medir_inventario.py: reading every tab of a window."""
 
-from medir_inventario import inventariar
+import pytest
+
+from medir_cliente import Json
+from medir_inventario import ErrorMedicion, inventariar
+from medir_ventanas import ventanas
 from pvsyst_falso import PVsystFalso, botones_de, formulario
 
 # pytest finds the autouse fixture through this import; the tests never call it.
@@ -60,3 +64,52 @@ def test_inventariar_records_where_the_text_of_each_button_was_read() -> None:
         {"texto": "Gráfico", "habilitado": True, "origen": "ocr"},
         {"texto": "Dibujada", "habilitado": True, "origen": None},
     ]
+
+
+def _abre_el_aviso_al_cambiar_de_pestana(c: PVsystFalso) -> None:
+    """Every change to tab 1 raises a TMessageForm, once: the fake cannot say it."""
+    llamar = c.tool
+
+    def tool(nombre: str, a: Json) -> Json:
+        r = llamar(nombre, a)
+        abierto = any(w["class"] == "TMessageForm" for w in c.abiertas)
+        if a.get("accion") == "pagina" and a.get("indice") == 1 and not abierto:
+            c.abiertas.append({"class": "TMessageForm", "title": "m"})
+        return r
+
+    c.tool = tool  # type: ignore[method-assign]
+
+
+def _con_aviso(textos: list[str], *botones: str) -> PVsystFalso:
+    """The measured window with two tabs and a warning that answers `botones`."""
+    f = formulario(["a"], ["b"], pestanas=["Uno", "Dos"])
+    aviso = formulario([])
+    aviso["textos"] = textos
+    aviso["paginas"][0]["botones"] = botones_de(*botones)
+    c = PVsystFalso({"TX": f, "TMessageForm": aviso}, {})
+    _abre_el_aviso_al_cambiar_de_pestana(c)
+    return c
+
+
+def test_a_tab_dialog_is_answered_with_the_rejection_of_every_other_closer() -> None:
+    c = _con_aviso(["Los datos se perderán. ¿Desea continuar?"], "OK", "Cancelar")
+
+    r = inventariar(c, "TX")
+
+    assert c.clics == ["Cancelar"]
+    assert r["errores"] == [
+        {"indice": 1, "dialogo": ["Los datos se perderán. ¿Desea continuar?"]}
+    ]
+    assert "TMessageForm" not in [w["class"] for w in ventanas(c)]
+
+
+def test_a_tab_dialog_with_no_rejection_stops_the_measurement_naming_it() -> None:
+    c = _con_aviso(["¿Desea continuar?"], "OK")
+
+    with pytest.raises(ErrorMedicion) as fallo:
+        inventariar(c, "TX")
+
+    assert "¿Desea continuar?" in str(fallo.value)
+    assert c.clics == []
+    assert "TMessageForm" in [w["class"] for w in ventanas(c)]
+

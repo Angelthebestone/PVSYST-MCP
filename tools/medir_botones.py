@@ -17,13 +17,13 @@ from collections.abc import Collection
 
 from medir_cliente import Cliente, Json
 from medir_inventario import origen_de_boton
+from medir_proyectos import abrir
 from medir_ventanas import (
     MANTENER,
     _boton_de,
     _cerrar,
     _dormir,
     _error_de,
-    abrir,
     clases,
     normalizar_etiqueta,
     ventanas,
