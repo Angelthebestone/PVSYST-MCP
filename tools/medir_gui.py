@@ -12,7 +12,11 @@ project loader (PVsyst's shipped `_DEMO_*` projects are read-only, so nothing is
 saved). A chain without one closes the loaded project first, and only a project this
 run loaded itself or a demo is ever closed: any other may hold the user's unsaved
 work, so the chain stops naming it instead of answering No to its save prompt.
-Only one agent may drive the PVsyst GUI at a time. Nothing is filled in or saved.
+The run refuses to start on a PVsyst it did not launch that shows a window it did not
+open, because its cleanup would answer No to that window's save prompt: it lists them
+and asks for them to be closed by hand, and `--limpiar-ajenas` says they are
+disposable. Only one agent may drive the PVsyst GUI at a time. Nothing is filled in
+or saved.
 
 `--botones` also presses the enabled buttons whose label is exactly one entry of a
 white list of read-only views (`Resumen del sistema`, `Gráfico de pérdidas`,
@@ -81,6 +85,11 @@ def _argumentos(argv: list[str] | None) -> argparse.Namespace:
         "--botones",
         action="store_true",
         help="press the allowed buttons of every tab and record what they open",
+    )
+    parser.add_argument(
+        "--limpiar-ajenas",
+        action="store_true",
+        help="close, answering No, the windows of a PVsyst this run did not start",
     )
     return parser.parse_args(argv)
 
@@ -168,7 +177,7 @@ def main(
     fallos = 0
     fusionados = 0
     try:
-        fallo_arranque = asegurar_pvsyst(c)
+        fallo_arranque = asegurar_pvsyst(c, args.limpiar_ajenas)
         if fallo_arranque:
             print(fallo_arranque)
             return 1

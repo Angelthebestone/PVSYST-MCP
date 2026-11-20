@@ -123,17 +123,45 @@ def _en_marcha(c: Cliente) -> tuple[bool, str | None]:
     return True, None
 
 
-def asegurar_pvsyst(c: Cliente) -> str | None:
+# The windows a PVsyst this run did not start may show without holding the user's work:
+# the trial notice, which PVsyst raises by itself (measured). Every other class outside
+# `MANTENER` is a window somebody opened — the user's component editor, say, or the
+# leftover of a run that was killed — and closing it answers No to its save prompt.
+PROPIAS = ("TDEMOForm",)
+
+
+def _ajenas(c: Cliente) -> str | None:
+    """Why a session this run did not start must not be touched; an error text, or None.
+
+    The cleanup answers No to every «¿Desea guardarla?», so a window this run did not
+    open may cost the user their unsaved work. The run stops naming those windows
+    instead; `--limpiar-ajenas` is how the user says they are disposable.
+    """
+    abiertas = ventanas(c)
+    ajenas = [w for w in abiertas if w["class"] not in (*MANTENER, *PROPIAS)]
+    if not ajenas:
+        return None
+    nombres = ", ".join(f"{w['class']} {w.get('title')!r}" for w in ajenas)
+    return (
+        f"PVsyst was already running and shows window(s) this run did not open: "
+        f"{nombres}. Close them by hand, or run again with --limpiar-ajenas to let "
+        "this tool close them (it answers No to their save prompts)"
+    )
+
+
+def asegurar_pvsyst(c: Cliente, limpiar_ajenas: bool = False) -> str | None:
     """Launch PVsyst when no PVsyst process is running; an error text, or None.
 
     Only the answer that says the process is absent leads to a launch: any other
     failed read stops here, because a second instance over a screen nothing could read
     is not a guess this tool makes. After the launch the read may still fail while
-    PVsyst starts, so the wait keeps polling and only its deadline ends it.
+    PVsyst starts, so the wait keeps polling and only its deadline ends it. A session
+    this run found already running is refused when it shows a window the run did not
+    open (`_ajenas`), unless `limpiar_ajenas` says those windows are disposable.
     """
     en_marcha, fallo = _en_marcha(c)
     if en_marcha:
-        return None
+        return None if limpiar_ajenas else _ajenas(c)
     if fallo is not None and not _no_arranca(fallo):
         return fallo
     c.tool("gui_actuar", {"accion": "lanzar"})

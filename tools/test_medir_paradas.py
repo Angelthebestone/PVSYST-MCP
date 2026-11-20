@@ -74,3 +74,27 @@ def test_a_failed_cleanup_does_not_replace_the_error_that_stopped_the_target(
     assert "reading TA failed" in salida
     assert "and closing the target failed" in salida
     assert "access denied" in salida
+
+
+def test_a_run_refuses_a_session_it_did_not_start_with_a_window_it_did_not_open(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    c = PVsystFalso({"TA": formulario(["a"])}, {"a": "TA"})
+    c.abiertas.append({"class": "TPVModuleForm", "title": "Módulo del usuario"})
+
+    assert main(argumentos(tmp_path, "--solo", "TA"), fabrica_de(c)) == 1
+
+    salida = capsys.readouterr().out
+    assert "TPVModuleForm" in salida and "--limpiar-ajenas" in salida
+    assert "TPVModuleForm" in [w["class"] for w in c.abiertas]
+    assert json.loads((tmp_path / "inventario.json").read_text())["TA"] == {
+        "viejo": True
+    }
+
+    c = PVsystFalso({"TA": formulario(["a"])}, {"a": "TA"})
+    c.abiertas.append({"class": "TPVModuleForm", "title": "Módulo del usuario"})
+
+    acepta = argumentos(tmp_path, "--solo", "TA", "--limpiar-ajenas")
+
+    assert main(acepta, fabrica_de(c)) == 0
+    assert "TPVModuleForm" not in [w["class"] for w in c.abiertas]
