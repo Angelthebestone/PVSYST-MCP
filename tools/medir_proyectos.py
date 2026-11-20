@@ -3,9 +3,10 @@
 A chain step `@proyecto:NOMBRE` loads that project through the search box of the
 project loader (`abrir`); a chain without one runs from the home window, which a
 loaded project disables, so the open project has to go first. PVsyst's shipped
-`_DEMO_*` projects are read-only, so closing one saves nothing. A project this run
-did not load and that is not a demo is never closed: the No that answers «¿Desea
-guardarla?» would throw away the user's unsaved work, so the chain stops naming it.
+`_DEMO_*` projects load from the installation's read-only `DataRO` folder, and `DEMOS`
+names them, so a window showing one is closed. A project this run did not load and
+that is not a demo is never closed: the No that answers «¿Desea guardarla?» would
+throw away the user's unsaved work, so the chain stops naming it.
 `Objetivo` is one target of the manifest and carries the `Propiedad` of the run, the
 record of what it loaded itself, so a step that reopens a window cannot forget it.
 Nothing is filled in or saved.
@@ -45,9 +46,35 @@ def _es_proyecto(w: Json, nombre: str) -> bool:
     )
 
 
-# PVsyst's shipped demos are read-only, so closing one saves nothing. The guard of
-# `_patron` keeps `X_DEMO_Foo` from passing as one, as it does in `_es_proyecto`.
-PATRON_DEMO = re.compile(r"(?<!\w)_DEMO_\w")
+# The demo projects PVsyst ships in `DataRO\PVsyst8.1_Data\Projects`, the read-only
+# data folder of the installation (`docs/gui_hibrida.md` lists these names,
+# `docs/pvsyst_format.md` records the folder as read-only). A project loaded from there
+# is not a file the user can save in place, so the chain closes its window instead of
+# asking them to. The list is exact and a name is compared with the whole project name
+# the title shows, so a user's `_DEMO_mio`, an `X_DEMO_Foo` or a `Copia
+# (_DEMO_Commercial)` is not a demo and is never closed.
+DEMOS = (
+    "_DEMO_Commercial",
+    "_DEMO_DCGrid",
+    "_DEMO_N13_Motorway_Data",
+    "_DEMO_Pumping",
+    "_DEMO_Residential",
+    "_DEMO_StandAlone",
+    "_DEMO_Tracking",
+    "_DEMO_Utility",
+)
+
+# The title of a project window shows its name: «Proyecto <nombre>», with the active
+# variant after ` - ` (the titles the fixtures measure, e.g. «Proyecto _DEMO_Commercial
+# - VC0»). A title that does not follow that shape answers itself, which matches no
+# demo and no loaded project, so its window is left open.
+TITULO = re.compile(r"^Proyecto (?P<nombre>.+?)(?: - .*)?$")
+
+
+def _nombre_del_titulo(titulo: str) -> str:
+    """The project name the window title of `titulo` shows."""
+    encontrado = TITULO.match(titulo)
+    return titulo if encontrado is None else encontrado.group("nombre").strip()
 
 
 class Propiedad:
@@ -69,9 +96,8 @@ class Propiedad:
 
     def es_propio(self, titulo: str) -> bool:
         """Whether this run may close the project window titled `titulo`."""
-        return PATRON_DEMO.search(titulo) is not None or any(
-            re.search(_patron(nombre), titulo) is not None for nombre in self._cargados
-        )
+        nombre = _nombre_del_titulo(titulo)
+        return nombre in DEMOS or nombre in self._cargados
 
 
 @dataclass(frozen=True)

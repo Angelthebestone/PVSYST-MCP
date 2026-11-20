@@ -101,7 +101,7 @@ def test_abrir_runs_the_chain_and_reports_a_window_that_did_not_open() -> None:
 
 def test_abrir_a_chain_without_project_closes_the_loaded_one_first() -> None:
     c = PVsystFalso({}, {"herramientas.x": "TX"})
-    c.abiertas.append({"class": "TProjectForm", "title": "Proyecto _DEMO_Foo"})
+    c.abiertas.append({"class": "TProjectForm", "title": "Proyecto _DEMO_Commercial"})
 
     assert abrir(c, objetivo_de("TX", "herramientas.x")) is None
     assert [w["class"] for w in c.abiertas] == ["THomeForm", "TX"]
@@ -132,7 +132,7 @@ def test_a_chain_without_project_closes_a_project_this_run_loaded() -> None:
 
 def test_a_project_window_that_refuses_the_close_is_an_error() -> None:
     c = PVsystFalso({}, {"herramientas.x": "TX"})
-    c.abiertas.append({"class": "TProjectForm", "title": "Proyecto _DEMO_Foo"})
+    c.abiertas.append({"class": "TProjectForm", "title": "Proyecto _DEMO_Commercial"})
     c.incerrables = {"TProjectForm"}
 
     fallo = abrir(c, objetivo_de("TX", "herramientas.x"))
@@ -164,9 +164,10 @@ def test_cargar_proyecto_refuses_to_replace_a_project_it_did_not_load() -> None:
 
 def test_abrir_a_chain_with_project_keeps_the_loaded_one() -> None:
     c = PVsystFalso({}, {"variante.x": "TX"})
-    c.abiertas.append({"class": "TProjectForm", "title": "Proyecto _DEMO_Foo"})
+    c.abiertas.append({"class": "TProjectForm", "title": "Proyecto _DEMO_Commercial"})
 
-    assert abrir(c, objetivo_de("TX", "@proyecto:_DEMO_Foo,variante.x")) is None
+    cadena = "@proyecto:_DEMO_Commercial,variante.x"
+    assert abrir(c, objetivo_de("TX", cadena)) is None
     assert "TProjectForm" in [w["class"] for w in c.abiertas]
 
 
