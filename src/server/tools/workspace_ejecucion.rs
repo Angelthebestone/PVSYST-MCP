@@ -231,6 +231,9 @@ pub(super) fn ejecutar_editar(paths: &Paths, args: &Value) -> Result<Value> {
 
 pub(super) fn ejecutar_listar(paths: &Paths, args: &Value) -> Result<Value> {
     let valor = super::workspace::TOOL_LISTAR.accion(args);
+    // Checked against the contract of the `que` before a folder is walked, because the
+    // items of one answer are not the list of names the listing accepts.
+    let campos = super::proyeccion::pedir_campos(args, valor, paths.idioma)?;
     let mut resultado = match valor {
         "proyectos" => projects::listar_proyectos(paths, args),
         "componentes" => components::listar_componentes(paths, args),
@@ -241,12 +244,7 @@ pub(super) fn ejecutar_listar(paths: &Paths, args: &Value) -> Result<Value> {
             "Value '{valor}' not supported for listar"
         ))),
     }?;
-    let peticion = super::proyeccion::Peticion {
-        accion: valor,
-        args,
-        idioma: paths.idioma,
-    };
-    if !super::proyeccion::aplicar(&mut resultado, &peticion)? {
+    if !super::proyeccion::aplicar(&mut resultado, campos) {
         anotar_no_leidos(&mut resultado, args, &["campos"]);
     }
     Ok(resultado)

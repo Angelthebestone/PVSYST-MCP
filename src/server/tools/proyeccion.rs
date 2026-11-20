@@ -1,6 +1,8 @@
 //! `listar` field projection: with `campos` an item keeps only the keys the caller
 //! named, so a caller that needs two fields of a project does not pay for the other
-//! five. A name that no item carries is an error that lists the ones they do carry.
+//! five. The names a `que` accepts come from its contract, never from the items an
+//! answer happens to carry: a filtered, empty or warning-free answer accepts the
+//! same names as a full one.
 
 use super::declaracion::nombre_tipo_recibido;
 use super::validacion::TIPO_INCORRECTO;
@@ -12,35 +14,135 @@ const CAMPO_DESCONOCIDO: Texto = Texto {
     es: "Valor '{campo}' no es un campo de listar {que}; campos: {campos}",
     en: "Value '{campo}' is not a field of listar {que}; fields: {campos}",
 };
+const CAMPOS_VACIOS: Texto = Texto {
+    es: "'campos' no puede ir vacío: nombra al menos un campo de listar {que}; campos: {campos}",
+    en: "'campos' cannot be empty: name at least one field of listar {que}; fields: {campos}",
+};
 
-/// The call a projection belongs to: the action it answers, its arguments and the
-/// language of its errors.
-pub(super) struct Peticion<'a> {
-    pub(super) accion: &'a str,
-    pub(super) args: &'a Value,
-    pub(super) idioma: Idioma,
+/// The fields every item of one `listar` `que` can carry — the optional ones
+/// (`aviso`, written when a .PRJ cannot be parsed; `error`, when a .PAN cannot)
+/// included, because this is the list a `campos` name is checked against.
+struct Contrato {
+    que: &'static str,
+    campos: &'static [&'static str],
+}
+
+const CONTRATOS: &[Contrato] = &[
+    Contrato {
+        que: "proyectos",
+        campos: &[
+            "name",
+            "prj",
+            "modified_unix",
+            "comment",
+            "version",
+            "meteo_file",
+            "variants",
+            "aviso",
+            "solo_lectura",
+        ],
+    },
+    Contrato {
+        que: "componentes",
+        campos: &["file", "size_bytes"],
+    },
+    Contrato {
+        que: "modulos",
+        campos: &["modulo", "pnom_w", "vendor", "model", "error"],
+    },
+    Contrato {
+        que: "archivos",
+        campos: &["relative", "size_bytes", "modified_unix"],
+    },
+    Contrato {
+        que: "objetos",
+        campos: &["type", "role", "depth", "line_open", "line_close"],
+    },
+];
+
+/// The field names a checked `campos` asks for: holding one proves each name is a
+/// field of its `que`, so the projection itself cannot fail.
+#[must_use]
+pub(super) struct CamposPedidos {
+    que: &'static str,
+    nombres: Vec<String>,
+}
+
+/// Reads `campos` against the contract of `que`, before the listing runs: `None`
+/// when the call names none, the names it asks for when every one is a field of the
+/// `que`, and otherwise a refusal that lists those fields.
+pub(super) fn pedir_campos(
+    args: &Value,
+    que: &str,
+    idioma: Idioma,
+) -> Result<Option<CamposPedidos>> {
+    let Some(pedidos) = args.get("campos").filter(|v| !v.is_null()) else {
+        return Ok(None);
+    };
+    // An unsupported `que` is refused by the listing with its own message naming the
+    // supported ones, which a `campos` refusal in its place would only hide.
+    let Some(contrato) = contrato_de(que) else {
+        return Ok(None);
+    };
+    let Some(lista) = pedidos.as_array() else {
+        return Err(tipo_incorrecto(pedidos, "array", idioma));
+    };
+    let nombres = nombres_de_campos(lista, idioma)?;
+    if nombres.is_empty() {
+        return Err(Error::Invalid(CAMPOS_VACIOS.texto_con(
+            idioma,
+            &[
+                ("que", contrato.que),
+                ("campos", &contrato.campos.join(", ")),
+            ],
+        )));
+    }
+    for nombre in &nombres {
+        if !contrato.campos.contains(&nombre.as_str()) {
+            return Err(Error::Invalid(CAMPO_DESCONOCIDO.texto_con(
+                idioma,
+                &[
+                    ("campo", nombre.as_str()),
+                    ("que", contrato.que),
+                    ("campos", &contrato.campos.join(", ")),
+                ],
+            )));
+        }
+    }
+    let campos = CamposPedidos {
+        que: contrato.que,
+        nombres,
+    };
+    Ok(Some(campos))
 }
 
 /// Keeps in each item of the answer's list only the keys `campos` names. `false`
 /// when nothing was projected: no `campos`, or an answer with no list of objects,
 /// and only the second case leaves a given `campos` to be reported as ignored.
-pub(super) fn aplicar(resultado: &mut Value, peticion: &Peticion<'_>) -> Result<bool> {
-    let Some(pedidos) = peticion.args.get("campos").filter(|v| !v.is_null()) else {
-        return Ok(false);
+pub(super) fn aplicar(resultado: &mut Value, campos: Option<CamposPedidos>) -> bool {
+    let Some(campos) = campos else {
+        return false;
     };
-    let nombres = nombres_de_campos(pedidos, peticion.idioma)?;
-    let Some(clave) = clave_de_lista(peticion.accion) else {
-        return Ok(false);
+    let Some(clave) = clave_de_lista(campos.que) else {
+        return false;
     };
     let Some(items) = resultado.get(clave).and_then(Value::as_array) else {
-        return Ok(false);
+        return false;
     };
-    let proyectados = proyectar_items(items, &nombres, peticion)?;
+    let mut proyectados = Vec::with_capacity(items.len());
+    for item in items {
+        proyectados.push(proyectar_item(item, &campos.nombres));
+    }
     let Some(slot) = resultado.get_mut(clave) else {
-        return Ok(false);
+        return false;
     };
     *slot = Value::Array(proyectados);
-    Ok(true)
+    true
+}
+
+/// The contract of one `listar` `que`, `None` for a `que` this table does not know.
+fn contrato_de(que: &str) -> Option<&'static Contrato> {
+    CONTRATOS.iter().find(|contrato| contrato.que == que)
 }
 
 /// The array of objects each `listar` action answers with.
@@ -56,69 +158,26 @@ fn clave_de_lista(accion: &str) -> Option<&'static str> {
 }
 
 /// The names `campos` asks for; an element that is not a string is a wrong input.
-fn nombres_de_campos(pedidos: &Value, idioma: Idioma) -> Result<Vec<String>> {
-    let Some(lista) = pedidos.as_array() else {
-        return Ok(Vec::new());
-    };
+fn nombres_de_campos(lista: &[Value], idioma: Idioma) -> Result<Vec<String>> {
     lista
         .iter()
         .map(|valor| match valor.as_str() {
             Some(texto) => Ok(texto.to_string()),
-            None => Err(Error::Invalid(TIPO_INCORRECTO.texto_con(
-                idioma,
-                &[
-                    ("campo", "campos"),
-                    ("esperado", "string"),
-                    ("recibido", nombre_tipo_recibido(valor)),
-                ],
-            ))),
+            None => Err(tipo_incorrecto(valor, "string", idioma)),
         })
         .collect()
 }
 
-/// Each item with only the named keys; a name no item carries is an error that
-/// lists the keys they do carry.
-fn proyectar_items(
-    items: &[Value],
-    nombres: &[String],
-    peticion: &Peticion<'_>,
-) -> Result<Vec<Value>> {
-    let validos = claves_de_los_items(items);
-    if validos.is_empty() {
-        // An empty list has no field to drop, so no name can be wrong.
-        return Ok(items.to_vec());
-    }
-    for nombre in nombres {
-        if !validos.iter().any(|clave| clave == nombre) {
-            return Err(Error::Invalid(CAMPO_DESCONOCIDO.texto_con(
-                peticion.idioma,
-                &[
-                    ("campo", nombre.as_str()),
-                    ("que", peticion.accion),
-                    ("campos", &validos.join(", ")),
-                ],
-            )));
-        }
-    }
-    Ok(items
-        .iter()
-        .map(|item| proyectar_item(item, nombres))
-        .collect())
-}
-
-/// Every key the items carry, in the order they first appear.
-fn claves_de_los_items(items: &[Value]) -> Vec<String> {
-    let mut claves: Vec<String> = Vec::new();
-    for clave in items
-        .iter()
-        .filter_map(Value::as_object)
-        .flat_map(Map::keys)
-    {
-        if !claves.contains(clave) {
-            claves.push(clave.clone());
-        }
-    }
-    claves
+/// The usual refusal of a value of the wrong type for `campos`.
+fn tipo_incorrecto(valor: &Value, esperado: &str, idioma: Idioma) -> Error {
+    Error::Invalid(TIPO_INCORRECTO.texto_con(
+        idioma,
+        &[
+            ("campo", "campos"),
+            ("esperado", esperado),
+            ("recibido", nombre_tipo_recibido(valor)),
+        ],
+    ))
 }
 
 /// An item with only `nombres`, in that order; a key the item lacks is left out.
