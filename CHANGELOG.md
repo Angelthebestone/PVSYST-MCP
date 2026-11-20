@@ -16,6 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   said nothing. The answer now carries `ignorados: ["detalle"]`, `["compacto"]` or `["recorte"]`, the
   mechanism `leer` already uses for the keys of another branch. `compacto` is read by `que:ventanas`,
   `que:controles` and `que:vista`; `recorte` by `que:capturar`. No other answer changes.
+- **A failed read of the open windows is an error, not a clean screen, and never a second PVsyst.**
+  `tools/medir_ventanas.py` built its window list from `r.get("windows", [])`, so an answer carrying
+  `error` or `jsonrpc_error` became an empty list: `limpiar` reported a clean screen, `cerrar_nuevas`
+  found nothing to close, and `asegurar_pvsyst` launched PVsyst over an instance it had not read. A
+  failed read now raises `ErrorDeLectura` (a `RuntimeError`, so `medir_gui` stops and exits non-zero),
+  and `asegurar_pvsyst` launches only when the answer says the process is absent (`Process
+  'PVsyst.exe' is not running`, and its Spanish twin) and stops on any other read error.
 - **`tools/medir_gui.py --botones` presses a label only when the measurement says it is the button's
   own caption.** The white list compared the text alone, and the text of an icon-only button is OCR
   of the pixels drawn inside it: `gui_actuar accion:clic_texto` then falls back to OCR substring

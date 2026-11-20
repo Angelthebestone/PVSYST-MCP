@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 
 from medir_cliente import Cliente, Json
-from medir_ventanas import _dormir, ventanas
+from medir_ventanas import _dormir, _error_de, ventanas
 
 CLASES_ROTULO = ("TTabSheet", "TGroupBox", "TRadioGroup")
 CLAVES_CAMPO = ("clase", "etiqueta", "etiqueta_fuente", "marcado", "habilitado")
@@ -38,9 +38,9 @@ def origen_de_boton(boton: Json) -> str | None:
 
 def leer_pagina(c: Cliente, clase: str) -> Json:
     f = c.tool("gui_observar", {"que": "formulario", "ventana": clase})
-    fallo = f.get("error") or f.get("jsonrpc_error")
-    if fallo:
-        raise ErrorMedicion(f"reading {clase} failed: {str(fallo)[:200]}")
+    fallo = _error_de(f)
+    if fallo is not None:
+        raise ErrorMedicion(f"reading {clase} failed: {fallo[:200]}")
     return {
         "campos": [{k: x.get(k) for k in CLAVES_CAMPO} for x in f.get("campos") or []],
         "botones": [

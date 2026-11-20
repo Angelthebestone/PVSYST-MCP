@@ -4,6 +4,8 @@ A chain step `@proyecto:NOMBRE` loads that project through the search box of the
 project loader (PVsyst's shipped `_DEMO_*` projects are read-only, so nothing is
 saved: any «¿Desea guardarla?» or «¿mantener modificaciones?» prompt is answered No).
 Only one agent may drive the PVsyst GUI at a time. Nothing is filled in or saved.
+A read of the open windows that failed is an error the callers stop on, never an
+empty screen: no windows and no answer are two different facts.
 
 Every wait of the whole tool goes through `_dormir`, which reads `PAUSA` from this
 module: one patch here makes every wait free, whichever module asks for it.
@@ -24,6 +26,14 @@ BUSCADOR = {"clase": "TEdit", "x": 1077, "y": 49}
 
 # Multiplies every wait; the tests set it to 0.
 PAUSA = 1.0
+
+
+class ErrorDeLectura(RuntimeError):
+    """Reading the open windows failed: the screen is unknown, not empty.
+
+    A `RuntimeError`, so a caller that already stops on one keeps stopping instead of
+    reading a refusal as a screen with no windows.
+    """
 
 
 def _dormir(segundos: float) -> None:
@@ -58,9 +68,31 @@ def _es_proyecto(w: Json, nombre: str) -> bool:
 EFIMERAS = ("THintWindow", "MicrosoftWindowsTooltip")
 
 
+def _error_de(respuesta: Json) -> str | None:
+    """The refusal a tool answer carries, if any: `error` first, then a JSON-RPC one."""
+    error = respuesta.get("error")
+    if error is None:
+        error = respuesta.get("jsonrpc_error")
+    return None if error is None else str(error)
+
+
 def ventanas(c: Cliente) -> list[Json]:
+    """The visible windows of the process, without the tooltips a pointer raises.
+
+    A read that failed raises `ErrorDeLectura`: an empty list means PVsyst answered
+    with no window, and a caller that took a refusal for it would report a clean
+    screen, close nothing, or launch a second instance over an unknown one.
+    """
     r = c.tool("gui_observar", {"que": "ventanas", "visibles": True})
-    return [w for w in r.get("windows", []) if w["class"] not in EFIMERAS]
+    fallo = _error_de(r)
+    if fallo is not None:
+        raise ErrorDeLectura(f"reading the open windows failed: {fallo[:200]}")
+    crudas = r.get("windows")
+    if not isinstance(crudas, list):
+        raise ErrorDeLectura(
+            "reading the open windows failed: the answer carries no 'windows' list"
+        )
+    return [w for w in crudas if w["class"] not in EFIMERAS]
 
 
 def clases(c: Cliente) -> set[str]:
@@ -68,14 +100,43 @@ def clases(c: Cliente) -> set[str]:
     return {w["class"] for w in ventanas(c)}
 
 
+# The one read error that is a state of the machine and not a failed read: the server
+# answers it when no process of that name exists (`target_pids` in ventanas.rs), in the
+# client's language. Measured in 8.1.8: «Process 'PVsyst.exe' is not running…».
+NO_ARRANCA = ("is not running", "no está en ejecución")
+
+
+def _no_arranca(fallo: str) -> bool:
+    """Whether a failed read says that the PVsyst process is not running."""
+    return any(texto in fallo for texto in NO_ARRANCA)
+
+
+def _en_marcha(c: Cliente) -> tuple[bool, str | None]:
+    """Whether the process answers with a window list, and why it could not be read."""
+    try:
+        ventanas(c)
+    except ErrorDeLectura as e:
+        return False, str(e)
+    return True, None
+
+
 def asegurar_pvsyst(c: Cliente) -> str | None:
-    """Launch PVsyst when no PVsyst process is running; an error text, or None."""
-    if "windows" in c.tool("gui_observar", {"que": "ventanas", "visibles": True}):
+    """Launch PVsyst when no PVsyst process is running; an error text, or None.
+
+    Only the answer that says the process is absent leads to a launch: any other
+    failed read stops here, because a second instance over a screen nothing could read
+    is not a guess this tool makes. After the launch the read may still fail while
+    PVsyst starts, so the wait keeps polling and only its deadline ends it.
+    """
+    en_marcha, fallo = _en_marcha(c)
+    if en_marcha:
         return None
+    if fallo is not None and not _no_arranca(fallo):
+        return fallo
     c.tool("gui_actuar", {"accion": "lanzar"})
     for _ in range(30):
         _dormir(1.0)
-        if "windows" in c.tool("gui_observar", {"que": "ventanas", "visibles": True}):
+        if _en_marcha(c)[0]:
             return None
     return "PVsyst did not start"
 

@@ -1,8 +1,11 @@
 """Tests for medir_ventanas.py: open, close and wait on the measured windows."""
 
+import pytest
+
 import medir_ventanas
 from medir_cliente import Json
 from medir_ventanas import (
+    ErrorDeLectura,
     abrir,
     asegurar_pvsyst,
     cargar_proyecto,
@@ -43,6 +46,28 @@ def test_ventanas_ignores_the_tooltips_a_pointer_raises() -> None:
     assert [w["class"] for w in ventanas(c)] == ["THomeForm", "TSummaryForm"]
 
 
+def test_a_failed_read_of_the_windows_raises_instead_of_answering_none() -> None:
+    c = PVsystFalso({}, {})
+    c.falla_ventanas = "access denied reading the windows"
+
+    with pytest.raises(ErrorDeLectura) as fallo:
+        ventanas(c)
+
+    assert "access denied" in str(fallo.value)
+    with pytest.raises(ErrorDeLectura):
+        limpiar(c)
+
+
+def test_asegurar_pvsyst_does_not_launch_over_a_read_it_could_not_do() -> None:
+    c = PVsystFalso({}, {})
+    c.falla_ventanas = "access denied reading the windows"
+
+    fallo = asegurar_pvsyst(c)
+
+    assert fallo is not None and "access denied" in fallo
+    assert "lanzar" not in c.acciones
+
+
 def test_asegurar_pvsyst_launches_it_only_when_it_is_not_running() -> None:
     c = PVsystFalso({}, {})
 
@@ -51,6 +76,14 @@ def test_asegurar_pvsyst_launches_it_only_when_it_is_not_running() -> None:
 
     c.corriendo = False
     assert asegurar_pvsyst(c) is None and c.corriendo
+    assert "lanzar" in c.acciones
+
+
+def test_asegurar_pvsyst_reads_the_absent_process_answer_in_spanish_too() -> None:
+    c = PVsystFalso({}, {})
+    c.falla_ventanas = "El proceso 'PVsyst.exe' no está en ejecución. Lanza la GUI"
+
+    assert asegurar_pvsyst(c) is None
     assert "lanzar" in c.acciones
 
 

@@ -87,6 +87,9 @@ class PVsystFalso:
         self.corriendo = True
         self.lanza = True
         self.acciones: list[str] = []
+        # A read of the window list that fails while the process keeps running; a
+        # launch clears it, since the new process answers again.
+        self.falla_ventanas: str | None = None
         self.ilegibles: set[str] = set()
         self.vetadas: set[int] = set()
         self.fuera_de_rango: set[int] = set()
@@ -100,6 +103,8 @@ class PVsystFalso:
             if a["que"] == "ventanas":
                 if not self.corriendo:
                     return {"error": "Process 'PVsyst.exe' is not running"}
+                if self.falla_ventanas is not None:
+                    return {"error": self.falla_ventanas}
                 return {"windows": list(self.abiertas)}
             if a["ventana"] in self.ilegibles:
                 return {"error": f"Window '{a['ventana']}' not found"}
@@ -117,6 +122,8 @@ class PVsystFalso:
         accion = a["accion"]
         if accion == "lanzar":
             self.corriendo = self.lanza
+            # A launched process is read again, so a read error does not outlive it.
+            self.falla_ventanas = None
         elif accion == "funcion":
             self.funciones.append(a["funcion"])
             if a["funcion"] not in self.abre:

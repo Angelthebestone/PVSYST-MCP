@@ -22,6 +22,7 @@ from medir_ventanas import (
     _boton_de,
     _cerrar,
     _dormir,
+    _error_de,
     abrir,
     clases,
     normalizar_etiqueta,
@@ -167,14 +168,6 @@ def _motivo(boton: Json) -> str | None:
     if origen not in ORIGENES_DE_CAPTION:
         return "texto de OCR"
     return None if _permitido(texto) else "no está en la lista blanca"
-
-
-def _error_de(respuesta: Json) -> str | None:
-    """The refusal a tool answer carries, if any: `error` first, then a JSON-RPC one."""
-    error = respuesta.get("error")
-    if error is None:
-        error = respuesta.get("jsonrpc_error")
-    return None if error is None else str(error)
 
 
 def _abre(nuevas: list[Json], cerradas: list[Json]) -> list[Json]:

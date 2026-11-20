@@ -175,6 +175,16 @@ def test_main_exits_1_and_keeps_the_old_entry_when_a_target_does_not_open(
     assert "TB" not in json.loads((tmp_path / "inventario.json").read_text())
 
 
+def test_main_stops_when_the_windows_cannot_be_read(tmp_path: Path) -> None:
+    c = PVsystFalso({"TA": formulario(["a"])}, {"a": "TA"})
+    c.falla_ventanas = "access denied reading the windows"
+
+    assert main(argumentos(tmp_path, "--solo", "TA"), fabrica_de(c)) == 1
+    assert json.loads((tmp_path / "inventario.json").read_text())["TA"] == {
+        "viejo": True
+    }
+
+
 def test_main_refuses_a_key_that_is_not_in_the_manifest(tmp_path: Path) -> None:
     c = PVsystFalso({}, {})
 
