@@ -61,6 +61,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from medir_cliente import ClienteMcp, Json  # noqa: E402
 from medir_inventario import fusionar, volcar  # noqa: E402
 from medir_objetivo import medir  # noqa: E402
+from medir_proyectos import Objetivo, Propiedad  # noqa: E402
 from medir_ventanas import asegurar_pvsyst  # noqa: E402
 
 RAIZ = Path(__file__).resolve().parent.parent
@@ -83,16 +84,26 @@ def _argumentos(argv: list[str] | None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def _objetivos(manifiesto: Path, solo: list[str] | None) -> list[Json] | None:
+def _objetivos(
+    manifiesto: Path, solo: list[str] | None, propiedad: Propiedad
+) -> list[Objetivo] | None:
     """The targets to measure; None when `--solo` names a `clave` it does not have."""
-    objetivos: list[Json] = json.loads(manifiesto.read_text(encoding="utf-8"))
-    if not solo:
-        return objetivos
-    desconocidas = set(solo) - {o["clave"] for o in objetivos}
-    if desconocidas:
-        print(f"not in the manifest: {sorted(desconocidas)}")
-        return None
-    return [o for o in objetivos if o["clave"] in solo]
+    entradas: list[Json] = json.loads(manifiesto.read_text(encoding="utf-8"))
+    if solo:
+        desconocidas = set(solo) - {e["clave"] for e in entradas}
+        if desconocidas:
+            print(f"not in the manifest: {sorted(desconocidas)}")
+            return None
+        entradas = [e for e in entradas if e["clave"] in solo]
+    return [
+        Objetivo(
+            clave=e["clave"],
+            ventana=e["ventana"],
+            cadena=e["cadena"],
+            propiedad=propiedad,
+        )
+        for e in entradas
+    ]
 
 
 def _leer_inventario(ruta: Path) -> Json | None:
@@ -138,7 +149,9 @@ def main(
     fabrica: Callable[[Path, Path], Any] = ClienteMcp,
 ) -> int:
     args = _argumentos(argv)
-    objetivos = _objetivos(args.manifiesto, args.solo)
+    # The projects this run opens itself: the only non-demo ones it may close later.
+    propiedad = Propiedad()
+    objetivos = _objetivos(args.manifiesto, args.solo, propiedad)
     if objetivos is None:
         return 2
     inventario = _leer_inventario(args.inventario)
@@ -148,8 +161,6 @@ def main(
     workspace = Path(tempfile.mkdtemp(prefix="pvsyst_medir_")) / "PVsyst8.1_Data"
     workspace.mkdir(parents=True)
     c = fabrica(args.servidor, workspace)
-    # The projects this run opens itself: the only non-demo ones it may close later.
-    cargados: set[str] = set()
     fallos = 0
     fusionados = 0
     try:
@@ -159,20 +170,20 @@ def main(
             return 1
         for o in objetivos:
             try:
-                r = medir(c, o, args.botones, cargados)
+                r = medir(c, o, args.botones)
             except (RuntimeError, TimeoutError) as e:
                 # The server is gone, stuck or could not read the screen: keep what was
                 # measured, stop here.
-                print(f"{o['clave']}: {e}")
+                print(f"{o.clave}: {e}")
                 fallos += 1
                 break
             if isinstance(r, str):
-                print(f"{o['clave']}: {r}")
+                print(f"{o.clave}: {r}")
                 fallos += 1
                 continue
-            fusionar(inventario, o["clave"], r)
+            fusionar(inventario, o.clave, r)
             fusionados += 1
-            print(_resumen(o["clave"], r))
+            print(_resumen(o.clave, r))
             if _paradas(r):
                 fallos += 1
     finally:

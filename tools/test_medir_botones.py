@@ -22,7 +22,7 @@ def test_pulsar_botones_presses_each_tab_and_records_the_window_it_opened() -> N
             "Resumen del sistema": {"cierra": None},
         },
     )
-    assert abrir(c, "a", "TX") is None
+    assert abrir(c, objetivo_de("TX")) is None
 
     abren = pulsar_botones(c, objetivo_de("TX"), inventariar(c, "TX"))
 
@@ -46,7 +46,7 @@ def test_pulsar_botones_answers_the_prompt_a_button_opens_and_records_it() -> No
         {"a": "TX"},
         {"Mostrar histograma": {"abre": "TMessageForm", "cierra": None}},
     )
-    assert abrir(c, "a", "TX") is None
+    assert abrir(c, objetivo_de("TX")) is None
 
     abren = pulsar_botones(c, objetivo_de("TX"), inventariar(c, "TX"))
 
@@ -68,7 +68,7 @@ def test_pulsar_botones_rejects_an_unknown_dialog_with_no() -> None:
         {"a": "TX"},
         {"Mostrar gráfico": {"abre": "TMessageForm", "cierra": None}},
     )
-    assert abrir(c, "a", "TX") is None
+    assert abrir(c, objetivo_de("TX")) is None
 
     abren = pulsar_botones(c, objetivo_de("TX"), inventariar(c, "TX"))
 
@@ -89,7 +89,7 @@ def test_pulsar_botones_stops_when_a_dialog_has_no_rejection_button() -> None:
         {"a": "TX"},
         {"Mostrar gráfico": {"abre": "TMessageForm", "cierra": None}},
     )
-    assert abrir(c, "a", "TX") is None
+    assert abrir(c, objetivo_de("TX")) is None
 
     abren = pulsar_botones(c, objetivo_de("TX"), inventariar(c, "TX"))
 
@@ -109,7 +109,7 @@ def test_pulsar_botones_records_an_ambiguous_text_and_does_not_retry_it() -> Non
         {"a": "TX"},
         {"Tabla": {"error": "'Tabla' names 2 visible controls (0x1, 0x2)"}},
     )
-    assert abrir(c, "a", "TX") is None
+    assert abrir(c, objetivo_de("TX")) is None
 
     abren = pulsar_botones(c, objetivo_de("TX"), inventariar(c, "TX"))
 
@@ -122,7 +122,7 @@ def test_pulsar_botones_reopens_the_host_the_press_closed() -> None:
     f = formulario([])
     f["paginas"][0]["botones"] = botones_de("Diagrama unifilar")
     c = PVsystFalso({"TX": f}, {"a": "TX"}, {"Diagrama unifilar": {"cierra": "TX"}})
-    assert abrir(c, "a", "TX") is None
+    assert abrir(c, objetivo_de("TX")) is None
 
     abren = pulsar_botones(c, objetivo_de("TX"), inventariar(c, "TX"))
 
@@ -137,7 +137,7 @@ def test_pulsar_botones_records_the_tab_it_could_not_reopen_and_stops() -> None:
     f = formulario([], pestanas=["Uno"])
     f["paginas"][0]["botones"] = botones_de("Tabla")
     c = PVsystFalso({"TX": f}, {"a": "TX"}, {"Tabla": {"cierra": None}})
-    assert abrir(c, "a", "TX") is None
+    assert abrir(c, objetivo_de("TX")) is None
     medida = inventariar(c, "TX")
     c.vetadas = {0}
 
@@ -153,7 +153,7 @@ def test_pulsar_botones_records_the_host_it_could_not_reopen() -> None:
     f = formulario([])
     f["paginas"][0]["botones"] = botones_de("Diagrama unifilar")
     c = PVsystFalso({"TX": f}, {"a": "TX"}, {"Diagrama unifilar": {"cierra": "TX"}})
-    assert abrir(c, "a", "TX") is None
+    assert abrir(c, objetivo_de("TX")) is None
     llamar = c.tool
 
     def tool(nombre: str, a: Json) -> Json:
@@ -178,7 +178,7 @@ def test_pulsar_botones_stops_at_forty_presses() -> None:
     # The white list is exact, so the cap is reached with one allowed label repeated.
     f["paginas"][0]["botones"] = botones_de(*["Tabla"] * 41)
     c = PVsystFalso({"TX": f}, {"a": "TX"}, {"Tabla": {"cierra": None}})
-    assert abrir(c, "a", "TX") is None
+    assert abrir(c, objetivo_de("TX")) is None
 
     abren = pulsar_botones(c, objetivo_de("TX"), inventariar(c, "TX"))
 

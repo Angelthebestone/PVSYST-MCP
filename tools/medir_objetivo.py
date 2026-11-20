@@ -1,6 +1,6 @@
 """One target of the manifest: open its window, inventory it, close it.
 
-`medir` is the unit `main` repeats per `clave`: clean the windows, open the target by
+`medir` is the unit `main` repeats per target: clean the windows, open the target by
 its chain, read every tab, optionally press its buttons, refuse a measurement whose
 inventory recorded an error and close what it opened, always. A press that fails is
 not an inventory error: its reason stays in `botones_abren` and the fields already
@@ -12,7 +12,7 @@ from __future__ import annotations
 from medir_botones import pulsar_botones
 from medir_cliente import Cliente, Json
 from medir_inventario import ErrorMedicion, inventariar
-from medir_proyectos import abrir
+from medir_proyectos import Objetivo, abrir
 from medir_ventanas import limpiar
 
 
@@ -25,22 +25,21 @@ def _rechazar(medida: Json) -> str | None:
     return None
 
 
-def medir(
-    c: Cliente, objetivo: Json, botones: bool = False, cargados: set[str] | None = None
-) -> Json | str:
+def medir(c: Cliente, objetivo: Objetivo, botones: bool = False) -> Json | str:
     """Open, inventory and close one target: the measurement, or an error text.
 
-    `cargados` is the run's record of the projects it opened itself: a later target
-    whose chain loads no project may close those and no others.
+    `botones` presses the allowed buttons of every tab, which is what `--botones`
+    asks for. The projects the run loaded itself, and so may close, travel inside
+    `objetivo`, so a target whose chain loads none may close those and no others.
     """
     previas = limpiar(c)
     if previas:
         return f"could not close the windows left open: {previas}"
     try:
-        fallo = abrir(c, objetivo["cadena"], objetivo["ventana"], cargados)
+        fallo = abrir(c, objetivo)
         if fallo:
             return fallo
-        medida = inventariar(c, objetivo["ventana"])
+        medida = inventariar(c, objetivo.ventana)
         fallo = _rechazar(medida)
         if fallo:
             return fallo

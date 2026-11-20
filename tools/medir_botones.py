@@ -17,7 +17,7 @@ from collections.abc import Collection
 
 from medir_cliente import Cliente, Json
 from medir_inventario import origen_de_boton
-from medir_proyectos import abrir
+from medir_proyectos import Objetivo, abrir
 from medir_ventanas import (
     MANTENER,
     _boton_de,
@@ -238,18 +238,16 @@ def _pulsar(c: Cliente, clase: str, texto: str) -> Json:
     return entrada
 
 
-def _reabrir(c: Cliente, objetivo: Json, pestana: Json) -> str | None:
+def _reabrir(c: Cliente, objetivo: Objetivo, pestana: Json) -> str | None:
     """Open the host window again when the press closed it; an error text, or None."""
-    clase = objetivo["ventana"]
+    clase = objetivo.ventana
     if clase in clases(c):
         return None
     # The reopened window starts on its first tab: select the one being pressed.
-    return abrir(c, objetivo["cadena"], clase) or _abrir_pestana(
-        c, clase, pestana["indice"]
-    )
+    return abrir(c, objetivo) or _abrir_pestana(c, clase, pestana["indice"])
 
 
-def pulsar_botones(c: Cliente, objetivo: Json, medida: Json) -> list[Json]:
+def pulsar_botones(c: Cliente, objetivo: Objetivo, medida: Json) -> list[Json]:
     """Press every allowed button of the measured tabs: the `botones_abren` list.
 
     One entry per press, plus a `parado` entry when a press closes the host and it
@@ -257,7 +255,7 @@ def pulsar_botones(c: Cliente, objetivo: Json, medida: Json) -> list[Json]:
     here and not in `medida["errores"]`: the fields already measured are valid and
     are still merged.
     """
-    clase = objetivo["ventana"]
+    clase = objetivo.ventana
     registros: list[Json] = []
     pulsados = 0
     quedan = 0

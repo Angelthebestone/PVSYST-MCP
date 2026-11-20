@@ -12,6 +12,7 @@ import pytest
 
 import medir_ventanas
 from medir_cliente import Json
+from medir_proyectos import Objetivo, Propiedad
 
 
 @pytest.fixture(autouse=True)
@@ -49,8 +50,24 @@ def formulario(*paginas: list[str], pestanas: list[str] | None = None) -> Json:
     }
 
 
-def objetivo_de(clave: str) -> Json:
-    return {"clave": clave, "ventana": clave, "cadena": "a"}
+def propiedad_de(*nombres: str) -> Propiedad:
+    """A run record that loaded `nombres` itself: the projects it may close."""
+    propiedad = Propiedad()
+    for nombre in nombres:
+        propiedad.registrar(nombre)
+    return propiedad
+
+
+def objetivo_de(
+    clave: str, cadena: str = "a", propiedad: Propiedad | None = None
+) -> Objetivo:
+    """One target of the manifest, as `medir_gui` builds it from its entry."""
+    return Objetivo(
+        clave=clave,
+        ventana=clave,
+        cadena=cadena,
+        propiedad=Propiedad() if propiedad is None else propiedad,
+    )
 
 
 def botones_de(*textos: str, origen: str | None = "window_text") -> list[Json]:

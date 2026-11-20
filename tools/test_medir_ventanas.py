@@ -6,7 +6,7 @@ import medir_proyectos
 from medir_cliente import Json
 from medir_proyectos import abrir, cargar_proyecto
 from medir_ventanas import ErrorDeLectura, asegurar_pvsyst, limpiar, ventanas
-from pvsyst_falso import PVsystFalso, botones_de, formulario
+from pvsyst_falso import PVsystFalso, botones_de, formulario, objetivo_de, propiedad_de
 
 # pytest finds the autouse fixture through this import; the tests never call it.
 from pvsyst_falso import sin_esperas  # noqa: F401
@@ -84,16 +84,16 @@ def test_asegurar_pvsyst_reads_the_absent_process_answer_in_spanish_too() -> Non
 def test_abrir_runs_the_chain_and_reports_a_window_that_did_not_open() -> None:
     c = PVsystFalso({}, {"a": "TA", "b": "TB"})
 
-    assert abrir(c, "a,b", "TB") is None
-    assert "TC did not open" in str(abrir(c, "a", "TC"))
-    assert "unknown function z" in str(abrir(c, "z", "TA"))
+    assert abrir(c, objetivo_de("TB", "a,b")) is None
+    assert "TC did not open" in str(abrir(c, objetivo_de("TC")))
+    assert "unknown function z" in str(abrir(c, objetivo_de("TA", "z")))
 
 
 def test_abrir_a_chain_without_project_closes_the_loaded_one_first() -> None:
     c = PVsystFalso({}, {"herramientas.x": "TX"})
     c.abiertas.append({"class": "TProjectForm", "title": "Proyecto _DEMO_Foo"})
 
-    assert abrir(c, "herramientas.x", "TX") is None
+    assert abrir(c, objetivo_de("TX", "herramientas.x")) is None
     assert [w["class"] for w in c.abiertas] == ["THomeForm", "TX"]
 
 
@@ -101,7 +101,7 @@ def test_a_chain_without_project_leaves_a_project_it_did_not_load_open() -> None
     c = PVsystFalso({}, {"herramientas.x": "TX"})
     c.abiertas.append({"class": "TProjectForm", "title": "Proyecto Planta del cliente"})
 
-    fallo = abrir(c, "herramientas.x", "TX")
+    fallo = abrir(c, objetivo_de("TX", "herramientas.x"))
 
     assert fallo is not None
     assert "Planta del cliente" in fallo and "not loaded by this run" in fallo
@@ -111,10 +111,11 @@ def test_a_chain_without_project_leaves_a_project_it_did_not_load_open() -> None
 
 def test_a_chain_without_project_closes_a_project_this_run_loaded() -> None:
     c = PVsystFalso({}, {"variante.x": "TX", "herramientas.x": "TY"})
-    cargados: set[str] = set()
+    propiedad = propiedad_de()
 
-    assert abrir(c, "@proyecto:Planta del cliente,variante.x", "TX", cargados) is None
-    assert abrir(c, "herramientas.x", "TY", cargados) is None
+    cadena = "@proyecto:Planta del cliente,variante.x"
+    assert abrir(c, objetivo_de("TX", cadena, propiedad)) is None
+    assert abrir(c, objetivo_de("TY", "herramientas.x", propiedad)) is None
 
     assert [w["class"] for w in c.abiertas] == ["THomeForm", "TY"]
 
@@ -124,7 +125,7 @@ def test_a_project_window_that_refuses_the_close_is_an_error() -> None:
     c.abiertas.append({"class": "TProjectForm", "title": "Proyecto _DEMO_Foo"})
     c.incerrables = {"TProjectForm"}
 
-    fallo = abrir(c, "herramientas.x", "TX")
+    fallo = abrir(c, objetivo_de("TX", "herramientas.x"))
 
     assert fallo is not None and "TProjectForm" in fallo
 
@@ -134,7 +135,7 @@ def test_cargar_proyecto_reports_the_windows_it_could_not_close() -> None:
     c.abiertas.append({"class": "TTerco", "title": "t"})
     c.incerrables = {"TTerco"}
 
-    fallo = cargar_proyecto(c, "_DEMO_Foo")
+    fallo = cargar_proyecto(c, "_DEMO_Foo", propiedad_de())
 
     assert fallo is not None and "TTerco" in fallo
     assert c.escrito == ""
@@ -144,7 +145,7 @@ def test_cargar_proyecto_refuses_to_replace_a_project_it_did_not_load() -> None:
     c = PVsystFalso({}, {})
     c.abiertas.append({"class": "TProjectForm", "title": "Proyecto Planta del cliente"})
 
-    fallo = cargar_proyecto(c, "_DEMO_Foo")
+    fallo = cargar_proyecto(c, "_DEMO_Foo", propiedad_de())
 
     assert fallo is not None and "Planta del cliente" in fallo
     assert c.escrito == ""
@@ -155,7 +156,7 @@ def test_abrir_a_chain_with_project_keeps_the_loaded_one() -> None:
     c = PVsystFalso({}, {"variante.x": "TX"})
     c.abiertas.append({"class": "TProjectForm", "title": "Proyecto _DEMO_Foo"})
 
-    assert abrir(c, "@proyecto:_DEMO_Foo,variante.x", "TX") is None
+    assert abrir(c, objetivo_de("TX", "@proyecto:_DEMO_Foo,variante.x")) is None
     assert "TProjectForm" in [w["class"] for w in c.abiertas]
 
 
@@ -171,27 +172,29 @@ def test_abrir_tolerates_the_host_window_opening_another_one() -> None:
 
     c.tool = tool  # type: ignore[method-assign]
 
-    assert abrir(c, "a", "TA") is None
+    assert abrir(c, objetivo_de("TA")) is None
 
 
 def test_cargar_proyecto_types_the_name_and_waits_for_its_window() -> None:
     c = PVsystFalso({}, {"variante.x": "TX"})
 
-    assert abrir(c, "@proyecto:_DEMO_Foo,variante.x", "TX") is None
+    assert abrir(c, objetivo_de("TX", "@proyecto:_DEMO_Foo,variante.x")) is None
     assert c.escrito == "_DEMO_Foo"
     assert any(
         w["class"] == "TProjectForm" and "_DEMO_Foo" in w["title"] for w in c.abiertas
     )
     # Already loaded: nothing is typed again.
     c.escrito = ""
-    assert cargar_proyecto(c, "_DEMO_Foo") is None and c.escrito == ""
+    propiedad = propiedad_de()
+    assert cargar_proyecto(c, "_DEMO_Foo", propiedad) is None
+    assert c.escrito == ""
 
 
 def test_cargar_proyecto_reports_when_the_project_did_not_open() -> None:
     c = PVsystFalso({}, {})
     c.tool = lambda nombre, a: {"windows": []} if a.get("que") == "ventanas" else {}  # type: ignore[method-assign]
 
-    assert "did not load" in str(cargar_proyecto(c, "_DEMO_Foo"))
+    assert "did not load" in str(cargar_proyecto(c, "_DEMO_Foo", propiedad_de()))
 
 
 def test_a_project_whose_name_contains_the_requested_one_is_not_it() -> None:

@@ -62,7 +62,7 @@ def test_pulsar_botones_presses_only_normalized_white_listed_labels() -> None:
         {"texto": None, "habilitado": True},
     ]
     c = PVsystFalso({"TX": f}, {"a": "TX"}, {t: {"cierra": None} for t in permitidos})
-    assert abrir(c, "a", "TX") is None
+    assert abrir(c, objetivo_de("TX")) is None
 
     abren = pulsar_botones(c, objetivo_de("TX"), inventariar(c, "TX"))
 
@@ -101,7 +101,7 @@ def test_pulsar_botones_never_presses_a_label_the_white_list_does_not_equal() ->
     f = formulario([])
     f["paginas"][0]["botones"] = botones_de(*ajenos)
     c = PVsystFalso({"TX": f}, {"a": "TX"})
-    assert abrir(c, "a", "TX") is None
+    assert abrir(c, objetivo_de("TX")) is None
 
     abren = pulsar_botones(c, objetivo_de("TX"), inventariar(c, "TX"))
 
@@ -124,7 +124,7 @@ def test_pulsar_botones_does_not_press_a_label_that_is_not_its_own_caption() -> 
         {"a": "TX"},
         {t: {"cierra": None} for t in ("Tabla", "Gráfico", "Tabla mensual")},
     )
-    assert abrir(c, "a", "TX") is None
+    assert abrir(c, objetivo_de("TX")) is None
 
     abren = pulsar_botones(c, objetivo_de("TX"), inventariar(c, "TX"))
 
@@ -140,7 +140,7 @@ def test_pulsar_botones_records_the_origin_of_the_label_it_presses() -> None:
     f = formulario([])
     f["paginas"][0]["botones"] = botones_de("Gráfico")
     c = PVsystFalso({"TX": f}, {"a": "TX"}, {"Gráfico": {"cierra": None}})
-    assert abrir(c, "a", "TX") is None
+    assert abrir(c, objetivo_de("TX")) is None
 
     medida = inventariar(c, "TX")
     pulsar_botones(c, objetivo_de("TX"), medida)

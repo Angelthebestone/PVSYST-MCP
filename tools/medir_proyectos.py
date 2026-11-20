@@ -6,13 +6,16 @@ loaded project disables, so the open project has to go first. PVsyst's shipped
 `_DEMO_*` projects are read-only, so closing one saves nothing. A project this run
 did not load and that is not a demo is never closed: the No that answers «¿Desea
 guardarla?» would throw away the user's unsaved work, so the chain stops naming it.
+`Objetivo` is one target of the manifest and carries the `Propiedad` of the run, the
+record of what it loaded itself, so a step that reopens a window cannot forget it.
 Nothing is filled in or saved.
 """
 
 from __future__ import annotations
 
 import re
-from collections.abc import Callable, Collection
+from collections.abc import Callable
+from dataclasses import dataclass
 
 from medir_cliente import Cliente, Json
 from medir_ventanas import _cerrar, _dormir, _error_de, limpiar, ventanas
@@ -47,37 +50,59 @@ def _es_proyecto(w: Json, nombre: str) -> bool:
 PATRON_DEMO = re.compile(r"(?<!\w)_DEMO_\w")
 
 
+class Propiedad:
+    """The projects this run loaded itself: the only non-demo ones it may close.
+
+    `cargar_proyecto` records every project it opens. Any other project window stays
+    open and stops the chain naming it: the No that answers PVsyst's «¿Desea
+    guardarla?» would throw away the user's unsaved work. The record travels inside
+    the `Objetivo` of the target being measured, so the step that reopens a host
+    window cannot call `abrir` without it.
+    """
+
+    def __init__(self) -> None:
+        self._cargados: set[str] = set()
+
+    def registrar(self, nombre: str) -> None:
+        """Record a project this run loaded through the loader."""
+        self._cargados.add(nombre)
+
+    def es_propio(self, titulo: str) -> bool:
+        """Whether this run may close the project window titled `titulo`."""
+        return PATRON_DEMO.search(titulo) is not None or any(
+            re.search(_patron(nombre), titulo) is not None for nombre in self._cargados
+        )
+
+
+@dataclass(frozen=True)
+class Objetivo:
+    """One target of the manifest: the window its chain must leave open, the steps of
+    the chain, and the projects the run may close while running it."""
+
+    clave: str
+    ventana: str
+    cadena: str
+    propiedad: Propiedad
+
+
 def _proyectos(c: Cliente) -> list[Json]:
     """The project windows open now."""
     return [w for w in ventanas(c) if w["class"] == "TProjectForm"]
 
 
-def _es_propio(titulo: str, cargados: Collection[str]) -> bool:
-    """Whether this run may close the project whose window title is `titulo`.
-
-    Only a read-only demo and a project the run loaded itself qualify: closing any
-    other answers No to PVsyst's save prompt and loses the unsaved work of a project
-    the harness merely found open.
-    """
-    return PATRON_DEMO.search(titulo) is not None or any(
-        re.search(_patron(nombre), titulo) is not None for nombre in cargados
-    )
-
-
-def cargar_proyecto(
-    c: Cliente, nombre: str, cargados: set[str] | None = None
-) -> str | None:
+def cargar_proyecto(c: Cliente, nombre: str, propiedad: Propiedad) -> str | None:
     """Load a project through the loader's search box; an error text, or None.
 
     The project already open is closed first, and `_cerrar_proyecto` decides whether
-    this run may: `cargados` is what a later chain without `@proyecto` may close.
+    this run may; `propiedad` then records what a later chain without `@proyecto` may
+    close.
     """
     if any(_es_proyecto(w, nombre) for w in ventanas(c)):
         return None
     quedan = limpiar(c)
     if quedan:
         return f"could not close the windows left open: {quedan}"
-    fallo = _cerrar_proyecto(c, cargados)
+    fallo = _cerrar_proyecto(c, propiedad)
     if fallo:
         return fallo
     c.tool("gui_actuar", {"accion": "funcion", "funcion": "proyecto.cargar"})
@@ -99,15 +124,11 @@ def cargar_proyecto(
     if not _hasta(lambda: any(_es_proyecto(w, nombre) for w in ventanas(c)), 15):
         titulos = [w.get("title") for w in ventanas(c)]
         return f"project {nombre} did not load: {titulos}"
-    if cargados is not None:
-        cargados.add(nombre)
+    propiedad.registrar(nombre)
     return None
 
 
-def _cerrar_proyecto(
-    c: Cliente,
-    cargados: Collection[str] | None = None,
-) -> str | None:
+def _cerrar_proyecto(c: Cliente, propiedad: Propiedad) -> str | None:
     """Close the loaded project before a chain that does not load one; an error text.
 
     A chain without `@proyecto` runs from the home window, which a project window
@@ -119,7 +140,7 @@ def _cerrar_proyecto(
     if not abiertos:
         return None
     titulos = [str(w.get("title") or "") for w in abiertos]
-    ajenos = [t for t in titulos if not _es_propio(t, cargados or ())]
+    ajenos = [t for t in titulos if not propiedad.es_propio(t)]
     if ajenos:
         return (
             f"the project window(s) {ajenos} are not loaded by this run and are not "
@@ -138,17 +159,16 @@ def _cerrar_proyecto(
     return motivo if fallo is None else f"{motivo}; the close answered: {fallo[:200]}"
 
 
-def abrir(
-    c: Cliente, cadena: str, clase: str, cargados: set[str] | None = None
-) -> str | None:
-    """Run the chain of steps; an error text, or None when `clase` is open."""
-    if not cadena.startswith("@proyecto:"):
-        fallo = _cerrar_proyecto(c, cargados)
+def abrir(c: Cliente, objetivo: Objetivo) -> str | None:
+    """Run the chain of steps; an error text, or None when its window is open."""
+    if not objetivo.cadena.startswith("@proyecto:"):
+        fallo = _cerrar_proyecto(c, objetivo.propiedad)
         if fallo:
             return fallo
-    for paso in cadena.split(","):
+    for paso in objetivo.cadena.split(","):
         if paso.startswith("@proyecto:"):
-            fallo = cargar_proyecto(c, paso.split(":", 1)[1], cargados)
+            nombre = paso.split(":", 1)[1]
+            fallo = cargar_proyecto(c, nombre, objetivo.propiedad)
             if fallo:
                 return fallo
             continue
@@ -161,6 +181,6 @@ def abrir(
         if error is not None and "did not open the expected window" not in error:
             return f"{paso}: {error[:200]}"
         _dormir(1.0)
-    if _hasta(lambda: any(w["class"] == clase for w in ventanas(c)), 5):
+    if _hasta(lambda: any(w["class"] == objetivo.ventana for w in ventanas(c)), 5):
         return None
-    return f"{clase} did not open: {[w['class'] for w in ventanas(c)]}"
+    return f"{objetivo.ventana} did not open: {[w['class'] for w in ventanas(c)]}"

@@ -82,7 +82,7 @@ def test_pulsar_botones_stops_when_a_new_window_cannot_be_closed() -> None:
         {"TX": f}, {"a": "TX"}, {"Gráfico": {"abre": "#32770", "cierra": None}}
     )
     c.incerrables = {"#32770"}
-    assert abrir(c, "a", "TX") is None
+    assert abrir(c, objetivo_de("TX")) is None
     intentos = c.acciones.count("cerrar")
 
     abren = pulsar_botones(c, objetivo_de("TX"), inventariar(c, "TX"))

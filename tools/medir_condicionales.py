@@ -26,7 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from medir_cliente import Cliente, ClienteMcp, Json  # noqa: E402
 from medir_inventario import leer_pagina, volcar  # noqa: E402
-from medir_proyectos import abrir  # noqa: E402
+from medir_proyectos import Objetivo, Propiedad, abrir  # noqa: E402
 from medir_ventanas import _dormir, asegurar_pvsyst, limpiar  # noqa: E402
 
 Campos = dict[tuple[str, str], bool]
@@ -128,16 +128,15 @@ def _ir_a_la_pestana(c: Cliente, clase: str, nombre: str | None) -> str | None:
     return None
 
 
-def medir_entrada(c: Cliente, entrada: Json) -> Json | str:
+def medir_entrada(c: Cliente, entrada: Json, propiedad: Propiedad) -> Json | str:
     """Open the window, go to the tab, walk the steps, close: the entry or an error."""
     clase = entrada["ventana"]
     previas = limpiar(c)
     if previas:
         return f"could not close the windows left open: {previas}"
     try:
-        fallo = abrir(c, entrada["cadena"], clase) or _ir_a_la_pestana(
-            c, clase, entrada.get("pestana")
-        )
+        objetivo = Objetivo(entrada["clave"], clase, entrada["cadena"], propiedad)
+        fallo = abrir(c, objetivo) or _ir_a_la_pestana(c, clase, entrada.get("pestana"))
         if fallo:
             return fallo
         condiciones = medir_condiciones(c, clase, entrada["pasos"])
@@ -172,8 +171,10 @@ def main(
         if arranque:
             print(arranque)
             return 1
+        # The projects this run opens itself: the only non-demo ones it may close later.
+        propiedad = Propiedad()
         for e in entradas:
-            r = medir_entrada(c, e)
+            r = medir_entrada(c, e, propiedad)
             print(f"{e['clave']}: {r if isinstance(r, str) else 'measured'}")
             if isinstance(r, str):
                 fallos += 1
