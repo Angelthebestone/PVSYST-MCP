@@ -93,3 +93,52 @@ fn should_reject_object_values_when_editing_fields() {
     assert!(err.to_string().contains("NStringCh"), "{err}");
     assert_eq!(fs::read_to_string(&vc0).expect("leer VC0"), original);
 }
+
+/// B.4.6: `objetos` promises the names `editar` takes as its whole `objeto`, one
+/// per type, so a name only counts when the resolver `editar` uses reaches its own
+/// object. The edge cases are the ones the fixture cannot show.
+#[test]
+fn should_offer_only_the_object_names_an_edit_can_reach() {
+    let casos: [(&str, &[&str]); 3] = [
+        (
+            concat!(
+                "PVObject_=pvSubArray\n  NModSerie=10\nEnd of PVObject pvSubArray\n",
+                "PVObject_=pvSubArray\n  NModSerie=12\nEnd of PVObject pvSubArray\n"
+            ),
+            &["pvSubArray"],
+        ),
+        (
+            concat!(
+                "PVObject_SitePrj=pvProject\n  A=1\nEnd of PVObject pvProject\n",
+                "PVObject_=SitePrj\n  A=2\nEnd of PVObject SitePrj\n"
+            ),
+            &["pvProject"],
+        ),
+        (
+            concat!(
+                "PVObject_=\n  A=1\nEnd of PVObject\n",
+                "PVObject_=pvSubArray[1]\n  A=2\nEnd of PVObject pvSubArray[1]\n",
+                "PVObject_=a/b\n  A=3\nEnd of PVObject a/b\n"
+            ),
+            &[],
+        ),
+    ];
+    for (texto, esperados) in casos {
+        assert_eq!(
+            super::listado::nombres_de_objetos(texto.as_bytes()),
+            esperados,
+            "{texto}"
+        );
+        let spans = crate::format::edit::spans_of(texto.as_bytes());
+        for &nombre in esperados {
+            assert!(
+                crate::format::edit::find_span(&spans, nombre).is_some(),
+                "'{nombre}' no resuelve: {texto}"
+            );
+            assert!(
+                crate::format::edit::edit_fields(texto.as_bytes(), nombre, &[]).is_ok(),
+                "'{nombre}' no llega a editar: {texto}"
+            );
+        }
+    }
+}
