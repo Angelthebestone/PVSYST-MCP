@@ -5,9 +5,12 @@ mod binario;
 mod codec;
 mod dominio;
 mod pedido;
-pub(crate) use pedido::MAX_OBJETOS;
+mod texto;
+pub(crate) use pedido::{
+    esquema_de_formas, leer_objetos, nombre_valido, ObjetoPedido, MAX_OBJETOS,
+};
 
-pub(crate) use aplicacion::{leer_escena, pedir_escena};
+pub(crate) use aplicacion::{leer_escena, pedir_escena, verificar_archivo};
 
 #[cfg(test)]
 #[path = "../../tests/unit/escena_3d/tests.rs"]

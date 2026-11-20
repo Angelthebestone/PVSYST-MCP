@@ -18,9 +18,10 @@ fn main() -> Result<()> {
     pvsyst_mcp::declarar_dpi_por_monitor();
     pvsyst_mcp::preparar_escritorio().context("PVSYST_MCP_ESCRITORIO")?;
     let paths = Paths::resolve();
+    // The workspace path holds the Windows user name: only whether it exists is logged.
     tracing::info!(
         version = env!("CARGO_PKG_VERSION"),
-        workspace = %paths.workspace.display(),
+        workspace_existe = paths.workspace.is_dir(),
         "pvsyst-mcp starting"
     );
     let server = Server::new(paths);

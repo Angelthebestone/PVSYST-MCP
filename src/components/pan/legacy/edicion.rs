@@ -4,7 +4,7 @@
 //! keeping every other byte in the file byte-for-byte identical.
 use super::dominio::{block1_start, find_block_terminator};
 use crate::error::{Error, Result};
-use crate::format::edit::ChangeOutcome;
+use crate::format::edit::{AccionCambio, ChangeOutcome};
 use crate::format::real48::{encode_real48, real48, BYTES_POR_SLOT};
 
 /// Proven numeric field slot index and canonical identifier in legacy PAN block 1.
@@ -87,7 +87,7 @@ fn parchear_un_slot(
 
     Ok(ChangeOutcome {
         key: def.canonical.to_string(),
-        action: "modificado".into(),
+        action: AccionCambio::Modificado,
         old_value: Some(old_f.to_string()),
         new_value: Some(nuevo_valor.to_string()),
     })

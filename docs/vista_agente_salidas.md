@@ -1,7 +1,8 @@
 # Vista de agente en la salida de las tools (Tarea A)
 
 Cada respuesta de las 15 tools, correcta o con fallo, lleva un bloque `vista` con la misma forma. Las claves
-que ya existían no cambian. Este documento recoge el contrato, lo que se midió y la matriz tool × acción.
+que ya existían no cambian, salvo `siguiente` de primer nivel (texto), que se eliminó: lo
+reemplaza `vista.siguiente`. Este documento recoge el contrato, lo que se midió y la matriz tool × acción.
 
 ## Contrato
 
@@ -34,8 +35,11 @@ Cambios respecto a la propuesta del handoff, con motivo:
 - **Cliente sin `structuredContent`** (protocolo anterior a 2025-06-18): el fallo lleva el `vista` como segundo
   elemento de texto de `content`, con la forma `{"vista": {...}}`. El primero sigue siendo el mensaje.
 - **Dónde vive el texto:** `src/vista_agente/contrato/catalogo/` (un archivo por feature). Un test falla si una
-  tool declara una acción sin entrada, o si el catálogo conserva una acción que ya no existe. El `siguiente` de
-  una línea que ya existía en la raíz sale de la misma entrada (`pista`).
+  tool declara una acción sin entrada, o si el catálogo conserva una acción que ya no existe.
+- **`vista:false` deja el bloque fuera de una llamada que terminó.** Solo cuando `estado` es `ok` y no queda nada
+  pendiente: un fallo, un `parcial`, una confirmación y un ensayo (`dry_run`) lo llevan siempre, porque el agente
+  no puede perder la verdad de lo que no se aplicó. El bloque ocupa el 60-69 % de los bytes de una respuesta de
+  datos (B.5.1 del informe de pruebas de GUI visual).
 - **`vista` (bloque de salida) y `gui_observar que:vista` (formularios por claves) son distintos.** Una respuesta de
   GUI puede llevar los dos. En una vista de formulario, `vista.campos` repite `{clave, valor, unidad, editable}` de
   los campos que la respuesta ya trae completos en `campos`; no se recortan.
@@ -44,10 +48,10 @@ Cambios respecto a la propuesta del handoff, con motivo:
 
 | Tool | Claves habituales hoy |
 |---|---|
-| `entorno` | `entorno{…, cli_exists, gui_exists, workspace}`, `preflight{checks}`; licencia: `license`, `exit_code`, `success`. |
-| `disenar_sistema` | `ok`, `proyecto`, `variante`, `kwp_objetivo`, `kwp_realizado`, `pasos[]`, `errores[]`, `avisos[]`, `kpis`; sin confirmar: `requiere_confirmacion`, `ejecuciones_estimadas`, `restantes`, `mensaje`. |
+| `entorno` | `entorno{…, cli_exists, gui_exists, workspace}`, `preflight{checks}`; licencia: `license`, `exit_code`, `success`; preferencias: `n_secciones` (o `n_claves` con `seccion`). |
+| `disenar_sistema` | `ok`, `proyecto`, `variante`, `kwp_objetivo`, `kwp_realizado`, `proyecto_reutilizado`, `proyecto_comparable`, `pasos[]`, `errores[]`, `avisos[]`, `kpis`; sin confirmar: `requiere_confirmacion`, `ejecuciones_estimadas`, `restantes`, `reserva`, `mensaje`. |
 | `listar` | `count`, `projects[]` / `archivos[]` / `objetos[]`, `advertencias[]`. |
-| `leer` | `file`, `size_bytes`, `summary{…}`, `hint`. |
+| `leer` | `file`, `size_bytes`, `summary{…}`, `hint`, `objetos[]` (nombres de objeto del archivo; falta si no tiene). |
 | `proyecto` | `project`, `variant`, `avisos[]`, `detail{applied[]|edits[]}`. |
 | `simular` | `dry_run`, `cli_args`, `job_id`, `stdout_tail`, `csv`, `pdf`. |
 | `resultados` | `kpis{…}`, `pr_pct`, `produccion_especifica_kwh_kwp`, series mensuales, pérdidas. |
@@ -85,7 +89,7 @@ con más de 8 escalares. En respuestas pequeñas el aumento relativo es grande y
 
 ## Verificación
 
-- **Unitaria (`cargo test --lib`):** cobertura de las 108 combinaciones tool × acción (resumen, estado `ok` y un
+- **Unitaria (`cargo test --lib`):** cobertura de las 109 combinaciones tool × acción (resumen, estado `ok` y un
   `siguiente` que la tool de destino acepta), entradas huérfanas, estados `parcial`/`error`, confirmación, ensayo,
   recortes, avisos y errores con `claves_validas`.
 - **Protocolo (`tests/protocol.rs`):** `vista` en un éxito y en un fallo con `structuredContent`.
@@ -102,7 +106,7 @@ con más de 8 escalares. En respuestas pequeñas el aumento relativo es grande y
 
 ## Matriz tool × acción
 
-Las 15 tools, las 108 combinaciones. «Unitaria» = lo cubre el test que enumera `Discriminador.valores`; no se
+Las 15 tools, las 109 combinaciones. «Unitaria» = lo cubre el test que enumera `Discriminador.valores`; no se
 ejecutó la acción real (la mayoría escribe o gasta ejecuciones de prueba).
 
 | Tool | Acción (`accion`/`que`) | `vista.resumen` | `vista.siguiente` (`*` = toma el valor de la petición o la respuesta) | Verificación |
@@ -115,7 +119,7 @@ ejecutó la acción real (la mayoría escribe o gasta ejecuciones de prueba).
 | `componente` | `crear_desde_ficha` | Componente creado desde los datos de una ficha técnica. | `? ` | unitaria (catálogo + validación) |
 | `entorno` | `diagnostico` | Diagnóstico del entorno: PVsyst, CLI, workspace y herramientas. | `? `; `entorno accion=licencia` | en vivo: ok |
 | `entorno` | `licencia` | Estado de la licencia de PVsystCLI. | `entorno accion=diagnostico` | en vivo: ok |
-| `entorno` | `licencia_sync` | Licencia sincronizada con el servidor de PVsyst. | `entorno accion=licencia` | unitaria (catálogo + validación) |
+| `entorno` | `licencia_sync` | Comando de sincronización preparado; el MCP no sincroniza licencias. | `entorno accion=licencia` | unitaria (catálogo + validación) |
 | `entorno` | `licencia_activar` | Comando de activación preparado; el MCP no activa licencias. | `entorno accion=licencia` | en vivo: ok |
 | `entorno` | `licencia_desactivar` | Comando de desactivación preparado; el MCP no desactiva licencias. | `entorno accion=licencia` | en vivo: ok |
 | `entorno` | `exportar_logs` | Registros de PVsyst exportados. | `entorno accion=diagnostico` | en vivo: ok |
@@ -123,7 +127,7 @@ ejecutó la acción real (la mayoría escribe o gasta ejecuciones de prueba).
 | `entorno` | `preferencias` | Preferencias de PVsyst leídas. | `entorno accion=diagnostico` | en vivo: ok |
 | `entorno` | `preferencias_editar` | Preferencia de PVsyst modificada. | `entorno accion=preferencias` | en vivo: error `not_found` |
 | `disenar_sistema` | `—` | Sistema diseñado de extremo a extremo: sitio, proyecto, dimensionado y simulación. | `? `; `? `; `entorno accion=diagnostico` | unitaria (catálogo + validación) |
-| `pvsyst_cli` | `—` | Comando de PVsystCLI ejecutado. | `entorno accion=diagnostico` | en vivo: ok |
+| `pvsyst_cli` | `—` | Comando de PVsystCLI ejecutado. | `entorno accion=diagnostico` | en vivo: ok (`help`/`version`; el resto, con el CLI falso) |
 | `gui_observar` | `ventanas` | Ventanas de PVsyst listadas. | `gui_observar que=esquema`; `gui_observar que=funciones` | en vivo: error `gui` |
 | `gui_observar` | `controles` | Controles de la ventana listados. | `gui_observar que=esquema`; `gui_observar que=ventanas` | unitaria (catálogo + validación) |
 | `gui_observar` | `leer` | Texto de la ventana leído. | `gui_observar que=esquema`; `gui_observar que=ventanas` | unitaria (catálogo + validación) |
@@ -157,8 +161,10 @@ ejecutó la acción real (la mayoría escribe o gasta ejecuciones de prueba).
 | `gui_actuar` | `rellenar` | Formulario rellenado por claves. | `gui_observar que=vista`; `gui_observar que=esquema` | unitaria (catálogo + validación) |
 | `gui_actuar` | `clic_texto` | Clic en el texto visible de la ventana. | `gui_observar que=vista`; `gui_observar que=ventanas` | unitaria (catálogo + validación) |
 | `gui_actuar` | `reiniciar` | PVsyst reiniciado. | `gui_observar que=ventanas` | unitaria (catálogo + validación) |
-| `gui_actuar` | `cerrar_todo` | Ventanas de PVsyst cerradas. | `gui_observar que=ventanas` | en vivo: ok |
+| `gui_actuar` | `cerrar_todo` | Ventanas de PVsyst cerradas (requiere `confirmar:true`). | `gui_observar que=ventanas` | en vivo: ok |
 | `gui_actuar` | `escena` | Escena 3D validada: objetos, formas y colisiones, sin tocar PVsyst. | `gui_observar que=esquema`; `gui_observar que=ventanas` | unitaria (catálogo + validación) |
+| `gui_actuar` | `escena_leer` | Objetos de la escena abierta en el editor 3D, leídos del archivo que PVsyst exportó. | `gui_observar que=ventanas` | en vivo (PVsyst 8.1.8) |
+| `gui_actuar` | `escena_importar` | Malla importada en el editor 3D por PVsyst; la escena que PVsyst exportó confirma los objetos. | `gui_observar que=ventanas` | en vivo (PVsyst 8.1.8) |
 | `gui_actuar` | `secuencia` | Secuencia de pasos de GUI ejecutada. | `gui_observar que=ventanas`; `gui_observar que=esquema` | unitaria (catálogo + validación) |
 | `proyecto` | `crear` | Proyecto creado desde una plantilla. | `? `; `? ` | unitaria (catálogo + validación) |
 | `proyecto` | `eliminar` | Proyecto eliminado. | `? ` | unitaria (catálogo + validación) |
@@ -192,6 +198,7 @@ ejecutó la acción real (la mayoría escribe o gasta ejecuciones de prueba).
 | `resultados` | `economia` | Resultados económicos leídos. | `? `; `? ` | unitaria (catálogo + validación) |
 | `resultados` | `entregable` | Entregable del proyecto generado. | `? `; `? ` | unitaria (catálogo + validación) |
 | `resultados` | `resumen` | Resumen de resultados del proyecto. | `? `; `? ` | unitaria (catálogo + validación) |
+| `resultados` | `todo` | Resultados completos del proyecto: resumen, carbono, economía y P50/P90. | `resultados que=perdidas*`; `listar que=proyectos` | unitaria (catálogo + validación) |
 | `sitio` | `crear` | Sitio creado con la meteorología de la ubicación. | `leer *`; `? ` | unitaria (catálogo + validación) |
 | `sitio` | `convertir_meteo` | Archivo meteorológico convertido al formato de PVsyst. | `leer *`; `? ` | unitaria (catálogo + validación) |
 | `sitio` | `geometria_solar` | Geometría solar calculada para la ubicación. | `? ` | unitaria (catálogo + validación) |

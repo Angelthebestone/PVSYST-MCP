@@ -151,6 +151,22 @@ impl StagingMeteo {
         Ok(())
     }
 
+    /// On a failed conversion, publish the downloaded CSV at its final path while
+    /// the temporary MEF/MET are discarded by [`Self::rollback`].
+    pub(crate) fn conservar_csv(&self) -> Result<()> {
+        if let Some(p) = self.final_csv_path.parent() {
+            fs::create_dir_all(p)
+                .map_err(|e| Error::io(format!("No se pudo crear {}", p.display()), e))?;
+        }
+        let bytes = leer_si_existe(&self.csv_path)?.ok_or_else(|| {
+            Error::NotFound(format!(
+                "CSV de staging no encontrado: {}",
+                self.csv_path.display()
+            ))
+        })?;
+        history::escribir_atomico(&self.final_csv_path, &bytes)
+    }
+
     /// On failure or cancellation: deletes all staging files and the staging directory.
     pub(crate) fn rollback(&self) {
         self.limpiar();

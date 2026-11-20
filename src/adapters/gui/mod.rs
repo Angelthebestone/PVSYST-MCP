@@ -10,61 +10,98 @@
 //! an interactive desktop.
 
 pub(crate) mod acciones;
-pub(crate) mod base64;
+pub(crate) mod boton_por_caption;
 pub(crate) mod campo_por_etiqueta;
 pub(crate) mod campos;
 pub(crate) mod captura;
+pub(crate) mod catalogo;
+pub(crate) mod causa_pvsyst;
+pub(crate) mod cierre;
+pub(crate) mod cierre_de_ventana;
+pub(crate) mod clic_fisico;
 pub(crate) mod clic_por_texto;
 pub(crate) mod combinacion;
 pub(crate) mod conduccion;
+pub(crate) mod efecto;
+pub(crate) mod escena;
 pub(crate) mod escritorio;
 pub(crate) mod esperas;
 pub(crate) mod ffi;
 pub(crate) mod fila;
 pub(crate) mod gdi;
+pub(crate) mod idioma_gui;
+pub(crate) mod inventario;
 pub(crate) mod menu_por_posicion;
 pub(crate) mod modal;
 pub(crate) mod ocr;
 pub(crate) mod png;
+pub(crate) mod posicion;
+pub(crate) mod primer_plano;
 pub(crate) mod proceso;
 pub(crate) mod recuperacion;
 pub(crate) mod registro_pvsyst;
+pub(crate) mod resolucion;
 pub(crate) mod resumen;
 pub(crate) mod rotulos;
 pub(crate) mod secuencia;
 pub(crate) mod sesion_pvsyst;
 pub(crate) mod sondeo;
 pub(crate) mod teclado;
+pub(crate) mod uia_paso;
 pub(crate) mod uia_vista;
 pub(crate) mod ventanas;
 
 pub(crate) use proceso::gui_running;
 
+/// A real window with chosen children, standing in for a PVsyst form in tests.
+#[cfg(test)]
+#[path = "../../../tests/unit/adapters/gui/ventana_falsa.rs"]
+pub(crate) mod ventana_falsa;
+
 /// Lines of PVsyst's own log `que:mensajes` returns when `lineas` is absent.
 const MENSAJES_POR_DEFECTO: usize = 50;
 
+use crate::args::flag;
 use crate::error::{Error, Result};
 use serde_json::Value;
 
+/// `que:leer`: the text the control reports; with `ocr:true`, also the lines
+/// drawn in it (what a control that paints its own text reports as empty).
+fn leer(args: &Value) -> Result<Value> {
+    let mut lectura = ventanas::leer(args)?;
+    if flag(args, &["ocr"]) {
+        ffi::declarar_dpi_por_monitor();
+        let lineas = ocr::captura_ocr::lineas_vivas(ventanas::hwnd_de(args, "ventana")?)?;
+        let textos: Vec<&str> = lineas.iter().map(|l| l.texto.as_str()).collect();
+        if let Some(mapa) = lectura.as_object_mut() {
+            mapa.insert("ocr".into(), serde_json::json!(textos));
+        }
+    }
+    Ok(lectura)
+}
+
 /// `observar` dispatcher. `que`: ventanas (default) | controles | leer |
-/// capturar | uia | arbol | formulario | vista | esquema | mensajes | funciones | menus.
+/// capturar | uia | arbol | formulario | inventario | elementos | vista | esquema | mensajes | funciones | menus
+/// (`vista`, `esquema` and `idioma` are answered by the server: they read the agent view and `PVsyst.ini`).
 pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     match args
         .get("que")
         .and_then(Value::as_str)
         .unwrap_or("ventanas")
     {
-        "ventanas" => ventanas::ventanas(paths, args),
+        "ventanas" => ventanas::ventanas(args),
         "controles" => uia_vista::controles_con_uia(paths, args),
-        "leer" => ventanas::leer(paths, args),
+        "leer" => leer(args),
         "capturar" => captura::capturar(paths, args),
         "uia" => uia_vista::observar_uia(paths, args),
         "arbol" => uia_vista::observar_arbol(paths, args),
         "formulario" => ocr::formulario(paths, args),
-        "funciones" => Ok(crate::gui_catalogo::listar(args)),
-        "menus" => menu_por_posicion::listar(ventanas::hwnd_de(args, "ventana")?),
-        "vista" => crate::vista_agente::vista(paths, args),
-        "esquema" => crate::vista_agente::listar_esquemas(args),
+        "inventario" => inventario::inventario(paths, args),
+        "elementos" => inventario::elementos::elementos(paths, args),
+        "funciones" => Ok(catalogo::listar(args)),
+        "menus" => {
+            menu_por_posicion::listar(ventanas::hwnd_de(args, "ventana")?, paths.idioma)
+        }
         "mensajes" => {
             let limite = args
                 .get("lineas")
@@ -74,7 +111,7 @@ pub(crate) fn observar(paths: &crate::config::Paths, args: &Value) -> Result<Val
             Ok(registro_pvsyst::ultimos_mensajes(limite))
         }
         other => Err(Error::Invalid(format!(
-            "Unknown que '{other}' (ventanas|controles|leer|capturar|uia|arbol|formulario|vista|esquema|mensajes|funciones|menus)"
+            "Unknown que '{other}' (ventanas|controles|leer|capturar|uia|arbol|formulario|inventario|elementos|vista|esquema|mensajes|funciones|menus|idioma)"
         ))),
     }
 }
@@ -106,12 +143,52 @@ pub(crate) const ACCIONES: &[&str] = &[
     "cerrar_todo",
     "secuencia",
     "escena",
+    "escena_leer",
+    "escena_importar",
 ];
 
 /// `actuar` dispatcher. `accion`: click | clic_fisico | clic_texto | mensaje |
 /// cerrar | activar | teclas | fila | escribir | seleccionar | pagina | esperar_cierre |
 /// lanzar | reiniciar | uia_invocar | esperar | paso | funcion | menu | campo | rellenar | cerrar_todo | secuencia.
 pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
+    match despachar(paths, args) {
+        Ok(respuesta) => Ok(respuesta),
+        Err(fallo) => reintentar_sin_aviso_demo(paths, args, fallo),
+    }
+}
+
+/// The action failed: when the dialog that made it fail is PVsyst's DEMO notice,
+/// dismissing it and trying the same action once more is what a person does. The
+/// failure that names a dialog is the guard before the action, so the second try
+/// repeats no side effect. Any other dialog, and a notice that does not go away,
+/// returns the error the action already had.
+fn reintentar_sin_aviso_demo(
+    paths: &crate::config::Paths,
+    args: &Value,
+    fallo: Error,
+) -> Result<Value> {
+    let Some(nota) = modal::despejar_aviso_demo(&fallo.to_string(), paths.idioma) else {
+        return Err(fallo);
+    };
+    match despachar(paths, args) {
+        Ok(mut respuesta) => {
+            modal::anotar(&mut respuesta, Some(nota));
+            Ok(respuesta)
+        }
+        // A failure carries no `advertencias`: the note would be lost, so it is
+        // logged rather than passed over in silence.
+        Err(segundo) => {
+            tracing::warn!(
+                %nota,
+                "el aviso DEMO se cerró y la acción volvió a fallar: el error no lo dice"
+            );
+            Err(segundo)
+        }
+    }
+}
+
+/// The action itself, once: the moves each `accion` makes over the live windows.
+fn despachar(paths: &crate::config::Paths, args: &Value) -> Result<Value> {
     crate::adapters::uia::invalidar_cache(&paths.estado);
     match args
         .get("accion")
@@ -119,31 +196,32 @@ pub(crate) fn actuar(paths: &crate::config::Paths, args: &Value) -> Result<Value
         .unwrap_or("click")
     {
         accion @ ("click" | "mensaje" | "cerrar" | "activar") => {
-            acciones::invocar(paths, args).map_err(|e| Error::Gui(format!("{e} (accion {accion})")))
+            acciones::invocar(args, paths.idioma)
+                .map_err(|e| Error::Gui(format!("{e} (accion {accion})")))
         }
-        "clic_texto" => clic_por_texto::clic_texto(args),
+        "clic_texto" => clic_por_texto::clic_texto(args, paths.idioma),
         "clic_fisico" => {
             acciones::exigir_escritorio()?;
-            acciones::invocar(paths, args)
+            acciones::invocar(args, paths.idioma)
         }
-        "teclas" => teclado::teclas(args),
-        "fila" => fila::fila(args),
-        "funcion" => crate::gui_catalogo::abrir(args),
-        "menu" => crate::gui_catalogo::menu(args),
-        "campo" => campo_por_etiqueta::campo(paths, args),
-        "rellenar" => crate::vista_agente::rellenar(paths, args),
-        "escena" => crate::escena_3d::pedir_escena(args),
-        "escribir" => campos::escribir(paths, args),
-        "seleccionar" => campos::seleccionar(paths, args),
+        "teclas" => teclado::teclas(args, paths.idioma),
+        "fila" => fila::fila(args, paths.idioma),
+        "funcion" => catalogo::abrir(args),
+        "menu" => catalogo::menu(args),
+        "escena" if flag(args, &["simular"]) => crate::escena_3d::pedir_escena(args),
+        "escena" => escena::crear(paths, args),
+        "escena_leer" => escena::leer(paths, args),
+        "escena_importar" => escena::importar(paths, args),
+        "escribir" => campos::escribir(args, paths.idioma),
+        "seleccionar" => campos::seleccionar(args, paths.idioma),
         "pagina" => campos::pagina(paths, args),
-        "esperar_cierre" => campos::esperar_cierre_accion(paths, args),
+        "esperar_cierre" => campos::esperar_cierre_accion(args, paths.idioma),
         "lanzar" => proceso::lanzar(paths, args),
-        "cerrar_todo" => proceso::cerrar_todo(paths, args),
-        "secuencia" => secuencia::secuencia(paths, args),
+        "cerrar_todo" => proceso::cerrar_todo(args, paths.idioma),
         "reiniciar" => recuperacion::reiniciar(paths, args),
-        "uia_invocar" => uia_vista::uia_invocar(args),
+        "uia_invocar" => uia_paso::uia_invocar(args),
         "esperar" => esperas::esperar(args),
-        "paso" => uia_vista::paso(args),
+        "paso" => uia_paso::paso(args, paths.idioma),
         other => Err(Error::Invalid(format!(
             "Unknown accion '{other}' ({})",
             ACCIONES.join("|")

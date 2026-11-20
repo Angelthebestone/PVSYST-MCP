@@ -8,6 +8,7 @@ use super::dominio::{
     DatosEscena3d, DatosObjeto3d, Escena3d, GeometriaElemental, ObjetoEscena3d, Posicion3d,
     TipoArchivoEscena,
 };
+use super::texto::{es_texto, parse_escena_texto};
 use crate::error::{Error, Result};
 use crate::format::decodificar_texto_flexible;
 
@@ -18,6 +19,9 @@ pub(crate) fn parse_escena_3d(bytes: &[u8], tipo: TipoArchivoEscena) -> Result<E
     if bytes.is_empty() {
         return Err(Error::Invalid("Archivo 3D vacío".into()));
     }
+    if es_texto(bytes) {
+        return parse_escena_texto(bytes, tipo);
+    }
     let lineas = dividir_por_crlf(bytes);
     if lineas.len() < 2 {
         return Err(Error::Invalid("Cabecera 3D insuficiente".into()));
@@ -25,11 +29,7 @@ pub(crate) fn parse_escena_3d(bytes: &[u8], tipo: TipoArchivoEscena) -> Result<E
 
     let primera = lineas.first().copied().unwrap_or_default();
     let (clase_raiz, descripcion) = parsear_linea_ident(primera);
-    let clase_esperada = match tipo {
-        TipoArchivoEscena::Shd => "pvShading",
-        TipoArchivoEscena::Bld => "pvShdBuilding",
-        TipoArchivoEscena::Sho => "pvShdObjects",
-    };
+    let clase_esperada = tipo.clase_raiz();
     if clase_raiz != clase_esperada {
         return Err(Error::Invalid(format!(
             "Incoherencia entre extensión '{:?}' y clase raíz '{clase_raiz}' (se esperaba {clase_esperada})",

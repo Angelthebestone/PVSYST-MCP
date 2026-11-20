@@ -2,6 +2,7 @@
 //! Neither follows symlinks, junctions or other reparse points.
 
 use super::listado::{InfoRecorrido, ResumenRecorrido, MAX_ARCHIVOS, MAX_PROFUNDIDAD};
+use crate::error::{Error, Result};
 use serde_json::Value;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -197,4 +198,14 @@ pub(crate) fn walk_ext(dir: &Path, ext: &str, out: &mut Vec<PathBuf>) -> Resumen
     };
     walk_ext_paso(dir, ext, &mut estado);
     estado.resumen
+}
+
+/// Entries of `dir`. An entry that cannot be read is an error: dropping it would
+/// make an import or export look complete while files were left out.
+pub(crate) fn entradas_de(dir: &Path) -> Result<Vec<PathBuf>> {
+    let error = |e| Error::io(format!("No se pudo listar {}", dir.display()), e);
+    std::fs::read_dir(dir)
+        .map_err(error)?
+        .map(|e| e.map(|e| e.path()).map_err(error))
+        .collect()
 }

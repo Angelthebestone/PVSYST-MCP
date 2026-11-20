@@ -1,11 +1,7 @@
 use serde_json::{json, Value};
 
 pub(super) fn parse_number(s: &str) -> Option<f64> {
-    let t = s.trim();
-    if t.is_empty() {
-        return None;
-    }
-    t.replace(',', ".").parse::<f64>().ok()
+    crate::format::numero_texto(s)
 }
 
 pub(super) fn accumulate_columns(rows: &[&str], ncols: usize) -> (Vec<f64>, Vec<usize>, usize) {

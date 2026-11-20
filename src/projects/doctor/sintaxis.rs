@@ -121,7 +121,3 @@ pub(crate) fn revisar_archivo(
     }
     Ok(())
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/projects/doctor/sintaxis.rs"]
-mod tests;

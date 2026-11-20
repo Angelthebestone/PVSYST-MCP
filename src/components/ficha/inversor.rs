@@ -91,7 +91,23 @@ pub(crate) fn puntos_escalados(texto: &str, factor: f64) -> Vec<(String, Option<
         .collect()
 }
 
+/// Rescale factor of the DC efficiency profile, whose points are W in / W out for a
+/// template rated at 50 kW. A `PNomConv` that is not a positive number is refused
+/// before anything is read or written, instead of keeping the template's profile.
+fn factor_de_escala(datos: &Map<String, Value>) -> Result<f64> {
+    let Some(valor) = datos.get("PNomConv") else {
+        return Ok(1.0);
+    };
+    match numero(valor) {
+        Some(p) if p > 0.0 => Ok(p / POTENCIA_PLANTILLA_KW),
+        _ => Err(Error::Invalid(format!(
+            "PNomConv debe ser un número mayor que 0 (recibido {valor})"
+        ))),
+    }
+}
+
 pub(crate) fn ond(ws: &Path, nombre: &str, datos: &Map<String, Value>) -> Result<Value> {
+    let factor = factor_de_escala(datos)?;
     let plantilla = compos_ro().join("Inverters").join("Generic_50kW.OND");
     let original = fs::read(&plantilla).map_err(|e| {
         Error::io(
@@ -109,13 +125,6 @@ pub(crate) fn ond(ws: &Path, nombre: &str, datos: &Map<String, Value>) -> Result
         .cloned()
         .collect();
 
-    // Rescale the DC efficiency profile: its points are W in / W out for a
-    // template rated at 50 kW.
-    let factor = match datos.get("PNomConv").and_then(numero) {
-        Some(p) if p > 0.0 => p / POTENCIA_PLANTILLA_KW,
-        Some(_) => return Err(Error::Invalid("PNomConv debe ser mayor que 0".into())),
-        None => 1.0,
-    };
     if (factor - 1.0).abs() > f64::EPSILON {
         let texto = String::from_utf8_lossy(&bytes).into_owned();
         aplicar(&mut bytes, "pvGInverter", &puntos_escalados(&texto, factor))?;

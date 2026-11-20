@@ -9,6 +9,23 @@ use crate::objects::resolucion::resolve_file;
 use serde_json::{json, Value};
 use std::fs;
 
+/// Names `editar` takes as its whole `objeto` selector, in file order.
+///
+/// One per type: a one-segment selector reaches the first object carrying it, so a repeat
+/// adds no name an edit could use (`listar que:objetos` still reports every instance). A
+/// header whose type is no such selector, or one that would not reach its own object (a
+/// `role:` prefix), is left out for the same reason.
+pub(crate) fn nombres_de_objetos(bytes: &[u8]) -> Vec<String> {
+    let spans = edit::spans_of(bytes);
+    let mut nombres: Vec<String> = Vec::new();
+    for (i, span) in spans.iter().enumerate() {
+        if edit::find_span(&spans, &span.ty) == Some(i) {
+            nombres.push(span.ty.clone());
+        }
+    }
+    nombres
+}
+
 pub(crate) fn listar_objetos(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
     let path = resolve_file(&workspace, args)?;

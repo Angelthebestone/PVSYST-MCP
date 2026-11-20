@@ -41,7 +41,3 @@ pub(crate) fn neutralizar_horizonte(bloque: &[u8]) -> Result<Vec<u8>> {
     }
     Ok(neutro)
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/projects/anadir/horizonte.rs"]
-mod tests;

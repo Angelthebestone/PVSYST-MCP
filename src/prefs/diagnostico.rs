@@ -2,7 +2,6 @@
 
 use super::ini::{decodificar, leer};
 use crate::args::flag;
-use crate::config::Paths;
 use crate::error::{Error, Result};
 use serde_json::{json, Map, Value};
 use std::fs;
@@ -116,7 +115,7 @@ pub(crate) fn ultima_sesion(dir: &Path) -> Result<Value> {
 }
 
 /// Summarise the newest PVsystCLI admin logs and the newest session file.
-pub(crate) fn logs_cli(_paths: &Paths, args: &Value) -> Result<Value> {
+pub(crate) fn logs_cli(args: &Value) -> Result<Value> {
     let n = args
         .get("n")
         .and_then(Value::as_u64)
@@ -141,7 +140,3 @@ pub(crate) fn logs_cli(_paths: &Paths, args: &Value) -> Result<Value> {
         "sesion": sesion,
     }))
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/prefs/diagnostico.rs"]
-mod tests;

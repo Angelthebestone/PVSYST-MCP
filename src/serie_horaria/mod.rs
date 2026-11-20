@@ -8,6 +8,7 @@ mod base62;
 mod codificar;
 mod decodificar;
 mod dominio;
+mod reensamblado;
 
 pub(crate) use aplicacion::{escribir_serie, leer_serie};
 

@@ -20,6 +20,7 @@ extern "system" {
     fn GetMenuItemCount(menu: isize) -> i32;
     fn GetMenuItemID(menu: isize, posicion: i32) -> u32;
     fn GetMenuState(menu: isize, posicion: u32, banderas: u32) -> u32;
+    fn GetSubMenu(menu: isize, posicion: i32) -> isize;
 }
 
 /// What a menu entry is.
@@ -41,13 +42,31 @@ pub(crate) struct ItemMenu {
 
 /// Entries of the menu shown in `popup`; `None` when the popup has no menu.
 pub(crate) fn items_de_popup(popup: Hwnd) -> Option<Vec<ItemMenu>> {
+    items_de_menu(menu_de(popup)?)
+}
+
+/// Entries of the submenu at `posicion` of the menu shown in `popup`, read from its
+/// `HMENU` without entering it; `None` when that entry opens no submenu.
+pub(crate) fn items_de_submenu(popup: Hwnd, posicion: usize) -> Option<Vec<ItemMenu>> {
+    let menu = menu_de(popup)?;
+    let posicion = i32::try_from(posicion).ok()?;
+    // SAFETY: consulta de solo lectura sobre el HMENU que Windows devolvió.
+    let sub = unsafe { GetSubMenu(menu, posicion) };
+    if sub == 0 {
+        return None;
+    }
+    items_de_menu(sub)
+}
+
+fn menu_de(popup: Hwnd) -> Option<isize> {
     if !es_ventana(popup) {
         return None;
     }
     let menu = send_message_timeout(popup, Mensaje::simple(MN_GETHMENU), TIMEOUT_MENSAJE_MS)?;
-    if menu == 0 {
-        return None;
-    }
+    (menu != 0).then_some(menu)
+}
+
+fn items_de_menu(menu: isize) -> Option<Vec<ItemMenu>> {
     // SAFETY: consulta de solo lectura sobre el HMENU que Windows devolvió.
     let total = unsafe { GetMenuItemCount(menu) };
     let total = u32::try_from(total).ok()?;

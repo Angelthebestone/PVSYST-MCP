@@ -3,6 +3,7 @@
 //! Covers every component kind PVsyst uses, keyed by extension.
 
 pub(crate) mod buscar;
+mod cambios;
 pub(crate) mod ficha;
 pub(crate) mod pan;
 mod resolucion;
@@ -19,9 +20,9 @@ pub(crate) use resolucion::{
 use crate::args::{missing, req_str, tipo_de, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
-use crate::format::edit;
 use crate::format::object;
 use crate::history;
+use crate::idioma::{Idioma, Texto};
 use crate::workspace::{mover_a_papelera, validar_nombre, Alcance};
 use serde_json::{json, Value};
 use std::fs;
@@ -73,6 +74,17 @@ pub(crate) fn folder_for(kind: &str) -> Option<&'static str> {
     tipo_canonico(kind).map(|(_, f)| f)
 }
 
+/// Component file name with the kind's extension when the caller left it out.
+///
+/// `listar componentes` filters by extension, so a component without one would
+/// be invisible to every later call.
+pub(crate) fn nombre_con_extension(nombre: &str, kind: &str) -> String {
+    if Path::new(nombre).extension().is_some() {
+        return nombre.to_string();
+    }
+    format!("{nombre}.{}", kind.to_uppercase())
+}
+
 /// Resolve the workspace ComposPV sub-folder, honouring PVsyst's casing.
 pub(crate) fn compos_dir(workspace: &Path, folder: &str) -> PathBuf {
     let base = workspace.join("ComposPV");
@@ -91,6 +103,17 @@ pub(crate) fn compos_dir(workspace: &Path, folder: &str) -> PathBuf {
     direct
 }
 
+const TIPO_DESCONOCIDO: Texto = Texto {
+    es: "Tipo de componente desconocido '{tipo}'. Conocidos: {conocidos}",
+    en: "Unknown component kind '{tipo}'. Known: {conocidos}",
+};
+
+/// The rejection of a component kind that is not one of [`KINDS`].
+pub(crate) fn tipo_desconocido(tipo: &str, idioma: Idioma) -> Error {
+    let conocidos = KINDS.iter().map(|(e, _)| *e).collect::<Vec<_>>().join(", ");
+    Error::Invalid(TIPO_DESCONOCIDO.texto_con(idioma, &[("tipo", tipo), ("conocidos", &conocidos)]))
+}
+
 pub(crate) fn listar_componentes(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
     let kind = args
@@ -98,44 +121,63 @@ pub(crate) fn listar_componentes(paths: &Paths, args: &Value) -> Result<Value> {
         .or_else(|| args.get("kind"))
         .and_then(|v| v.as_str())
         .unwrap_or("PAN");
-    let (canon, folder) = tipo_canonico(kind).ok_or_else(|| {
-        Error::Invalid(format!(
-            "Unknown component kind '{}'. Known: {}",
-            kind,
-            KINDS.iter().map(|(e, _)| *e).collect::<Vec<_>>().join(", ")
-        ))
-    })?;
+    let (canon, folder) =
+        tipo_canonico(kind).ok_or_else(|| tipo_desconocido(kind, paths.idioma))?;
 
     let mut dirs = vec![compos_dir(&workspace, folder)];
     // Fallback to the bundled read-only database.
     dirs.push(crate::config::compos_ro().join(folder));
 
-    let ext = canon.to_lowercase();
-    let mut items: Vec<Value> = Vec::new();
-    let mut source = String::new();
-    for dir in dirs.iter().filter(|d| d.exists()) {
-        let found = files_with_ext(dir, &ext);
-        if !found.is_empty() {
-            source = dir.to_string_lossy().to_string();
-            items = found
-                .iter()
-                .map(|p| {
-                    json!({
-                        "file": p.file_name().and_then(|s| s.to_str()),
-                        "size_bytes": fs::metadata(p).map_or(0, |m| m.len()),
-                    })
-                })
-                .collect();
-            break;
-        }
-    }
-    Ok(json!({
+    let (items, source) = componentes_de(&dirs, &canon.to_lowercase());
+    let mut out = json!({
         "kind": kind.to_uppercase(),
         "folder": source,
         "count": items.len(),
         "components": items,
-    }))
+    });
+    // PVsyst ships only some component kinds: an absent folder is not "none found".
+    if !dirs.iter().any(|d| d.exists()) {
+        out["aviso"] = json!(SIN_CARPETA.texto_con(
+            Idioma::de_entorno(),
+            &[("carpeta", folder), ("kind", canon)],
+        ));
+    }
+    Ok(out)
 }
+
+/// Files of `ext` in the first folder that has any, and the folder to report: the one
+/// that provided them, or the one PVsyst would use when none exists.
+fn componentes_de(dirs: &[PathBuf], ext: &str) -> (Vec<Value>, String) {
+    let existentes: Vec<&PathBuf> = dirs.iter().filter(|d| d.exists()).collect();
+    for dir in &existentes {
+        let found = files_with_ext(dir, ext);
+        if found.is_empty() {
+            continue;
+        }
+        let items = found
+            .iter()
+            .map(|p| {
+                json!({
+                    "file": p.file_name().and_then(|s| s.to_str()),
+                    "size_bytes": fs::metadata(p).map_or(0, |m| m.len()),
+                })
+            })
+            .collect();
+        return (items, dir.to_string_lossy().to_string());
+    }
+    let source = existentes
+        .first()
+        .map(|d| d.to_string_lossy().to_string())
+        .or_else(|| dirs.first().map(|d| d.to_string_lossy().to_string()))
+        .unwrap_or_default();
+    (Vec::new(), source)
+}
+
+/// No `ComposPV` folder for this kind, in the workspace or in DataRO.
+const SIN_CARPETA: Texto = Texto {
+    es: "No existe la carpeta ComposPV\\{carpeta} (ni en el workspace ni en DataRO): no hay {kind} que listar. PVsyst no incluye todas las clases de componente; copia el archivo en esa carpeta",
+    en: "There is no ComposPV\\{carpeta} folder (neither in the workspace nor in DataRO): there are no {kind} to list. PVsyst does not ship every component kind; copy the file into that folder",
+};
 
 pub(crate) fn leer_componente(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
@@ -153,7 +195,8 @@ pub(crate) fn leer_componente(paths: &Paths, args: &Value) -> Result<Value> {
         "is_text": object::is_pvobject(&text),
     });
     if object::is_pvobject(&text) {
-        let roots = object::parse(&text);
+        // A truncated file would nest its objects wrongly: refuse it instead of listing them.
+        let roots = object::parse_completo(&text, &path)?;
         out["objects"] = Value::Array(roots.iter().map(object::PvNode::to_json).collect());
     } else {
         out["note"] = json!(
@@ -161,55 +204,6 @@ pub(crate) fn leer_componente(paths: &Paths, args: &Value) -> Result<Value> {
         );
     }
     Ok(out)
-}
-
-/// Apply `args.cambios` to the root object of a component, in place.
-fn aplicar_cambios(bytes: &mut Vec<u8>, args: &Value) -> Result<Vec<Value>> {
-    let text = String::from_utf8_lossy(bytes);
-    if !object::is_pvobject(&text) {
-        if pan::es_pan_legacy(bytes) {
-            let Some(cambios) = args
-                .get("cambios")
-                .or_else(|| args.get("campos"))
-                .and_then(|v| v.as_object())
-            else {
-                return Ok(Vec::new());
-            };
-            let changes = edit::changes_from_json(cambios);
-            edit::reject_invalid_keys(&changes)?;
-            if changes.is_empty() {
-                return Ok(Vec::new());
-            }
-            let (new_bytes, outcomes) = pan::parchear_campos_legacy(bytes, &changes)?;
-            *bytes = new_bytes;
-            return Ok(outcomes.iter().map(edit::ChangeOutcome::to_json).collect());
-        }
-        let cambios_vacios = args
-            .get("cambios")
-            .and_then(|v| v.as_object())
-            .is_none_or(|m| m.is_empty());
-        return if cambios_vacios {
-            Ok(Vec::new())
-        } else {
-            Err(Error::Invalid(
-                "Target component is binary; field editing is not supported.".into(),
-            ))
-        };
-    }
-    let (Some(root), Some(cambios)) = (
-        object::parse_first(&text),
-        args.get("cambios").and_then(|v| v.as_object()),
-    ) else {
-        return Ok(Vec::new());
-    };
-    let changes = edit::changes_from_json(cambios);
-    edit::reject_invalid_keys(&changes)?;
-    if changes.is_empty() {
-        return Ok(Vec::new());
-    }
-    let (new_bytes, outcomes) = edit::edit_fields(bytes, &root.obj_type, &changes)?;
-    *bytes = new_bytes;
-    Ok(outcomes.iter().map(edit::ChangeOutcome::to_json).collect())
 }
 
 /// Edit an existing component in place with history snapshot.
@@ -225,7 +219,13 @@ pub(crate) fn editar_componente(paths: &Paths, args: &Value) -> Result<Value> {
         )));
     }
     let mut bytes = leer_bytes_componente(&path)?;
-    let applied = aplicar_cambios(&mut bytes, args)?;
+    let applied = cambios::aplicar_cambios(&mut bytes, args)?;
+    if applied.is_empty() {
+        return Err(Error::Invalid(
+            "editar necesita 'cambios' (o 'campos') con al menos un campo: no se escribió nada"
+                .into(),
+        ));
+    }
     let historial_id =
         history::snapshot(&workspace, std::slice::from_ref(&path), "editar_componente")?;
     history::escribir_atomico(&path, &bytes)?;
@@ -244,21 +244,17 @@ pub(crate) fn crear_componente(paths: &Paths, args: &Value) -> Result<Value> {
     let nuevo = req_str(args, &["nombre_nuevo"], "")?;
     validar_nombre(nuevo)?;
     let kind = tipo_de(args, plantilla).ok_or_else(|| missing("tipo", "p.ej. \"PAN\""))?;
-    let folder = folder_for(&kind)
-        .ok_or_else(|| Error::Invalid(format!("Unknown component kind '{kind}'")))?;
+    let folder = folder_for(&kind).ok_or_else(|| tipo_desconocido(&kind, paths.idioma))?;
 
     let src = resolve_component(&workspace, &consulta(&kind, plantilla, args))?;
     let mut bytes = leer_bytes_componente(&src)?;
 
-    let applied = aplicar_cambios(&mut bytes, args)?;
+    let applied = cambios::aplicar_cambios(&mut bytes, args)?;
 
     let out_dir = compos_dir(&workspace, folder);
     fs::create_dir_all(&out_dir)
         .map_err(|e| Error::io(format!("Cannot create {}", out_dir.display()), e))?;
-    let mut name = nuevo.to_string();
-    if Path::new(&name).extension().is_none() {
-        name = format!("{}.{}", name, kind.to_uppercase());
-    }
+    let name = nombre_con_extension(nuevo, &kind);
     let target = out_dir.join(&name);
     sobrescritura::exigir_sobrescribir(&target, args)?;
     let historial_id = history::reemplazar(&workspace, &target, &bytes, "crear_componente")?;

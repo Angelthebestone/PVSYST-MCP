@@ -12,6 +12,9 @@ pub(crate) mod workspace;
 #[cfg(test)]
 #[path = "../../tests/unit/admin/tests.rs"]
 mod tests;
+#[cfg(test)]
+#[path = "../../tests/unit/admin/exportar.rs"]
+mod tests_exportar;
 
 pub(crate) use componentes::{exportar_componente, importar_componente};
 pub(crate) use importacion::importar_workspace;

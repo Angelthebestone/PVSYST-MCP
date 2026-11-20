@@ -4,7 +4,9 @@
 //! * `logs_cli` summarises the PVsystCLI admin logs and session file.
 
 pub(crate) mod diagnostico;
+pub(crate) mod idioma_gui;
 pub(crate) mod ini;
+pub(crate) mod workspace_configurado;
 
 pub(crate) use diagnostico::logs_cli;
 pub(crate) use ini::{preferencias, preferencias_editar};

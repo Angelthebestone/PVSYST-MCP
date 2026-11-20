@@ -1,10 +1,13 @@
 //! Zip and archive execution helpers using the OS' built-in `tar.exe` (bsdtar).
 
+use crate::adapters::cli::captura::{crear_sink, drain, esperar_lector, texto_sink};
 use crate::error::{Error, Result};
 use std::fs;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Read};
 use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 /// The system bsdtar (`%SystemRoot%\System32\tar.exe`).
 pub(crate) fn tar_exe() -> PathBuf {
@@ -81,6 +84,8 @@ fn validar_entrada(nombre: &str, linea: &str) -> Result<()> {
 /// Most bytes a `tar -t[v]f` listing may produce before it is aborted: a
 /// legitimate workspace (≤ `MAX_ENTRADAS` lines) stays far below it.
 const MAX_BYTES_LISTADO: u64 = 64 * 1024 * 1024;
+/// Time stderr may stay open after tar exited (an inherited pipe never reaches EOF).
+const PLAZO_STDERR: Duration = Duration::from_secs(5);
 /// Largest zip accepted for import.
 const MAX_BYTES_ZIP: u64 = 4 * 1024 * 1024 * 1024;
 
@@ -150,32 +155,40 @@ fn listar(zip: &Path, opcion: &str) -> Result<String> {
         .stdout
         .take()
         .ok_or_else(|| Error::Invalid("tar.exe sin salida estándar".into()))?;
-    let listado = listado_dentro_de_limites(lineas_de_listado(BufReader::new(salida)), LIMITES_ZIP);
+    // stderr drains on its own thread: a tar that writes many warnings would
+    // otherwise block on a full pipe while this thread waits on stdout.
+    let sink_err = crear_sink();
+    let lector_err = drain(
+        hijo.stderr.take(),
+        Arc::clone(&sink_err),
+        "stderr de tar.exe",
+    );
+    // The total read is capped before splitting, so one endless line cannot grow unbounded.
+    let acotada = BufReader::new(salida.take(MAX_BYTES_LISTADO + 1));
+    let listado = listado_dentro_de_limites(lineas_de_listado(acotada), LIMITES_ZIP);
     if listado.is_err() {
-        // Best effort: the listing is already rejected; tar must not linger.
-        let _ = hijo.kill();
-        let _ = hijo.wait();
-        return listado;
+        // The listing is already rejected; tar must not linger.
+        if let Err(e) = hijo.kill() {
+            tracing::debug!(error = %e, "tar.exe ya había terminado");
+        }
     }
-    // tar writes only a few diagnostic lines to stderr, so reading it after
-    // stdout cannot deadlock on a full pipe.
-    let errores = hijo
-        .stderr
-        .take()
-        .map(std::io::read_to_string)
-        .transpose()
-        .map_err(|e| Error::io("No se pudo leer stderr de tar.exe", e))?
-        .unwrap_or_default();
     let estado = hijo
         .wait()
         .map_err(|e| Error::io("Failed to run tar.exe", e))?;
+    esperar_lector(
+        lector_err,
+        (&sink_err, "stderr de tar.exe"),
+        Instant::now() + PLAZO_STDERR,
+    )?;
+    let listado = listado?;
+    let errores = texto_sink(&sink_err)?;
     if !estado.success() {
         return Err(Error::Invalid(format!(
             "No se pudo leer el zip: {}",
             errores.trim()
         )));
     }
-    listado
+    Ok(listado)
 }
 
 /// Lists the zip entries and rejects unsafe paths, links and oversized archives.
@@ -208,6 +221,17 @@ pub(crate) fn run_tar(args: &[&std::ffi::OsStr]) -> Result<()> {
     }
 }
 
+/// `dest` and `temporal` as paths relative to `dir`, when they live inside it:
+/// `tar` must skip both, or the archive contains itself.
+fn propios_en_dir(dest: &Path, temporal: &Path, dir: &Path) -> Vec<String> {
+    [dest, temporal]
+        .iter()
+        .filter_map(|p| p.strip_prefix(dir).ok())
+        .map(|rel| rel.to_string_lossy().replace('\\', "/"))
+        .filter(|rel| !rel.is_empty())
+        .collect()
+}
+
 /// Zip `names` (relative to `dir`) into `dest`. The archive is built next to
 /// `dest` and only then moved over it, so a failed export keeps the old file.
 pub(crate) fn zip_into(dest: &Path, dir: &Path, names: &[std::ffi::OsString]) -> Result<()> {
@@ -222,12 +246,10 @@ pub(crate) fn zip_into(dest: &Path, dir: &Path, names: &[std::ffi::OsString]) ->
         "-C".as_ref(),
         dir.as_os_str(),
     ];
-    // A destination inside `dir` would otherwise archive the previous copy of itself.
-    let propio: Vec<String> = dest
-        .strip_prefix(dir)
-        .map(|rel| vec![rel.to_string_lossy().replace('\\', "/")])
-        .unwrap_or_default();
-    args.extend(propio.iter().flat_map(|p| {
+    // A destination inside `dir` would otherwise archive the previous copy of itself,
+    // and the archive being written would archive itself.
+    let propios = propios_en_dir(dest, &temporal, dir);
+    args.extend(propios.iter().flat_map(|p| {
         [
             std::ffi::OsStr::new("--exclude"),
             std::ffi::OsStr::new(p.as_str()),

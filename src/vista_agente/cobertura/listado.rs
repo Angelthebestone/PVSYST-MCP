@@ -3,7 +3,7 @@
 use super::dominio::{Cobertura, Ventana};
 use super::mapa::{clases_del_mapa, ResumenMapa};
 use super::ventanas::todas;
-use crate::gui_catalogo::funciones_que_abren;
+use crate::adapters::gui::catalogo::funciones_que_abren;
 use crate::vista_agente::esquemas;
 use serde_json::{json, Value};
 

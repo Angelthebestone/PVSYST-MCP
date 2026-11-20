@@ -6,30 +6,37 @@
 use crate::state::Estado;
 use std::ffi::OsString;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
+
+/// Environment variable that enables the MCP's own approximations.
+pub(crate) const VARIABLE_APROXIMACIONES: &str = "PVSYST_MCP_APROXIMACIONES";
 
 /// Where PVsyst lives on this machine and how the server may drive it.
 #[derive(Debug, Clone)]
 pub struct Paths {
     /// The PVsyst user workspace, e.g. `C:\Users\<user>\PVsyst8.1_Data`.
     pub workspace: PathBuf,
-    /// The headless CLI, e.g. `C:\Program Files\PVsyst8.1.7\PVsystCLI.exe`.
+    /// The headless CLI, e.g. `C:\Program Files\PVsyst8.1.8\PVsystCLI.exe`.
     pub cli_exe: PathBuf,
     /// The GUI executable, used to drive PVsyst's desktop window.
     pub gui_exe: PathBuf,
     /// Enables the MCP's own approximations of PVsyst calculations
     /// (env PVSYST_MCP_APROXIMACIONES=1). Off: every result comes from PVsyst.
     pub aproximaciones: bool,
+    /// Language of the client-facing surface: schemas, prompts, resources and
+    /// messages (env PVSYST_MCP_IDIOMA=es; English by default).
+    pub idioma: crate::idioma::Idioma,
     /// Background jobs and caches owned by this configuration (and its clones).
     pub(crate) estado: Arc<Estado>,
 }
 
 impl Paths {
     /// Resolves every path from the environment, falling back to the default
-    /// PVsyst 8.1.7 install locations.
+    /// newest PVsyst 8.x install found under Program Files.
     ///
-    /// Overrides: `PVSYST_WORKSPACE`, `PVSYST_CLI`, `PVSYST_GUI`, `PVSYST_DATARO`
-    /// and `PVSYST_MCP_APROXIMACIONES` (`1` or `true`).
+    /// Overrides: `PVSYST_WORKSPACE`, `PVSYST_CLI`, `PVSYST_GUI`, `PVSYST_DATARO`,
+    /// `PVSYST_MCP_APROXIMACIONES` (`1` or `true`) and `PVSYST_MCP_IDIOMA` (`es`;
+    /// anything else is English).
     ///
     /// ```
     /// let paths = pvsyst_mcp::Paths::resolve();
@@ -41,8 +48,17 @@ impl Paths {
             workspace: resolve_workspace(),
             cli_exe: resolve_cli(),
             gui_exe: resolve_gui(),
-            aproximaciones: bandera_de_entorno(crate::aproximaciones::VARIABLE_ENTORNO),
+            aproximaciones: bandera_de_entorno(VARIABLE_APROXIMACIONES),
+            idioma: crate::idioma::Idioma::de_entorno(),
             estado: Arc::default(),
+        }
+    }
+
+    /// The same configuration on another workspace: the one a call names.
+    pub(crate) fn con_workspace(&self, workspace: PathBuf) -> Paths {
+        Paths {
+            workspace,
+            ..self.clone()
         }
     }
 
@@ -55,6 +71,7 @@ impl Paths {
             cli_exe: PathBuf::new(),
             gui_exe: PathBuf::new(),
             aproximaciones: false,
+            idioma: crate::idioma::Idioma::default(),
             estado: Arc::default(),
         }
     }
@@ -105,7 +122,7 @@ pub(crate) fn data_ro() -> PathBuf {
     resolve_gui()
         .parent()
         .map_or_else(
-            || PathBuf::from(r"C:\Program Files\PVsyst8.1.7"),
+            || PathBuf::from(r"C:\Program Files\PVsyst8.1"),
             std::path::Path::to_path_buf,
         )
         .join("DataRO")
@@ -165,29 +182,68 @@ fn resolve_workspace() -> PathBuf {
     first_existing(candidates).unwrap_or_else(|| home().unwrap_or_default().join("PVsyst8.1_Data"))
 }
 
-fn resolve_cli() -> PathBuf {
-    if let Some(p) = ruta_de_entorno("PVSYST_CLI") {
+/// Version numbers of an install folder name such as `PVsyst8.1.8` (`[8, 1, 8]`).
+/// `None` for anything else, e.g. the data folder `PVsyst8.1_Data` or a major before 8.
+pub(crate) fn version_de(carpeta: &str) -> Option<Vec<u32>> {
+    let numeros: Vec<u32> = carpeta
+        .strip_prefix("PVsyst")?
+        .split('.')
+        .map(str::parse)
+        .collect::<Result<_, _>>()
+        .ok()?;
+    (numeros.first()? == &8).then_some(numeros)
+}
+
+/// The PVsyst 8 install folders found on this machine, newest version first, so an update
+/// (8.1.7 → 8.1.8) needs no change here. A PVsyst 9 is not picked: the GUI map, the anchors and
+/// the menu positions were measured on 8.1.x, so it needs an explicit `PVSYST_GUI`/`PVSYST_CLI`.
+///
+/// The folders are listed once per process: `data_ro` asks for them on every request, and an
+/// install made while the server runs is picked up on its next start.
+fn instalaciones() -> &'static [PathBuf] {
+    static INSTALACIONES: OnceLock<Vec<PathBuf>> = OnceLock::new();
+    INSTALACIONES.get_or_init(|| {
+        let mut raices = vec![
+            PathBuf::from(r"C:\Program Files"),
+            PathBuf::from(r"C:\Program Files (x86)"),
+        ];
+        if let Some(h) = home() {
+            raices.push(h.join(r"AppData\Local\Programs"));
+        }
+        instalaciones_en(&raices)
+    })
+}
+
+/// The PVsyst 8 install folders directly under `raices`, newest version first.
+fn instalaciones_en(raices: &[PathBuf]) -> Vec<PathBuf> {
+    let mut halladas: Vec<(Vec<u32>, PathBuf)> = raices
+        .iter()
+        .filter_map(|r| std::fs::read_dir(r).ok())
+        .flatten()
+        .flatten()
+        .filter_map(|e| Some((version_de(e.file_name().to_str()?)?, e.path())))
+        .collect();
+    halladas.sort_by(|a, b| b.0.cmp(&a.0));
+    halladas.into_iter().map(|(_, ruta)| ruta).collect()
+}
+
+fn resolve_exe(variable: &str, exe: &str) -> PathBuf {
+    if let Some(p) = ruta_de_entorno(variable) {
         return p;
     }
-    let mut candidates = vec![
-        PathBuf::from(r"C:\Program Files\PVsyst8.1.7\PVsystCLI.exe"),
-        PathBuf::from(r"C:\Program Files (x86)\PVsyst8.1.7\PVsystCLI.exe"),
-    ];
-    if let Some(h) = home() {
-        candidates.push(h.join(r"AppData\Local\Programs\PVsyst8.1.7\PVsystCLI.exe"));
-    }
-    first_existing(candidates).unwrap_or_else(|| PathBuf::from("pvsystcli"))
+    instalaciones()
+        .iter()
+        .map(|d| d.join(exe))
+        .find(|p| p.exists())
+        .unwrap_or_else(|| PathBuf::from(exe))
+}
+
+fn resolve_cli() -> PathBuf {
+    resolve_exe("PVSYST_CLI", "PVsystCLI.exe")
 }
 
 fn resolve_gui() -> PathBuf {
-    if let Some(p) = ruta_de_entorno("PVSYST_GUI") {
-        return p;
-    }
-    let candidates = vec![
-        PathBuf::from(r"C:\Program Files\PVsyst8.1.7\PVsyst.exe"),
-        PathBuf::from(r"C:\Program Files (x86)\PVsyst8.1.7\PVsyst.exe"),
-    ];
-    first_existing(candidates).unwrap_or_else(|| PathBuf::from("PVsyst.exe"))
+    resolve_exe("PVSYST_GUI", "PVsyst.exe")
 }
 
 #[cfg(test)]

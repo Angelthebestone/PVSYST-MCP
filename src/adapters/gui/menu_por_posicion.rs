@@ -6,11 +6,16 @@
 //! opened, and that takes the keyboard: VCL ignores posted `WM_KEY*` messages
 //! on the private desktop.
 
+mod listado;
+mod submenu;
+
+pub(crate) use listado::listar;
+pub(crate) use submenu::id_en_submenu;
+
 use super::escritorio;
 use super::ffi::{self, Hwnd, ItemMenu, TipoItem};
 use super::ventanas::{class_of, enum_windows_de, pid_of, visible};
 use crate::error::{Error, Result};
-use serde_json::{json, Value};
 use std::time::{Duration, Instant};
 
 const CLASE_POPUP: &str = "#32768";
@@ -140,6 +145,15 @@ fn salir_de_la_barra(ventana: Hwnd, origen: OrigenSalida) {
 /// Opens top-level menu `menu` of `ventana`, reads its entries and always
 /// leaves the menu bar, also when something failed half way.
 fn leer_menu(ventana: Hwnd, menu: usize) -> Result<Vec<ItemMenu>> {
+    leer_con(ventana, menu, ffi::items_de_popup)
+}
+
+/// Like [`leer_menu`], with `lector` choosing which entries of the open popup to read.
+fn leer_con(
+    ventana: Hwnd,
+    menu: usize,
+    lector: impl FnOnce(Hwnd) -> Option<Vec<ItemMenu>>,
+) -> Result<Vec<ItemMenu>> {
     poner_al_frente(ventana)?;
     let popup = match abrir_menu(ventana, menu) {
         Ok(()) => esperar_popup(pid_of(ventana)),
@@ -148,9 +162,9 @@ fn leer_menu(ventana: Hwnd, menu: usize) -> Result<Vec<ItemMenu>> {
             return Err(e);
         }
     };
-    let items = popup.and_then(ffi::items_de_popup).ok_or_else(|| {
+    let items = popup.and_then(lector).ok_or_else(|| {
         Error::NotFound(format!(
-            "El menú {menu} de {} no se abrió",
+            "El menú {menu} de {} no se abrió o la entrada pedida no tiene submenú",
             class_of(ventana)
         ))
     });
@@ -190,27 +204,24 @@ pub(crate) fn id_en_posicion(ventana: Hwnd, posicion: Posicion) -> Result<u16> {
             items.len()
         ))
     })?;
+    id_de_comando(
+        item,
+        &format!("{} del menú {}", posicion.item, posicion.menu),
+    )
+}
+
+/// The `WM_COMMAND` id of `item`, which must be an enabled command; `donde` names it in errors.
+fn id_de_comando(item: &ItemMenu, donde: &str) -> Result<u16> {
     match item.tipo {
-        TipoItem::Comando(_) if item.deshabilitado => Err(Error::Gui(format!(
-            "La entrada {} del menú {} está deshabilitada",
-            posicion.item, posicion.menu
-        ))),
+        TipoItem::Comando(_) if item.deshabilitado => {
+            Err(Error::Gui(format!("La entrada {donde} está deshabilitada")))
+        }
         TipoItem::Comando(id) => u16::try_from(id)
             .map_err(|_| Error::Invalid(format!("Id de comando {id} fuera de 16 bits"))),
         _ => Err(Error::Invalid(format!(
-            "La entrada {} del menú {} no es un comando (separador o submenú)",
-            posicion.item, posicion.menu
+            "La entrada {donde} no es un comando (separador o submenú)"
         ))),
     }
-}
-
-fn item_json(posicion: usize, item: &ItemMenu) -> Value {
-    let (tipo, id) = match item.tipo {
-        TipoItem::Comando(id) => ("comando", Some(id)),
-        TipoItem::Separador => ("separador", None),
-        TipoItem::Submenu => ("submenu", None),
-    };
-    json!({ "posicion": posicion, "tipo": tipo, "id": id, "deshabilitado": item.deshabilitado })
 }
 
 fn es_menu_de_sistema(items: &[ItemMenu]) -> bool {
@@ -244,32 +255,4 @@ pub(crate) fn contar_menus(ventana: Hwnd) -> Result<usize> {
         Fin::Fallo(motivo) => Err(Error::Gui(format!("No se pudo contar los menús: {motivo}"))),
         Fin::Limite => Err(Error::Gui(format!("Más de {MAX_MENUS} menús"))),
     }
-}
-
-/// Every top-level menu of `ventana` with its entries, up to the point the
-/// scan wraps around to the first one. Submenus are listed but not entered.
-pub(crate) fn listar(ventana: Hwnd) -> Result<Value> {
-    let (menus, fin) = leer_barra(ventana)?;
-    let listado: Vec<Value> = menus
-        .iter()
-        .enumerate()
-        .map(|(i, items)| {
-            json!({
-                "menu": i,
-                "sistema": es_menu_de_sistema(items),
-                "items": items.iter().enumerate().map(|(p, it)| item_json(p, it)).collect::<Vec<_>>(),
-            })
-        })
-        .collect();
-    let (completo, error) = match fin {
-        Fin::Sistema => (true, None),
-        Fin::Fallo(motivo) => (false, Some(motivo)),
-        Fin::Limite => (false, Some(format!("más de {MAX_MENUS} menús"))),
-    };
-    Ok(json!({
-        "ventana": format!("0x{ventana:X}"),
-        "menus": listado,
-        "completo": completo,
-        "error": error,
-    }))
 }

@@ -2,17 +2,17 @@
 
 //! PVsyst MCP server.
 //!
-//! Operates a PVsyst 8.1.7 installation by reading and writing ONLY its data
-//! files (.PRJ, .VCi, .PAN, .OND, .MET, .SIT, .CSV, ...). It never links,
-//! loads, decompiles or otherwise touches PVsyst.exe beyond the documented
-//! black-box invocation of PVsystCLI.exe for batch simulations.
+//! Operates a PVsyst 8.1 installation (measured on 8.1.7 and 8.1.8) through its data
+//! files (.PRJ, .VCi, .PAN, .OND, .MET, .SIT, .CSV, ...), the documented PVsystCLI.exe
+//! and PVsyst's own windows driven like a user would. It never links, loads or
+//! decompiles PVsyst code, and reimplements no simulation.
 //!
 //! The public surface is deliberately tiny: build a [`Server`] from [`Paths`]
 //! and drive it with [`serve`] (newline-delimited JSON-RPC over any reader and
 //! writer) or one line at a time with [`Server::handle_line`].
 
 #[cfg(not(windows))]
-compile_error!("pvsyst-mcp solo funciona en Windows: PVsyst 8.1.7 es una aplicación Windows.");
+compile_error!("pvsyst-mcp solo funciona en Windows: PVsyst 8.1 es una aplicación Windows.");
 
 // Layout: one folder per PVsyst business area (projects, components, sites,
 // simulation, workspace, easy_mode). `format` is the pure core every area
@@ -27,10 +27,6 @@ mod adapters;
     reason = "deuda medida; pendiente del paso 2 de la limpieza"
 )]
 mod admin;
-#[expect(
-    clippy::indexing_slicing,
-    reason = "deuda medida; pendiente del paso 2 de la limpieza"
-)]
 mod almacenamiento;
 #[expect(
     clippy::too_many_arguments,
@@ -79,7 +75,6 @@ mod evaluacion_economica;
     reason = "deuda medida; pendiente del paso 2 de la limpieza"
 )]
 mod format;
-mod gui_catalogo;
 #[expect(
     clippy::excessive_nesting,
     clippy::indexing_slicing,
@@ -88,11 +83,11 @@ mod gui_catalogo;
 )]
 mod history;
 #[expect(
-    clippy::excessive_nesting,
     clippy::indexing_slicing,
     reason = "deuda medida; pendiente del paso 2 de la limpieza"
 )]
 mod horizonte_archivo;
+mod idioma;
 #[expect(
     clippy::excessive_nesting,
     reason = "deuda medida; pendiente del paso 2 de la limpieza"

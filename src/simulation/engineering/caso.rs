@@ -1,6 +1,6 @@
 //! Locates and loads the CSV/PDF pair for one simulation case.
 
-use crate::args::{opt_str, req_str, workspace_of};
+use crate::args::{opt_str, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::format::object::parse_first;
@@ -72,13 +72,59 @@ pub(crate) fn con_cabecera(c: &Caso, mut v: Value) -> Value {
     v
 }
 
+/// Project named in a result CSV's banner (`Project;<file>;`), so a read by
+/// `archivo` does not also demand the project the file already names.
+fn proyecto_de_metadatos(texto: &str) -> Option<String> {
+    let linea = texto
+        .lines()
+        .take(40)
+        .find(|l| l.trim_start_matches('\u{feff}').starts_with("Project;"))?;
+    let archivo = linea.split(';').nth(1)?.trim();
+    let stem = Path::new(archivo).file_stem()?.to_str()?;
+    (!stem.is_empty()).then(|| stem.to_string())
+}
+
 /// Resolve the result files and read the PDF figures for one project/variant.
+///
+/// `proyecto` may be omitted when `archivo` names the result CSV: the project is
+/// then the one its banner records.
+/// Variant of a result read by `archivo`: the suffix of its file name (`P_VC1` → `VC1`).
+fn variante_del_archivo(csv: &Path) -> String {
+    csv.file_stem()
+        .and_then(|s| s.to_str())
+        .and_then(|s| s.rsplit_once('_'))
+        .map_or_else(|| "VC0".to_string(), |(_, v)| v.to_string())
+}
+
+/// Array power of the case: the caller's `kwp`, else the one the report prints.
+fn kwp_de(args: &Value, tokens: &[String], resumen: &Value) -> Option<f64> {
+    args.get("kwp")
+        .and_then(|v| v.as_f64().or_else(|| v.as_str()?.trim().parse().ok()))
+        .or_else(|| {
+            report_pdf::potencia_kwp(
+                tokens,
+                resumen["energia_anual_kwh"].as_f64().unwrap_or_default(),
+                resumen["produccion_especifica_kwh_kwp"].as_f64(),
+            )
+        })
+}
+
 pub(crate) fn caso(paths: &Paths, args: &Value) -> Result<Caso> {
     let workspace = workspace_of(paths, args);
-    let proyecto = req_str(args, &["proyecto"], "proyecto")?.to_string();
-    let variante_pedida = opt_str(args, &["variante"]);
     let archivo = opt_str(args, &["archivo"]);
-    let (csv, pdf) = resultado_de(&workspace, Some(&proyecto), variante_pedida, archivo)?;
+    let proyecto = match opt_str(args, &["proyecto"]) {
+        Some(p) => {
+            crate::workspace::validar_nombre(p)?;
+            Some(p.to_string())
+        }
+        None if archivo.is_some() => None,
+        None => return Err(crate::args::missing("proyecto", "proyecto")),
+    };
+    let variante_pedida = opt_str(args, &["variante"]);
+    if let Some(v) = variante_pedida {
+        crate::projects::lifecycle::variantes::exigir_variante_valida(v)?;
+    }
+    let (csv, pdf) = resultado_de(&workspace, proyecto.as_deref(), variante_pedida, archivo)?;
     let pdf = pdf.ok_or_else(|| {
         Error::NotFound(format!(
             "No hay informe PDF para {} (ejecute la simulación con -rpf)",
@@ -91,23 +137,12 @@ pub(crate) fn caso(paths: &Paths, args: &Value) -> Result<Caso> {
         .as_f64()
         .ok_or_else(|| Error::Format("El informe PDF no incluye la energía anual".into()))?;
     let csv_texto = String::from_utf8_lossy(&leer_bytes(&csv)?).into_owned();
+    let proyecto = proyecto
+        .or_else(|| proyecto_de_metadatos(&csv_texto))
+        .unwrap_or_default();
     let prj = leer_sitio(&workspace, &proyecto).map_err(|e| e.to_string());
-    let variante = variante_pedida.map_or_else(
-        || {
-            csv.file_stem()
-                .and_then(|s| s.to_str())
-                .and_then(|s| s.rsplit_once('_'))
-                .map_or_else(|| "VC0".to_string(), |(_, v)| v.to_string())
-        },
-        str::to_string,
-    );
-    let kwp = args
-        .get("kwp")
-        .and_then(|v| v.as_f64().or_else(|| v.as_str()?.trim().parse().ok()))
-        .or_else(|| {
-            let metadata = json!(csv_texto.lines().take(40).collect::<Vec<_>>());
-            crate::simulation::results::variant_kwp(&workspace, &metadata)
-        });
+    let variante = variante_pedida.map_or_else(|| variante_del_archivo(&csv), str::to_string);
+    let kwp = kwp_de(args, &tokens, &resumen);
     Ok(Caso {
         workspace,
         proyecto,

@@ -39,7 +39,12 @@ Capabilities that matter when you decide which client to trust:
   keep the server on the workstation that holds the PVsyst licence.
 * **The server never activates or deactivates the licence**: `entorno` with
   `accion: licencia_activar` / `licencia_desactivar` only returns the command for you
-  to run yourself with your own key.
+  to run yourself with your own key, and `pvsyst_cli` refuses `lic-activate`,
+  `lic-deactivate` and `lic-sync`. A licence key sent in `opciones` is never echoed
+  back: the displayed command line redacts it.
+* **`pvsyst_cli` does not confine paths and does use the network.** An absolute path
+  in `opciones` is passed to PVsystCLI as it is (a relative one resolves against the
+  workspace), and `version` checks for updates over the network.
 * **stdout is the protocol.** Nothing pre-existing is ever printed to it; logs go to
   stderr and are filtered with `PVSYST_MCP_LOG`.
 

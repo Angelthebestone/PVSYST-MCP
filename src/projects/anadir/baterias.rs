@@ -14,12 +14,7 @@ pub(crate) fn ajustar_sistema(bytes: &[u8], campos: &[(&str, &str)]) -> Result<V
         .iter()
         .map(|(k, v)| ((*k).to_string(), Some((*v).to_string())))
         .collect();
-    let (nuevo, resultado) = edit::edit_fields(bytes, "pvSystem", &cambios)?;
-    if let Some(o) = resultado.iter().find(|o| o.action == "not-found") {
-        return Err(Error::Invalid(format!(
-            "No se pudo fijar '{}' en pvSystem",
-            o.key
-        )));
-    }
+    // `edit_fields` fails on a field it cannot set: no outcome needs checking.
+    let (nuevo, _) = edit::edit_fields(bytes, "pvSystem", &cambios)?;
     Ok(nuevo)
 }

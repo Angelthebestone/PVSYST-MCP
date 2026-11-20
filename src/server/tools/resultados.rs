@@ -5,15 +5,16 @@ use crate::args::workspace_of;
 use crate::config::Paths;
 use crate::easy_mode;
 use crate::error::{Error, Result};
+use crate::idioma::Texto;
 use crate::projects;
 use crate::simulation::{engineering, results};
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
 
 pub(crate) const TOOL_RESULTADOS: Herramienta = Herramienta {
     nombre: "resultados",
-    descripcion: "Resultados: KPIs, resumen, CSV, perdidas, mensual, comparacion, medido_vs_simulado, P50/P90, carbono, economia y entregable. / EN: Results: KPIs, summary, CSV, losses, monthly, comparison, measured vs simulated, P50/P90, carbon, economics and deliverable.",
+    descripcion: crate::idioma::Texto { es: "Resultados: KPIs, resumen, CSV, perdidas, mensual, comparacion, medido_vs_simulado, P50/P90, carbono, economia, entregable y todo. que:resumen devuelve KPIs, la tabla mensual y las perdidas principales en una sola llamada; que:todo devuelve cada seccion (resumen, carbono, economia, p50_p90) con su estado, y una seccion no configurada no hace fallar la llamada.", en: "Results: KPIs, summary, CSV, losses, monthly, comparison, measured vs simulated, P50/P90, carbon, economics, deliverable and todo. que:resumen returns the KPIs, the monthly table and the main losses in one call; que:todo returns each section (summary, carbon, economics, p50_p90) with its state, and a section that is not configured does not fail the call." },
     anotaciones: Anotaciones {
-        titulo: "Resultados / Results",
+        titulo: crate::idioma::Texto { es: "Resultados", en: "Results" },
         es_solo_lectura: false,
         es_destructiva: false,
         es_idempotente: true,
@@ -54,11 +55,13 @@ pub(crate) const TOOL_RESULTADOS: Herramienta = Herramienta {
             "economia",
             "entregable",
             "resumen",
+            "todo",
         ],
     }),
     requeridos_por_accion: &[
         ("medido_vs_simulado", &["proyecto"]),
     ],
+    consumidos_por_accion: &[],
     sinonimos: SINONIMOS_RESULTADOS,
     ejecutar: Ejecutor::Simple(ejecutar_resultados),
 };
@@ -85,9 +88,9 @@ const SINONIMOS_RESULTADOS: Sinonimos = Sinonimos {
 
 fn ejecutar_resultados(paths: &Paths, args: &Value) -> Result<Value> {
     let valor = args.get("que").and_then(Value::as_str).unwrap_or("kpis");
-    exigir_include_text_solo_csv(valor, args)?;
-    if matches!(valor, "kpis" | "resumen") {
-        exigir_proyecto_de_kpis(paths, args)?;
+    exigir_include_text_solo_csv(paths, valor, args)?;
+    if matches!(valor, "kpis" | "resumen" | "todo") {
+        exigir_proyecto_de_kpis(paths, valor, args)?;
     }
     match valor {
         "kpis" => easy_mode::leer_kpis(paths, args),
@@ -101,24 +104,30 @@ fn ejecutar_resultados(paths: &Paths, args: &Value) -> Result<Value> {
         "economia" => engineering::economia(paths, args),
         "entregable" => engineering::entregable(paths, args),
         "resumen" => resumen(paths, args),
+        "todo" => todo(paths, args),
         _ => Err(Error::Invalid(format!(
-            "Valor '{valor}' no soportado para resultados"
+            "Value '{valor}' not supported for resultados"
         ))),
     }
 }
 
+const INCLUDE_TEXT_SOLO_CSV: Texto = Texto {
+    es: "'include_text' solo aplica a que:csv (recibido que:{valor})",
+    en: "'include_text' only applies to que:csv (got que:{valor})",
+};
+
 /// `include_text` only shapes the CSV listing; elsewhere it would be silently ignored.
-fn exigir_include_text_solo_csv(valor: &str, args: &Value) -> Result<()> {
+fn exigir_include_text_solo_csv(paths: &Paths, valor: &str, args: &Value) -> Result<()> {
     if valor != "csv" && args.get("include_text").is_some() {
-        return Err(Error::Invalid(format!(
-            "'include_text' solo aplica a que:csv (recibido que:{valor})"
-        )));
+        return Err(Error::Invalid(
+            INCLUDE_TEXT_SOLO_CSV.texto_con(paths.idioma, &[("valor", valor)]),
+        ));
     }
     Ok(())
 }
 
 /// `kpis` reads one PDF: name the project or the PDF instead of picking one arbitrarily.
-fn exigir_proyecto_de_kpis(paths: &Paths, args: &Value) -> Result<()> {
+fn exigir_proyecto_de_kpis(paths: &Paths, valor: &str, args: &Value) -> Result<()> {
     if let Some(proyecto) = args.get("proyecto").and_then(Value::as_str) {
         return projects::resolve_project_file(&workspace_of(paths, args), proyecto).map(|_| ());
     }
@@ -129,18 +138,35 @@ fn exigir_proyecto_de_kpis(paths: &Paths, args: &Value) -> Result<()> {
         return Ok(());
     }
     Err(Error::Invalid(
-        "'proyecto' es obligatorio para que:kpis (o 'archivo'/'report_pdf' con el PDF)".into(),
+        PROYECTO_REQUERIDO.texto_con(paths.idioma, &[("valor", valor)]),
     ))
 }
 
+const PROYECTO_REQUERIDO: Texto = Texto {
+    es: "'proyecto' es obligatorio para que:{valor} (o 'archivo'/'report_pdf' con el PDF)",
+    en: "'proyecto' is required for que:{valor} (or 'archivo'/'report_pdf' with the PDF)",
+};
+
 const PERDIDAS_PRINCIPALES: usize = 3;
+const ESTADO_OK: &str = "ok";
+const ESTADO_NO_DISPONIBLE: &str = "no_disponible";
 
 /// `resumen`: KPIs, monthly energy and the largest losses. A PDF without a loss diagram
 /// leaves `perdidas_principales` empty and says why in `avisos`.
 fn resumen(paths: &Paths, args: &Value) -> Result<Value> {
-    let kpis = easy_mode::leer_kpis(paths, args)?;
-    let mensual = engineering::mensual(paths, args)?;
-    let (perdidas, avisos) = match engineering::perdidas(paths, args) {
+    let caso = engineering::caso(paths, args)?;
+    resumen_de(args, &caso)
+}
+
+fn resumen_de(args: &Value, caso: &engineering::Caso) -> Result<Value> {
+    let informe = easy_mode::InformeLeido {
+        workspace: &caso.workspace,
+        pdf: &caso.pdf,
+        tokens: &caso.tokens,
+    };
+    let kpis = easy_mode::kpis_de(informe, args)?;
+    let mensual = engineering::mensual_de(caso)?;
+    let (perdidas, avisos) = match engineering::perdidas_de(caso) {
         Ok(p) => (principales_perdidas(&p), Vec::new()),
         Err(Error::Format(motivo)) => (json!([]), vec![motivo]),
         Err(otro) => return Err(otro),
@@ -151,6 +177,84 @@ fn resumen(paths: &Paths, args: &Value) -> Result<Value> {
         "perdidas_principales": perdidas,
         "avisos": avisos,
     }))
+}
+
+/// Sections `que:todo` answers, in the order the manual lists them.
+#[derive(Clone, Copy)]
+enum Seccion {
+    Resumen,
+    Carbono,
+    Economia,
+    P50P90,
+}
+
+impl Seccion {
+    const TODAS: [Seccion; 4] = [Self::Resumen, Self::Carbono, Self::Economia, Self::P50P90];
+
+    fn nombre(self) -> &'static str {
+        match self {
+            Self::Resumen => "resumen",
+            Self::Carbono => "carbono",
+            Self::Economia => "economia",
+            Self::P50P90 => "p50_p90",
+        }
+    }
+
+    fn valor(self, ctx: &ContextoTodo<'_>) -> Result<Value> {
+        match self {
+            Self::Resumen => resumen_de(ctx.args, ctx.caso),
+            Self::Carbono => engineering::carbono_de(ctx.caso),
+            Self::Economia => engineering::economia_de(ctx.caso),
+            Self::P50P90 => engineering::p50_p90_de(ctx.paths, ctx.caso, ctx.args),
+        }
+    }
+}
+
+struct ContextoTodo<'a> {
+    paths: &'a Paths,
+    args: &'a Value,
+    caso: &'a engineering::Caso,
+}
+
+/// `todo`: every section with its own state. A section that is not configured
+/// answers `no_disponible` with its reason instead of failing the whole call.
+fn todo(paths: &Paths, args: &Value) -> Result<Value> {
+    let caso = engineering::caso(paths, args)?;
+    let ctx = ContextoTodo {
+        paths,
+        args,
+        caso: &caso,
+    };
+    let mut secciones = Map::new();
+    let mut errores = Vec::new();
+    for seccion in Seccion::TODAS {
+        let (estado, motivo) = match seccion.valor(&ctx) {
+            Ok(datos) => (json!({ "estado": ESTADO_OK, "datos": datos }), None),
+            Err(e) => {
+                let motivo = e.to_string();
+                (
+                    json!({ "estado": ESTADO_NO_DISPONIBLE, "motivo": motivo.clone() }),
+                    Some(motivo),
+                )
+            }
+        };
+        if let Some(motivo) = motivo {
+            errores.push(format!("{}: {motivo}", seccion.nombre()));
+        }
+        secciones.insert(seccion.nombre().to_string(), estado);
+    }
+    let mut salida = Map::new();
+    salida.insert("secciones".into(), Value::Object(secciones));
+    if !caso.proyecto.is_empty() {
+        salida.insert("proyecto".into(), json!(caso.proyecto.as_str()));
+    }
+    if !caso.variante.is_empty() {
+        salida.insert("variante".into(), json!(caso.variante.as_str()));
+    }
+    if !errores.is_empty() {
+        salida.insert("errores".into(), json!(errores));
+    }
+    Ok(Value::Object(salida))
 }
 
 /// The `PERDIDAS_PRINCIPALES` most negative loss nodes, largest loss first.

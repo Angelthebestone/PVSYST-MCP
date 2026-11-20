@@ -53,7 +53,7 @@ fn instalacion(paths: &Paths) -> Value {
     Comprobacion::de_ruta(
         "pvsyst_install",
         &paths.gui_exe,
-        "Install PVsyst 8.1.7 (licencia legítima) o define PVSYST_GUI.",
+        "Install PVsyst 8.x (licencia legítima) o define PVSYST_GUI.",
     )
     .a_json()
 }

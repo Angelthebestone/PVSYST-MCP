@@ -63,7 +63,7 @@ fn velocidad_viento(f: &Value, t: &str) -> Result<f64> {
     let x = f["WS10m"]
         .as_f64()
         .ok_or_else(|| Error::Format("PVGIS: falta WS10m".into()))?;
-    if !x.is_finite() || x < TOLERANCIA_VIENTO_NEGATIVO_M_S || x > MAX_VIENTO_M_S {
+    if !x.is_finite() || !(TOLERANCIA_VIENTO_NEGATIVO_M_S..=MAX_VIENTO_M_S).contains(&x) {
         return Err(Error::Format(format!(
             "PVGIS: WS10m={x} fuera de [{TOLERANCIA_VIENTO_NEGATIVO_M_S}, {MAX_VIENTO_M_S}] en {t}"
         )));

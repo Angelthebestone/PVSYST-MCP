@@ -1,12 +1,22 @@
 //! Arguments of the `crear_sitio` request derived from coordinates and NASA climatology.
 
-use super::{nasa, num};
+use super::num;
 use serde_json::{json, Value};
+
+/// NASA SSE grid cell that supplies the monthly climatology of these coordinates.
+/// The grids are indexed by whole degrees (lower-left corner of the cell).
+pub(super) fn fuente_nasa(lat: f64, lon: f64) -> String {
+    format!(
+        "NASA SSE grid cell {}/{}",
+        lat.floor() as i64,
+        lon.floor() as i64
+    )
+}
 
 pub(super) fn construir_peticion_crear(
     name: &str,
     (lat, lon): (f64, f64),
-    clim: &nasa::Climatology,
+    source: &str,
     csv_path: &std::path::Path,
     out_sit: &str,
     args: &Value,
@@ -21,10 +31,20 @@ pub(super) fn construir_peticion_crear(
         "output_sit_file": out_sit,
         "country_code": args.get("country_code").cloned().unwrap_or(json!("")),
         "region": args.get("region").cloned().unwrap_or(json!("")),
-        "source": format!("NASA SSE grid cell {}/{}", clim.cell_lat, clim.cell_lon),
+        "source": args
+            .get("source")
+            .and_then(Value::as_str)
+            .filter(|s| !s.is_empty())
+            .unwrap_or(source),
         "dry_run": args.get("dry_run").cloned().unwrap_or(json!(false)),
         "timeout_s": args.get("timeout_s").cloned().unwrap_or(Value::Null),
     });
+    // Keys `create-site` reads that the request would otherwise drop on this path.
+    for clave in ["albedo", "log_level", "permitir_fuera_del_workspace"] {
+        if let Some(valor) = args.get(clave) {
+            v[clave] = valor.clone();
+        }
+    }
     if let Some(ws_val) = args.get("workspace") {
         v["workspace"] = ws_val.clone();
     }

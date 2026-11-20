@@ -5,17 +5,24 @@
 
 pub(crate) mod dimensionado;
 pub(crate) mod horizonte;
+pub(crate) mod lanzar;
 pub(crate) mod p50;
+mod relleno;
 pub(crate) mod rotulos;
 
-use crate::adapters::gui::conduccion::{Campo, Formulario};
-use crate::adapters::gui::rotulos::Idioma;
+use crate::adapters::gui::conduccion::Formulario;
+use crate::adapters::gui::rotulos::dialogos::{GUARDAR, OK};
+use crate::adapters::gui::rotulos::pvsyst::{
+    INICIO_AISLADO, INICIO_BOMBEO, INICIO_RED, INICIO_RED_DC,
+};
+use crate::adapters::gui::rotulos::Rotulo;
 use crate::adapters::gui::sesion_pvsyst::Sesion;
+use crate::adapters::gui::sondeo::sondear_hasta;
 use crate::config::Paths;
 use crate::error::{Error, Result};
-use rotulos::{rotulos_proyecto_gui, RotulosProyectoGui};
+use rotulos::{FORMULARIO_CARGAR, FORMULARIO_GUARDAR, FORMULARIO_PROYECTO};
+use serde_json::json;
 
-const ROTULOS: RotulosProyectoGui = rotulos_proyecto_gui(Idioma::Es);
 use crate::format::object::{self, PvNode};
 use crate::projects::lifecycle::variantes::{es_variante_valida, ruta_variante};
 use crate::projects::tipo_sistema::TipoSistema;
@@ -23,14 +30,14 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
-/// Offsets (px at 96 DPI) of "Carga" in the project bar and "Guardar" in the variant bar.
-const X_CARGAR: i32 = 100;
-const X_GUARDAR_VARIANTE: i32 = 113;
-/// First row of the project list, relative to the list's top-left corner.
-const FILA_1: (i32, i32) = (80, 28);
-/// Variant selector of the project window.
-const SELECTOR_VARIANTE: Campo = Campo::combo(448, 339);
+/// The project window's commands, as the GUI catalogue names them (menu entries by position).
+const CARGAR_PROYECTO: &str = "ventana_proyecto.proyecto.cargar";
+const GUARDAR_VARIANTE: &str = "ventana_proyecto.variante.guardar";
+/// The project list shows the file typed in the search box as its first row.
+const PRIMERA_FILA: u64 = 0;
 const ESPERA_TITULO: Duration = Duration::from_secs(10);
+const ESPERA_GUARDADO: Duration = Duration::from_secs(20);
+const SONDEO_GUARDADO: Duration = Duration::from_millis(300);
 
 /// A project open in PVsyst on one variant.
 pub(crate) struct ProyectoEnPvsyst<'s> {
@@ -39,12 +46,24 @@ pub(crate) struct ProyectoEnPvsyst<'s> {
     pub(crate) archivo_variante: PathBuf,
 }
 
-fn boton_de_inicio(tipo: TipoSistema) -> &'static str {
+/// A session for a step that loads a project and saves its variant. Both go through the menu
+/// bar, which PVsyst opens only for the keyboard, and the isolated desktop ignores keys: the
+/// step is refused before PVsyst is touched instead of failing with a variant half edited.
+pub(super) fn abrir_sesion(paths: &Paths) -> Result<Sesion> {
+    if crate::adapters::gui::escritorio::es_aislado() {
+        return Err(Error::Gui(
+            "Cargar el proyecto y guardar la variante usan los menús de PVsyst, que se abren con el teclado: el escritorio aislado (PVSYST_MCP_ESCRITORIO=aislado) lo ignora. Quita esa variable para este paso".into(),
+        ));
+    }
+    Sesion::abrir(paths)
+}
+
+fn boton_de_inicio(tipo: TipoSistema) -> Rotulo<'static> {
     match tipo {
-        TipoSistema::Red => ROTULOS.inicio_red,
-        TipoSistema::Aislado => ROTULOS.inicio_aislado,
-        TipoSistema::Bombeo => ROTULOS.inicio_bombeo,
-        TipoSistema::RedDc => ROTULOS.inicio_red_dc,
+        TipoSistema::Red => INICIO_RED,
+        TipoSistema::Aislado => INICIO_AISLADO,
+        TipoSistema::Bombeo => INICIO_BOMBEO,
+        TipoSistema::RedDc => INICIO_RED_DC,
     }
 }
 
@@ -62,12 +81,22 @@ fn esperar_titulo(f: &Formulario, prj: &str) -> Result<()> {
     Ok(())
 }
 
+/// Runs a catalogued command of the project window (its menu entry, found by position).
+fn ejecutar(proyecto: &Formulario, funcion: &str) -> Result<()> {
+    crate::adapters::gui::ffi::traer_al_frente(proyecto.h);
+    crate::adapters::gui::catalogo::abrir(&json!({ "funcion": funcion })).map(|_| ())
+}
+
 fn cargar(sesion: &Sesion, proyecto: &Formulario, prj: &str) -> Result<()> {
-    proyecto.clic_barra(0, X_CARGAR)?;
-    let lista = sesion.esperar(ROTULOS.formulario_cargar)?;
+    ejecutar(proyecto, CARGAR_PROYECTO)?;
+    let lista = sesion.esperar(FORMULARIO_CARGAR)?;
     lista.escribir_unico("TEdit", prj)?;
-    lista.clic_en_unico("TVirtualStringTree", FILA_1)?;
-    lista.pulsar(ROTULOS.ok)?;
+    let arbol = lista.unico("TVirtualStringTree")?;
+    crate::adapters::gui::fila::fila(
+        &json!({ "ventana": format!("0x{arbol:X}"), "indice": PRIMERA_FILA }),
+        crate::idioma::Idioma::de_entorno(),
+    )?;
+    lista.pulsar(OK)?;
     sesion.aceptar_mensajes();
     esperar_titulo(proyecto, prj)
 }
@@ -88,7 +117,7 @@ fn leer_variante(archivo: &Path, dir: &Path) -> Result<Vec<u8>> {
         .filter_map(|e| e.file_name().into_string().ok())
         .collect();
     Err(crate::args::no_encontrado(
-        "Variante",
+        crate::args::VARIANTE,
         &pedido,
         &opciones,
         &dir.to_string_lossy(),
@@ -111,12 +140,13 @@ impl<'s> ProyectoEnPvsyst<'s> {
         let bytes = leer_variante(&archivo_variante, &dir)?;
         let tipo = TipoSistema::de_variante(&bytes)?;
         sesion.inicio.pulsar(boton_de_inicio(tipo))?;
-        let ventana = sesion.esperar(ROTULOS.formulario_proyecto)?;
+        let ventana = sesion.esperar(FORMULARIO_PROYECTO)?;
         let prj = format!("{proyecto}.PRJ");
         if !ventana.titulo().ends_with(&prj) {
             cargar(sesion, &ventana, &prj)?;
         }
-        ventana.seleccionar(SELECTOR_VARIANTE, &variante.to_ascii_uppercase())?;
+        let eleccion = json!({ "variante_activa": variante.to_ascii_uppercase() });
+        relleno::rellenar(paths, &ventana, ("proyecto.ventana", eleccion))?;
         sesion.aceptar_mensajes();
         Ok(Self {
             sesion,
@@ -128,26 +158,48 @@ impl<'s> ProyectoEnPvsyst<'s> {
     /// Saves the variant through PVsyst and checks that PVsyst wrote the file.
     pub(crate) fn guardar_variante(&self) -> Result<PvNode> {
         let antes = crate::workspace::leer_bytes(&self.archivo_variante)?;
-        self.ventana.clic_barra(1, X_GUARDAR_VARIANTE)?;
-        let dialogo = self.sesion.esperar(ROTULOS.formulario_guardar)?;
-        dialogo.pulsar(ROTULOS.guardar)?;
+        ejecutar(&self.ventana, GUARDAR_VARIANTE)?;
+        let dialogo = self.sesion.esperar(FORMULARIO_GUARDAR)?;
+        dialogo.pulsar(GUARDAR)?;
         self.sesion.aceptar_mensajes();
-        let despues = crate::workspace::leer_bytes(&self.archivo_variante)?;
-        if despues == antes {
+        let Some(despues) = esperar_guardado(&self.archivo_variante, &antes) else {
             return Err(Error::Gui(format!(
                 "PVsyst no guardó {}: ¿usa PVsyst otro espacio de trabajo?",
                 self.archivo_variante.display()
             )));
-        }
-        object::parse_first(&String::from_utf8_lossy(&despues))
-            .ok_or_else(|| Error::Format("La variante guardada no es un PVObject".into()))
+        };
+        raiz_completa(&despues, &self.archivo_variante)
     }
 
     pub(crate) fn leer_variante(&self) -> Result<PvNode> {
         let bytes = crate::workspace::leer_bytes(&self.archivo_variante)?;
-        object::parse_first(&String::from_utf8_lossy(&bytes))
-            .ok_or_else(|| Error::Format("La variante guardada no es un PVObject".into()))
+        raiz_completa(&bytes, &self.archivo_variante)
     }
+}
+
+/// PVsyst closes its save dialog before it has finished writing the variant: it
+/// counts as saved once it differs from `antes` and two reads in a row agree.
+/// Reading at once found it half written, or unchanged (BUG-05).
+fn esperar_guardado(archivo: &Path, antes: &[u8]) -> Option<Vec<u8>> {
+    let mut anterior: Option<Vec<u8>> = None;
+    sondear_hasta(ESPERA_GUARDADO, SONDEO_GUARDADO, || {
+        let actual = crate::workspace::leer_bytes(archivo).ok()?;
+        let listo = es_guardado_estable(antes, anterior.as_deref(), &actual);
+        anterior = Some(actual.clone());
+        listo.then_some(actual)
+    })
+}
+
+fn es_guardado_estable(antes: &[u8], anterior: Option<&[u8]>, actual: &[u8]) -> bool {
+    actual != antes && anterior == Some(actual)
+}
+
+/// Root object of a saved variant; a truncated file is an error, not a wrongly nested tree.
+fn raiz_completa(bytes: &[u8], archivo: &Path) -> Result<PvNode> {
+    object::parse_completo(&String::from_utf8_lossy(bytes), archivo)?
+        .into_iter()
+        .next()
+        .ok_or_else(|| Error::Format("La variante guardada no es un PVObject".into()))
 }
 
 /// Object `tipo` anywhere under `raiz`. O(n) in the tree.

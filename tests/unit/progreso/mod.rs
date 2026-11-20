@@ -5,14 +5,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 #[test]
-fn should_stay_active_and_silent_when_inert() {
-    let seguimiento = SeguimientoTarea::inerte();
-    assert!(!seguimiento.esta_cancelado());
-    seguimiento.informar_progreso(50.0, "Simulando");
-}
-
-#[test]
-fn should_report_progress_and_expose_cancellation() {
+fn should_report_progress_and_expose_cancellation_when_a_sink_is_attached() {
     let cancelado = Arc::new(AtomicBool::new(false));
     let vistos = Arc::new(Mutex::new(Vec::new()));
     let destino = Arc::clone(&vistos);

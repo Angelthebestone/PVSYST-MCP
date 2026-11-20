@@ -3,6 +3,7 @@
 
 pub(crate) mod ampliacion;
 pub(crate) mod captura_ocr;
+pub(crate) mod controles;
 pub(crate) mod dominio;
 pub(crate) mod formulario;
 pub(crate) mod motor;
@@ -10,4 +11,5 @@ pub(crate) mod segmentacion;
 pub(crate) mod seleccion;
 pub(crate) mod ubicacion;
 
-pub(crate) use formulario::{esta_marcado, formulario};
+pub(crate) use controles::esta_marcado;
+pub(crate) use formulario::formulario;

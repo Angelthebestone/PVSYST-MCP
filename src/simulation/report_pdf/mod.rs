@@ -17,7 +17,7 @@ pub(crate) use economia::economia;
 pub(crate) use p50::p50;
 
 pub(crate) use extract::tokens;
-pub(crate) use parse::{mensual, perdidas, resumen};
+pub(crate) use parse::{mensual, perdidas, potencia_kwp, resumen};
 
 #[cfg(test)]
 #[path = "../../../tests/unit/simulation/report_pdf/mod.rs"]

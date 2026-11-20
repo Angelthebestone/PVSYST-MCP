@@ -1,0 +1,457 @@
+﻿  PVObject_=pvShading
+    Comment=Ninguna escena de sombreado definida
+    Version=8.1.8
+    Flags=$0400
+    Precision=1
+    FracOmbreMod=1.000
+    FracOmbreThin=0.400
+    DisplayedRef=refGeographical
+
+    ListeObjets, list of=28 TShdObject
+
+      PVObject_1=pvShdElemObject
+        Comment=Casa_A
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=1
+        ColorSurf=$C0FF
+        DOrigine=5.000000,2.000000,1.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeParallelepipede
+        Params=10.000,8.000,3.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_2=pvShdElemObject
+        Comment=Triángulo
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=2
+        ColorSurf=$C0FF
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeTriangle
+        Params=1.000,1.000,1.000,0.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_3=pvShdElemObject
+        Comment=Triángulo Isósceles
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=3
+        ColorSurf=$C0FF
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeTriangleIsocele
+        Params=1.000,1.000,0.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_4=pvShdElemObject
+        Comment=Triángulo Rectángulo
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=4
+        ColorSurf=$C0FF
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeTriangleRectangle
+        Params=1.000,1.000,0.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_5=pvShdElemObject
+        Comment=Rectángulo #2
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=5
+        ColorSurf=$C0FF
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeRectangle
+        Params=1.000,2.000,0.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_6=pvShdElemObject
+        Comment=Trapecio
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=6
+        ColorSurf=$C0FF
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeTrapeze
+        Params=3.000,2.000,1.000,0.500,0.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_7=pvShdElemObject
+        Comment=Polígono regular
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=7
+        ColorSurf=$C0FF
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeRegularPolygon
+        Params=1.000,6.000,0.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_8=pvShdElemObject
+        Comment=Sector seudocircular
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=8
+        ColorSurf=$C0FF
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oePseudoCircleSector
+        Params=1.000,180.000,8.000,0.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_9=pvShdElemObject
+        Comment=Paralelepípedo
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=9
+        ColorSurf=$C0FF
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeParallelepipede
+        Params=1.000,1.000,1.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_10=pvShdElemObject
+        Comment=Pirámide Cuadrada
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=10
+        ColorSurf=$C0FF
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeSquarePyramid
+        Params=1.000,2.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_11=pvShdElemObject
+        Comment=Prisma Triangular
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=11
+        ColorSurf=$C0FF
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeTriangularprism
+        Params=1.000,1.000,1.000,1.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_12=pvShdElemObject
+        Comment=Prisma Hexagonal
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=12
+        ColorSurf=$C0FF
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeHexagonalPrism
+        Params=1.000,1.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_13=pvShdElemObject
+        Comment=Prisma Octogonal
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=13
+        ColorSurf=$C0FF
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeOctogonalPrism
+        Params=1.000,1.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_14=pvShdElemObject
+        Comment=Porción de Cilindro
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=14
+        ColorSurf=$C0FF
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oePortionCylinder
+        Params=1.000,180.000,9.000,1.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_15=pvShdElemObject
+        Comment=Casa + techo de 2 lados
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=15
+        ColorSurf=$00B3E4FF
+        ColorBord=$0002409B
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeHouse
+        Params=8.000,12.000,5.000,30.000,0.500,0.500,
+      End of PVObject pvShdElemObject
+
+      PVObject_16=pvShdElemObject
+        Comment=Casa, techo asimétrico
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=16
+        ColorSurf=$00B3E4FF
+        ColorBord=$0002409B
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeAsymHouse
+        Params=8.000,12.000,5.000,30.000,0.500,0.500,
+      End of PVObject pvShdElemObject
+
+      PVObject_17=pvShdElemObject
+        Comment=En forma de techo - diedro
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=17
+        ColorSurf=$0002409B
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeRoof_Like_Diedre
+        Params=8.000,12.000,30.000,0.000,0.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_18=pvShdElemObject
+        Comment=Tejado 1 fase + aguilones
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=18
+        ColorSurf=$0002409B
+        ColorBord=$00B3E4FF
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeOne_Sided_Roof_Gables
+        Params=8.000,12.000,30.000,0.000,0.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_19=pvShdElemObject
+        Comment=Techo de 2 aguas + Hastial
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=19
+        ColorSurf=$0002409B
+        ColorBord=$00B3E4FF
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeTwo_Sided_Roof_Gables
+        Params=8.000,12.000,30.000,0.000,0.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_20=pvShdElemObject
+        Comment=Techo de 4 lados
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=20
+        ColorSurf=$0002409B
+        ColorBord=$0002409B
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeFour_sided_Roof
+        Params=8.000,12.000,8.000,30.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_21=pvShdElemObject
+        Comment=Buhardilla
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=21
+        ColorSurf=$0002409B
+        ColorBord=$0002409B
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeMansard
+        Params=1.500,1.500,45.000,30.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_22=pvShdElemObject
+        Comment=Prisma - chimenea
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=22
+        ColorSurf=$0002409B
+        ColorBord=$0002409B
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oePrism_Chimney
+        Params=1.000,1.000,1.000,30.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_23=pvShdElemObject
+        Comment=Árbol
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=23
+        ColorSurf=$8000
+        ColorBord=$275E
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeTree
+        Params=3.000,3.000,2.000,2.000,4.000,0.500,
+      End of PVObject pvShdElemObject
+
+      PVObject_24=pvShdElemObject
+        Comment=Cable
+        Version=8.1.8
+        Flags=$02200104
+        NoObjCreated=24
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeCable
+        Params=10.000,1.000,0.200,6.000,0.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_25=pvShdElemObject
+        Comment=Barandilla un travesaño
+        Version=8.1.8
+        Flags=$02200104
+        NoObjCreated=25
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeHandrail1Crossbar
+        Params=10.000,1.000,0.050,5.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_26=pvShdElemObject
+        Comment=Barandilla dos travesaños
+        Version=8.1.8
+        Flags=$02200104
+        NoObjCreated=26
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeHandrail2Crossbar
+        Params=10.000,1.000,0.600,0.050,5.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_27=pvShdElemObject
+        Comment=Turbina eólica
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=27
+        ColorSurf=$00C9C9C9
+        ColorBord=$00C9C9C9
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeWindTurbine
+        Params=40.000,4.000,3.000,30.000,5.000,3.000,3.500,1.000,5.000,4.000,0.000,
+      End of PVObject pvShdElemObject
+
+      PVObject_28=pvShdElemObject
+        Comment=Pilón eléctrico
+        Version=8.1.8
+        Flags=$02200004
+        NoObjCreated=28
+        ColorSurf=$00808080
+        ColorBord=$00808080
+        DOrigine=0.000000,0.000000,0.000000
+        DInclin=0.000000
+        BaseSlope=0.000000
+        DAzimut=0.000000
+        Source=osPVsyst
+        ObjetElemType=oeElectricPylon
+        Params=40.000,8.000,5.000,4.000,3.000,20.000,12.000,2.000,0.300,3.000,0.400,
+      End of PVObject pvShdElemObject
+    End of ListeObjets
+
+    Orientations, list of=1 TOrientGroup
+
+      PVObject_=pvOrient
+        Comment=Fixed, Tilt 25.0°, Azim. 20.0°
+        Version=8.1.8
+        Flags=$00
+      NoOrient=1
+      FieldType=FixedPlane
+      FieldTilt=25.0
+      FieldAzim=20.0
+      BaseSlope=0.0
+      UsesTiltAver=False
+      UsesAzimAver=False
+      UsesSlopeAver=False
+      BTNoTrackers=-1,-1,
+      End of TOrientGroup
+    End of Orientations
+  End of PVObject pvShading

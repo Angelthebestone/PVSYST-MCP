@@ -1,0 +1,358 @@
+"""Tests for the regeneration of docs/gui_mapa.json from the tab inventory."""
+
+import json
+from pathlib import Path
+
+import pytest
+
+import mapa_desde_inventario as mapa_py
+from mapa_desde_inventario import (
+    Json,
+    Remedio,
+    cargar,
+    main,
+    remedir,
+    serializar,
+)
+
+BOTONES = [{"texto": "OK", "habilitado": True}]
+
+
+def campo(etiqueta: str) -> Json:
+    return {"clase": "TEdit", "etiqueta": etiqueta, "marcado": None, "habilitado": True}
+
+
+def pagina_vieja(pestana: str | None, indice: int | None, campos: int) -> Json:
+    return {
+        "pestana": pestana,
+        "campos": [{"clase": "TEdit", "etiqueta": f"c{n}"} for n in range(campos)],
+        "botones": BOTONES,
+        "rotulos": [["TTabSheet", f"rotulo de {pestana}"]],
+        "sin_rotulo": {"TEdit": 1},
+        "indice_pestana": indice,
+    }
+
+
+def instancia(abierta_con: str, paginas: list[Json]) -> Json:
+    return {
+        "titulo": "Ventana <variante>",
+        "abierta_con": abierta_con,
+        "pestanas": [p["pestana"] for p in paginas if p["pestana"]],
+        "paginas": paginas,
+    }
+
+
+def mapa_de_prueba() -> Json:
+    """A window truncated at 13 fields and without its first tab, a tracker
+    window, and one the inventory does not touch."""
+    pestanas = [pagina_vieja("Uno", 0, 13), pagina_vieja("Dos", 1, 13)]
+    return {
+        "version_pvsyst": "8.1.8",
+        "nota": "Mapa de prueba.",
+        "ventanas": {
+            "TPerdidasForm": {
+                "titulos": ["Ventana <variante>"],
+                "abierta_con": ["variante.perdidas", "bombeo > Perdidas"],
+                "instancias": [
+                    instancia("variante.perdidas", pestanas),
+                    instancia("bombeo > Perdidas", pestanas[:1]),
+                ],
+                "controles": [],
+            },
+            "TSeguidorForm": {
+                "titulos": ["Orientacion"],
+                "abierta_con": ["variante.orientacion"],
+                "instancias": [
+                    instancia("variante.orientacion", [pagina_vieja(None, None, 13)])
+                ],
+                "controles": [],
+            },
+            "TAjenaForm": {
+                "titulos": ["Ajena"],
+                "abierta_con": ["x"],
+                "instancias": [instancia("x", [pagina_vieja(None, None, 13)])],
+                "controles": [["TTabSheet", "rotulo de None"]],
+            },
+        },
+        "limites": ["uno"],
+    }
+
+
+def inventario_de_prueba() -> Json:
+    """`Cero` is a tab the map never had; `Uno` has 20 fields, the map kept 13."""
+    return {
+        "TPerdidasForm": {
+            "ventana": "TPerdidasForm",
+            "titulo": "Ventana Basic system",
+            "pestanas": [
+                {
+                    "indice": 0,
+                    "pestana": "Cero",
+                    "campos": [campo("a")],
+                    "botones": BOTONES,
+                },
+                {
+                    "indice": 1,
+                    "pestana": "Uno",
+                    "campos": [campo(f"u{n}") for n in range(20)],
+                    "botones": BOTONES,
+                },
+                {
+                    "indice": 2,
+                    "pestana": "Dos",
+                    "campos": [campo("d")],
+                    "botones": BOTONES,
+                },
+            ],
+            "errores": [],
+        },
+        "TSeguidorForm": {
+            "ventana": "TSeguidorForm",
+            "titulo": "Orientacion",
+            "pestanas": [
+                {
+                    "indice": None,
+                    "pestana": None,
+                    "campos": [campo("tilt")],
+                    "botones": BOTONES,
+                }
+            ],
+            "errores": [],
+        },
+    }
+
+
+@pytest.fixture
+def remedios(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        mapa_py,
+        "REMEDIOS",
+        {
+            "TPerdidasForm": Remedio(
+                sin_rotulos_de=frozenset({"Dos"}), estado="Sin almacenamiento"
+            ),
+            "TSeguidorForm": Remedio(anadir_con="variante.orientacion"),
+        },
+    )
+
+
+@pytest.mark.usefixtures("remedios")
+def test_regenerates_a_window_without_truncating_and_with_its_added_tab() -> None:
+    original = mapa_de_prueba()
+    nuevo = remedir(original, inventario_de_prueba())
+
+    paginas = nuevo["ventanas"]["TPerdidasForm"]["instancias"][0]["paginas"]
+    assert [(p["pestana"], p["indice_pestana"]) for p in paginas] == [
+        ("Cero", 0),
+        ("Uno", 1),
+        ("Dos", 2),
+    ]
+    assert len(paginas[1]["campos"]) == 20
+    assert paginas[1]["campos"][0]["habilitado"] is True
+    # The caption of a surviving tab stays; a new tab, or one whose state changed, has none.
+    assert paginas[1]["rotulos"] == [["TTabSheet", "rotulo de Uno"]]
+    assert "rotulos" not in paginas[0]
+    assert "rotulos" not in paginas[2]
+    nombres = nuevo["ventanas"]["TPerdidasForm"]["instancias"][0]["pestanas"]
+    assert nombres == ["Cero", "Uno", "Dos"]
+    assert original == mapa_de_prueba(), "remedir must not mutate its input"
+
+
+@pytest.mark.usefixtures("remedios")
+def test_keeps_everything_else_of_the_map_byte_for_byte() -> None:
+    original = mapa_de_prueba()
+    nuevo = remedir(original, inventario_de_prueba())
+
+    assert nuevo["ventanas"]["TAjenaForm"] == original["ventanas"]["TAjenaForm"]
+    assert (
+        nuevo["ventanas"]["TPerdidasForm"]["instancias"][1]
+        == (original["ventanas"]["TPerdidasForm"]["instancias"][1])
+    )
+    assert list(nuevo) == list(original)
+    # `nota` and `limites` only grow: what was there stays, in its place.
+    crecen = {"ventanas", "nota", "limites"}
+    sin_tocar = {k: v for k, v in nuevo.items() if k not in crecen}
+    assert serializar(sin_tocar) == serializar(
+        {k: v for k, v in original.items() if k not in crecen}
+    )
+    assert nuevo["nota"].startswith(original["nota"])
+    assert nuevo["limites"][: len(original["limites"])] == original["limites"]
+
+
+@pytest.mark.usefixtures("remedios")
+def test_adds_the_fixed_tilt_instance_and_keeps_the_tracker_one() -> None:
+    nuevo = remedir(mapa_de_prueba(), inventario_de_prueba())
+
+    instancias = nuevo["ventanas"]["TSeguidorForm"]["instancias"]
+    assert len(instancias) == 2
+    assert len(instancias[0]["paginas"][0]["campos"]) == 13
+    assert instancias[1]["abierta_con"] == "variante.orientacion"
+    assert instancias[1]["paginas"][0]["campos"][0]["etiqueta"] == "tilt"
+
+
+@pytest.mark.usefixtures("remedios")
+def test_says_the_state_it_was_measured_in_and_what_is_still_truncated() -> None:
+    nuevo = remedir(mapa_de_prueba(), inventario_de_prueba())
+
+    perdidas = nuevo["ventanas"]["TPerdidasForm"]["instancias"]
+    assert perdidas[0]["estado_medido"] == "Sin almacenamiento"
+    assert "estado_medido" not in perdidas[1]
+    seguidor = nuevo["ventanas"]["TSeguidorForm"]["instancias"][1]
+    assert seguidor["estado_medido"] == "no registrado"
+    assert nuevo["nota"].count("REMEDIDO") == 1
+    alcance = [x for x in nuevo["limites"] if x.startswith("ALCANCE: ")]
+    assert nuevo["limites"][0] == "uno"
+    assert len(alcance) == 3
+    # 3 of the 7 pages still hold 13: the other instance, the tracker, the untouched window.
+    assert "3 de 7 páginas tienen exactamente 13" in alcance[0]
+    assert "TPerdidasForm, TSeguidorForm" in alcance[0]
+
+
+def test_replaces_the_instance_named_by_abierta_con_and_prefers_measured_rotulos(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        mapa_py, "REMEDIOS", {"TPerdidasForm": Remedio(reemplaza="bombeo > Perdidas")}
+    )
+    inventario = inventario_de_prueba()
+    del inventario["TSeguidorForm"]
+    uno = inventario["TPerdidasForm"]["pestanas"][1]
+    uno["rotulos"] = [["TGroupBox", "medido ahora"]]
+    original = mapa_de_prueba()
+
+    nuevo = remedir(original, inventario)
+
+    instancias = nuevo["ventanas"]["TPerdidasForm"]["instancias"]
+    assert instancias[0] == original["ventanas"]["TPerdidasForm"]["instancias"][0]
+    assert instancias[1]["abierta_con"] == "bombeo > Perdidas"
+    assert len(instancias[1]["paginas"]) == 3
+    assert instancias[1]["paginas"][1]["rotulos"] == [["TGroupBox", "medido ahora"]]
+    assert "sin_rotulo" not in instancias[1]["paginas"][1]
+
+
+def test_remeasures_two_openings_of_the_same_window_under_their_own_keys(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        mapa_py,
+        "REMEDIOS",
+        {
+            "TPerdidasForm#variante.perdidas": Remedio(reemplaza="variante.perdidas"),
+            "TPerdidasForm#bombeo > Perdidas": Remedio(
+                reemplaza="bombeo > Perdidas", estado="Proyecto de bombeo"
+            ),
+        },
+    )
+    una = inventario_de_prueba()["TPerdidasForm"]
+    otra = inventario_de_prueba()["TPerdidasForm"]
+    otra["pestanas"] = otra["pestanas"][:1]
+    inventario = {
+        "TPerdidasForm#variante.perdidas": una,
+        "TPerdidasForm#bombeo > Perdidas": otra,
+    }
+
+    nuevo = remedir(mapa_de_prueba(), inventario)
+
+    instancias = nuevo["ventanas"]["TPerdidasForm"]["instancias"]
+    assert [len(i["paginas"]) for i in instancias] == [3, 1]
+    assert instancias[1]["estado_medido"] == "Proyecto de bombeo"
+    assert instancias[0]["estado_medido"] == "no registrado"
+
+
+def test_adding_an_opening_keeps_the_instances_already_remeasured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        mapa_py,
+        "REMEDIOS",
+        {
+            "TPerdidasForm": Remedio(),
+            "TPerdidasForm#otra": Remedio(anadir_con="otra apertura"),
+        },
+    )
+    inventario = {
+        "TPerdidasForm": inventario_de_prueba()["TPerdidasForm"],
+        "TPerdidasForm#otra": inventario_de_prueba()["TPerdidasForm"],
+    }
+
+    una_vez = remedir(mapa_de_prueba(), inventario)
+    dos_veces = remedir(una_vez, inventario)
+
+    aperturas = [
+        i["abierta_con"] for i in dos_veces["ventanas"]["TPerdidasForm"]["instancias"]
+    ]
+    assert aperturas == ["variante.perdidas", "bombeo > Perdidas", "otra apertura"]
+    assert serializar(dos_veces) == serializar(una_vez)
+
+
+def test_two_projects_opened_by_the_same_function_stay_two_instances(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        mapa_py,
+        "REMEDIOS",
+        {
+            "TSeguidorForm": Remedio(anadir_con="variante.orientacion", estado="fijo"),
+            "TSeguidorForm#seguidor": Remedio(
+                reemplaza="variante.orientacion", estado="seguidor"
+            ),
+        },
+    )
+    medida = inventario_de_prueba()["TSeguidorForm"]
+    inventario = {"TSeguidorForm": medida, "TSeguidorForm#seguidor": medida}
+
+    una_vez = remedir(mapa_de_prueba(), inventario)
+    dos_veces = remedir(una_vez, inventario)
+
+    estados = [
+        i["estado_medido"] for i in dos_veces["ventanas"]["TSeguidorForm"]["instancias"]
+    ]
+    assert estados == ["seguidor", "fijo"]
+    assert serializar(dos_veces) == serializar(una_vez)
+
+
+@pytest.mark.usefixtures("remedios")
+def test_replaces_its_own_note_instead_of_appending_another() -> None:
+    una_vez = remedir(mapa_de_prueba(), inventario_de_prueba())
+    una_vez["nota"] = "Mapa de prueba. REMEDIDO: texto de una versión anterior."
+
+    de_nuevo = remedir(una_vez, inventario_de_prueba())
+
+    assert de_nuevo["nota"] == remedir(mapa_de_prueba(), inventario_de_prueba())["nota"]
+
+
+@pytest.mark.usefixtures("remedios")
+def test_running_it_twice_leaves_the_same_bytes_as_once(tmp_path: Path) -> None:
+    mapa = tmp_path / "mapa.json"
+    inventario = tmp_path / "inventario.json"
+    mapa.write_bytes(serializar(mapa_de_prueba()))
+    inventario.write_text(json.dumps(inventario_de_prueba()), encoding="utf-8")
+    ninguno = tmp_path / "sin_condicionales.json"
+    argumentos = [
+        "--mapa",
+        str(mapa),
+        "--inventario",
+        str(inventario),
+        "--condicionales",
+        str(ninguno),
+    ]
+
+    assert main(["--check", *argumentos]) == 1
+    assert main(argumentos) == 0
+    una_vez = mapa.read_bytes()
+    assert main(argumentos) == 0
+    assert mapa.read_bytes() == una_vez
+    assert main(["--check", *argumentos]) == 0
+    assert len(cargar(mapa)["ventanas"]["TSeguidorForm"]["instancias"]) == 2
+
+
+def test_the_committed_map_is_what_the_committed_inventory_generates() -> None:
+    assert main(["--check"]) == 0
+
+
+def test_every_remedio_has_inventory_data() -> None:
+    # `remedir` only visits the inventory, so an entry without data is ignored silently.
+    sin_datos = set(mapa_py.REMEDIOS) - set(cargar(mapa_py.INVENTARIO))
+    assert not sin_datos, (
+        f"REMEDIOS entries with no inventory data: {sorted(sin_datos)}"
+    )

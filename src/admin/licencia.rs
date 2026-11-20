@@ -1,4 +1,4 @@
-//! Licensing tools: inspect and sync status, generate activation commands.
+//! Licensing tools: inspect status and generate licence commands.
 
 use crate::adapters::cli;
 use crate::args::{flag, DRY_RUN};
@@ -6,8 +6,9 @@ use crate::config::Paths;
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
 
-/// Licensing. `info` and `sync` run the CLI; `activar` and `desactivar` never
-/// execute: they return the command to run with the user's own key or id.
+/// Licensing. `info` runs the CLI; `activar` and `desactivar` never execute:
+/// they return the command to run with the user's own key or id. `lic-sync` is
+/// not handled here: `entorno` returns its command template instead of running it.
 pub(crate) fn licencia(paths: &Paths, args: &Value) -> Result<Value> {
     let accion = args
         .get("accion")
@@ -16,7 +17,6 @@ pub(crate) fn licencia(paths: &Paths, args: &Value) -> Result<Value> {
         .to_lowercase();
     let cli_args: Vec<String> = match accion.as_str() {
         "info" | "estado" => vec!["lic-info".into()],
-        "sync" | "sincronizar" => vec!["lic-sync".into()],
         "activar" | "activate" => {
             return Ok(json!({
                 "accion": "activar",
@@ -33,7 +33,7 @@ pub(crate) fn licencia(paths: &Paths, args: &Value) -> Result<Value> {
         }
         other => {
             return Err(Error::Invalid(format!(
-                "Accion de licencia desconocida '{other}' (info|sync|activar|desactivar)"
+                "Accion de licencia desconocida '{other}' (info|activar|desactivar)"
             )))
         }
     };
@@ -41,11 +41,18 @@ pub(crate) fn licencia(paths: &Paths, args: &Value) -> Result<Value> {
         return Ok(json!({ "dry_run": true, "accion": accion,
             "command_line": cli::display_command_line(&paths.cli_exe.to_string_lossy(), &cli_args) }));
     }
-    let out = cli::run(
-        paths,
-        &cli_args,
-        cli::timeout_de(args, cli::TIMEOUT_DEFECTO_S),
-    )?;
+    let timeout = cli::timeout_de(args, cli::TIMEOUT_DEFECTO_S);
+    let mut out = cli::run(paths, &cli_args, timeout)?;
+    // PVsystCLI answered `lic-info` with nothing once while the GUI was open
+    // and fine on the next calls: ask again once before reporting an empty answer.
+    if out.stdout.trim().is_empty() {
+        out = cli::run(paths, &cli_args, timeout)?;
+    }
+    // `lic-info` is the only read that knows the licence mode: keep the trial
+    // budget in the ledger in step with it.
+    if accion == "info" || accion == "estado" {
+        crate::adapters::ledger::registrar_lic_info(&paths.workspace, &out.stdout);
+    }
     Ok(cli::output_json(
         &out,
         &cli_args[0],

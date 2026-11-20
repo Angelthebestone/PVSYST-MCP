@@ -25,7 +25,9 @@ fn main() -> ExitCode {
         return ExitCode::from(2);
     };
     let dir = Path::new(&dir);
-    let command = args.get(1).map(String::as_str).unwrap_or("");
+    // Real PVsystCLI command names are case-insensitive.
+    let comando = args.get(1).map(String::as_str).unwrap_or("").to_lowercase();
+    let command = comando.as_str();
     if let Some(ms) = env::var("FAKE_PVSYST_SLEEP_MS")
         .ok()
         .and_then(|v| v.parse::<u64>().ok())
@@ -36,11 +38,18 @@ fn main() -> ExitCode {
     if command == "run-simulation" && env::var("FAKE_PVSYST_PROGRESO").as_deref() == Ok("1") {
         emitir_progreso();
     }
-    if emitir_casos_especiales(command, &args) {
+    if emitir_caida() {
+        return ExitCode::SUCCESS;
+    }
+    if let Some(mensaje) = error_de_carpeta_destino(command, &args) {
+        println!("{mensaje}");
+        return ExitCode::SUCCESS;
+    }
+    if emitir_error_de_opciones(dir, &args) || emitir_casos_especiales(command, &args) {
         return ExitCode::SUCCESS;
     }
     // Success fixtures are stored as `<command>-ok.txt`; plain `<command>.txt` wins when present.
-    let fixture = dir.join(format!("{command}.txt"));
+    let fixture = dir.join(fixture_de(command, &args));
     let ok_fixture = dir.join(format!("{command}-ok.txt"));
     let fallback = dir.join("unknown-command.txt");
     let stdout = fs::read(&fixture)
@@ -54,7 +63,7 @@ fn main() -> ExitCode {
             copy_outputs(dir, &args);
             write_simulation_log();
         }
-        "create-site" => touch_output(&args, "-osf:"),
+        "create-site" => escribir_sit(&args, "-osf:"),
         _ => {}
     }
     ExitCode::SUCCESS
@@ -75,11 +84,14 @@ fn emitir_progreso() {
 }
 
 /// `run-simulation`: copy the canned CSV/PDF to the `-ocf:` / `-rpf:` targets.
+/// `FAKE_PVSYST_PDF` replaces the canned report, for a run whose KPIs must differ.
 fn copy_outputs(dir: &Path, args: &[String]) {
     let results = dir.join("..").join("results");
-    for (flag, source) in [("-ocf:", "MCP_E2E.csv"), ("-rpf:", "MCP_E2E.pdf")] {
-        if let (Some(target), Ok(_)) = (option(args, flag), fs::metadata(results.join(source))) {
-            let _ = fs::copy(results.join(source), target);
+    let pdf = env::var_os("FAKE_PVSYST_PDF")
+        .map_or_else(|| results.join("MCP_E2E.pdf"), std::path::PathBuf::from);
+    for (flag, source) in [("-ocf:", results.join("MCP_E2E.csv")), ("-rpf:", pdf)] {
+        if let (Some(target), Ok(_)) = (option(args, flag), fs::metadata(&source)) {
+            let _ = fs::copy(&source, target);
         }
     }
 }
@@ -100,7 +112,7 @@ fn write_simulation_log() {
         .map(|d| d.as_secs())
         .unwrap_or(0);
     let log_path = admin_dir.join(format!("{now}Err.log"));
-    let log_content = concat!(
+    let mut log_content = String::from(concat!(
         "23:16:40|Norm|TSimulationHandl|ExecSimulation      |LErrorList.Count = 3Incident global = 657 W/m², :The MPP voltage is lower (by 3 V) than the minimum MPP voltage of the inverter.\n",
         "23:16:49|Warn|TSimulation     |HandleErrorMessages |Errors during the simulation:\n",
         "        |    |                |                    |ErrorList: 1882 error messages\n",
@@ -111,20 +123,104 @@ fn write_simulation_log() {
         "        |    |                |                    |Incident global = 657 W/m², :The MPP voltage is lower (by 3 V) than the minimum MPP voltage of the inverter.\n",
         "23:16:49|Warn|TEnvManager     |InitLicense         |No license file\n",
         "23:16:49|Err |PVsystCLI       |CMD OUTPUT          |The license file C:\\license.lic is missing.\n",
-    );
+    ));
+    if env::var("FAKE_PVSYST_AVISO_INCOHERENTE").as_deref() == Ok("1") {
+        log_content.push_str(concat!(
+            "23:17:02|Warn|TSimulation     |HandleErrorMessages |Por favor, póngase en contacto con support@pvsyst.com: Incoherencia en los resultados de la simulación: Error de balance energético nominal del conjunto (-33.33 %).\n",
+            "        |    |                |                    |EArrNom calculation is not consistent with the array.\n",
+        ));
+    }
     let _ = fs::write(log_path, log_content);
 }
 
-/// Create an empty file at the value of `flag` (e.g. the `-osf:` output).
-fn touch_output(args: &[String], flag: &str) {
-    if let Some(target) = option(args, flag) {
-        let _ = fs::write(target, b"");
+/// Write the `.SIT` PVsyst would create at the value of `-osf:`, with the site
+/// object the project and the variant take from it.
+fn escribir_sit(args: &[String], flag: &str) {
+    let Some(target) = option(args, flag) else {
+        return;
+    };
+    // The fields the MCP reads back: the coordinates it asked for, the altitude and
+    // the `Source` that marks a site created from a NASA grid cell.
+    let campo = |flag: &str, defecto: &str| option(args, flag).unwrap_or(defecto).to_string();
+    let sitio = format!(
+        "PVObject_=pvSite\r\n  Comment=Synthetic site;Nowhere;\r\n  Version=8.1.0\r\n  NomF={nombre}\r\n  Country=Nowhere\r\n  Latitude={lat}\r\n  Longitude={lon}\r\n  Altitude={alt}\r\n  TimeZone=-5.0\r\n  Source={src}\r\nEnd of PVObject pvSite\r\n",
+        nombre = campo("-sn:", "Synthetic"),
+        lat = campo("-lat:", "10.0000"),
+        lon = campo("-lon:", "-70.0000"),
+        alt = campo("-alt:", "0"),
+        src = campo("-s:", "NASA SSE grid cell"),
+    );
+    let _ = fs::write(target, sitio);
+}
+
+/// Fixture name for `command`: `help <comando>` prints the per-command help.
+fn fixture_de(command: &str, args: &[String]) -> String {
+    match args.get(2).map(String::as_str) {
+        Some(sub) if command == "help" && sub == "run-simulation" => {
+            "help-run-simulation.txt".to_string()
+        }
+        _ => format!("{command}.txt"),
     }
 }
 
 fn option<'a>(args: &'a [String], flag: &str) -> Option<&'a str> {
     args.iter().find_map(|a| a.strip_prefix(flag))
 }
+
+/// `export-logs` to a folder that does not exist: the real CLI prints this and exits 0.
+fn error_de_carpeta_destino(command: &str, args: &[String]) -> Option<String> {
+    if command != "export-logs" {
+        return None;
+    }
+    let destino = option(args, "-t:")?;
+    (!Path::new(destino).is_dir())
+        .then(|| format!("{destino} does not exist. Please set another target folder."))
+}
+/// A run whose worker thread died: the real CLI printed only the license banner and
+/// exited 0, and left the exception in its Admin log (measured in 8.1.8).
+fn emitir_caida() -> bool {
+    if env::var("FAKE_PVSYST_CRASH").as_deref() != Ok("1") {
+        return false;
+    }
+    println!("Checking license...");
+    if let Some(local) = env::var_os("LOCALAPPDATA") {
+        let admin = Path::new(&local)
+            .join("PVsystCLI")
+            .join("8.1")
+            .join("Admin");
+        if fs::create_dir_all(&admin).is_ok() {
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            let _ = fs::write(
+                admin.join(format!("{now}Err.log")),
+                concat!(
+                    "01:58:59|Err |EPrivilege      |run-simulation      |Instruction privilégiée\n",
+                    "        |    |                |                    |1.110 sec;\n",
+                ),
+            );
+        }
+    }
+    true
+}
+
+/// Opciones que el CLI real rechaza con `Error: Invalid command syntax` y salida 0.
+fn emitir_error_de_opciones(dir: &Path, args: &[String]) -> bool {
+    let fixture = if args.iter().any(|a| a == "--bogus") {
+        "bad-option.txt"
+    } else if args.get(2).map(String::as_str) == Some("help") {
+        "unknown-command.txt"
+    } else {
+        return false;
+    };
+    let Ok(bytes) = fs::read(dir.join(fixture)) else {
+        return false;
+    };
+    print!("{}", String::from_utf8_lossy(&bytes));
+    true
+}
+
 /// Emite respuestas sintéticas para pruebas de volumen masivo y ambigüedad.
 fn emitir_casos_especiales(command: &str, args: &[String]) -> bool {
     if command == "huge-output" || args.iter().any(|a| a == "--huge-output") {

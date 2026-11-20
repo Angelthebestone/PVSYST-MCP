@@ -26,8 +26,14 @@ pub(super) fn pnom_del_modulo(consulta: &ConsultaModulo<'_>, pan_name: &str) -> 
         if let Some(ws) = consulta.args.get("workspace") {
             pedido["workspace"] = ws.clone();
         }
-        pan::leer_modulo(consulta.paths, &pedido)
-            .ok()
+        // Only a missing module falls back to inference: a PAN that exists but cannot be
+        // read is an error the caller must see.
+        let leido = match pan::leer_modulo(consulta.paths, &pedido) {
+            Ok(m) => Some(m),
+            Err(Error::NotFound(_)) => None,
+            Err(e) => return Err(e),
+        };
+        leido
             .and_then(|m| m.get("pnom").and_then(Value::as_f64))
             .or_else(|| pnom_from_sizing(consulta.root))
             .or_else(|| pnom_from_name(pan_name))
@@ -84,7 +90,3 @@ fn pnom_from_sizing(root: &object::PvNode) -> Option<f64> {
     let kwp = num("PNomSizing")?;
     (modules > 0.0).then(|| (kwp * 1000.0 / modules).round())
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/projects/lifecycle/potencia_modulo.rs"]
-mod tests;

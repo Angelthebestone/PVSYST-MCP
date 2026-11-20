@@ -1,6 +1,8 @@
 //! Standard JSON envelope for PVsystCLI executions.
 
-use super::clasificacion::{clasificar_salida, confirmed, is_license_banner, Clasificacion};
+use super::clasificacion::{
+    clasificar_salida, confirmed, es_comando_informativo, is_license_banner, Clasificacion,
+};
 use crate::state::CliOutput;
 use serde_json::{json, Value};
 
@@ -29,6 +31,14 @@ fn determinar_estado_ejecucion(
         );
     }
     let clasificacion = clasificar_salida(command, &out.stdout, out.exit_code);
+    // A command whose worker thread died confirms nothing: the Admin log says why,
+    // and an agent that reads «ambiguo» retries and spends another trial run.
+    let clasificacion = match (clasificacion, &out.crash) {
+        (Clasificacion::Ambiguo(_), Some(motivo)) => {
+            Clasificacion::Error(format!("crash: {motivo}"))
+        }
+        (otra, _) => otra,
+    };
     let (success, err) = match &clasificacion {
         Clasificacion::Exito => (true, None),
         Clasificacion::Error(e) => (false, Some(e.clone())),
@@ -44,12 +54,17 @@ enum EstadoProceso {
     Fallo,
 }
 
-fn filtrar_cuerpo_stdout(stdout: &str, estado: EstadoProceso) -> String {
+/// Stdout without the per-run noise. The license banner is only noise for the
+/// commands that act (a `help` answer *is* the list of `lic-activate`), and the
+/// progress percentages only exist in a simulation.
+fn filtrar_cuerpo_stdout(stdout: &str, command: &str, estado: EstadoProceso) -> String {
     let exito = matches!(estado, EstadoProceso::Exito);
+    let quitar_licencia = exito && !es_comando_informativo(command);
+    let quitar_progreso = exito && command.eq_ignore_ascii_case("run-simulation");
     stdout
         .lines()
-        .filter(|l| !(exito && is_license_banner(l)))
-        .filter(|l| !(exito && l.trim_end().ends_with('%')))
+        .filter(|l| !(quitar_licencia && is_license_banner(l)))
+        .filter(|l| !(quitar_progreso && l.trim_end().ends_with('%')))
         .collect::<Vec<_>>()
         .join("\n")
 }
@@ -65,6 +80,9 @@ fn enriquecer_salida_json(
     }
     if let Some(e) = detected_error {
         base["detected_error"] = json!(e);
+    }
+    if let Some(crash) = &out.crash {
+        base["crash"] = json!(crash);
     }
     if !out.stderr.trim().is_empty() {
         base["stderr_tail"] = json!(tail(&out.stderr, LINEAS_TAIL_STDERR));
@@ -85,14 +103,16 @@ pub(crate) fn output_json(out: &CliOutput, command: &str, extra: &Value) -> Valu
     } else {
         EstadoProceso::Fallo
     };
-    let cuerpo = filtrar_cuerpo_stdout(&out.stdout, estado);
+    let cuerpo = filtrar_cuerpo_stdout(&out.stdout, command, estado);
+    let cuerpo_recortado = cuerpo.trim();
     let mut base = json!({
         "success": success,
         "clasificacion": etiqueta,
         "confirmed_by_output": !out.timed_out && confirmed(command, &out.stdout),
         "exit_code": out.exit_code,
         "command_line": out.command_line,
-        "stdout_tail": tail(cuerpo.trim(), LINEAS_TAIL_STDOUT),
+        "stdout_tail": tail(cuerpo_recortado, LINEAS_TAIL_STDOUT),
+        "stdout_tail_truncado": cuerpo_recortado.lines().count() > LINEAS_TAIL_STDOUT,
         "timed_out": out.timed_out,
         "stdout_truncado": out.stdout_truncado,
         "stderr_truncado": out.stderr_truncado,

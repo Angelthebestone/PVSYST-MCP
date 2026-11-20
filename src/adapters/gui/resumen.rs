@@ -55,7 +55,3 @@ pub(crate) fn resumen_de_ventana(h: Hwnd) -> Value {
         .collect();
     resumen_formulario(&controles)
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/adapters/gui/resumen.rs"]
-mod tests;

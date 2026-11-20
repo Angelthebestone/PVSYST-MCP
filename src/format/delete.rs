@@ -3,22 +3,12 @@
 //! Works directly on raw byte buffers, preserving untouched lines, binary blocks,
 //! line endings (LF/CRLF) and indentation.
 
+use super::lineas::{join, split, texto};
 use super::object;
 use super::selector::parse_selector;
 use super::span::{find_span_by_segs, spans_of, ObjSpan};
 use crate::error::{Error, Result};
-
-fn split(bytes: &[u8]) -> Vec<Vec<u8>> {
-    bytes.split(|&b| b == b'\n').map(<[u8]>::to_vec).collect()
-}
-
-fn join(lines: &[Vec<u8>]) -> Vec<u8> {
-    lines.join(&b'\n')
-}
-
-fn texto(line: &[u8]) -> String {
-    String::from_utf8_lossy(line).trim().to_string()
-}
+use crate::idioma::{Idioma, Texto};
 
 /// Direct field lines (`key=value`) of span `si` as (line index, key, value),
 /// skipping nested blocks and structural markers.
@@ -48,6 +38,11 @@ fn campos(lineas: &[Vec<u8>], spans: &[ObjSpan], si: usize) -> Vec<(usize, Strin
     out
 }
 
+const OBJETO_AUSENTE: Texto = Texto {
+    es: "No se encontró el objeto '{objeto}'",
+    en: "Object '{objeto}' not found",
+};
+
 /// Remove the object `selector` (header through its `End of PVObject` line).
 ///
 /// Refuses with `Error::Format` if the document structure is unbalanced.
@@ -55,8 +50,9 @@ pub(crate) fn eliminar_objeto(destino: &[u8], selector: &str) -> Result<Vec<u8>>
     object::validar_estructura(destino)?;
     let segs = parse_selector(selector)?;
     let spans = spans_of(destino);
-    let si = find_span_by_segs(&spans, &segs)
-        .ok_or_else(|| Error::NotFound(format!("Object '{selector}' not found")))?;
+    let si = find_span_by_segs(&spans, &segs).ok_or_else(|| {
+        Error::NotFound(OBJETO_AUSENTE.texto_con(Idioma::de_entorno(), &[("objeto", selector)]))
+    })?;
 
     let mut lineas = split(destino);
     let sp = &spans[si];
@@ -94,8 +90,9 @@ pub(crate) fn quitar_duplicados(bytes: &[u8], selector: &str) -> Result<Vec<u8>>
     object::validar_estructura(bytes)?;
     let segs = parse_selector(selector)?;
     let spans = spans_of(bytes);
-    let si = find_span_by_segs(&spans, &segs)
-        .ok_or_else(|| Error::NotFound(format!("Object '{selector}' not found")))?;
+    let si = find_span_by_segs(&spans, &segs).ok_or_else(|| {
+        Error::NotFound(OBJETO_AUSENTE.texto_con(Idioma::de_entorno(), &[("objeto", selector)]))
+    })?;
 
     let duplicadas: Vec<String> = claves_duplicadas(bytes, selector)
         .into_iter()

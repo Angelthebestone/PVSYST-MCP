@@ -11,7 +11,6 @@ use std::sync::{Arc, Mutex};
 pub(crate) struct CapturaFlujo {
     pub(crate) bytes: Vec<u8>,
     pub(crate) truncado: bool,
-    pub(crate) error_io: Option<String>,
 }
 
 /// Stream capture shared between the reader thread and observers.
@@ -28,6 +27,8 @@ pub(crate) struct CliOutput {
     pub timeout_s: u64,
     pub stdout_truncado: bool,
     pub stderr_truncado: bool,
+    /// Exception PVsystCLI logged while running this command, if it died.
+    pub crash: Option<String>,
 }
 
 /// A PVsystCLI process launched in the background.

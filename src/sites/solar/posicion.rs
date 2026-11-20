@@ -4,7 +4,6 @@
 
 use crate::args::opt_str;
 use crate::calendario::{dias_del_mes, dias_desde_civil, FechaCivil};
-use crate::config::Paths;
 use crate::error::{Error, Result};
 use serde_json::{json, Value};
 
@@ -79,7 +78,7 @@ pub(crate) fn sol(sitio: &Sitio, n: f64, hora: f64) -> (f64, f64) {
 }
 
 /// Sun path of one day (sun-up hours only) and, with a tilt, the monthly transposition factor.
-pub(crate) fn geometria_solar(_paths: &Paths, args: &Value) -> Result<Value> {
+pub(crate) fn geometria_solar(args: &Value) -> Result<Value> {
     let sitio = sitio_de(args)?;
     let fecha = opt_str(args, &["fecha"]).unwrap_or(FECHA_DEFECTO);
     let n = f64::from(dia_del_anio(fecha)?);

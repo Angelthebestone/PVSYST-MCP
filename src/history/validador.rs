@@ -11,8 +11,14 @@ pub(super) struct EntradaRestauracion {
     pub(super) existia: bool,
 }
 
+/// Snapshot ids are `YYYYMMDD_HHMMSS_mmm_nnnn`: an allowlist of ASCII letters, digits,
+/// `_` and `-` keeps `C:x`, `..` and separators from turning the id into another path.
 pub(super) fn validar_id(id: &str) -> Result<()> {
-    if id.is_empty() || id.contains(['/', '\\']) || id.contains("..") {
+    let valido = !id.is_empty()
+        && id
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-');
+    if !valido {
         return Err(Error::Invalid(format!("Id de historial inválido: '{id}'")));
     }
     Ok(())

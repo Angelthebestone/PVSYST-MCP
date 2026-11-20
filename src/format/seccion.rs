@@ -4,7 +4,10 @@
 //! Only direct fields (opening indentation + 2) are reachable: nested lists and
 //! `PVObject_` blocks keep their own editors.
 
-use super::edit::{field_line, outcome, reject_line_breaks, ChangeOutcome, FinDeLinea};
+use super::edit::{
+    field_line, outcome, reject_line_breaks, AccionCambio, ChangeOutcome, FinDeLinea,
+};
+use super::sin_cambio;
 use super::span::{indent_width, tstart, Lines};
 use crate::error::{Error, Result};
 
@@ -87,7 +90,12 @@ fn aplicar_cambio(
 ) -> Result<ChangeOutcome> {
     let Some((_, viejo)) = indices.first() else {
         return match cambio.valor {
-            Some(nuevo) => Ok(outcome(cambio.clave, "inserted", None, Some(nuevo))),
+            Some(nuevo) => Ok(outcome(
+                cambio.clave,
+                AccionCambio::Inserted,
+                None,
+                Some(nuevo),
+            )),
             None => Err(Error::NotFound(format!(
                 "Campo '{}' no encontrado en la sección",
                 cambio.clave
@@ -95,6 +103,12 @@ fn aplicar_cambio(
         };
     };
     match cambio.valor {
+        Some(nuevo) if sin_cambio(viejo, nuevo) => Ok(outcome(
+            cambio.clave,
+            AccionCambio::SinCambio,
+            Some(viejo.clone()),
+            Some(nuevo),
+        )),
         Some(nuevo) => {
             for (i, _) in indices {
                 let fin = fin_de(&doc.lines[*i], cambio.fin);
@@ -102,7 +116,7 @@ fn aplicar_cambio(
             }
             Ok(outcome(
                 cambio.clave,
-                "replaced",
+                AccionCambio::Replaced,
                 Some(viejo.clone()),
                 Some(nuevo),
             ))
@@ -112,7 +126,12 @@ fn aplicar_cambio(
                 doc.lines[*i].clear();
                 doc.newline[*i] = false;
             }
-            Ok(outcome(cambio.clave, "deleted", Some(viejo.clone()), None))
+            Ok(outcome(
+                cambio.clave,
+                AccionCambio::Deleted,
+                Some(viejo.clone()),
+                None,
+            ))
         }
     }
 }
@@ -128,6 +147,7 @@ pub(crate) fn editar_campos_seccion(
     cambios: &[(String, Option<String>)],
 ) -> Result<(Vec<u8>, Vec<ChangeOutcome>)> {
     reject_line_breaks(cambios)?;
+    super::campos_numericos::validar_valores(cambios)?;
     let mut doc = Lines::split(bytes);
     let seccion = buscar_seccion(&doc, clave)
         .ok_or_else(|| Error::NotFound(format!("Sección '{clave}' no encontrada")))?;

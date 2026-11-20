@@ -6,9 +6,10 @@
 pub(crate) use super::delete::{claves_duplicadas, eliminar_objeto, quitar_duplicados};
 
 use super::edit;
+use super::lineas::{join, split, texto};
 use super::object;
 use super::selector::parse_selector;
-use super::span::{find_span_by_segs, ObjSpan};
+use super::span::{find_span_by_segs, indent_width, ObjSpan};
 use crate::error::{Error, Result};
 
 const BOM: &[u8] = &[0xEF, 0xBB, 0xBF];
@@ -17,30 +18,12 @@ fn sin_bom(bytes: &[u8]) -> &[u8] {
     bytes.strip_prefix(BOM).unwrap_or(bytes)
 }
 
-fn split(bytes: &[u8]) -> Vec<Vec<u8>> {
-    bytes.split(|&b| b == b'\n').map(<[u8]>::to_vec).collect()
-}
-
-fn join(lines: &[Vec<u8>]) -> Vec<u8> {
-    lines.join(&b'\n')
-}
-
-fn texto(line: &[u8]) -> String {
-    String::from_utf8_lossy(line).trim().to_string()
-}
-
 fn same_role(a: Option<&str>, b: Option<&str>) -> bool {
     match (a, b) {
         (Some(x), Some(y)) => x.eq_ignore_ascii_case(y),
         (None, None) => true,
         _ => false,
     }
-}
-
-fn indent_of(line: &[u8]) -> usize {
-    line.iter()
-        .take_while(|&&b| b == b' ' || b == b'\t')
-        .count()
 }
 
 #[derive(Clone, Copy)]
@@ -65,7 +48,7 @@ fn preparar_bloque(bloque: &[u8], opts: &OpcionesBloque<'_>) -> Result<Vec<Vec<u
             "El bloque no empieza por una cabecera PVObject_".into(),
         ));
     };
-    let base = indent_of(&lineas[primera]);
+    let base = indent_width(&lineas[primera]);
     let pad = " ".repeat(opts.indent);
     let mut out = Vec::with_capacity(lineas.len());
     for (i, linea) in lineas.iter().enumerate() {
@@ -73,7 +56,7 @@ fn preparar_bloque(bloque: &[u8], opts: &OpcionesBloque<'_>) -> Result<Vec<Vec<u
         let mut nueva = if texto(sin_cr).is_empty() {
             Vec::new()
         } else {
-            let quitar = indent_of(sin_cr).min(base);
+            let quitar = indent_width(sin_cr).min(base);
             let mut v = pad.as_bytes().to_vec();
             v.extend_from_slice(&sin_cr[quitar..]);
             v
@@ -90,6 +73,49 @@ fn preparar_bloque(bloque: &[u8], opts: &OpcionesBloque<'_>) -> Result<Vec<Vec<u
         out.push(nueva);
     }
     Ok(out)
+}
+
+/// Object types in the order PVsyst writes them inside a variant, measured on the demo
+/// projects of 8.1.8. A type not listed keeps the old behaviour (before the parent's end).
+const ORDEN_PVSYST: &[&str] = &[
+    "pvSite",
+    "pvMeteo",
+    "pvHorizon",
+    "pvMainArray",
+    "pvAgeing",
+    "pvCircuit",
+    "pvSystem",
+    "pvShading",
+    "pvModuleLayout",
+    "pvLoad",
+    "pvGridStorage",
+    "pvCarbonBalance",
+];
+
+/// Line where a new `tipo` goes among the children of `pi`: before the first sibling
+/// PVsyst writes after it. `None` when the order says nothing about it.
+fn linea_de_orden(spans: &[ObjSpan], pi: usize, tipo: &str) -> Option<usize> {
+    let pos = ORDEN_PVSYST
+        .iter()
+        .position(|t| t.eq_ignore_ascii_case(tipo))?;
+    let padre = &spans[pi];
+    spans
+        .iter()
+        .enumerate()
+        .filter(|(si, s)| {
+            *si != pi
+                && s.open > padre.open
+                && s.open < padre.close
+                && es_hijo_directo(spans, pi, *si)
+        })
+        .filter(|(_, s)| {
+            ORDEN_PVSYST
+                .iter()
+                .position(|t| t.eq_ignore_ascii_case(&s.ty))
+                .is_some_and(|p| p > pos)
+        })
+        .map(|(_, s)| s.open)
+        .min()
 }
 
 /// True when span `si` lies inside span `pi` with no intermediate span between them.
@@ -109,6 +135,17 @@ pub(crate) enum SiExiste {
     Reemplazar,
 }
 
+/// A role goes into the header `PVObject_<rol>=<tipo>`: only ASCII letters, digits
+/// and `_`, or a `=` or line break would forge another header.
+fn validar_rol(rol: &str) -> Result<()> {
+    if !rol.is_empty() && rol.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_') {
+        return Ok(());
+    }
+    Err(Error::Invalid(format!(
+        "'rol' inválido '{rol}': solo letras, dígitos y '_'"
+    )))
+}
+
 /// Insert `bloque` as a child of the object selected by `selector_padre`.
 ///
 /// Refuses with `Error::Format` if `destino` or `bloque` is unbalanced, and with
@@ -122,6 +159,9 @@ pub(crate) fn insertar_objeto(
 ) -> Result<Vec<u8>> {
     object::validar_estructura(destino)?;
     object::validar_estructura(bloque)?;
+    if let Some(r) = rol {
+        validar_rol(r)?;
+    }
     let segs = parse_selector(selector_padre)?;
 
     let spans = edit::spans_of(destino);
@@ -129,11 +169,9 @@ pub(crate) fn insertar_objeto(
         .ok_or_else(|| Error::NotFound(format!("Object '{selector_padre}' not found")))?;
     let padre = spans[pi].clone();
     let mut lineas = split(destino);
-    let fin = if lineas.first().is_some_and(|l| l.ends_with(b"\r")) {
-        edit::FinDeLinea::Crlf
-    } else {
-        edit::FinDeLinea::Lf
-    };
+    let fin = lineas
+        .first()
+        .map_or(edit::FinDeLinea::Lf, |l| edit::FinDeLinea::de(l));
 
     let opts = OpcionesBloque {
         fin,
@@ -163,7 +201,9 @@ pub(crate) fn insertar_objeto(
             Ok(join(&lineas))
         }
         None => {
-            lineas.splice(padre.close..padre.close, nuevo);
+            // PVsyst's own order first, so a new object does not land after the results.
+            let punto = linea_de_orden(&spans, pi, &ns.ty).unwrap_or(padre.close);
+            lineas.splice(punto..punto, nuevo);
             Ok(join(&lineas))
         }
     }
@@ -183,14 +223,9 @@ pub(crate) fn reemplazar_objeto(destino: &[u8], selector: &str, bloque: &[u8]) -
     let span = spans[si].clone();
     // WHY a mutable accumulator: splice replaces a contiguous line range in place.
     let mut lineas = split(destino);
-    let fin = if lineas
+    let fin = lineas
         .get(span.open)
-        .is_some_and(|linea| linea.ends_with(b"\r"))
-    {
-        edit::FinDeLinea::Crlf
-    } else {
-        edit::FinDeLinea::Lf
-    };
+        .map_or(edit::FinDeLinea::Lf, |l| edit::FinDeLinea::de(l));
     let opts = OpcionesBloque {
         fin,
         indent: span.indent,

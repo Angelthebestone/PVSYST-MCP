@@ -7,6 +7,7 @@
 
 use super::ffi;
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use std::path::Path;
 use std::sync::OnceLock;
 
@@ -39,9 +40,18 @@ pub(crate) fn modo_de(valor: Option<&str>) -> Result<Modo> {
     match valor.map(|v| v.trim().to_ascii_lowercase()).as_deref() {
         None | Some("") | Some("compartido") => Ok(Modo::Compartido),
         Some("aislado") => Ok(Modo::Aislado),
-        Some(otro) => Err(Error::Invalid(format!(
-            "{VARIABLE}='{otro}' no es válido: usa 'compartido' o 'aislado'"
-        ))),
+        Some(otro) => {
+            // `modo_de` also runs from `preparar`, before any tool call exists:
+            // the environment is the same source `Paths` reads.
+            let no_valido = Texto {
+                es: "{variable}='{otro}' no es válido: usa 'compartido' o 'aislado'",
+                en: "{variable}='{otro}' is not valid: use 'compartido' or 'aislado'",
+            };
+            Err(Error::Invalid(no_valido.texto_con(
+                Idioma::de_entorno(),
+                &[("variable", VARIABLE), ("otro", otro)],
+            )))
+        }
     }
 }
 
@@ -54,9 +64,11 @@ pub(crate) fn preparar() -> Result<Modo> {
         return Ok(modo);
     }
     let h = ffi::crear_escritorio(NOMBRE).map_err(|e| {
-        Error::Gui(format!(
-            "No se pudo crear el escritorio aislado (Win32 {e})"
-        ))
+        let sin_escritorio = Texto {
+            es: "No se pudo crear el escritorio aislado (Win32 {error})",
+            en: "Could not create the isolated desktop (Win32 {error})",
+        };
+        Error::Gui(sin_escritorio.texto_con(Idioma::de_entorno(), &[("error", &e.to_string())]))
     })?;
     // Un segundo `preparar` reutiliza el handle ya creado.
     let _ = ESCRITORIO.set(h);
@@ -71,8 +83,13 @@ pub(crate) fn adjuntar_hilo_actual() -> Result<()> {
     let Some(h) = ESCRITORIO.get() else {
         return Ok(());
     };
-    ffi::adjuntar_hilo(*h)
-        .map_err(|e| Error::Gui(format!("No se pudo usar el escritorio aislado (Win32 {e})")))
+    ffi::adjuntar_hilo(*h).map_err(|e| {
+        let sin_adjuntar = Texto {
+            es: "No se pudo usar el escritorio aislado (Win32 {error})",
+            en: "Could not use the isolated desktop (Win32 {error})",
+        };
+        Error::Gui(sin_adjuntar.texto_con(Idioma::de_entorno(), &[("error", &e.to_string())]))
+    })
 }
 
 /// Whether the MCP works on its private desktop.
@@ -99,13 +116,15 @@ pub(crate) fn linea_de_comando(exe: &Path, args: &[&Path]) -> String {
 }
 
 /// Starts `exe` on the private desktop and returns its process id.
-pub(crate) fn lanzar_proceso(exe: &Path, args: &[&Path], directorio: Option<&Path>) -> Result<u32> {
+pub(crate) fn lanzar_proceso(exe: &Path, args: &[&Path], idioma: Idioma) -> Result<u32> {
     let linea = linea_de_comando(exe, args);
-    let directorio = directorio.map(|d| d.display().to_string());
+    let directorio = exe.parent().map(|d| d.display().to_string());
     ffi::lanzar_en_escritorio(&linea, directorio.as_deref(), NOMBRE).map_err(|e| {
-        Error::Gui(format!(
-            "No se pudo lanzar PVsyst en el escritorio aislado (Win32 {e})"
-        ))
+        let sin_lanzar = Texto {
+            es: "No se pudo lanzar PVsyst en el escritorio aislado (Win32 {error})",
+            en: "Could not launch PVsyst on the isolated desktop (Win32 {error})",
+        };
+        Error::Gui(sin_lanzar.texto_con(idioma, &[("error", &e.to_string())]))
     })
 }
 

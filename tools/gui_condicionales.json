@@ -1,0 +1,6 @@
+[
+  {"clave": "TSystemeAddForm", "ventana": "TSystemeAddForm", "cadena": "@proyecto:_DEMO_Commercial,variante.gestion_energia", "pestana": "Estimación P50 - P90", "pasos": [{"etiqueta": "Activo", "valor": "alternar"}]},
+  {"clave": "TDetailedLossesForm#auxiliares", "ventana": "TDetailedLossesForm", "cadena": "@proyecto:_DEMO_Commercial,variante.perdidas_detalladas", "pestana": "Auxiliares", "pasos": [{"etiqueta": "Consumo auxiliares definidos", "valor": "alternar"}]},
+  {"clave": "TDetailedLossesForm#perdidas_ohmicas", "ventana": "TDetailedLossesForm", "cadena": "@proyecto:_DEMO_Commercial,variante.perdidas_detalladas", "pestana": "Pérdidas óhmicas", "pasos": [{"etiqueta": "Utiliza pérdida óhmica del circuito CA", "valor": "alternar"}, {"etiqueta": "Utiliza uno o varios transformadores MT", "valor": "alternar"}, {"etiqueta": "Utiliza un transformador de AT", "valor": "alternar"}]},
+  {"clave": "TGridStorageForm", "ventana": "TGridStorageForm", "cadena": "@proyecto:_DEMO_Commercial,variante.almacenamiento", "pestana": null, "pasos": [{"etiqueta": "Tipo de sistema", "valor": "Autoconsumo"}]}
+]

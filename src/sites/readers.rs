@@ -27,15 +27,9 @@ fn leer_bytes_acotado(p: &Path, limite: u64) -> Result<Vec<u8>> {
 }
 
 fn parse_list(s: &str) -> Vec<f64> {
+    // PVsyst separates list items with ',': decimals here always use '.'.
     s.split(',')
-        .filter_map(|x| {
-            let t = x.trim();
-            if t.is_empty() {
-                None
-            } else {
-                t.replace(',', ".").parse::<f64>().ok()
-            }
-        })
+        .filter_map(crate::format::numero_texto)
         .collect()
 }
 
@@ -79,7 +73,7 @@ fn site_fields(node: &object::PvNode) -> Map<String, Value> {
     ] {
         if let Some(v) = node.field(key) {
             if key == "Latitude" || key == "Longitude" || key == "Altitude" || key == "TimeZone" {
-                if let Ok(n) = v.trim().replace(',', ".").parse::<f64>() {
+                if let Some(n) = crate::format::numero_texto(v) {
                     m.insert(key.to_string(), json!(n));
                     continue;
                 }

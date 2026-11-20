@@ -1,5 +1,5 @@
-//! Row geometry measured per control (PVsyst 8.1.7, 144 DPI, captures at the
-//! 96-DPI layout). The row height is not global: each control has its own, and
+//! Row geometry measured per control at 144 DPI, captures at the 96-DPI layout:
+//! the project tree and the module list on PVsyst 8.1.7, the 3D object table on 8.1.8. The row height is not global: each control has its own, and
 //! a control of the same class in another window is not assumed to match.
 
 use super::error::ErrorFila;
@@ -28,7 +28,19 @@ const LISTA_DE_MODULOS: Geometria = Geometria {
     x_px: 100,
 };
 
-const TABLAS: &[Geometria] = &[ARBOL_DE_PROYECTOS, LISTA_DE_MODULOS];
+/// `TVirtualStringTree` of «Lista y gestión de objetos» (`TShdObjectSelectionForm`,
+/// PVsyst 8.1.8): the first row's centre is at 45 px and the pitch is 26 px, so the
+/// header above row 0 is 32 px. About 20 rows fit without scrolling.
+const TABLA_DE_OBJETOS: Geometria = Geometria {
+    clase: "TVirtualStringTree",
+    anfitrion: "TShdObjectSelectionForm",
+    titulo_anfitrion: None,
+    cabecera_px: 32,
+    alto_fila_px: 26,
+    x_px: 100,
+};
+
+const TABLAS: &[Geometria] = &[ARBOL_DE_PROYECTOS, LISTA_DE_MODULOS, TABLA_DE_OBJETOS];
 
 /// A control as found on screen: its class and the window that hosts it.
 #[derive(Debug, Clone, Copy)]
@@ -53,21 +65,34 @@ pub(crate) fn geometria_de(control: &Control<'_>) -> Result<&'static Geometria, 
     TABLAS
         .iter()
         .find(|g| g.corresponde_a(control))
-        .ok_or_else(|| ErrorFila::ClaseSinGeometria {
+        .ok_or_else(|| sin_geometria(control))
+}
+
+/// A control of a measured class and host whose title differs is told apart from
+/// one that was never measured: the title depends on PVsyst's language.
+fn sin_geometria(control: &Control<'_>) -> ErrorFila {
+    let del_titulo = TABLAS.iter().find(|g| {
+        g.clase == control.clase && g.anfitrion == control.anfitrion && g.titulo_anfitrion.is_some()
+    });
+    match del_titulo.and_then(|g| g.titulo_anfitrion) {
+        Some(esperado) => ErrorFila::TituloDistinto {
+            clase: control.clase.to_string(),
+            anfitrion: control.anfitrion.to_string(),
+            titulo: control.titulo.to_string(),
+            esperado: esperado.to_string(),
+        },
+        None => ErrorFila::ClaseSinGeometria {
             clase: control.clase.to_string(),
             anfitrion: control.anfitrion.to_string(),
             medidas: medidas(),
-        })
+        },
+    }
 }
 
 fn medidas() -> String {
     TABLAS
         .iter()
-        .map(|g| format!("{} de {}", g.clase, g.anfitrion))
+        .map(|g| format!("{} of {}", g.clase, g.anfitrion))
         .collect::<Vec<_>>()
         .join(", ")
 }
-
-#[cfg(test)]
-#[path = "../../../../tests/unit/adapters/gui/fila/registro.rs"]
-mod tests;

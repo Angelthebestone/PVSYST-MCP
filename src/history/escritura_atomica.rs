@@ -163,23 +163,13 @@ fn renombrar_con_reintento(tmp: &Path, destino: &Path) -> std::io::Result<()> {
     }
 }
 
-/// Replace `path` with `bytes`: snapshot the previous version when it exists,
-/// then write atomically. Returns the history id, or `None` for a new file.
-pub(crate) fn reemplazar(
-    ws: &Path,
-    path: &Path,
-    bytes: &[u8],
-    motivo: &str,
-) -> Result<Option<String>> {
-    let id = if path.exists() {
-        Some(super::snapshot::snapshot(
-            ws,
-            &[path.to_path_buf()],
-            motivo,
-        )?)
-    } else {
-        None
-    };
+/// Replace `path` with `bytes`: snapshot the previous version, then write atomically.
+///
+/// A file that does not exist yet is snapshotted as absent, so restoring the
+/// returned id deletes it again and the first version of every file is
+/// recoverable.
+pub(crate) fn reemplazar(ws: &Path, path: &Path, bytes: &[u8], motivo: &str) -> Result<String> {
+    let id = super::snapshot::snapshot(ws, &[path.to_path_buf()], motivo)?;
     escribir_atomico(path, bytes)?;
     Ok(id)
 }

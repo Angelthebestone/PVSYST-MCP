@@ -5,7 +5,7 @@ use super::*;
 use std::fs;
 
 #[test]
-fn should_restore_files_and_allow_undo_via_previous_snapshot() {
+fn should_allow_undo_via_the_previous_snapshot_when_restoring_files() {
     let ws = crear_workspace_temporal("restore_undo");
     let kept = ws.join("kept.txt");
     let created = ws.join("created.txt");
@@ -26,17 +26,19 @@ fn should_restore_files_and_allow_undo_via_previous_snapshot() {
 }
 
 #[test]
-fn should_reject_path_like_snapshot_ids() {
+fn should_reject_path_like_ids_when_restoring() {
     let ws = crear_workspace_temporal("badid");
-    assert!(restaurar(&ws, "../x").is_err());
-    assert!(restaurar(&ws, "a/b").is_err());
-    assert!(restaurar(&ws, "a\\b").is_err());
-    assert!(restaurar(&ws, "").is_err());
+    for id in ["../x", "a/b", "a\\b", "", "C:x", "C:\\x", ".", "a b"] {
+        assert!(
+            matches!(restaurar(&ws, id), Err(crate::error::Error::Invalid(_))),
+            "{id:?}"
+        );
+    }
     let _ = fs::remove_dir_all(&ws);
 }
 
 #[test]
-fn should_restore_bytes_identical_to_the_snapshot() {
+fn should_restore_bytes_identical_to_the_snapshot_when_the_file_was_overwritten() {
     let ws = crear_workspace_temporal("bytes_identicos");
     let f = ws.join("v.bin");
     let original = b"PVObject_=pvRoot\r\n  A=1\r\nEnd of PVObject pvRoot\r\n\x00\xff";

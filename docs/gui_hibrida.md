@@ -174,7 +174,8 @@ Related changes:
   available by default; only the MCP's own calculations need
   `PVSYST_MCP_APROXIMACIONES=1`.
 - **Licence activation out of the model's reach.** Today the licence key passes
-  through the chat. Return the command for the user to run instead.
+  through the chat. Return the command for the user to run instead. `pvsyst_cli`
+  enforces this: `lic-activate`, `lic-deactivate` and `lic-sync` are refused there.
 
 Caveats:
 

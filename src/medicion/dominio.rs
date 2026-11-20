@@ -98,11 +98,7 @@ pub(crate) fn comparar(
 }
 
 fn segundo_valor(linea: &str) -> Option<f64> {
-    let segundo = linea.split(';').nth(1)?.trim().replace(',', ".");
-    segundo
-        .parse::<f64>()
-        .ok()
-        .filter(|valor| valor.is_finite())
+    crate::format::numero_texto(linea.split(';').nth(1)?)
 }
 
 /// Parse `mes;energia_kwh` lines; an optional header is ignored.

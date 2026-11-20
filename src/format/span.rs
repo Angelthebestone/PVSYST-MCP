@@ -184,7 +184,3 @@ pub(crate) fn find_span(spans: &[ObjSpan], selector: &str) -> Option<usize> {
     let segs = parse_selector(selector).ok()?;
     find_span_by_segs(spans, &segs)
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/format/span.rs"]
-mod tests;

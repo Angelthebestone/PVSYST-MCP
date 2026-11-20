@@ -1,0 +1,154 @@
+{
+ "TAdvancedSimForm": {
+  "reemplaza": "variante.simulacion_avanzada",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TAgingToolForm": {
+  "reemplaza": "TAdvancedSimForm>Herramienta de envejecimiento",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TArrayLossesPlotForm": {
+  "reemplaza": "TDetailedLossesForm>Gráfico de pérdidas",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TArraySizingForm": {
+  "reemplaza": "TSystemegridForm>Dimensionamiento",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TBacktrackingForm": {
+  "reemplaza": "TPerspectiveForm menu 6.10 (Gestión de retroceso)",
+  "estado": "Proyecto demo _DEMO_Tracking (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TBatchSimulForm": {
+  "reemplaza": "TAdvancedSimForm>Simulación por lotes",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TBuildingObjectForm": {
+  "reemplaza": "TPerspectiveForm menu 1.1 (Edificio/Objeto Compuesto)",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TDamMainForm": {
+  "reemplaza": "inicio.datos_medidos",
+  "estado": "Sin proyecto cargado; ventana recién abierta, sin editar"
+ },
+ "TDatabaseForm": {
+  "reemplaza": "inicio.bases_de_datos",
+  "estado": "Sin proyecto cargado; ventana recién abierta, sin editar"
+ },
+ "TDatamesFusionForm": {
+  "reemplaza": "datos_medidos.transformar_archivo",
+  "estado": "Sin proyecto cargado; ventana recién abierta, sin editar"
+ },
+ "TDimensForm": {
+  "reemplaza": "diseno_preliminar.bombeo",
+  "estado": "Sin proyecto cargado; ventana recién abierta, sin editar"
+ },
+ "TDimensSituationForm": {
+  "reemplaza": "diseno_preliminar.bombeo>Sitio y datos meteo",
+  "estado": "Sin proyecto cargado; ventana recién abierta, sin editar"
+ },
+ "TEcoPriceListForm": {
+  "reemplaza": "bases_de_datos.precios",
+  "estado": "Sin proyecto cargado; ventana recién abierta, sin editar"
+ },
+ "TElementaryObjectForm": {
+  "reemplaza": "TPerspectiveForm menu 1.0 (Objeto de sombreado elemental)",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TGenerSyntheForm": {
+  "reemplaza": "bases_de_datos.datos_sinteticos",
+  "estado": "Sin proyecto cargado; ventana recién abierta, sin editar"
+ },
+ "TImportHorizonForm": {
+  "reemplaza": "THorizonForm>Leer / Importar",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TMetWizard": {
+  "reemplaza": "bases_de_datos.importar_archivo_personalizado",
+  "estado": "Sin proyecto cargado; ventana recién abierta, sin editar"
+ },
+ "TMeteoCompareForm": {
+  "reemplaza": "bases_de_datos.comparar_meteo",
+  "estado": "Sin proyecto cargado; ventana recién abierta, sin editar"
+ },
+ "TMeteoConversionForm": {
+  "reemplaza": "datos_medidos.importar_archivo_personalizado",
+  "estado": "Sin proyecto cargado; ventana recién abierta, sin editar"
+ },
+ "TMeteoMensForm": {
+  "reemplaza": "herramientas.calculo_mensual_meteo",
+  "estado": "Sin proyecto cargado; ventana recién abierta, sin editar"
+ },
+ "TOrientManageForm": {
+  "reemplaza": "TPerspectiveForm menu 6.9 (Gestión de orientaciones)",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TParamEditForm": {
+  "reemplaza": "configuraciones.parametros_avanzados",
+  "estado": "Sin proyecto cargado; ventana recién abierta, sin editar"
+ },
+ "TPolyFieldForm": {
+  "reemplaza": "TPerspectiveForm menu 1.10 (Plano FV poligonal)",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TResultForm": {
+  "reemplaza": "variante.resultados_detallados",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TResultPlotForm": {
+  "reemplaza": "TResultForm>Gráficos predefinidos",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TResultTabForm": {
+  "reemplaza": "TResultForm>Tablas",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TShdObjectSelectionForm": {
+  "reemplaza": "TPerspectiveForm menu 6.7 (Lista y gestión de objetos)",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TShedElecShadingForm": {
+  "reemplaza": "TOrientationForm>Detalles y gráfico",
+  "estado": "Proyecto demo _DEMO_Tracking (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TShedFieldForm": {
+  "reemplaza": "TPerspectiveForm menu 1.7 (Conjunto de cúpulas)",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TSimulFichForm": {
+  "reemplaza": "TAdvancedSimForm>Archivo de salida",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TSimulPlotForm": {
+  "reemplaza": "TAdvancedSimForm>Gráficos especiales",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TSimulValHorForm": {
+  "reemplaza": "TAdvancedSimForm>Almacen. de datos por hora",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TSystemCircuitForm": {
+  "reemplaza": "TDetailedLossesForm>Diagrama unifilar",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TThinObjectsForm": {
+  "reemplaza": "TPerspectiveForm menu 6.3 (Análisis de sombreado de objetos delgados)",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TToolsForm": {
+  "reemplaza": "inicio.herramientas",
+  "estado": "Sin proyecto cargado; ventana recién abierta, sin editar"
+ },
+ "TTrackerFieldForm": {
+  "reemplaza": "TPerspectiveForm menu 1.5 (Conjunto de rastreadores)",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TVCManageForm": {
+  "reemplaza": "ventana_proyecto.variante.gestionar",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ },
+ "TWiringResistanceForm": {
+  "reemplaza": "TDetailedLossesForm>Computación detallada",
+  "estado": "Proyecto demo _DEMO_Commercial (solo lectura) cargado; ventana recién abierta, sin editar"
+ }
+}

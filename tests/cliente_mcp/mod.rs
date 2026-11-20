@@ -21,8 +21,10 @@ use serde_json::{json, Value};
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
+use std::time::Duration;
 
-pub const DEMO_WS: &str = r"C:\Program Files\PVsyst8.1.7\DataRO\PVsyst8.1_Data";
+pub const DEMO_WS: &str = r"C:\Program Files\PVsyst8.1.8\DataRO\PVsyst8.1_Data";
 
 /// In-process server with the same surface a client gets by default. Like
 /// [`Client::start_env`], it never resolves the installed PVsyst: the workspace
@@ -44,11 +46,27 @@ pub fn protocol_call(line: &str) -> Value {
     serde_json::from_str(&out).expect("valid json")
 }
 
+/// Longest wait for one server answer: a hung server fails the test instead of blocking it.
+const PLAZO_RESPUESTA: Duration = Duration::from_secs(120);
+
 pub struct Client {
     stdin: ChildStdin,
-    reader: BufReader<ChildStdout>,
+    lineas: Receiver<String>,
     child: Child,
     _temp_ws: Option<tempfile::TempDir>,
+}
+
+/// Reads the server's stdout on its own thread, one line per message.
+fn lector_de_lineas(stdout: ChildStdout) -> Receiver<String> {
+    let (tx, rx) = mpsc::channel();
+    std::thread::spawn(move || {
+        // Stops at EOF, at a read error, or when the client is gone.
+        let _ = BufReader::new(stdout)
+            .lines()
+            .map_while(Result::ok)
+            .try_for_each(|linea| tx.send(linea));
+    });
+    rx
 }
 
 impl Client {
@@ -78,21 +96,25 @@ impl Client {
         let default_cli = Path::new(&ws_str).join("nonexistent_pvsyst_cli.exe");
         cmd.env("PVSYST_GUI", default_gui);
         cmd.env("PVSYST_CLI", default_cli);
-        cmd.env("PVSYST_DATARO", r"C:\Program Files\PVsyst8.1.7\DataRO");
+        cmd.env("PVSYST_DATARO", r"C:\Program Files\PVsyst8.1.8\DataRO");
         for (k, v) in env {
             cmd.env(k, v);
         }
-        let mut child = cmd
+        let child = cmd
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
             .spawn()
             .expect("spawn pvsyst-mcp");
+        Client::conectar(child, temp_ws)
+    }
+
+    fn conectar(mut child: Child, temp_ws: Option<tempfile::TempDir>) -> Client {
         let stdin = child.stdin.take().unwrap();
         let stdout = child.stdout.take().unwrap();
         Client {
             stdin,
-            reader: BufReader::new(stdout),
+            lineas: lector_de_lineas(stdout),
             child,
             _temp_ws: temp_ws,
         }
@@ -109,20 +131,13 @@ impl Client {
         if let Some(w) = workspace {
             cmd.env("PVSYST_WORKSPACE", w);
         }
-        let mut child = cmd
+        let child = cmd
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
             .spawn()
             .expect("spawn pvsyst-mcp");
-        let stdin = child.stdin.take().unwrap();
-        let stdout = child.stdout.take().unwrap();
-        Client {
-            stdin,
-            reader: BufReader::new(stdout),
-            child,
-            _temp_ws: None,
-        }
+        Client::conectar(child, None)
     }
 
     pub fn send(&mut self, v: &Value) {
@@ -130,10 +145,14 @@ impl Client {
         self.stdin.flush().unwrap();
     }
 
-    pub fn recv(&mut self) -> Value {
-        let mut line = String::new();
-        self.reader.read_line(&mut line).expect("read line");
-        assert!(!line.is_empty(), "server closed stdout unexpectedly");
+    pub fn recv(&self) -> Value {
+        let line = match self.lineas.recv_timeout(PLAZO_RESPUESTA) {
+            Ok(l) => l,
+            Err(RecvTimeoutError::Timeout) => {
+                panic!("no answer from the server in {PLAZO_RESPUESTA:?}")
+            }
+            Err(RecvTimeoutError::Disconnected) => panic!("server closed stdout unexpectedly"),
+        };
         serde_json::from_str(&line).unwrap_or_else(|e| panic!("bad json: {e} in {line}"))
     }
 
@@ -190,6 +209,21 @@ pub fn fixture(rel: &str) -> PathBuf {
         .join("tests")
         .join("fixtures")
         .join(rel)
+}
+
+/// Writes a one-page PVsyst-shaped report whose summary box reads `pr_pct`, for runs
+/// whose KPIs have to differ from the canned fixture.
+pub fn escribir_informe_con_pr(destino: &Path, pr_pct: f64) {
+    let contenido = format!(
+        "BT (Produced Energy) Tj (Specific production) Tj (Perf. Ratio PR) Tj (14299) Tj (1589) Tj ({pr_pct}) Tj ET"
+    );
+    let comprimido = miniz_oxide::deflate::compress_to_vec_zlib(contenido.as_bytes(), 6);
+    let mut pdf = b"%PDF-1.4\n1 0 obj\n<< /Length ".to_vec();
+    pdf.extend_from_slice(comprimido.len().to_string().as_bytes());
+    pdf.extend_from_slice(b" /Filter /FlateDecode >>\nstream\n");
+    pdf.extend_from_slice(&comprimido);
+    pdf.extend_from_slice(b"\nendstream\nendobj\ntrailer\n<<>>\n%%EOF\n");
+    std::fs::write(destino, pdf).expect("write report");
 }
 
 /// A private, self-cleaning copy of the synthetic workspace in `tests/fixtures/workspace`.

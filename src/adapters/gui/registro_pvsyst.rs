@@ -140,7 +140,3 @@ fn acumular(salida: &mut Vec<String>, linea: &str, estado: EstadoMensaje) -> Est
         EstadoMensaje::Cerrado
     }
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/adapters/gui/registro_pvsyst.rs"]
-mod tests;

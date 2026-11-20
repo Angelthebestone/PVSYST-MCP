@@ -8,6 +8,7 @@
 //! resolution, defaults and fallbacks for internal domain logic.
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use serde_json::Value;
 use std::path::PathBuf;
 
@@ -155,17 +156,107 @@ pub(crate) fn candidatos(objetivo: &str, opciones: &[String]) -> Vec<String> {
     out
 }
 
+/// Most options a "not found" lists when none of them is close to the request.
+const MUESTRA_DE_OPCIONES: usize = 5;
+
+const NO_ENCONTRADO_CANDIDATOS: Texto = Texto {
+    es: "{tipo} '{pedido}' no encontrado; candidatos: {candidatos}",
+    en: "{tipo} '{pedido}' not found; candidates: {candidatos}",
+};
+
+const NO_ENCONTRADO_SIN_OPCIONES: Texto = Texto {
+    es: "{tipo} '{pedido}' no encontrado; no hay ninguno en {carpeta}",
+    en: "{tipo} '{pedido}' not found; there is none in {carpeta}",
+};
+
+const NO_ENCONTRADO_CON_OPCIONES: Texto = Texto {
+    es: "{tipo} '{pedido}' no encontrado en {carpeta}; hay {n}: {muestra}{mas}",
+    en: "{tipo} '{pedido}' not found in {carpeta}; there are {n}: {muestra}{mas}",
+};
+
+const OPCIONES_Y_MAS: Texto = Texto {
+    es: " y {n} más",
+    en: " and {n} more",
+};
+
+/// Domain nouns of the "not found" messages.
+pub(crate) const PROYECTO: Texto = Texto {
+    es: "Proyecto",
+    en: "Project",
+};
+pub(crate) const SITIO: Texto = Texto {
+    es: "Sitio",
+    en: "Site",
+};
+pub(crate) const METEO: Texto = Texto {
+    es: "Meteo",
+    en: "Weather",
+};
+pub(crate) const VARIANTE: Texto = Texto {
+    es: "Variante",
+    en: "Variant",
+};
+pub(crate) const ARCHIVO: Texto = Texto {
+    es: "Archivo",
+    en: "File",
+};
+pub(crate) const COMPONENTE: Texto = Texto {
+    es: "Componente",
+    en: "Component",
+};
+
 /// Uniform "not found" message listing candidates or the folder that was searched.
-pub(crate) fn no_encontrado(tipo: &str, pedido: &str, opciones: &[String], carpeta: &str) -> Error {
+///
+/// With no close candidate it names a few of the options it was given: saying
+/// "there are none" when the caller passed a list would be false.
+pub(crate) fn no_encontrado(
+    tipo: Texto,
+    pedido: &str,
+    opciones: &[String],
+    carpeta: &str,
+) -> Error {
+    let idioma = Idioma::de_entorno();
+    let tipo = tipo.en_idioma(idioma);
     let sugeridos = candidatos(pedido, opciones);
-    Error::NotFound(if sugeridos.is_empty() {
-        format!("{tipo} '{pedido}' no encontrado; no hay ninguno en {carpeta}")
+    if !sugeridos.is_empty() {
+        return Error::NotFound(NO_ENCONTRADO_CANDIDATOS.texto_con(
+            idioma,
+            &[
+                ("tipo", tipo),
+                ("pedido", pedido),
+                ("candidatos", &sugeridos.join(", ")),
+            ],
+        ));
+    }
+    if opciones.is_empty() {
+        return Error::NotFound(NO_ENCONTRADO_SIN_OPCIONES.texto_con(
+            idioma,
+            &[("tipo", tipo), ("pedido", pedido), ("carpeta", carpeta)],
+        ));
+    }
+    let muestra = opciones
+        .iter()
+        .take(MUESTRA_DE_OPCIONES)
+        .map(String::as_str)
+        .collect::<Vec<_>>()
+        .join(", ");
+    let resto = opciones.len().saturating_sub(MUESTRA_DE_OPCIONES);
+    let mas = if resto == 0 {
+        String::new()
     } else {
-        format!(
-            "{tipo} '{pedido}' no encontrado; candidatos: {}",
-            sugeridos.join(", ")
-        )
-    })
+        OPCIONES_Y_MAS.texto_con(idioma, &[("n", &resto.to_string())])
+    };
+    Error::NotFound(NO_ENCONTRADO_CON_OPCIONES.texto_con(
+        idioma,
+        &[
+            ("tipo", tipo),
+            ("pedido", pedido),
+            ("carpeta", carpeta),
+            ("n", &opciones.len().to_string()),
+            ("muestra", &muestra),
+            ("mas", &mas),
+        ],
+    ))
 }
 
 /// Levenshtein edit distance over chars.
@@ -183,6 +274,15 @@ fn distancia(a: &str, b: &str) -> usize {
     prev[b.len()]
 }
 
-#[cfg(test)]
-#[path = "../tests/unit/args.rs"]
-mod tests;
+/// An optional number that, when given, lies in `0..=max`; `clave` names it in the error.
+pub(crate) fn rango_opcional(valor: Option<f64>, max: f64, clave: &str) -> Result<()> {
+    let Some(valor) = valor else {
+        return Ok(());
+    };
+    if (0.0..=max).contains(&valor) {
+        return Ok(());
+    }
+    Err(Error::Invalid(format!(
+        "'{clave}' debe estar entre 0 y {max}: {valor}"
+    )))
+}

@@ -1,23 +1,15 @@
 use crate::error::{Error, Result};
+use crate::workspace::mtime_unix;
 use crate::workspace::{resolver_ruta, walk_ext, Alcance, ResumenRecorrido};
 use serde_json::Value;
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::time::SystemTime;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum ModoCoincidencia {
     NombreOExtension,
     SoloExtension,
-}
-
-pub(super) fn mtime_secs(path: &Path) -> u64 {
-    fs::metadata(path)
-        .ok()
-        .and_then(|m| m.modified().ok())
-        .and_then(|t| t.duration_since(SystemTime::UNIX_EPOCH).ok())
-        .map_or(0, |d| d.as_secs())
 }
 
 pub(super) fn metadata_value(text: &str, key: &str) -> Option<String> {
@@ -90,22 +82,6 @@ fn leer_cabecera(path: &Path) -> Result<String> {
     Ok(String::from_utf8_lossy(&bytes).into_owned())
 }
 
-pub(crate) fn variant_kwp(workspace: &Path, metadata: &Value) -> Option<f64> {
-    let line = metadata
-        .as_array()?
-        .iter()
-        .filter_map(Value::as_str)
-        .find(|l| l.starts_with("Simulation variant;"))?;
-    let file = line.split(';').nth(1)?.trim();
-    let text = std::fs::read_to_string(workspace.join("Projects").join(file)).ok()?;
-    let root = crate::format::object::parse_first(&text)?;
-    root.find_deep("PNomSizing")?
-        .trim()
-        .parse::<f64>()
-        .ok()
-        .filter(|k| *k > 0.0)
-}
-
 pub(super) fn csv_explicito(workspace: &Path, f: &str, alcance: Alcance) -> Result<PathBuf> {
     let p = resolver_ruta(workspace, f, alcance)?;
     if p.exists() {
@@ -147,7 +123,8 @@ pub(super) fn resultado_de_con_alcance(
                     filtrados.push(p);
                 }
             }
-            filtrados.sort_by_key(|p| std::cmp::Reverse(mtime_secs(p)));
+            // One stat per file, not one per comparison.
+            filtrados.sort_by_cached_key(|p| std::cmp::Reverse(mtime_unix(p)));
             filtrados.into_iter().next().ok_or_else(|| {
                 let proyecto = proyecto.unwrap_or("(sin proyecto)");
                 let variante = variante.unwrap_or("(sin variante)");
@@ -209,7 +186,7 @@ pub(super) fn csvs_a_leer(workspace: &Path, args: &Value, count: usize) -> Resul
         csv_files = filtrados;
     }
 
-    csv_files.sort_by_key(|p| std::cmp::Reverse(mtime_secs(p)));
+    csv_files.sort_by_cached_key(|p| std::cmp::Reverse(mtime_unix(p)));
     csv_files.truncate(count);
 
     if csv_files.is_empty() {

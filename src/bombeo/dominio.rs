@@ -62,6 +62,11 @@ pub(crate) struct ParametrosBombeo {
     bomba: Option<String>,
 }
 
+/// Validates the action's arguments without touching any file.
+pub(crate) fn validar_parametros(args: &Value) -> Result<()> {
+    ParametrosBombeo::nuevo(EntradaBombeo::de_args(args)?).map(|_| ())
+}
+
 impl ParametrosBombeo {
     pub(crate) fn nuevo(entrada: EntradaBombeo) -> Result<Self> {
         if entrada.caudal_m3_dia.is_none()

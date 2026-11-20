@@ -5,18 +5,23 @@ use super::decodificar::decodificar;
 use super::dominio::{
     fisico_a_crudo, validar_serie, MetadatosVariable, SerieHoraria, TipoVariable,
 };
+use super::reensamblado::{codificar_como, ensamblar_archivo};
 use crate::args::{req_str, workspace_of};
 use crate::config::{data_ro, Paths};
 use crate::error::{Error, Result};
 use crate::format::object;
 use crate::history;
+use crate::workspace::{
+    leer_bytes_acotados, primer_existente_en_bases, primer_existente_en_workspace,
+};
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-const MAX_BYTES_SERIE: u64 = 64 * 1024 * 1024;
+const MAX_BYTES_SERIE: usize = 64 * 1024 * 1024;
 const LIMITE_HORAS_DEFECTO: usize = 24;
+/// Extensions tried after the bare name: series live in `.MET` and `.DAM` files.
+const EXTENSIONES: [&str; 3] = ["", ".MET", ".DAM"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ModoResolucion {
@@ -27,17 +32,14 @@ enum ModoResolucion {
 /// Reads hourly series from .MET or .DAM file with offset and limit pagination.
 pub(crate) fn leer_serie(paths: &Paths, args: &Value) -> Result<Value> {
     let path = resolver_archivo(paths, args, ModoResolucion::IncluirLecturaRo)?;
-    let bytes = leer_bytes_acotado(&path, MAX_BYTES_SERIE)?;
+    let bytes = leer_bytes_acotados(&path, MAX_BYTES_SERIE)?;
     let text = String::from_utf8_lossy(&bytes);
     let tipo_obj = object::parse_first(&text).map_or_else(|| "pvMeteo".to_string(), |r| r.obj_type);
 
     let serie = decodificar(&text)?;
     let total_horas = serie.horas.len();
-    let offset = args.get("offset").and_then(Value::as_u64).unwrap_or(0) as usize;
-    let limite = args
-        .get("limite")
-        .and_then(Value::as_u64)
-        .unwrap_or(LIMITE_HORAS_DEFECTO as u64) as usize;
+    let offset = entero_paginacion(args, "offset", 0)?;
+    let limite = entero_paginacion(args, "limite", LIMITE_HORAS_DEFECTO)?;
 
     let horas_paginadas: Vec<_> = serie
         .horas
@@ -69,8 +71,10 @@ pub(crate) fn leer_serie(paths: &Paths, args: &Value) -> Result<Value> {
 pub(crate) fn escribir_serie(paths: &Paths, args: &Value) -> Result<Value> {
     let workspace = workspace_of(paths, args);
     let path = resolver_archivo(paths, args, ModoResolucion::SoloWorkspace)?;
-    let bytes = leer_bytes_acotado(&path, MAX_BYTES_SERIE)?;
-    let original = String::from_utf8_lossy(&bytes);
+    let bytes = leer_bytes_acotados(&path, MAX_BYTES_SERIE)?;
+    // Header bytes outside UTF-8 (an ANSI comment) must come back as they were.
+    let es_utf8 = std::str::from_utf8(&bytes).is_ok();
+    let original = crate::format::decodificar_texto_flexible(&bytes);
 
     let variables = extraer_nombres_variables(args)?;
     let valores_por_var = extraer_valores(args, &variables)?;
@@ -80,81 +84,87 @@ pub(crate) fn escribir_serie(paths: &Paths, args: &Value) -> Result<Value> {
     let nueva_serie = actualizar_serie(serie_original, &variables, &valores_por_var)?;
     let nuevo_cuerpo = codificar(&nueva_serie)?;
     let nuevo_contenido = ensamblar_archivo(&original, &nuevo_cuerpo)?;
+    let nuevos_bytes = codificar_como(&nuevo_contenido, es_utf8)?;
 
     let historial_id =
         history::snapshot(&workspace, std::slice::from_ref(&path), "escribir_serie")?;
-    history::escribir_atomico(&path, nuevo_contenido.as_bytes())?;
+    history::escribir_atomico(&path, &nuevos_bytes)?;
 
     Ok(json!({
         "archivo": path.to_string_lossy(),
         "variables_actualizadas": variables,
         "total_horas": nueva_serie.horas.len(),
         "historial_id": historial_id,
-        "bytes_escritos": nuevo_contenido.len(),
+        "bytes_escritos": nuevos_bytes.len(),
     }))
-}
-
-fn leer_bytes_acotado(p: &Path, limite: u64) -> Result<Vec<u8>> {
-    let meta = fs::metadata(p).map_err(|e| Error::io(format!("metadata {}", p.display()), e))?;
-    if meta.len() > limite {
-        return Err(Error::Format(format!(
-            "Archivo {} excede limite",
-            p.display()
-        )));
-    }
-    fs::read(p).map_err(|e| Error::io(format!("read {}", p.display()), e))
 }
 
 fn resolver_archivo(paths: &Paths, args: &Value, modo: ModoResolucion) -> Result<PathBuf> {
     let nombre = req_str(args, &["archivo"], "")?;
     let ws = workspace_of(paths, args);
     let alcance = crate::workspace::Alcance::de_args(args);
-
-    if let Ok(p) = crate::workspace::resolver_ruta(&ws, nombre, alcance) {
-        if p.exists() {
-            return Ok(p);
-        }
+    let mut relativos = vec![nombre.to_string()];
+    for sub in ["Meteo", "DataMeas"] {
+        relativos.extend(EXTENSIONES.iter().map(|ext| format!("{sub}/{nombre}{ext}")));
     }
-    for sub in &["Meteo", "DataMeas"] {
-        for ext in &["", ".MET", ".DAM"] {
-            let rel = format!("{sub}/{nombre}{ext}");
-            if let Ok(p) = crate::workspace::resolver_ruta(&ws, &rel, alcance) {
-                if p.exists() {
-                    return Ok(p);
-                }
-            }
-        }
+    if let Some(p) = primer_existente_en_workspace(&ws, &relativos, alcance)? {
+        return Ok(p);
     }
-    if modo == ModoResolucion::IncluirLecturaRo {
-        let ro = data_ro().join("PVsyst8.1_Data");
-        for sub in &["Meteo", "DataMeas"] {
-            for ext in &["", ".MET", ".DAM"] {
-                let cand = ro.join(sub).join(format!("{nombre}{ext}"));
-                if cand.exists() {
-                    return Ok(cand);
-                }
-            }
+    let en_ro = match modo {
+        ModoResolucion::IncluirLecturaRo => {
+            let ro = data_ro().join("PVsyst8.1_Data");
+            let bases = [ro.join("Meteo"), ro.join("DataMeas")];
+            let nombres: Vec<String> = EXTENSIONES.iter().map(|e| format!("{nombre}{e}")).collect();
+            primer_existente_en_bases(&bases, &nombres)
         }
-    }
-    Err(Error::NotFound(format!(
-        "Archivo de serie '{nombre}' no encontrado"
-    )))
+        ModoResolucion::SoloWorkspace => None,
+    };
+    en_ro.ok_or_else(|| Error::NotFound(format!("Archivo de serie '{nombre}' no encontrado")))
 }
 
-fn extraer_nombres_variables(args: &Value) -> Result<Vec<String>> {
+/// A paging argument: absent or null takes `defecto`; anything but a non-negative
+/// integer is refused instead of silently replaced by the default.
+pub(super) fn entero_paginacion(args: &Value, clave: &str, defecto: usize) -> Result<usize> {
+    let Some(valor) = args.get(clave).filter(|v| !v.is_null()) else {
+        return Ok(defecto);
+    };
+    valor
+        .as_u64()
+        .and_then(|n| usize::try_from(n).ok())
+        .ok_or_else(|| {
+            Error::Invalid(format!(
+                "'{clave}' debe ser un entero no negativo (recibido {valor})"
+            ))
+        })
+}
+
+pub(super) fn extraer_nombres_variables(args: &Value) -> Result<Vec<String>> {
     let arr = args
         .get("variables")
         .and_then(Value::as_array)
         .ok_or_else(|| {
             Error::Invalid("Argumento 'variables' debe ser un arreglo de cadenas".into())
         })?;
-    arr.iter()
+    let nombres: Vec<String> = arr
+        .iter()
         .map(|v| {
             v.as_str()
                 .map(ToString::to_string)
                 .ok_or_else(|| Error::Invalid("Elemento de 'variables' no es cadena".into()))
         })
-        .collect()
+        .collect::<Result<_>>()?;
+    // A repeated name would have its second column silently overwrite the first. O(n²), n small.
+    if let Some((i, n)) = nombres
+        .iter()
+        .enumerate()
+        .find(|(i, n)| nombres[..*i].contains(n))
+    {
+        return Err(Error::Invalid(format!(
+            "La variable '{n}' aparece repetida en 'variables' (posición {})",
+            i + 1
+        )));
+    }
+    Ok(nombres)
 }
 
 fn extraer_valores(args: &Value, variables: &[String]) -> Result<Vec<Vec<f64>>> {
@@ -261,23 +271,4 @@ fn factor_y_tipo(serie: &SerieHoraria, nombre: &str) -> Result<(f64, TipoVariabl
         )));
     }
     Ok((tipo.wr_factor_defecto(), tipo))
-}
-
-fn ensamblar_archivo(original: &str, nuevo_cuerpo: &str) -> Result<String> {
-    let pos_start = original
-        .find("VarMeteo, list of=")
-        .ok_or_else(|| Error::Format("No se encontro seccion 'VarMeteo' en original".into()))?;
-    let line_start = original[..pos_start].rfind('\n').map_or(0, |p| p + 1);
-
-    let end_marker = "End of the List VarMeteo";
-    let pos_end = original
-        .find(end_marker)
-        .ok_or_else(|| Error::Format("No se encontro 'End of the List VarMeteo'".into()))?;
-    let line_end = original[pos_end..]
-        .find('\n')
-        .map_or(original.len(), |p| pos_end + p + 1);
-
-    let header = &original[..line_start];
-    let footer = &original[line_end..];
-    Ok(format!("{header}{nuevo_cuerpo}{footer}"))
 }

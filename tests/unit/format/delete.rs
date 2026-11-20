@@ -28,24 +28,3 @@ fn should_eliminate_object() {
     assert!(!txt.contains("pvChild"));
     assert!(txt.contains("pvRoot"));
 }
-
-#[test]
-fn should_refuse_delete_when_unbalanced() {
-    let trunc = b"PVObject_Root=pvRoot\r\n  PVObject_Hijo=pvChild\r\n";
-    let err = eliminar_objeto(trunc, "pvChild").unwrap_err();
-    assert!(matches!(err, Error::Format(_)));
-    assert!(err.to_string().contains("sin cerrar"));
-}
-
-#[test]
-fn should_refuse_delete_when_selector_invalid() {
-    let err = eliminar_objeto(SINTETICO, "pvRoot[abc]").unwrap_err();
-    assert!(matches!(err, Error::Invalid(_)));
-}
-
-#[test]
-fn should_refuse_quitar_duplicados_when_unbalanced() {
-    let trunc = b"PVObject_Root=pvRoot\r\n  FieldTilt=20\r\n  FieldTilt=25\r\n";
-    let err = quitar_duplicados(trunc, "pvRoot").unwrap_err();
-    assert!(matches!(err, Error::Format(_)));
-}

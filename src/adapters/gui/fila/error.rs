@@ -5,42 +5,59 @@ use crate::error::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub(crate) enum ErrorFila {
-    #[error("{clase} de {anfitrion} no tiene geometría de filas medida; medida en: {medidas}")]
+    #[error("{clase} of {anfitrion} has no measured row geometry; measured on: {medidas}")]
     ClaseSinGeometria {
         clase: String,
         anfitrion: String,
         medidas: String,
     },
-    #[error("El control no muestra ninguna fila: mide {alto_px} px de alto a 96 DPI")]
+    #[error("{clase} of {anfitrion} is titled '{titulo}' and the measured one '{esperado}': the title is the caption PVsyst writes in its own language (gui_observar que:idioma), and the other windows of that class were not measured")]
+    TituloDistinto {
+        clase: String,
+        anfitrion: String,
+        titulo: String,
+        esperado: String,
+    },
+    #[error("The control shows no row: it is {alto_px} px high at 96 DPI")]
     SinFilasVisibles { alto_px: i32 },
     #[error(
-        "El control muestra {visibles} filas y la banda no se distingue con menos de {minimas}"
+        "The control shows {visibles} rows and the band cannot be told apart with fewer than {minimas}"
     )]
     PocasFilas { visibles: usize, minimas: usize },
-    #[error("La fila {indice} no existe: el control muestra {visibles} filas (0..={ultima})")]
+    #[error("Row {indice} does not exist: the control shows {visibles} rows (0..={ultima})")]
     FueraDeRango {
         indice: usize,
         visibles: usize,
         ultima: usize,
     },
-    #[error("El punto de clic (x {x_px} px) cae fuera del control, que mide {ancho_px} px de ancho a 96 DPI")]
+    #[error("The click point (x {x_px} px) is outside the control, which is {ancho_px} px wide at 96 DPI")]
     FueraDelControl { x_px: i32, ancho_px: i32 },
     #[error(
-        "No se pudo traer {clase} al primer plano y darle el foco: el clic iría a otra ventana. Trae la ventana con accion:activar y repite"
+        "Could not bring {clase} to the front and give it the focus: the click would go to another window. Bring the window to the front with accion:activar and retry"
     )]
     SinFoco { clase: String },
-    #[error("Tras el clic no hay ninguna fila resaltada: la fila {indice} está vacía o el clic no llegó")]
+    #[error(
+        "No row is highlighted after the click: row {indice} is empty or the click did not arrive"
+    )]
     NingunaResaltada { indice: usize },
-    #[error("Se pidió la fila {pedida} y PVsyst resaltó la {leida}")]
+    #[error("Row {pedida} was requested and PVsyst highlighted {leida}")]
     FilaDistinta { pedida: usize, leida: usize },
-    #[error("Hay varias filas resaltadas ({filas:?}): no se sabe cuál es la seleccionada")]
+    #[error("Row {indice} is highlighted but its text could not be read to check it: {motivo}")]
+    SinLectura { indice: usize, motivo: String },
+    #[error("Row {indice} is highlighted but it holds \"{leido}\", not \"{pedido}\": the row selected is not the requested element")]
+    TextoDistinto {
+        indice: usize,
+        pedido: String,
+        leido: String,
+    },
+    #[error("Several rows are highlighted ({filas:?}): the selected one is unknown")]
     Ambigua { filas: Vec<usize> },
-    #[error("El clic en la fila {indice} activó el elemento: PVsyst abrió {clases}. Ciérrala con accion:cerrar y cancelar:true")]
+    #[error("The click on row {indice} activated the element: PVsyst opened {clases}. Close it with accion:cerrar and cancelar:true")]
     Activada { indice: usize, clases: String },
-    #[error("El clic en la fila {indice} cerró {clases}: PVsyst lo trató como una acción, no como una selección")]
+    #[error("The click on row {indice} closed {clases}: PVsyst took it as an action, not as a selection")]
     VentanaCerrada { indice: usize, clases: String },
     #[error(
-        "El clic en la fila {indice} cerró el control: PVsyst activó el elemento y cerró {clase}"
+        "The click on row {indice} closed the control: PVsyst activated the element and closed {clase}"
     )]
     ControlCerrado { indice: usize, clase: String },
 }
@@ -51,6 +68,7 @@ impl ErrorFila {
         matches!(
             self,
             Self::ClaseSinGeometria { .. }
+                | Self::TituloDistinto { .. }
                 | Self::SinFilasVisibles { .. }
                 | Self::PocasFilas { .. }
                 | Self::FueraDeRango { .. }

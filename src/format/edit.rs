@@ -3,6 +3,7 @@
 //! Works directly on raw bytes so untouched lines, including legacy binary blocks,
 //! remain strictly byte-identical.
 
+pub(crate) use super::accion::AccionCambio;
 pub(crate) use super::span::{find_span, spans_of, ObjSpan};
 
 use super::selector::parse_selector;
@@ -10,8 +11,9 @@ use super::span::{find_span_by_segs, indent_width, Lines};
 
 use super::object;
 use super::span::tstart;
-use super::value_text;
+use super::{sin_cambio, value_text};
 use crate::error::{Error, Result};
+use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Map, Value};
 
 /// Line terminator to append to a generated field line.
@@ -21,10 +23,21 @@ pub(crate) enum FinDeLinea {
     Crlf,
 }
 
+impl FinDeLinea {
+    /// The terminator a raw line already uses (`\r` left by splitting on `\n`).
+    pub(crate) fn de(linea: &[u8]) -> Self {
+        if linea.ends_with(b"\r") {
+            Self::Crlf
+        } else {
+            Self::Lf
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ChangeOutcome {
     pub key: String,
-    pub action: String, // "replaced" | "inserted" | "deleted" | "not-found"
+    pub action: AccionCambio,
     pub old_value: Option<String>,
     pub new_value: Option<String>,
 }
@@ -39,29 +52,57 @@ pub(crate) struct EdicionObjeto {
 impl ChangeOutcome {
     pub(crate) fn to_json(&self) -> Value {
         json!({
-            "key": self.key, "action": self.action,
+            "key": self.key, "action": self.action.as_str(),
             "old": self.old_value, "new": self.new_value
         })
     }
 }
 
 /// JSON `{campo: valor}` as edit changes: `null` deletes the field.
-pub(crate) fn changes_from_json(campos: &Map<String, Value>) -> Vec<(String, Option<String>)> {
+///
+/// Only scalars are accepted: an object or array would be written as its JSON
+/// text into a field PVsyst reads as a single value.
+pub(crate) fn changes_from_json(
+    campos: &Map<String, Value>,
+) -> Result<Vec<(String, Option<String>)>> {
     campos
         .iter()
-        .map(|(k, v)| (k.clone(), (!v.is_null()).then(|| value_text(v))))
+        .map(|(k, v)| match v {
+            Value::Null => Ok((k.clone(), None)),
+            Value::String(_) | Value::Number(_) | Value::Bool(_) => {
+                Ok((k.clone(), Some(value_text(v))))
+            }
+            Value::Array(_) | Value::Object(_) => Err(Error::Invalid(VALOR_NO_ESCALAR.texto_con(
+                Idioma::de_entorno(),
+                &[("campo", k), ("tipo", tipo_json(v))],
+            ))),
+        })
         .collect()
+}
+
+/// Refusal of a nested value in `campos`: PVsyst reads the field as one value.
+const VALOR_NO_ESCALAR: Texto = Texto {
+    es: "Valor no válido para '{campo}': se esperaba texto, número o booleano, se recibió {tipo}",
+    en: "Invalid value for '{campo}': expected text, number or boolean, got {tipo}",
+};
+
+fn tipo_json(v: &Value) -> &'static str {
+    match v {
+        Value::Array(_) => "array",
+        Value::Object(_) => "object",
+        _ => "null",
+    }
 }
 
 pub(super) fn outcome(
     key: &str,
-    action: &str,
+    action: AccionCambio,
     old: Option<String>,
     new: Option<&str>,
 ) -> ChangeOutcome {
     ChangeOutcome {
         key: key.to_string(),
-        action: action.to_string(),
+        action,
         old_value: old,
         new_value: new.map(str::to_string),
     }
@@ -162,22 +203,21 @@ fn apply_field_change(
 ) -> Result<ChangeOutcome> {
     let found = find_field_line(doc, span, in_child, key);
     match (found, value) {
+        (Some((_, old)), Some(new)) if sin_cambio(&old, new) => {
+            Ok(outcome(key, AccionCambio::SinCambio, Some(old), Some(new)))
+        }
         (Some((i, old)), Some(new)) => {
-            let fin = if doc.lines[i].ends_with(b"\r") {
-                FinDeLinea::Crlf
-            } else {
-                FinDeLinea::Lf
-            };
+            let fin = FinDeLinea::de(&doc.lines[i]);
             let indent = indent_width(&doc.lines[i]);
             doc.lines[i] = field_line(indent, key, new, fin);
-            Ok(outcome(key, "replaced", Some(old), Some(new)))
+            Ok(outcome(key, AccionCambio::Replaced, Some(old), Some(new)))
         }
         (Some((i, old)), None) => {
             doc.lines[i].clear();
             doc.newline[i] = false;
-            Ok(outcome(key, "deleted", Some(old), None))
+            Ok(outcome(key, AccionCambio::Deleted, Some(old), None))
         }
-        (None, Some(new)) => Ok(outcome(key, "inserted", None, Some(new))),
+        (None, Some(new)) => Ok(outcome(key, AccionCambio::Inserted, None, Some(new))),
         (None, None) => Err(Error::NotFound(format!("Campo '{key}' no existe"))),
     }
 }
@@ -195,6 +235,7 @@ pub(crate) fn edit_fields(
     let segs = parse_selector(selector)?;
     reject_line_breaks(changes)?;
     reject_invalid_keys(changes)?;
+    super::campos_numericos::validar_valores(changes)?;
 
     let mut doc = Lines::split(bytes);
     let spans = spans_of(bytes);
@@ -215,7 +256,7 @@ pub(crate) fn edit_fields(
 
     for (key, value) in changes {
         let outcome = apply_field_change(&mut doc, &span, &in_child, key, value.as_deref())?;
-        if outcome.action == "inserted" {
+        if outcome.action == AccionCambio::Inserted {
             if let Some(v) = value.as_deref() {
                 inserts.push((key, v));
             }
@@ -223,11 +264,7 @@ pub(crate) fn edit_fields(
         outcomes.push(outcome);
     }
 
-    let fin = if doc.lines[span.open].ends_with(b"\r") {
-        FinDeLinea::Crlf
-    } else {
-        FinDeLinea::Lf
-    };
+    let fin = FinDeLinea::de(&doc.lines[span.open]);
     for (key, value) in inserts.into_iter().rev() {
         doc.lines
             .insert(span.open + 1, field_line(find, key, value, fin));

@@ -14,9 +14,10 @@ use windows::Win32::UI::Accessibility::{
     IUIAutomationSelectionItemPattern, IUIAutomationTogglePattern, IUIAutomationTreeWalker,
     IUIAutomationValuePattern, UIA_AutomationIdPropertyId, UIA_BoundingRectanglePropertyId,
     UIA_ClassNamePropertyId, UIA_ControlTypePropertyId, UIA_ExpandCollapsePatternId,
-    UIA_InvokePatternId, UIA_IsEnabledPropertyId, UIA_LocalizedControlTypePropertyId,
-    UIA_NamePropertyId, UIA_NativeWindowHandlePropertyId, UIA_SelectionItemPatternId,
-    UIA_TogglePatternId, UIA_ValuePatternId,
+    UIA_InvokePatternId, UIA_IsEnabledPropertyId, UIA_ItemContainerPatternId,
+    UIA_LocalizedControlTypePropertyId, UIA_NamePropertyId, UIA_NativeWindowHandlePropertyId,
+    UIA_SelectionItemPatternId, UIA_TogglePatternId, UIA_ValuePatternId,
+    UIA_VirtualizedItemPatternId,
 };
 
 /// Cached properties of one element, each carrying its own COM error.
@@ -52,6 +53,8 @@ pub(crate) fn configurar_cache(auto: &IUIAutomation) -> Result<IUIAutomationCach
             UIA_ValuePatternId,
             UIA_SelectionItemPatternId,
             UIA_ExpandCollapsePatternId,
+            UIA_ItemContainerPatternId,
+            UIA_VirtualizedItemPatternId,
         ] {
             req.AddPattern(patron).map_err(error)?;
         }
@@ -118,6 +121,8 @@ pub(crate) fn patrones_soportados(el: &IUIAutomationElement) -> Vec<&'static str
             (UIA_TogglePatternId, "alternar"),
             (UIA_SelectionItemPatternId, "seleccion"),
             (UIA_ExpandCollapsePatternId, "expandir"),
+            (UIA_ItemContainerPatternId, "contenedor"),
+            (UIA_VirtualizedItemPatternId, "virtualizado"),
         ]
         .into_iter()
         .filter(|(id, _)| {

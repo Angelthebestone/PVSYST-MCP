@@ -7,7 +7,601 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **`medir_proyectos` compares a project window's whole name and reads the loader's answers.**
+  `_patron` matched «Proyecto Planta 2» for `Planta` and «Proyecto Copia (_DEMO_Commercial)» for
+  `_DEMO_Commercial`, so `cargar_proyecto` answered «already loaded» and the chain measured over the user's
+  own project; `_es_proyecto` and `es_propio` now share the one name rule of `_nombre_del_titulo`, and
+  `_patron` is gone. The three GUI steps of the loader (`proyecto.cargar`, `escribir`, `fila`) answered
+  with errors nobody read, so a refused step surfaced 15 s later as «project X did not load», naming no
+  cause: each answer is read now, and the step that failed is named.
+- **`medir_ventanas.limpiar` keeps why it could not close a window.** It dropped the answer of `_cerrar`,
+  so a message box the harness cannot answer — whose texts and buttons `_responder` names — was reported as
+  «still open: ['TMessageForm']», with no way to tell which dialog, or which refused click, stopped the
+  cleanup. The returned `Sobrantes` is still the list of classes, so a caller that prints it keeps
+  working, and it carries `motivo`, the reason of the last close that failed: `medir`'s `parado` now says
+  which dialog it could not answer.
+- **`medir_gui` prints why a cleanup could not close the target it measured and keeps the reason in the
+  inventory.** `_resumen` printed «, closing it stopped» without the reason, and `fusionar` copied four
+  keys and `botones_abren` and dropped `parado`, so the reason the harness documented was lost twice: the
+  entry claimed a complete measurement and the console line named no cause. The line now reads «closing
+  it stopped: <reason>» and the entry carries `parado`.
+- **`tools/medir_objetivo.py` closes the target it opened when the measurement raises anything, not only
+  `ErrorMedicion`.** An `ErrorDeLectura` from `abrir` or `inventariar` (a `RuntimeError`) or a
+  `TimeoutError` left `medir` as an exception `main` stops on, with the target's window still open, and the
+  next run then refused the session as somebody else's. The cleanup now runs on every path: the exception
+  is raised again naming the cleanup that could not finish after it, never in place of the reason it was
+  raised for.
+- **Both READMEs say the top-level `siguiente` string was removed and that `detalle:resumen` trims to 13
+  items.** The `vista` section still said existing keys do not change, although the string was removed in
+  favour of `vista.siguiente` (B.5.2 of the visual GUI test report), and the `detalle` bullet said 10
+  items while `LIMITE_ARRAY_RESUMEN` is 13 (the 12 months plus the year).
+- **The texts say when `vista:false` drops the block: only a call that finished (B.5.1 of the visual GUI
+  test report).** Server instruction 12, both READMEs and the bundle manifest said every answer carries
+  `vista`, and the `vista` argument description said a successful answer loses it. A rehearsal is `ok`
+  and keeps the block, and so do errors and partial answers whatever the switch says. They now name the
+  switch and those cases. No answer changes.
+- **`gui_observar` names in `ignorados` the arguments the chosen `que` does not read (B.5.4 and D.5 of
+  the visual GUI test report).** `detalle` on `que:inventario` was accepted and changed nothing (68 339 /
+  68 338 / 68 338 bytes for `resumen` / `normal` / `completo`: an inventory caps itself at 500 controls
+  with `total` and `truncado` and keeps its lists out of the trimmer), and `compacto` or `recorte` on a
+  `que` that ignores them failed silently too — the schema said `ignored on another que` while the answer
+  said nothing. The answer now carries `ignorados: ["detalle"]`, `["compacto"]` or `["recorte"]`, the
+  mechanism `leer` already uses for the keys of another branch. `compacto` is read by `que:ventanas`,
+  `que:controles` and `que:vista`; `recorte` by `que:capturar`. No other answer changes.
+- **`medir_gui` reads a JSON-RPC failure of a chain step, drops the presses of a remeasured tab set,
+  and its white-list comment says what the list is.** `abrir` compared `r.get("error")` alone, so a
+  `jsonrpc_error` answer counted as a success; `fusionar` kept the old `botones_abren` whenever the run
+  carried no `--botones`, even when the tabs had been remeasured, so presses recorded against tabs the
+  window no longer has were credited to the new ones (they are now dropped unless the tab set is the
+  same); and the comment above `PERMITIDOS` claimed every label had been seen opening a window, when
+  the repository has no recorded run yet: the list is a ceiling drawn from the labels the inventory
+  lists, and the run itself records in `botones_abren` the window each label it presses opens.
+- **The windows a press opened are closed by class, never by title.** `cerrar_nuevas` passed `titulo or
+  clase` to `gui_actuar accion:cerrar`, and the server resolves a title by substring over every window
+  of the process (`resolucion.rs`), the host included: a new window whose title equalled the host's
+  closed the host and left the new one open. The close now names the class, `_cerrar` no longer takes
+  a title at all, and a new window whose class is one that `MANTENER` keeps (`THomeForm`, `TApplication`,
+  `TProjectForm`) is a stop naming it, because one more window of that class would leave the close
+  choosing between two. `test_cerrar_nuevas_...` learns that `previas` lists every window that was
+  open, which is what a real run passes.
+- **A `--botones` run that stopped exits non-zero and says how many entries stopped.** The console line
+  built `prensas` from the entries carrying `abre`, so the `{pestana, parado}` entries a stopped run
+  writes were counted nowhere: the run printed «0 with error» and `main` returned 0. `_resumen` now
+  names the stopped entries and `main` returns 1 when there is one, while a press that failed and
+  recovered (a refused click, a window closed and reopened) still merges and exits 0.
+- **`tools/medir_gui.py` closes a project window only when it loaded that project itself or it is a
+  `_DEMO_`.** A chain without `@proyecto:` closed whatever `TProjectForm` was open and answered No to
+  «¿Desea guardarla?», which throws away the unsaved work of a project the harness merely found open.
+  The run now records the projects it loaded (`cargados`, owned by `main` and threaded through
+  `medir` and `abrir`) and any other loaded project stops the chain with an error naming it;
+  `cargar_proyecto` no longer discards what `limpiar` could not close; and after a close the window
+  must be gone, or the chain stops. The project chain moves to `tools/medir_proyectos.py` (the window
+  primitives stay in `medir_ventanas.py`, which the change pushed past 300 lines): nothing about the
+  protocol changed.
+- **A message box a tab change raises is answered by the same decision as every other dialog.**
+  `tools/medir_inventario.py` pressed `OK` on any `TMessageForm` without passing through
+  `_boton_de`, so a box offering OK/Cancel — «Los datos se pierden, ¿continuar?» — was accepted and
+  its result ignored. It now uses `_boton_de`, raises when the box offers no rejection (naming its
+  texts and buttons), and raises when the answer cannot be pressed.
+- **A failed read of the open windows is an error, not a clean screen, and never a second PVsyst.**
+  `tools/medir_ventanas.py` built its window list from `r.get("windows", [])`, so an answer carrying
+  `error` or `jsonrpc_error` became an empty list: `limpiar` reported a clean screen, `cerrar_nuevas`
+  found nothing to close, and `asegurar_pvsyst` launched PVsyst over an instance it had not read. A
+  failed read now raises `ErrorDeLectura` (a `RuntimeError`, so `medir_gui` stops and exits non-zero),
+  and `asegurar_pvsyst` launches only when the answer says the process is absent (`Process
+  'PVsyst.exe' is not running`, and its Spanish twin) and stops on any other read error.
+- **`tools/medir_gui.py --botones` presses a label only when the measurement says it is the button's
+  own caption.** The white list compared the text alone, and the text of an icon-only button is OCR
+  of the pixels drawn inside it: `gui_actuar accion:clic_texto` then falls back to OCR substring
+  matching and to UI Automation, so `Tabla` reached `Guardar tabla...`. `medir_inventario` records the
+  `etiqueta_fuente` of each button — the field `gui_observar que:formulario` reports, `window_text` for
+  the control's own caption, `ocr` for text recognised inside it, null for a button without text — as
+  the `origen` of the inventory entry, and `_motivo` presses only `window_text`, recording `texto de
+  OCR` for anything else. An entry measured before the server reported the key carries no origin and
+  is not pressed (`sin origen`) until the window is measured again: that is the fail-closed side of
+  the rule, not a silent skip.
+- **`tools/medir_gui.py` no longer fails every target after the trial notice appears under a loaded
+  project.** The notice (`TDEMOForm`) came up while a demo project was open, the server refuses to
+  close it there (the project window is modal above it) and the cleanup reported it as a window it
+  could not close, so 25 of 26 targets of a run failed with «could not close the windows left open».
+  The cleanup now skips the notice while a project is open; the next chain without a project closes
+  the project and then the notice.
+- **`gui_observar que:esquema` publishes a window under every catalogue function that opens it, not
+  only under the one that announces it.** `abierta_con` was built from `Funcion::abre` alone, so
+  `TUserNeedsForm` listed `variante.autoconsumo` and hid `variante.necesidades_usuario_independiente`,
+  which opens it on a stand-alone project created with `disenar_sistema tipo_sistema:aislado`. The
+  alternative class counts now: `abierta_con` of `TUserNeedsForm` is
+  `["variante.autoconsumo", "variante.necesidades_usuario_independiente"]` in catalogue order, and no
+  other class changes. `que:funciones` and its `abre` field are untouched.
+- **A catalogue entry can no longer declare an alternative window without the one it announces.** The
+  accepted classes of a function were built as `principal = Funcion.abre?`, so an entry carrying only
+  the alternative answered no expected class at all and the wait took any new window for the expected
+  one: `completo:true` with nothing checked. The alternative now comes from one builder,
+  `Funcion::abre_con_alternativa(principal, alternativa)`, which sets both classes, and the coherence
+  test of the real catalogue stays as the second line of defence.
+- **`gui_actuar accion:clic_texto` says which disabled button it skipped.** With an enabled «Abrir»
+  beside a disabled one (measured on `TSystemegridForm`) the click pressed the enabled button and the
+  answer said nothing about the other, which used to be an error when the caption was shared. The
+  answer now carries `descartados` (`[{clase, hwnd, centro}]` of each disabled button with that
+  caption) and only when there was one, so a click that skipped nothing keeps the answer it had; the
+  OCR and UIA paths never carry it. The refusal for a caption only disabled buttons carry now reads
+  «El rótulo '{texto}' aparece solo en botones deshabilitados», grammatical for one button too.
+- **`tools/medir_gui.py --botones` presses only an exact white list of labels.** The list matched by
+  prefix, so it pressed «Ver el TNCO de todos modos» (a button that skips a warning and writes the
+  thermal parameter) and «Abrir», «Abrir sitio», «Abrir en explorer» or «Mostrar mapa» (a file selector,
+  a browser or the Windows Explorer, a window outside the process). The
+  ten labels it presses now are `Resumen del sistema`, `Gráfico de pérdidas`, `Gráfico`, `Tabla`,
+  `Tabla mensual`, `Mostrar gráfico`, `Mostrar histograma`, `Mostrar optimización`, `Curva I/V` and
+  `Diagrama unifilar`, compared after folding case, accents, `&`, ellipsis and repeated spaces; every
+  other label keeps its `no está en la lista blanca` motive, and adding one requires having seen which
+  window it opens.
+- **A press that leaves a window it cannot close stops the run and names it.** `cerrar_nuevas` gets twelve
+  rounds to close the windows a press opened; when they ran out it answered no stop reason, so the entry
+  said the press opened a window (a native dialog `#32770` that refuses the close, for instance) while it
+  stayed on screen, and the presses after it failed with «TX is disabled: a modal dialog is open…» without
+  naming the modal. A window still open after the rounds is now `parado`, with its class and title and the
+  refusal `accion:cerrar` answered, and `pulsar_botones` stops there as it already did with an unknown
+  dialog; nothing is pressed after it.
+- **The coverage count of `gui_observar que:esquema` counts a tab by the union of the labels on its
+  pages.** It kept one page per (`pestana`, `subpestana`) pair and, when a tab had sub-tabs (`TPVModuleForm`,
+  «Parámetros del modelo» → «Degradación», «IAM personalizado»), counted it by its sub-tabs alone. Two facts
+  about `docs/gui_mapa.json` contradict that: `paginas[].botones` is not per page (`tools/medir_inventario.py`
+  stores the whole form's buttons in every tab, so a tab with three sub-tabs brought OK, Cancelar and
+  Imprimir three times), and a parent page whose fields live outside the sub-tab control was dropped. A tab
+  now counts the distinct fields by (`clase`, `etiqueta`) and the distinct buttons by their text over every
+  page it recorded, with or without a sub-tab, so what every sub-tab shares counts once. `subpestana` no
+  longer takes part. A field with no label counts by its position in its page: two of them on one page stay
+  apart, and the same position on two pages of one tab is one field. The union can fall short, which is the
+  safe error for a coverage figure: two different fields of one tab that share class and label collapse into
+  one. The figures move even though no page of the map carries `subpestana` yet: 40 of the 89 classes change,
+  the sum of `campos_en_mapa` goes 1962 → 1837 and of `botones_en_mapa` 651 → 639, and three grow because the
+  old rule kept a single page per tab (`TTrackerFieldForm` 22 → 50 fields, `TShedFieldForm` 17 → 45 and
+  `TPolyFieldForm` 16 → 25).
+- **`gui_actuar accion:funcion` with `variante.necesidades_usuario_independiente` works on both kinds
+  of stand-alone project.** Measured on 8.1.8, the demo `_DEMO_StandAlone` makes that button open
+  `TDomesticUseForm`, while a project created with `disenar_sistema tipo_sistema:aislado` makes it open
+  `TUserNeedsForm`; the entry declared only the demo window, so the second case opened the window and
+  still answered `completo:false` with «PVsyst no abrió la ventana esperada (TDomesticUseForm) en el
+  plazo de espera». A catalogue entry can now declare an alternative window
+  (`Funcion::abre_con_alternativa(principal, alternativa)`) beside the announced one, which sets both
+  classes so the alternative cannot come alone; the wait counts either as arrived, and the error names
+  every accepted class (`TDomesticUseForm / TUserNeedsForm`). `abre` stays the announced class, so
+  `que:funciones` keeps announcing only `TDomesticUseForm`; the button, its caption and its note are
+  unchanged.
+- **`gui_actuar accion:clic_texto` presses the button whose caption is that text, not the
+  combo box that shows the same word (measured: `TChoixObjetPVForm` captions «Abrir» both a
+  `TComboBox` and a `TButton`).** The click was aimed at the first place the search met (an OCR box,
+  or the UIA element of that name), so a caption shared by several controls could land on the combo.
+  A visible button whose own caption is the text now wins over combos, edits and labels, folded as
+  OCR folds it (`&Abrir` equals `Abrir`); the class is read before the caption, so only the buttons of
+  the form cost a message. Two enabled buttons with the same caption are refused, naming each class,
+  position and hwnd (the value `accion:click ventana:<hwnd>` takes), instead of pressing one of them.
+  `indice` keeps counting the drawn matches and skips that step, and with no button carrying the text
+  the click works as before (OCR, then UIA). The answer gains `origen` (`control`, `ocr` or `uia`)
+  saying where the target came from; `coincidencias` keeps counting the OCR matches (0 when the button
+  was pressed by its caption, which no longer answers the `coincidencias:0` warning that only an
+  unconfirmed UIA click carries).
+- **The README no longer says the `workspace` argument reaches the actions that run PVsystCLI (A.4.4 of the visual GUI test report).** It moves the confinement root for the file tools, but `sitio crear`, `sitio convertir_meteo` and `simular` reject a workspace other than the one configured in PVsyst (`DataPath` of `PVsyst.ini`) with a named error. Documentation only: the error was already right.
+- **`simular accion:preparar` with only `archivo_rvt` no longer fails asking for `batch_rvt_file`.** The tool declared `archivo_rvt` and routed to the RVT manager on it, but the manager read only `batch_rvt_file` or `archivo`, so the call stopped with `Falta 'batch_rvt_file' o 'archivo'`. It now reads `batch_rvt_file`, then `archivo_rvt`, then `archivo`, and the error names the three.
+- **`docs/gui_mapa.json` is remeasured for 10 windows, and says the state it was measured in and what
+  it does not cover (2.1, 2.3, 2.4, 2.6 and 2.7 of the visual GUI test report).** The old collector kept at
+  most 13 fields per page and never said which state of the window it saw. Now
+  `tools/mapa_desde_inventario.py` regenerates, from `docs/gui_inventario_pestanas.json` (every
+  field that `que:formulario` returns, tab by tab: class, `marcado` and `habilitado` come from the window
+  enumeration, `etiqueta` from the label chain, which includes OCR), instance 0 of `TDetailedLossesForm` (95 → 123 fields),
+  `TSystemegridForm` (13 → 28), `TSystemeAddForm` (17 → 11, with the missing first tab `Temperatura
+  inversor`, so every `indice_pestana` was off by one), `TGridStorageForm` (13 → 1) and `THorizonForm`,
+  `TShadingsForm`, `TEcoEvaluationForm`, `TUserNeedsForm`, `TSummaryForm` (same counts, now with `marcado`
+  and `habilitado` per field); `TOrientationForm` keeps the tracker instance and gains the fixed-tilt one.
+  Each regenerated instance carries `estado_medido` (`"Sin almacenamiento"`, `"P50-P90 con Activo
+  desmarcado"`, the fixed tilt of the demo project, or `"no registrado"` where the report does not say),
+  and `limites` states that everything else is still truncated at 13 (72 of 265 pages held exactly 13
+  then), and that some OCR labels are values. The rest of the map is unchanged byte for byte; `python
+  tools/mapa_desde_inventario.py --check` fails when the map is not what the script writes.
+  A second pass measured live on PVsyst 8.1.8 (0 trial executions, nothing saved) 20 more windows:
+  `TPVModuleForm` (its 5 tabs were the same page; now 6 distinct ones, `Parámetros del modelo` exists only
+  once the module is complete, and the form vetoes the tab change until it is), `TGridInverterForm` (76 →
+  122 fields in the `bases_de_datos.inversores_red>Nuevo` instance), `TBatteryForm`, `TArrayCharactForm`,
+  `TParamSolForm`, `TPreferencesForm`, `TSAControllerForm`, `TPumpForm`, `TPumpControllerForm`,
+  `TGeneratorForm`, `TContactForm`, `TMeteoImportForm`, `TMeteoTablesGraphsForm`, `TVoltageOptimiseForm`,
+  `TTranspositionForm`, and on a pumping project `TSettingsForm`, `TGeoSiteForm`, `TSystemPumpingForm`,
+  `TWaterUseForm` and `TCurrenciesForm`. A third pass measured other openings on a stand-alone, a pumping
+  and the demo grid project: `TSystemeBattForm`, `TDetailedLossesForm` and `TOrientationForm`
+  (`independiente`), `TOrientationForm` (`bombeo`), `TGridInverterForm` opened from the system window
+  (76 → 140 fields) and `TUserNeedsForm` through the stand-alone opening, which is what
+  `variante.necesidades_usuario_independiente` really opens (the catalogue declares `TDomesticUseForm`).
+  An inventory entry may be keyed `Clase#abierta_con` to hold several openings of one window. Pages that
+  hold exactly 13 fields: 24 of 266. The inventory now
+  keeps `etiqueta_fuente` per field and the tab and group-box captions per page. Corrected: the first pass
+  said its labels were free of OCR; they come from `que:formulario`, which includes it.
+  A fourth pass, run with the versioned harness `tools/medir_gui.py` (it opens each window from
+  `tools/gui_manifiesto.json`; 0 trial executions, nothing saved), measured on PVsyst's shipped read-only
+  demos (`_DEMO_Commercial`, `_DEMO_DCGrid`, `_DEMO_Pumping`, `_DEMO_Tracking`, `_DEMO_StandAlone`, which
+  `proyecto.cargar` lists): the seven windows that said `no registrado` now carry their demo, and
+  `TSystemegridDCForm` (13 → 17 fields), `TDetailedLossesForm` on the DC grid (80) and pumping (93)
+  projects, the tracker `TOrientationForm` (22), the DC-grid and shading-opened `TOrientationForm`, the
+  five 3D windows (`TPerspectiveForm` 24, `TTableFieldForm` 42, `TRectFieldForm` 43, `TGroundObjectForm` 16,
+  `TOrientToolForm` 23), `TMismatchStringForm` (40), `TOptimizationToolForm` (22), `TResultPlotHorForm`
+  (30), `TDomesticUseForm` (47, on `_DEMO_StandAlone`) and `TContactForm` opened from the preferences (13).
+  Pages that hold exactly 13 fields: 8 of 266; remeasured instances: 52 of 146. Still pending:
+  `TGeoSiteForm` via `Nuevo` (button disabled), ten instances whose state cites a project that is not
+  reproducible (`Z_MAPA_Aislado`, `Z_E2E_Bombeo`), nested sheets (`pagina` only changes the main page
+  control), the windows the buttons open (the harness reads the buttons but does not press them yet),
+  the 58 windows with no remeasured instance, and `requiere`/`oculto_sin` per field.
+- **`vista.recortado` names a list `detalle` cut inside an object.** A project with more than 13 variants
+  answered `truncado:true`, 13 `variants` and `variants_total:16` inside the project, and `vista.recortado`
+  stayed empty: the trimmer writes `<clave>_total` next to the list it cut at whatever depth, but the vista
+  only paired it with a sibling list at the top level, so a nested cut carried no `pedir_resto` and the caller
+  had to guess that `detalle:completo` returns the rest. Each cut is now named where it lives
+  (`projects[0].variants`, same `detalle:completo` to get it); a top-level cut keeps its bare key and the
+  truncation itself is unchanged.
+- **`gui_actuar accion:clic_texto` refuses a disabled button instead of pressing it.** The search for a
+  button whose own caption is the text filtered the candidates by `visible` only, so a button PVsyst greys
+  was posted the click anyway: the disabled control swallows it, and the call answered `verificado:false`
+  with a point that hid the caption the caller asked about. `accion:click` refused that control by name
+  since GUI-07. The candidates are split by their window state now: a caption only disabled buttons carry
+  is an error naming each class, hwnd and position and saying what to enable, while a caption shared by a
+  disabled and an enabled button presses the enabled one as before instead of refusing both.
+- **A `--botones` press that the server resolved by OCR or by UI Automation stops the run.**
+  `_pulsar` checked where the form read found a button's text and then trusted the click: `gui_actuar
+  accion:clic_texto` presses a visible button whose own caption is that text and, when there is none,
+  falls back to OCR substring matching and to the name UI Automation gives a control, so a button that
+  was hidden or covered answered «done» after pressing a different control. The answer says in `origen`
+  which way the text was resolved (`control`, `ocr`, `uia`), and a press whose answer is not `control`
+  — or whose successful answer carries no origin at all — ends the press phase with a `parado` entry
+  naming the button, the origin and the windows it opened, which are closed as any other press's are.
+- **A screen the presses cannot read ends the presses, not the measured target.** An `ErrorDeLectura`
+  raised while a press was in flight left `medir` as an exception `main` stops on, so the tabs already
+  read were not merged; `finally: limpiar(c)` could raise it again and hide the reason the target had
+  failed; and a window entry without a `class` ended the tool with a `KeyError` traceback instead of a
+  read error. The presses now end with a `parado` entry naming the read error while the fields already
+  measured merge as with any other stop, the cleanup reports what it could not close instead of raising
+  (`parado` in the measurement, printed and counted as a failure, or appended to the reason the target
+  failed), and `ventanas` rejects a window without a `class` as a read error that names the entry.
+- **A run refuses a PVsyst it did not start that shows windows it did not open (`--limpiar-ajenas`).**
+  `limpiar` closes every window but the main ones answering No/Cancelar, so a run started next to an
+  open PVsyst answered No to the save prompt of whatever the user had on screen: only the project
+  window was guarded. A session this run found already running now stops the run with an error that
+  lists every window outside `MANTENER` and outside the trial notice (`TDEMOForm`, which PVsyst raises
+  by itself) and asks for them to be closed by hand; the new flag `--limpiar-ajenas` declares them
+  disposable, which is how the leftover of a killed run is cleaned. A PVsyst this run launches is not
+  checked: nothing of the user's is on its screen.
+- **A demo is a whole name of the shipped list, not any `_DEMO_` in a title.** The guard matched
+  `(?<!\w)_DEMO_\w` anywhere in a project window's title, so a user's `_DEMO_mio`, an `X_DEMO_Foo`
+  and a `Copia (_DEMO_Commercial)` counted as read-only demos and the run closed them answering No to
+  PVsyst's save prompt; a project the run had loaded was matched with the same whole-word rule, so
+  `Planta` found the window of `Proyecto Planta 2`. The demos the installation ships in
+  `DataRO\PVsyst8.1_Data\Projects` are an explicit list now, compared with the whole project name the
+  title shows («Proyecto <nombre>», the active variant after ` - `) for the demos and for the loaded
+  names alike, and a title of another shape matches nothing, so its window stays open.
+- **One rule says which windows the harness may close, the trial notice included.** `_sobran` kept the
+  notice while a project window was open, but a chain step closed it without looking at the answer and
+  a press that opened it, under a project window, spent twelve rounds trying to close it and then
+  stopped naming a window it was never allowed to close. The rule lives in `cerrable` — the main
+  windows never, the notice only while no project window is above it — the press run and the chain step
+  both ask it, and the chain step reads the refusal of the close instead of assuming it worked.
+
 ### Added
+- **A page of `docs/gui_mapa.json` can carry `requiere`: the switches of its tab and what each one changes.**
+  `tools/mapa_condicionales.py` writes the steps of `docs/gui_condicionales.json` (`campo`, `valor`, `aparecen`,
+  `desaparecen`, `habilitan`, `deshabilitan`) on the page of that tab of that instance, so an agent reads that
+  «Utiliza un transformador de AT» stays disabled until the two checkboxes before it are set, instead of taking
+  the fields of a page for all of the window. Four pages carry it; the others are unchanged, and the Rust
+  readers ignore the new key. `tools/mapa_desde_inventario.py` takes `--condicionales` (default
+  `docs/gui_condicionales.json`), documents `requiere` in `nota` and now counts, in its `ALCANCE` limit, the
+  instances still without `estado_medido` (32 of 147) instead of naming project kinds.
+- **`tools/medir_condicionales.py` measures what a switch of a tab shows, hides or enables.** The map is a
+  photo of one state (a tab showed 1 field or 23 depending on a checkbox), and nothing said which control
+  changes what. For each entry of `tools/gui_condicionales.json` the tool opens the window on a shipped demo,
+  goes to the tab, sets the steps one by one (`campo`) and reads the tab after each; `docs/gui_condicionales.json`
+  keeps `aparecen`, `desaparecen`, `habilitan` and `deshabilitan` per step (buttons count). Measured on
+  PVsyst 8.1.8: «Activo» of the P50-P90 tab of `TSystemeAddForm` shows 12 labels; «Consumo auxiliares
+  definidos» of `TDetailedLossesForm` enables two edits; the ohmic-loss tab chains «Utiliza pérdida óhmica del
+  circuito CA» → «Utiliza uno o varios transformadores MT» → «Utiliza un transformador de AT», each enabling
+  the next; «Tipo de sistema: Autoconsumo» of `TGridStorageForm` shows 8 labels and the buttons «Abrir» and
+  «Autoconsumo». Not measured: the «Eficiencia definida para 3 voltajes» checkbox of `TGridInverterForm`,
+  which needs an inverter chosen in a chooser whose rows the server cannot select. Labels can be OCR text, so
+  a label may be listed on both sides of a step with two spellings.
+- **`gui_observar que:formulario` says where the text of each button was read (`etiqueta_fuente`).** A button
+  answered its `texto` with no origin, so a client could not tell the caption the control draws for itself
+  (`window_text`) from a text the OCR read inside its rectangle (`ocr`), and `gui_actuar clic_texto` can
+  fall back to OCR substring matching on the second one and press another button whose caption contains
+  it. The key carries the same values as the field labels (`window_text`, `ocr`) and is `null` when the
+  button has no text. `tools/medir_gui.py` presses a button only when this key says `window_text`.
+- **`pvsyst://gui/<clase>` serves one window of the GUI map (D.1 of the visual GUI test report).**
+  `pvsyst://gui` weighed 395 587 B (89 windows and 209 catalogue functions), so reading the nine tabs
+  of `TDetailedLossesForm` loaded the whole file. The new form returns that window alone: `clase`,
+  `ventana` (its entry of the map, the same one the full resource carries), `abierta_con` (the catalogue
+  functions that open it, the list `gui_observar que:esquema` publishes) and the `metadatos` block, so a
+  version or language warning still shows. Its body is about 58 KB for `TDetailedLossesForm`, the biggest
+  entry, instead of the whole map. The class is matched ignoring case, and an unknown one is an error that
+  lists the classes the map holds. `resources/templates/list` advertises the form as
+  `pvsyst://gui/{ventana}`, and the `uso` of `pvsyst://gui` names it. The full resource keeps every
+  window and its map is unchanged.
+- **`leer` names the objects of the file, so editing one field no longer costs a `listar` first (B.4.6 of
+  the visual GUI test report).** A project or a variant answered its object tree only with
+  `detalle:completo`, so an agent that wanted to change `FieldTilt` called `listar que:objetos` just to
+  learn the name `pvSubArray`, and paid for the role, the depth and the line numbers of every object it did
+  not need. The answer now carries `objetos`: the names of the objects of the file, in file order, one per
+  type, and each one a name `editar` takes as its whole `objeto` selector (a type repeated in the file adds
+  no name an edit could use; `listar que:objetos` still reports every instance). The key travels at every
+  `detalle` level and is left out when the file has no object, so a file read as raw bytes or by a reader of
+  its own pays nothing; nothing else in the answer changed. The list is never cut by `detalle`, since the
+  names are what `editar` takes and a project can hold more than 13 object types; the other lists of the
+  answer still follow `detalle`.
+- **Every tool accepts `vista:false` (B.5.1 of the visual GUI test report).** The `vista` block carried 60-69 % of
+  the bytes of a data answer (`resultados kpis` 69 %, `proyecto doctor` 63 %, `leer` 60 %) while repeating keys the
+  answer already had. The switch is declared on every tool and defaults to `true`: the block is absent only when the
+  call finished (`estado:ok`) and nothing is pending, so a failure, a `parcial` answer, a confirmation request and a
+  rehearsal (`dry_run`) keep it — an agent must never lose why an action did not apply. A non-boolean value is
+  refused by the boundary check as `Wrong type for 'vista'`. `vista` is added like `detalle`, outside the declared
+  properties, so no tool repeats it; its description lives in `src/server/tools/descripciones/comunes.rs`. Tests pin
+  each case of the rule and that no tool reports the switch in `ignorados`.
+- **`listar` answers only the fields the caller asks for (`campos`, B.5.3 of the visual GUI test report).**
+  A listing carried the same seven fields of every project (about 241 B each) whatever `detalle` said, so
+  asking for `name` and `variants` cost the other five: `comment`, `meteo_file`, `modified_unix` and
+  `version` were 55 % of the values of the 13 projects `detalle:resumen` returns. A call with
+  `campos:["name","variants"]` keeps those keys in each item of every list of objects the answer carries,
+  in every `que` of `listar` (projects, components, modules, files, objects), while the counters and the
+  metadata of the answer (`count`, `truncado`, `projects_total`) stay as they were: `que:proyectos` answers
+  two lists, `projects` and `templates`, and both are projected, an item that lacks one of the named keys
+  being left without it. The valid names of each `que` come from a static table of every field its
+  handlers build, optional ones included (`aviso` on a .PRJ that could not be parsed, `error` on a .PAN
+  that could not, `solo_lectura` on a template), so a filtered, empty or warning-free answer accepts the
+  same names as a full one; a name outside that table is an input error that lists the fields of the
+  `que`, and a `campos` that names no field or is not a list of names is refused instead of leaving every
+  item empty. Without `campos` the answer is the one it was, and `detalle` keeps its meaning: the fields are projected
+  before the lists are cut to 13, 50 or all.
+- **`tools/mapa_desde_inventario.py` copies the nested sheets of a tab into the map as `subpestana`.**
+  A page whose inventory entry names a sub-sheet (`TPVModuleForm`, «Parámetros del modelo» →
+  «Degradación», «IAM personalizado») carries it right after `pestana`, repeats the `indice_pestana` of
+  its tab, and the tab is still named once in `pestanas`, because `indice_pestana` indexes that list.
+  The captions a page inherits are looked up by (tab, sub-tab) now, so a sub-sheet no longer takes the
+  `rotulos` of the last page of its tab, and an unnamed sub-sheet is refused instead of written. No page
+  of `docs/gui_mapa.json` changes: the inventory records no sub-sheet yet.
+- **Every argument of every tool now carries a description (F.1 #8 of the visual GUI test report).** `tools/list` declared 162 arguments with no text, so a client could not tell what `confirmar`, `n` or `todos` meant, its unit or its range. The descriptions live in `src/server/tools/descripciones/`: one table per tool plus `comunes` for the keys every tool reads the same way (`detalle`, `permitir_fuera_del_workspace`); a table wins over the shared one, and the annotators that know a constraint still go first. Each text says the meaning and the unit in at most 100 characters, because the list travels in every turn. `should_not_add_arguments_without_a_description` fails when an argument ships without one, `should_keep_each_description_short` caps the length, and another test rejects a description for an argument the tool does not declare.
+- **A trial licence keeps a reserve of executions (`PVSYST_RESERVA_TRIAL`).** The confirmation gate
+  only asked for `confirmar:true` when one call estimated 2 or more trial executions, so a loop of
+  one-execution calls drained the balance without ever being asked. A trial call that would leave
+  fewer than `10` executions now asks too, even when it estimates one; the message names the runs
+  estimated, the ones left, the reserve and the variable (`0` turns the reserve off, a lower number
+  narrows it), and the answer gains `reserva`. A licensed install has no budget, so it is never held
+  back, and the 2-execution threshold keeps working as before.
+- **`resultados que:todo` answers the whole panorama in one call (B.4.2 and B.7 row 5 of the visual GUI test report).**
+  It returns `secciones` with one entry per section (`resumen`, `carbono`, `economia`, `p50_p90`), each
+  `{estado:"ok", datos}` with what the individual call returns, or `{estado:"no_disponible", motivo}` with the
+  reason that section gave. A section that is not configured no longer costs a failed call: the answer is
+  `vista.estado:"parcial"` and the report is read once for every section. Input errors (a project that does
+  not exist, an invalid argument) still fail before any section runs.
+- **`gui_actuar accion:cerrar descartar_cambios:true` answers PVsyst's discard question in the same call
+  (5.2 point 4 of the visual GUI test report).** Closing an editor that has changes leaves the window open on a
+  `TMessageForm` that asks «¿Quiere cancelar las modificaciones?»: it took a second call (`clic_texto "Sí"`),
+  and walking ~60 windows cost ~120 calls. With the flag, a close that produced **exactly** that question
+  presses «Sí» and waits for the close again; any other dialog (another question, an error) is left alone and
+  reported as before, and without the flag nothing changes. The question is recognised by its
+  wording in the language the open windows are written in (the reading behind `gui_observar que:idioma`;
+  es measured on 8.1.8, en, fr and de inferred and failing closed), so a GUI in an unknown language answers
+  nothing and the error carries a note saying so. The 3D editor's «¿Quiere mantener sus modificaciones en el objeto?» is a different question whose «Sí»
+  *adds* the object, so it is not matched.
+  A close answers `window.descartado:true` when the question was answered (the changes were dropped) and
+  `false` otherwise; when the flag did not
+  close the window (text not recognised, button not found) the error says which. `cerrar_todo` refuses
+  `descartar_cambios` by name, since it presses Cancelar/No and never accepts a question.
+
+### Changed
+- **`docs/gui_mapa.json` is remeasured for 24 instances of windows that other kinds of project
+  open (batch D).** The stand-alone, pumping and DC-grid demos give the `independiente`, `bombeo` and
+  `red_cc` instances of `TAdvancedSimForm`, `TEcoEvaluationForm`, `THorizonForm`, `TResultForm` and
+  `TShadingsForm`; the preliminary design, the project notes, the 3D scene summary, two more
+  `TShedFieldForm` menus, the single-line diagram from the system window and the measured-data tables
+  complete the rest. Two stay as they were: `TUserNeedsForm` of `red_cc` (the DC-grid demo draws no
+  «Autoconsumo» button) and `TDimensSituationForm` «Horizonte» of the grid-connected design (its
+  button is disabled). The manifest has 107 targets.
+- **`docs/gui_mapa.json` is remeasured for 38 more windows (batch C) and 24 earlier targets gain their
+  button effects.** `tools/medir_gui.py --botones` ran the 62 targets still unmeasured on the shipped
+  demos; `docs/gui_inventario_pestanas.json` records for each target the dialogs its whitelisted
+  buttons open (`botones_abren`), and 17 presses carry the error that stopped them (a caption drawn
+  several times, or one the OCR did not find) instead of a guessed effect. `TBacktrackingForm` and
+  `TShedElecShadingForm` open on `_DEMO_Tracking` and not on `_DEMO_Commercial` (the menu entry is
+  disabled there, and «Detalles y gráfico» is not drawn). `THelpForm` (an embedded browser) and
+  `TPlotLossDiagramF` (a plot) read back no control at all, so they leave the manifest and keep the
+  instance they had. The REMEDIOS of the batch live in `tools/remedios_lote_c.json`, read by
+  `tools/mapa_desde_inventario.py`.
+- **BREAKING: the top-level `siguiente` string is removed; `vista.siguiente` replaces it (B.5.2 of the visual GUI
+  test report).** Every answer carried the next step twice: as a string that cannot be parsed
+  (`"resultados que:perdidas"`, 246 B and 27 % of `resultados kpis`) and as the structured `vista.siguiente` array
+  of `{tool, argumentos, motivo}` that a caller can send as written. The string, the `pista` texts of
+  `src/vista_agente/contrato/catalogo/` that only fed it, and the language argument of the decorator that computed
+  it are gone. Nothing else in an answer changes: a client that read the string reads `vista.siguiente[0]` instead.
+- **The READMEs say that `clic_texto`'s `indice` skips the button whose caption is the text.** The
+  shortcut was deliberate (`indice` counts the texts drawn on screen, not the buttons) but only the
+  CHANGELOG recorded it, so passing `indice` to a form with two «Abrir» buttons got the drawn text
+  without a word on why, and nothing failed if it stopped working. Both READMEs say it next to the
+  shared-caption refusal, and a test pins it: with `indice` the button search does not run, without it
+  the caption two buttons share is still refused. Documentation and one test only: the behaviour is
+  unchanged.
+- **`gui_observar` says what each `que` costs and which `que` each argument applies to.**
+  The description repeated the fifteen `que` values the schema already lists and said nothing about
+  their cost, so an agent could spend an OCR pass (`que:formulario`, which only labels the visible
+  tab) or pull the whole entity schema (`que:esquema` without `entidad`) unaware, and `compacto` or
+  `recorte` passed to a `que` that ignores them failed silently. `entidad` now names the six keys it
+  accepts. Only the strings clients read changed; `mcpb/manifest.json` carries the same text.
+- **`gui_actuar` dismisses PVsyst's DEMO notice instead of stopping at it (C.4 and 5.2 point 3 of the visual GUI
+  test report).** In trial mode PVsyst puts `TDEMOForm` («Modo DEMO»: `Compra | Activar | Cerrar | Ayuda`) over
+  every window, and each action answered «… is disabled: a modal dialog is open on top of it (`modal: TDEMOForm`
+  0x…)» until someone pressed «Cerrar» by hand. An action that fails with that refusal now closes the notice
+  with its «Cerrar» — never «Compra», «Activar» or «Ayuda» — and tries once more, and the answer names what it
+  did in `advertencias` (read as `avisos` in `vista`): the dialog class, its hwnd and the caption pressed. The
+  decision is a pure function of the dialog class, the captions of its buttons and the language of PVsyst's
+  windows (es measured on 8.1.8; en, fr and de inferred from the caption tables and failing closed): a notice
+  whose «Cerrar» is not among its buttons presses nothing, a notice that is still there after the click leaves
+  the error as it was, and any other dialog — a question, an error, `TDatabaseForm` — is never touched.
+- **`gui_actuar accion:campo` reports the check box state PVsyst actually holds after the click.**
+  The click is posted, so the immediate read returned the old state and `despues` repeated `antes`
+  even when PVsyst had applied the value. After clicking an option the call now waits, with a 1 s
+  deadline, for `BM_GETCHECK` to report the requested state and answers `despues` from that real read;
+  if the state never matches, it fails and names what was requested and what the control still reads
+  instead of reporting success. A radio button asked for `false` (it is only cleared by checking another
+  option of its group) fails the same way instead of answering `ok` with `antes == despues`.
+  `TEdit` and the other field types keep their path.
+- **`gui_actuar accion:campo` fails when it cannot read the state of a check box or radio button.**
+  An unreadable state was reported as `antes`/`despues:"desconocido"`, a value the control never
+  held, so the caller could take a read failure for the value PVsyst left. The read now returns an
+  error that names the label, the class and the hwnd of the control, and points at
+  `gui_observar que:formulario` (or `que:controles`) and a retry with `accion:campo`.
+- **BREAKING: `gui_actuar accion:cerrar_todo` now requires `confirmar:true`.** It closes every PVsyst
+  window and discards unsaved work, yet it asked for no confirmation. Without the flag the call closes
+  nothing and fails with an `invalid` error that says what it would discard, how to repeat it
+  (`confirmar:true`) and the alternative (`accion:cerrar`, one window at a time). Clients and scripts
+  that used the action must add the flag.
+- **`gui_actuar accion:campo` refuses a field PVsyst reports disabled (4.2 of the visual GUI test report).**
+  A disabled control swallows the text and the click without a trace, so the call answered
+  `vista.estado:"ok"` with `antes == despues` and the caller believed the value had been set. The
+  `habilitado` flag the form answer already carried is now read instead of dropped: the error names
+  the label and the class, says the field is disabled and points at `gui_observar que:formulario`
+  (or `que:controles` with `todos:true`) to find the control that enables it.
+- **A `proceso` that is not running no longer reads as an empty window list (C.5.1 of the visual GUI report).**
+  `gui_observar que:ventanas proceso:"NoExiste.exe"` answered `estado:"ok"` with `count:0`, so an agent
+  probing that way concluded PVsyst was open and showed no windows; without `proceso` the same call errors.
+  Every `que` and `accion` that resolves a target process (`ventanas`, `controles`, `leer`, `uia`, `vista`,
+  `esperar`, `teclado`, `fila`…) now answers the error that names the requested process and says to launch
+  the GUI or pass a running `proceso` (or the `pids` of one). `pids: []` keeps its meaning.
+  `esperar_cierre` is the exception: a process that is gone leaves nothing to wait for, so it still
+  answers `ya_cerrada:true` (the trivial success of waiting for a window that is already closed).
+- **`gui_actuar rellenar` rehearses without the GUI.** With `simular:true` the call reads the mode before resolving a window and returns the plan (the schema's editable keys and the text each field would receive), so it answers with PVsyst closed instead of failing with «No hay una ventana … abierta». The answer carries `aviso` and an empty `antes`: the current values are only read when the fill is applied, and the plan is no longer checked against an open form, so a disabled control or a list value PVsyst does not offer fails when applied, not in the rehearsal.
+- **Review of the 4.1 effect check.** `clic_texto` and `fila abrir:true` read the process of the clicked control after the action; a form that closed took the control with it, a destroyed window reports pid 0 and the second reading listed no window, so `efecto` named every open window as closed and none as opened. The pid is now the one read before the action. When a capture is missing the repaint cannot be compared: `clic_texto` answers `verificado:null` (and `efecto.pantalla_comparada:false`) instead of claiming `verificado:false` and a dead spot.
+- **Review of the GUI language work (4.3).** `fila` on the module chooser says the window title differs (it is the caption PVsyst writes in its own language) instead of «no measured row geometry»; «Cerrar objeto» of the 3D scene and the database buttons of the datasheet creation are found by caption in any language they are known in; the PVsyst GUI language enum is `IdiomaGui`, apart from the MCP message language `Idioma`; and the doc comments of `pvsyst://gui` and the coverage map in `resources.rs` are back on their functions.
+- **`gui_actuar` no longer answers success to a click that cannot land (4.1 of the exhaustive test report).**
+  `clic_fisico`, `clic_texto`, `fila` (and `activar`) restore a minimised window and bring it to the front
+  before acting, and fail with an error that names the window when `IsIconic` is still true; a physical
+  click on a window at (-32000, -32000) used to report success. Every refusal for a window a modal
+  dialog disables (`click`, `clic_fisico`, `clic_texto`, `fila`, `teclas`, `uia_invocar`, `escribir`, menus)
+  now says `modal: <class> <hwnd>` (`TDEMOForm`, `TMessageForm`, `TChoixObjetPVForm`, `TDatabaseForm`,
+  madExcept and standard dialogs alike), not only the class. Checked live on 8.1.8: a minimised `THomeForm`
+  and a minimised `TToolsForm` were restored and clicked, and `TDEMOForm` and `TDatabaseForm` were named.
+- **`click`, `clic_fisico` and `mensaje` by title or class refuse a name that several visible controls
+  share** and list them (`0x… (host class)`), instead of pressing whichever the enumeration listed first:
+  `ventana:"OK"` could press the OK of another window, and `ventana:"TPngBitBtn"` the first of 19. A hwnd,
+  a window name and a name with a single control resolve as before.
+- **`fila` says it only selects, and can open.** The answer carries `abierta:false`; `abrir:true`
+  (alias `confirmar:true`) presses Enter on the selected row and answers `abierta` with the windows it
+  opened or closed (`efecto`), plus a warning when nothing happened. Checked live: row 19 of
+  `TProjectLoadForm` with `abrir:true` closed the form and opened `TProjectForm`.
+- **`clic_texto` verifies its effect.** It compares the windows of the process and a capture of the
+  window before and after the click and answers `verificado` and `efecto`; a click that opened, closed
+  and repainted nothing answers `verificado:false` with a warning. Checked live: the text of a label
+  gave `verificado:false`, «Herramientas» gave `verificado:true` with `TToolsForm` opened.
+  Ceiling: whole-window pixel diff, so an animation reads as a change.
+- **`TProjectLoadForm`'s OK is not broken (4.1-11).** The click on its `TPngBitBtn` works (mouse
+  messages): it loads the project of the *selected* row, and with no row selected it closes the form
+  without loading, which is what typing a name in the search box and pressing OK did. Documented in the
+  `fila` description and READMEs; no mechanism change.
+- **A successful PVsystCLI run is no longer blamed for the crash of the command before it.** The crash detector read every Admin log modified in the 2 s before the run, so a `lic-info` that had just crashed made the next `convert-meteo` answer `success:true` with a `crash` field. It now looks only at logs created since the run started. Checked live while verifying BUG-07: with a deliberately invalid date, `convertir_meteo` reports `Invalid date Line` and `costo.ejecuciones:1`, and the documented Hawaii example converts and also costs 1.
+- **`sitio crear`, `sitio convertir_meteo`, `sitio meteo_pvgis` and `disenar_sistema` refuse a workspace PVsyst does not have configured (BUG-05, 07, 08)**: PVsystCLI `create-site` and `convert-meteo` crash with `Instruction privilégiée` on any workspace other than the `DataPath` of `PVsyst.ini`, the same cause as `simular ejecutar` (BUG-06). The check that `simular` already had is shared and runs before the NASA lookup, the PVGIS download and any file is written, dry runs included. Checked live: the same `sitio crear` crashed on a temporary workspace and created the site on the configured one.
+- **The server no longer needs PVsyst's windows to be in Spanish to press its own buttons.** The
+  captions the MCP's steps press (`OK`, `Cancelar`, `Cerrar`, `Guardar como`, `Bases de datos`,
+  `Sistema`, `Horizonte`, `Gestión de la energía`…) are one table in `adapters/gui/rotulos` with the
+  Spanish, English, French and German wording, and a button is found by its caption in any of them.
+  Only the Spanish wording was measured on a live PVsyst (8.1.8); English, French and German are
+  inferred and still to be measured. `proyecto p50_p90` no longer reads the tab caption or «Activo»:
+  it shows the page by index (the third, confirmed by a control only that page has, and searching the
+  other tabs if the order differs) and ticks the check box by class and position.
+- **Catalogued buttons are found by caption in any language they are known in**: `gui_observar que:funciones`
+  lists the wordings of such a button under `destino.titulos`; a button measured in Spanish only keeps
+  `destino.titulo` alone, and its not-found error says to read `que:idioma` and `que:inventario` and press
+  it by `hwnd`. A host window whose catalogue title differs from the one open (the component choosers
+  share a class and differ by a title PVsyst translates) is reported as open under another title, not
+  as closed.
+- **GUI inventories are not summarised to 13 items.** `que:inventario` and `que:elementos` cap
+  themselves at 500 rows (`total` and `truncado` say what was left out) and their lists `controles`,
+  `elementos` and `otros` are never cut by `detalle`. `que:controles` with `todos:true` keeps up to 500
+  rows when the call names no `detalle`; an explicit `resumen` or `normal` is honoured there.
+- `que:inventario` and `que:elementos` say when the UI Automation tree was cut (`uia_truncado`, and
+  `truncado` in `elementos`), and an element at the depth limit is no longer reported as `solo_vision`
+  just because its children were not walked.
+
+### Added
+- **`fila texto:"…"` verifies the row, not only its highlighted band.** The row is read by OCR (case,
+  accents and punctuation ignored) and a highlighted row holding another element is an error that says
+  what it holds. The answer carries `texto_verificado` and `texto_fila`. Checked live on the project tree:
+  row 19 with `texto:"QA41_A"` passed, row 12 with the same text was refused. OCR misreads some glyphs
+  («Oddand»): use a short distinctive text.
+- **`componente crear_desde_ficha` of a `.PAN` fills the module size (BUG-14)**: `components.panels`
+  gains `longitud_mm`, `anchura_mm`, `espesor_mm` and `peso_kg` (page «Dimensiones y tecnología», anchors
+  read live on PVsyst 8.1.8 with `gui_observar que:inventario`), saved by PVsyst as `Height`, `Width`,
+  `Depth` (in metres) and `Weight`. The datasheet takes `Height` and `Width` in mm, as the window does,
+  and refuses the call before opening PVsyst when they are missing (PVsyst does not save a module whose
+  size is not defined: it vetoes the tab change); `Depth` and `Weight` are optional. Checked live on
+  8.1.8 through `gui_actuar rellenar`, all four fields read back `ok`. The Comercial page has no
+  required field. Fixture: `tests/fixtures/vista_agente/Modulo_con_dimensiones_8_1_8.PAN`.
+- **`docs/gui_mapa.json` separates structure from text.** Every page records `indice_pestana` (the
+  position of its tab in the page control, from 0), and the map's `nota` says that classes, field
+  classes and tab indexes hold in any PVsyst language while titles, tab names, labels and caption texts
+  are in the map's `idioma` (`es`). Per-control `ancla`, `rol` and UI Automation `patron` were not
+  measured and are listed under `limites`; they come from `que:inventario` on the open window.
+- **Label chain, as it stands.** A label is read from the control's own window text, then the name UI
+  Automation gives it, then the text of a window beside it, then the text UI Automation draws beside it
+  (`etiqueta_fuente`: `window_text`, `uia_name`); `que:formulario` adds the OCR reading. UI Automation
+  `LabeledBy` and MSAA `accName` are not read.
+- **`gui_observar que:idioma`** says the language PVsyst's own windows are written in: from the
+  captions of the open windows (they win: a language changed from the menu reaches the ini only when
+  PVsyst exits) and from `[Preferences] Dialog Language` of `PVsyst.ini`. It lists the languages the
+  server has captions for (`es`, `en`, `fr`, `de`) and the one measured on a live PVsyst (`es`), and
+  warns when the ini and the windows disagree, when PVsyst is in a language without captions, or when
+  its captions are inferred. It is not `PVSYST_MCP_IDIOMA`, which only changes the MCP's messages.
+- **`pvsyst://gui` compares languages, not only versions**: `metadatos.idioma_en_ejecucion` is the
+  language of the running PVsyst, and `aviso` says the texts of the map (titles, tabs, labels) will
+  not match when it differs from `idioma_medido`, while classes, tab indexes and positions still hold.
+- **`pvsyst://gui` describes its own map** in `metadatos`: `measured_on` (date of the last walk
+  recorded in `docs/gui_mapa.json`), `pvsyst_version` it was measured on, `idioma_medido`,
+  `windows_total`, `cobertura` (windows with fields mapped, controls without a handle, limits) and
+  `pvsyst_version_en_ejecucion`, read from the install folder of the GUI executable; when the two
+  differ, `aviso` says the tabs, anchors and menu positions may have changed and that the live
+  inventory is what holds.
+- **`gui_observar que:elementos`** lists the rows, cells and items a control draws itself
+  (`TVirtualStringTree`, grids, lists), which have no window and are not in the inventory. They come
+  from the UI Automation tree under the control named by `ventana` (a control's handle, or a form for
+  all of it): `indice`, `rol`, `nombre`, `rect`, `patrones` (now also `contenedor` and `virtualizado`,
+  the item-container and virtualised-item patterns) and `hwnd` when the element is a window. A control
+  with none is `solo_vision:true`, with the actions that still reach it (`fila`, `menus`/`menu`,
+  `clic_texto`). Only the elements the control has realised are listed: a virtualised row scrolled out
+  of view is not realised through its container. MSAA (`IAccessible`) is not read.
+- **`gui_observar que:ventanas` says whether a click would land**: every window carries `foreground`
+  (it is the foreground window), `modal` (it is the dialog that blocks the others; one embedded in the
+  form it disables is listed too) and `iconic` (minimised, the name Win32 gives `minimized`), next to
+  `visible` and `enabled`.
+- **`gui_observar que:formulario` with `todos:true`** also lists the controls that are not shown (other
+  tab pages, hidden panels), and every answer gains `otros`: each control that is neither a button nor a
+  field (`TPageControl`, `TTabSheet`, `TGridPanel`, `TVirtualStringTree`, custom classes) with its
+  `clase`, `hwnd`, `rect`, `texto`, `visible` and `enabled`. Buttons and fields now carry `visible`,
+  `parent`, `pestana` and `indice_pestana`, and fields carry `etiqueta_fuente` (`ocr` or
+  `window_text`). A control that is not shown is read without OCR, since the text drawn where it sits
+  belongs to the page that is shown; when OCR finds no label, the text of a window beside the field
+  names it.
+- **`gui_observar que:inventario`**: every control of a form as a machine-readable list, hidden
+  children and tab pages that are not shown included (`todos` defaults to `true` here), without
+  switching tab. Each row carries `clase`, `hwnd`, `rect`, `texto`, `visible`, `enabled`, `parent`,
+  `pestana` and `indice_pestana`, `rol`, `indice_clase`, `etiqueta` with `etiqueta_fuente`, `marcado`
+  for check boxes and options and `campo {clase, x, y}` (the 96-DPI anchor `escribir` and `campo`
+  take). Classes nobody classified (`TGridPanel`, `TVirtualStringTree`, custom buttons) are listed
+  with `rol:"other"`. `pestanas` lists the pages with the controls each holds, and flags
+  `creado_al_activar` on a hidden page without windows: VCL may build its controls only when it is
+  first shown, so such a page can look empty until then. At most 500 rows per answer, with `total`
+  and `truncado`. UI Automation is read too (`incluir_uia:false` skips it; `profundidad` and
+  `max_nodos` bound its tree) and lands in the same list: a row says which API saw it (`fuente`:
+  `win32`, `win32+uia` or `uia`), a window gains the `patrones` it supports and, for a field, the name
+  UI Automation gives it (`etiqueta_fuente:"uia_name"`); the cells, labels and items a control draws
+  itself, which have no window, are listed with `hwnd:null`, `visible:null` and `solo_vision:true`
+  when only vision can read inside them. The tab order comes from UI Automation. MSAA (`IAccessible`)
+  is not read.
+- **Configurable client-facing language** via `PVSYST_MCP_IDIOMA` (`es` or `en`, default `en`; also a
+  user-configurable option of the mcpb bundle). It selects the language of every client-visible
+  string: tool descriptions and titles, schema annotations, recipes (resource and prompts),
+  `pvsyst://` resource names, the server `instructions` of `initialize` and the runtime messages
+  (missing arguments, wrong types, out-of-range values, alias conflicts, unknown tool or resource,
+  licence instructions, workspace rejections and approximation warnings). Protocol identifiers
+  (`accion`/`que` values, argument names, `detalle` values) stay as they are.
 - **`vista` block on every tool answer** (all 15 tools, every `accion`/`que`, errors included):
   `estado` (`ok|parcial|error`), `resumen`, `campos` with stable keys, unit and origin (`pvsyst`, `mcp`,
   `aproximacion_mcp`), `avisos`, `siguiente` as `{tool, argumentos}` that the target tool accepts as
@@ -23,19 +617,277 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   real call. Clients without `structuredContent` get the failure's `vista` as a second text item.
   Contract, size measurements and the tool × action matrix: `docs/vista_agente_salidas.md`.
 
+### Fixed
+- **`sitio crear` from coordinates no longer answers `vista.estado:ok` when PVsystCLI could not
+  confirm the site.** The `create-site` envelope travelled nested under `create_site`, and `vista_agente`
+  reads `success` and `detected_error` at the top level of the answer, where `origen:"csv"`,
+  `convertir_meteo` and `simular` already leave them; a `clasificacion:"ambiguo"` with no `.SIT` on disk
+  came back as «Site created with the weather data of the location». The answer now carries the CLI
+  status at the top level as well, and keeps the envelope under `create_site` for `meteo_pvgis` and
+  `disenar_sistema`.
+- **`proyecto crear` accepts the site as `X`, `X.SIT` or `Sites/X.SIT`.** The `sitio` argument was
+  validated as a bare file stem and joined as `Sites/<sitio>.SIT`, so `X.SIT` looked for `X.SIT.SIT` and
+  `Sites/X.SIT` was refused as a name with a forbidden character, while every other path argument of the
+  server takes the `Sites/X.SIT` form. The value is now parsed once into a `SitioPedido` that accepts the
+  three forms, keeps the file inside `Sites/` and rejects `..` or an absolute path with an error that
+  names the value and the accepted forms.
+- More findings of the same QA round:
+  - **BUG-19**: `gui_actuar accion:campo` takes `indice` (from 0, top to bottom) and `clase` to pick one
+    of several fields that share a label (the three «Núm. de inversores»); the error for an ambiguous
+    label now says so.
+  - **BUG-15**: `uia_invocar` refuses a form that a modal dialog disables and names the dialog, instead of
+    waiting 10 s and answering about another window (`paso` is unchanged: it can target the modal).
+  - **BUG-17**: `entorno licencia` asks `lic-info` once more when PVsystCLI answers it with nothing.
+  - **BUG-20 and the GUI rows of BUG-12**: the schema of `gui_actuar` lists what `menu` needs (`id`, or
+    `menu` and `item`) and that `uia_invocar` needs `ventana` and `operacion`.
+- Four findings of the exhaustive QA of 2026-11-11 (`docs/INFORME_PRUEBAS_EXHAUSTIVAS_2026-11-11.md`):
+  - **BUG-22**: `proyecto p50_p90` lists its ten stored fields in `vista.campos`; a nested object of up to
+    ten scalars is a group of values (the twelve months of a year stay a table).
+  - **BUG-21**: `gui_actuar accion:fila` needs no `clase` when the form has exactly one control whose row
+    geometry was measured; with several it asks for `clase` or the control's `hwnd`.
+  - **BUG-18**: `gui_observar que:leer` honours `ocr:true` and adds `ocr`, the lines drawn in the control
+    (it was silently ignored); without it nothing is captured.
+  - **BUG-16**: the existing-workspace, unknown-component-kind, window-not-found and object-not-found
+    rejections, and the «no visible window to inspect» one, follow `PVSYST_MCP_IDIOMA`.
+- QA of `pvsyst_cli` and the CLI adapter (`docs/INFORME_REVISION_PVSYST_CLI_2026-11-07.md`,
+  `docs/INFORME_PRUEBAS_MCP_2026-11-07.md`), each finding reproduced first:
+  - **No false confirmation**: an explicit CLI error (`Error: Invalid command syntax`, `Unknown command`,
+    `Unknown command line option`) is an `error` even for `help`/`version`/`lic-info`, whose exit code is always 0;
+    command names are case-insensitive (`VERSION`, `Help`); `export-logs` to a missing folder and
+    `convert-meteo` with an unreadable date are errors, not `ambiguo`.
+  - **A crash is an error**: a run whose worker thread dies exits 0 and prints only the license banner; the
+    exception PVsystCLI logs (`EPrivilege`) is read and reported as `crash:<mensaje>` instead of `ambiguo`.
+  - **The passthrough stays out of the licence and off the key**: `lic-activate`, `lic-deactivate` and
+    `lic-sync` are refused (the `entorno` action that returns the command is named instead), and the
+    displayed command line redacts `-k`/`--key`/`-c`/`--customer-id`, quotes the executable and escapes
+    quotes, tabs and trailing backslashes.
+  - **Rehearsals that cannot run for real**: `dry_run:null` is refused instead of read as `false`; the
+    command name is trimmed and refused when blank or carrying spaces; `opciones` refuses blank or repeated
+    items and non-scalar values, and its object form accepts `-w`-style keys, valueless `true` flags and
+    omits `false`/`null`.
+  - **Output no longer mutilated**: `help` keeps the lines that mention `lic-activate`, a `%` line of a
+    command that is not a simulation is kept, the answer says when the 60-line tail was cut
+    (`stdout_tail_truncado`) and `detalle:completo` returns the whole stdout.
+  - **Timeouts, cancellation and paths**: `run-simulation` defaults to 900 s (120 s for the rest) and a
+    `timeout_s` outside 1–3600 is an error instead of a silent clamp; `pvsyst_cli` honours
+    `notifications/cancelled` and frees the single worker; a relative output path resolves against the
+    workspace; `PVSYST_CLI` must be a file and a launch failure names it.
+  - **Trial budget**: `pvsyst_cli run-simulation` reports `costo_estimado` in a rehearsal and records
+    `costo` in the ledger, and the ledger no longer trusts a counter that goes back up (it was measured
+    jumping between 133/134 and 249/250 without a licence change).
+  - `log_level` is passed as `-ll:<n>`; `via` is listed in `ignorados`; the tool declares
+  `openWorldHint:true` (`version` checks for updates); the wait loop no longer copies the whole stdout when
+  nobody listens for progress, finished background jobs are bounded, and a non-UTF-8 console byte is decoded
+  as its code-page character instead of U+FFFD.
+- Review of the PR (Haiku review, `docs/REVISION_HAIKU_HALLAZGOS.md`), each finding reproduced first:
+  - **Confinement**: project names that are not plain relative paths (`\Users\x`, `C:x`), RVT templates, `simular`
+    `output_csv`/`report_pdf`, `sitio crear` `weather_data_file`/`cmd_options_file`/`output_sit_file`, horizon and series lookups and
+    DataRO fallbacks stay inside the workspace unless `permitir_fuera_del_workspace`; `sitio` of `proyecto crear`, history ids,
+    insertion roles and written file names (`CONIN$`, `CONOUT$`) are validated; variants are `VCn`/`CMn` everywhere.
+  - **Refused input instead of silent changes**: `extra_options` that redefine a flag the MCP builds (`-w`, `-p`, `-v`, `-ocf`, `-s`,
+    …); batch fields with `;` or line breaks; non-text `opciones` of `pvsyst_cli`, `variables` of RVT and series, `variantes` of
+    `resultados comparar`; a non-numeric `PNomConv`; invalid `offset`/`limite`; repeated series variables; `editar` of a component
+    without `cambios`. `sitio crear` needs its weather file to exist (as `convertir_meteo` already did).
+  - **Partial work is reported**: `rellenar` keeps the fields typed before a failure and adds `campos_que_difieren`, `completo:false`,
+    `errores` and `formulario_error`; `gui_actuar accion:funcion` says when the expected window never opened; PVsyst sizing and horizon
+    import compare what was saved; `crear_desde_ficha` stops before saving a datasheet that was not typed as asked and lists
+    `diferencias_con_la_ficha`; a legacy MEF without readable variables is `completo:false`; a deliverable lists `secciones_omitidas`.
+  - **No data loss on failure paths**: `disenar_sistema` undoes only its own project's files; `proyecto crear` writes the site into the
+    PRJ before the pair is written (and in the call's workspace); `doctor` keeps checking after an unreadable variant; exports of a
+    component or a project need `sobrescribir` to replace a file; `PVsyst.ini` and series files keep bytes outside UTF-8; truncated
+    files are refused; folders are listed without dropping unreadable entries.
+  - **Processes and cache**: PVsystCLI is always killed and reaped on an early exit; reader threads and `tar` stderr no longer block;
+    a background job is recorded before it starts and a panic is its error; default outputs are cached and restored; `-s` enters
+    the cache key; a damaged cache entry or ledger no longer breaks a run or skips the trial confirmation.
+  - Simulation KPIs of `disenar_sistema` no longer carry an always-null `kwp` (the design answer has `kwp_realizado`), and a PAN created
+    by approximation no longer carries an always-empty `ignorados`.
+- Review of the PR (cloud ultrareview), each finding checked against the code first:
+  - A `gui_actuar accion:paso` that asks for no verification (`verificado:false`) is `ok` again; only a scene answer that counts
+    `campos_que_difieren` is partial.
+  - `escena_importar simular:true` answers `simulado:true`, so the contract offers the real call as the next step; `archivo` is made
+    absolute (PVsyst's dialog resolves a relative name against its own folder); on a scene that already has objects PVsyst asks
+    «¿Desea despejar la escena de sombreado actual?» and the answer is «No» (the import adds). Measured live: 66 tables into a scene of 3 → 69.
+  - `escena` refuses an editor that already holds objects (it types positions into rows 0..N); the check exports the scene under a
+    throwaway name and deletes it. An empty scene exports fine (`total_objetos:0`).
+  - A failed step of `escena`, `escena_importar` or the export drops the open dialog («Cancelar», and «No» to «¿mantener
+    modificaciones?») instead of leaving PVsyst behind a modal. Measured: a `unidades` PVsyst does not offer closes `TImportResultForm`.
+  - `rellenar` applies check boxes and options first and reads the form again, so a field they enable can be filled in the same call;
+    after a failure on another tab it returns to tab 0.
+  - `proyecto dimensionar` accepts PVsyst's own rounding of the planned power (12.345 reads back 12.3).
+  - The inverter phase of a datasheet goes through the schema options (`fase_*`), not a click by caption.
+  - The PVsyst install lookup takes major 8 only (the GUI map was measured on 8.1.x); a PVsyst 9 needs `PVSYST_GUI`/`PVSYST_CLI`.
+  - `proyecto dimensionar`, P50 and horizon are refused on the isolated desktop before PVsyst is touched: loading a project and saving its
+    variant now go through menus, which need the keyboard (they used to click the toolbar with an emulated mouse; not measured on
+    the isolated desktop, `tests/aislado.rs` has never run).
+- Review of the PR (code-review), each finding checked against the code first:
+  - `escena_importar`: a failure while opening the dialog or waiting for «Importar resultado» closes whatever it left open (file dialog,
+    PVsyst's error box); an error box ends the wait at once instead of after 120 s. The protected-folder check compares path components of
+    the absolute and the real path (`PROGRA~1`, junctions), not a substring of the text.
+  - `rellenar` never clicks a check box whose state it could not read, and refuses an option asked as `false` before typing anything.
+    A number reads back as `ok` only within half a unit of the last decimal PVsyst shows (12.345 reads 12.3; 100 read as 100.9 is
+    `distinto`); counts are exact. The datasheet flow (`componente crear`) and the project steps fail, listing every field PVsyst did
+    not take, instead of saving or sizing on top of it.
+  - `gui_actuar accion:teclas` on a child control works again on the isolated desktop (`foco:false` if the control did not take the focus).
+  - Scene text files: grouped objects count one by one, a file cut off while PVsyst writes it is refused, and a missing `total_objetos`
+    is not read as an empty editor. `describir_escena` lists at most 1000 colliding pairs (`colisiones_total` counts all).
+  - The install folders of PVsyst are listed once per process, not on every request that needs `DataRO`.
+  - `escena_importar`: if «Importar resultado» does not close after «OK» or «Cancelar» (or the click fails), the form is dropped with
+    «Cancelar» and, failing that, closed, and the error says whether it is gone. `componente crear` retries the focus of a save dialog
+    once and logs when it still is not there. Not measured with PVsyst.
+- Review of the PR (ultrareview #2), each finding checked against the code first:
+  - `disenar_sistema` refuses a stand-alone design without `n_mod_serie` and `n_strings` in the preflight, instead of failing in the
+    sizing step after the site and the project already exist.
+  - A reused project reports whether the call compared anything: `proyecto_reutilizado:true` with `proyecto_comparable:false` means the
+    call asked for no module, inverter or string layout. `proyecto_comparable` is `null` when the project was created.
+  - `gui_actuar accion:cerrar_todo` counts each window once, when it is confirmed gone, instead of counting every attempt of every round.
+  - `simular ejecutar` no longer lists `variables`/`unidades` in `ignorados` when `filas`/`parametros` make the handler read them. The
+    ignored-keys table is per key, with the argument that makes it read, and a test fails when it drifts from the tool declarations.
+  - `subarrays_de` reads the `pvSubArray` spans instead of building a second full tree, and `aviso_meteo_distinta` reads the PRJ line by
+    line until `MeteoFileName` instead of loading and parsing the whole file for one value.
+- **`disenar_sistema` sizing no longer loops over billions of candidates** when a database file carries an absurd voltage (a tiny `Voc`, a
+  huge or non-finite `VAbsMax`): the series search stops at 1000 modules and a non-finite voltage finds no layout.
+- **`http_get` (PVGIS, uncertainty lookups) refuses a body over 64 MiB** and stops reading it instead of buffering whatever the server sends.
+- A `tools/call` that arrives as a notification and fails is logged; a failed rollback of `disenar_sistema` is logged instead of ignored.
+- **GUI tools, QA round of 2026-11-08** (GUI-01..15, BUG-03/05/16/17/23/24):
+  `escribir`/`seleccionar` read `campo{x,y}` in the coordinates `vista` publishes (from the window corner, not the client area), so a
+  key like `edit_75_121` hits the field it names; `uia_invocar` waits at most 10 s for a pattern call and answers `retorno:false` instead of
+  blocking the server when PVsyst opens a modal; `esperar_cierre` with `cerrado:false` and a `clic_texto` without OCR match are `parcial`;
+  `click` refuses `texto`/`id` and disabled controls, resolves a whole title or class before a part of one, and `cerrar` names the
+  confirmation it left open; `clic_fisico` honours `objetivo:{x,y}` (a screen point on the window); `leer` returns the value of an edit;
+  `teclas` refuses to send when no control of the window holds the focus; `escena_importar` resolves a relative mesh in the workspace; the
+  modal error names the dialog, not the UAC overlay; `menus` lists the bar without the system menu and names catalogued entries;
+  `controles` `count` is the number returned; `vista` names the open windows that have no schema; `lanzar proyecto` loads the project
+  through PVsyst's own window (PVsyst 8.1.8 ignores a project on its command line); `proyecto p50_p90` and `dimensionar` wait for
+  PVsyst to finish writing the variant instead of reading it half written.
+
+- QA of the MCP (`docs/INFORME_PRUEBAS_MCP_2026-11-07.md`), each bug reproduced first:
+  - `resultados perdidas/mensual/entregable` take the array kWp from the report's own `Pnom total` (else from the produced energy and
+    the specific production) instead of the variant's `PNomSizing`, so the deliverable's specific production matches PVsyst (BUG-01).
+  - `disenar_sistema` reports PVsyst's own words in `pasos[simulacion].detail` when the run fails for a cause the MCP does not know
+    by name (BUG-04).
+  - `modulo` is accepted with or without the `.PAN` extension (BUG-07), and a dry run refuses a module no database holds before the
+    site and the project exist.
+  - The refusal for a design without `n_mod_serie`/`n_strings` names `via:'aproximacion'` only when the schema offers it, and the
+    environment variable that enables it otherwise (BUG-08); `proyecto_reutilizado:true` with `proyecto_comparable:false` is reachable
+    through the tool (BUG-06).
+  - `sitio crear dry_run` reports `costo_estimado`, the trial executions the real call would spend (BUG-20).
+  - `simular preparar` suggests running the batch it prepared, carrying `batch_params_file`/`batch_rvt_file` (BUG-22).
+- **`escribir_archivo` no longer overwrites by default**: an existing file is replaced only with `sobrescribir: true`, so the
+  argument means what it says; the refusal names the alternative and the history keeps the previous version.
+- **`editar campos` no longer invents fields**: a key the object does not have is refused (the usual cause is a typo) unless
+  the call asks for it with `nuevo: true`; the same policy applies to the `ediciones` form of a variant.
+- **`componente crear` copies the template when the call asks for no `cambios`** (the description already said "from a
+  template"), and the schema declares `campos`, the spelling the handler already accepted: a test fails when an action
+  consumes a key its tool does not declare.
+- **`sitio escribir_horizonte` writes the `.HOR` in `Shadings/` under its own name**: a path in `archivo`
+  (`Sites/X.HOR`) no longer creates a folder inside `Shadings`, which is not where PVsyst looks for a horizon.
+- **`sitio crear` from a CSV reports the `.SIT` it expects** (`output_sit_file`, else `Sites/<name>.SIT`) instead of
+  `expected_sit:null`; both origins now use the same rule.
+- **`entorno preferencias` reports `n_secciones`** (and `n_claves` when a `seccion` is asked for), so `vista.campos` is
+  no longer empty: the file path and the section table were the only other values.
+- **"Not found" messages no longer say something false**: `no_encontrado` names the options it has instead of
+  "no hay ninguno" when it was given a list, `leer` names the projects of `Projects/`, `proyecto crear` says in
+  Spanish that the project exists and names `sobrescribir`, `resultados comparar` says how many variants the
+  call asked for, and `editar insertar_objeto` names `desde.archivo` instead of the top-level `archivo`.
+- The `leer` hint points at the parameter that exists (`detalle:"completo"`), not at `completo:true`.
+- **`workspace exportar` no longer archives its own temporary**: a `destino` inside the exported tree put
+  `<zip>.mcp_tmp_<pid>.zip` (0 bytes) in the archive; both the destination and its temporary are excluded, and
+  `workspace importar` names the workspace a relative `zip` was resolved against when it finds nothing.
+- **The schema declares every key an action requires**, so a client that trusts `Required by action` no longer sends
+  a call the handler rejects: `componente crear` (`tipo`), `borrar`/`exportar` (`componente`, `destino`), `importar`
+  (`origen`), `sitio crear` (`latitud`, `longitud`), `sitio convertir_meteo` (its four files), `simular ejecutar`
+  (`proyecto`), `workspace crear` (`ruta`), `importar` (`zip`, `destino`) and `exportar_proyecto` (`proyecto`).
+  Actions that take one of several keys say so and accept any of them: `simular preparar` (`filas` or `parametros`,
+  unless `operacion` selects the RVT manager), `workspace exportar` (`destino` or `permitir_fuera_del_workspace`),
+  `resultados kpis`/`resumen` (`proyecto`, `archivo` or `report_pdf`) and `editar campos` (`archivo`, or
+  `proyecto`+`ediciones`). A missing key now fails with the missing-argument message before the handler runs, and
+  `sitio weather_data_file` documents that it belongs to `origen:csv`.
+- QA of the MCP (`docs/INFORME_PRUEBAS_EXHAUSTIVAS_2026-11-11.md`), each bug reproduced first:
+  - `leer` with `offset`, `max_bytes` or `base64` finds a bare project name under `Projects/` like the project branch does
+    (BUG-13); a name that already resolves keeps its file.
+  - `entorno exportar_logs` creates an explicit `carpeta_destino` before calling PVsystCLI, which refuses a folder that does
+    not exist (BUG-23); without it the CLI default (`<workspace>/UserData/logs`) is unchanged.
+  - A legacy `.MEF` whose binary columns are not decoded is `ok` with the `aviso`, not `parcial` with an invented failure
+    (BUG-26): `estado` is `parcial` only when the answer names what failed or differed, not for `completo:false` alone.
+  - `gui_actuar accion:reiniciar` says in its description, README and refusal that it only applies after a PVsyst failure
+    dialog and never restarts a healthy instance (BUG-27).
+
+### Changed
+- The six `proyecto` actions that edit a variant (storage, pumping, injection limit, losses, economics, tracker) build their answer with one
+  function (`respuesta_de_edicion`); the identical range check of losses and economics lives in `args::rango_opcional`.
+- **`proyecto dimensionar` and the active-variant choice no longer use coordinates.** The System window and the project window are
+  schema entities (`variante.system`, `proyecto.ventana`) and the flow fills them by key with `rellenar`; the coordinate constants and
+  `Formulario::{leer, marcar}` are gone. Measured on PVsyst 8.1.8: 50 kWp gave 28 modules in series × 4 strings, saved as `NModSerie=28`,
+  `NStringCh=4`, `PNomSizing=50.0`.
+- `rellenar` no longer reports an option or a check box as "recalculated" when only its caption was read.
+
+- **The project window's bar clicks are gone**: «Cargar proyecto» and «Guardar la variante activa» run their catalogued menu commands and
+  the project list's first row is chosen with `accion:fila`, instead of clicking fixed offsets of a toolbar. `Formulario::clic_barra`
+  is deleted.
+
 ### Added
-- **`gui_actuar accion:escena`** validates a 3D scene request (`escena`, `objetos`:
-  `paralelepipedo`, `tejado_dos_aguas`, `chimenea`, `arbol`) without PVsyst: types, ranges, the file slot of
-  each dimension and collisions. Ranges are the MCP's, not PVsyst's, and collisions are inferred (anchor not
-  proven). It is validation only (`creado:false`, with a warning that creation in the editor is not
-  implemented): scenes are never written by hand.
+- **`variante.orientation`** (`TOrientationForm`, fixed plane), **`variante.system`** and **`proyecto.ventana`** entities for
+  `que:vista`/`rellenar`, checked against a variant PVsyst 8.1.8 saved (`FieldTilt`, `FieldAzim`, `NModSerie`, `NStringCh`, `NInverter`,
+  `PNomSizing`). New field type `casilla` (`true`/`false`) for the options of a group; an option is cleared by choosing another.
+- **Conditional fields**: `CampoEsquema::si` declares the check box a field depends on (`depende_de` in `que:esquema`); the
+  inverter schema models its check boxes and phase/frequency options (`definir_corriente_ca_nominal`, `fase_trifasica`, ...), and
+  `que:vista` lists the anchor of every unmapped control (`sin_mapear`).
+- **`que:vista` of a window without a schema returns `abierta_con`**: what opened the instance whose title the map recorded, so the 15
+  windows of class `TChoixObjetPVForm` (and the 4 `TDetailedLossesForm`, 3 `TDimensForm`) are told apart by title. `TDateTimePicker`
+  is now read (checked live); `TListBox` is deliberately not (it would list the component databases through the GUI).
+- **Crear menu of the 3D editor catalogued**: `TTrackerFieldForm`, `TShedFieldForm` (shared by tables, domes and sun shields),
+  `TRectFieldForm` and `TPolyFieldForm` open from `escena_3d.crear.*`, with every tab read (map: 89 classes).
+- **`gui_actuar accion:escena_importar`** (`archivo` + `escena`, optional `unidades`, `simular`) imports a 3D mesh (3DS, DAE, PVC, PVC2,
+  PVZ2) into the scene open in the editor with PVsyst's own «Importar una escena 3D»: the menu entry, the Windows file dialog and
+  «Importar resultado». PVsyst converts the mesh; the MCP exports the scene afterwards and returns it. Measured on PVsyst 8.1.8: the
+  sample `SHD_PVC_Fixed_Example.pvc` gives 66 PV tables, 2 orientations and a group, as the dialog announced. `simular:true` reads the
+  file and drops the import with «Cancelar». A path under `Program Files` is refused before PVsyst is touched (PVsyst refuses it).
+- **`gui_actuar accion:menu` takes `subitem`** for an entry of a submenu (`menu` 0, `item` 4, `subitem` 0 = «Importar ▸ Importar una
+  escena 3D»): the id is read from the submenu's own `HMENU`, so the submenu is never entered.
+- **`gui_observar que:esquema entidad:escena_3d.formas`** describes the 27 shapes of the 3D editor (PVsyst type, combo entry, each parameter
+  with label, unit, default, range) before the agent asks for a scene; the unfiltered listing points to it (`otras_entidades`).
+- **`rellenar` fills several tabs** (`en_pagina` in the schema: tab 0 first, the others in order, back on tab 0). The inverter's
+  efficiency fields live on tab 1.
+- **`componente crear_desde_ficha` types by schema keys** instead of coordinates (`components.panels`, `components.inverters`; the
+  datasheet key is the field's `clave_archivo`). On PVsyst 8.1.8 the old coordinate flow did not save: the «Guardar» button of the
+  save dialog only answers when the file-name field has the focus, and the file name must not carry the extension. Checked live: a
+  module (`Technol=mtSiMono`, `NCelS=72`) and an inverter (efficiencies on tab 1, `MonoTri=Tri`) saved. PVsyst recalculates
+  `PSeuil` (0.00) when it builds the efficiency profile.
+- **`rellenar`/`vista` entity `components.batteries`** (battery window, «Datos básicos», 10 fields), checked against a `.BTR` PVsyst
+  saved. The file keeps the internal resistance in ohm and the coulombic efficiency as a fraction, the window shows mOhm and %.
+- **`rellenar`/`vista` entity `components.inverters`** (grid inverter window, «Parámetros principales»): 15 text and number fields with
+  units and file keys checked against an `.OND` PVsyst 8.1.8 saved (the trial licence saves components). Ranges are the MCP's.
+- **`gui_actuar accion:escena_leer`** (`escena`) lists the objects of the scene open in the 3D editor. The table of
+  objects has no controls per row, so PVsyst exports the scene with «Exportar escena (.SHD)» under that name and
+  the file is read back (`origen:pvsyst`); the file stays in `Shadings`.
+- **`gui_actuar accion:escena` builds a 3D scene in PVsyst's editor.** Tried on PVsyst 8.1.8 in PRUEBA, which
+  does save scenes (`Archivo > Exportar escena (.SHD)` wrote the file; the project was not touched). With
+  `simular:true` it only validates the request (`escena`, `objetos`) without PVsyst: types, ranges and
+  collisions. Without it, with the editor open on an empty scene, it creates each object in the elementary-object
+  dialog, sets the position in «Lista y gestión de objetos», has PVsyst save the scene and compares the saved
+  file with the request, field by field (`comparacion` rows `{objeto, clave, pedido, leido, estado}`,
+  `verificado`). The MCP never writes a scene file. Up to 20 objects (the table shows 20 rows) and the scene
+  name must not exist in `Shadings`.
+- **The 27 shapes of the elementary-object dialog** (`oeTree`, `oeHouse`, …) with their PVsyst type name, the
+  label of each parameter and its position in `Params=`, measured live and proven against a scene PVsyst saved
+  (`tests/fixtures/escena_3d/Formas27_8_1_8.SHD`), and again with a different value in every parameter of the 27
+  shapes (0 differences); the 11th value of `turbina_eolica` and `pilon_electrico` is `pala_angulo_deg` and
+  `espesor_malla`. The `cable` dialog has an extra «Objeto delgado» edit, which is left as is. Ranges are
+  the MCP's, not PVsyst's. Breaking change for the
+  unreleased `escena` request: dimensions now use PVsyst's own parameters (`anchura_dx`, `longitud_dy`,
+  `altura_dz`, tree `altura_punto_medio`…) and the `tejado_dos_aguas`/`chimenea`/`arbol` keys of the first draft
+  are gone.
+- **`leer` reads the text form of a scene** (`PVObject_=pvShading`, UTF-8 with byte-order mark) that PVsyst 8.1.8
+  saves; before, such a file failed with «Incoherencia entre extensión y clase raíz». The geometry reports
+  `tipo_pvsyst` (`oeParallelepipede`).
 - **Window coverage:** every one of the 82 window classes of `docs/gui_mapa.json` is registered in one of four
   states and listed in `gui_observar que:esquema` (`cobertura`). `que:vista` on a window without a schema
   returns its fields by control class and 96-DPI position (combo items included) or its buttons.
 
 - **`gui_actuar accion:fila`** (`ventana`, `indice`) selects row N of a list or tree that has no window per
   row, with a physical click on geometry declared per control class (`TVirtualStringTree`: header 21 px, rows
-  19 px; `TListBox`: border 2 px, rows 13 px; px at 96 DPI, scaled by the window DPI). It checks the result
+  19 px; `TListBox`: border 2 px, rows 13 px; the object table of the 3D editor: header 32 px, rows 26 px, measured on
+  PVsyst 8.1.8; px at 96 DPI, scaled by the window DPI). It checks the result
   without OCR: the highlighted band of a capture must be the requested row, and the click must not have opened
   or closed anything. A wrong row, an empty slot, an out-of-range index, a click PVsyst took as "open this item"
   and a control without measured geometry (class and hosting window) are errors. The window must be in front and
@@ -51,6 +903,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   seen to open (`TArrayCharactForm`, not `TTranspositionForm`).
 
 ### Fixed
+- The PVsyst install is no longer pinned to `C:\Program Files\PVsyst8.1.7`: `PVsystCLI.exe` and `PVsyst.exe` are
+  looked up in the newest `PVsyst<n>.x` folder (n ≥ 8) under Program Files, Program Files (x86) and
+  `%LOCALAPPDATA%\Programs` (`PVSYST_CLI`/`PVSYST_GUI` still win). Seen on 8.1.8 (build 49527): `THomeForm`,
+  `TChoixObjetPVForm`, `TPVModuleForm` (16 fields) keep their classes; still TRIAL.
+- `vista.campos` gave a unit to text values whose key ends like one (`frente_a` → `A`); only numbers get a unit.
 - `vista.estado` no longer says `ok` for a PVsystCLI run with `success:false`, a timeout or a `detected_error`
   (error code `fallo_cli`), nor for an answer with `completo:false`, `error` or `errores` (`fallo_parcial`). A run
   that produced its output file only warns about its process error.
@@ -423,6 +1280,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   DPI-unaware). Before, on a 150 % screen the MCP saw PVsyst's window at
   801x701 instead of 1202x1052, so coordinate clicks missed. Verified at 150 %
   only; 100 % and 125 % are covered by unit tests of the scaling.
+
+### Added
+
+- **History covers creations.** `escribir_archivo`, `escribir_horizonte`,
+  `escribir_serie`, `editar`, `componente`, `proyecto` and the batch writers take
+  the snapshot before writing, so the first version of a new file is in
+  `historial` (`historial_id` is not null) and `workspace restaurar` can bring it
+  back. The snapshot of a file that did not exist records `existia:false`.
+- **`workspace restaurar` accepts `dry_run`:** it lists what it would restore and
+  writes nothing (`simulado:true`). Before, it restored for real and listed
+  `dry_run` in `ignorados`.
+- **`gui_actuar accion:fila` takes `clase`** and selects rows in the three
+  controls whose geometry was measured (project tree `TVirtualStringTree` of
+  `TProjectLoadForm`, module chooser `TListBox` of `TChoixObjetPVForm`, object
+  table `TVirtualStringTree` of `TShdObjectSelectionForm`). Any other control is
+  refused, naming the measured ones.
+- **`disenar_sistema` resumes:** a project an earlier run left behind with the
+  same parameters is reused instead of failing with `Project exists`.
+
+### Fixed
+
+- `editar` refuses object and array values in `campos` instead of writing their
+  JSON text into a field PVsyst reads as one value.
+- `escena_leer` exports the scene under a temporary name and deletes that file
+  before answering, so a later `escena_leer` or `escena` with the same name no
+  longer fails with `already exists`.
+- `reiniciar` verifies that the process ended after its dialog button and
+  escalates to a forced kill; `muerte` says which one ended it.
+- The three GUI routes (`proyecto dimensionar`, `proyecto p50_p90`,
+  `sitio horizonte_pvgis`) load the project they act on, report the cause PVsyst
+  logged instead of the symptom, and drop the benign `TEnergyMixSet`/`EndTags`
+  parse notices.
+- `gui_actuar accion:teclas` does not send keys on the user desktop when the
+  control cannot take the focus; the isolated desktop reports `foco:false` and
+  sends them.
+- `esperar` re-checks once (1.5 s) before reporting a timeout, so a slow load
+  that ends just after the deadline is not a false negative.
+
+### Changed
+
+- **The `initialize` instructions were rewritten** with 12 facts checked against
+  the runtime: components by name, key names, window waits, `resultados
+  que:resumen`, where `dry_run` exists, truncation, the `workspace` override,
+  the modal `TDEMOForm`, the measured rows and `ignorados`.
+- Tool descriptions say what the runtime does: `componente` by name,
+  `pvsyst_cli` arguments in `opciones`, `resultados que:resumen`, `simular`
+  `dry_run`/`costo_estimado`, `esperar` as a window wait, `fila` in the measured
+  controls, `disenar_sistema` module choice/resume/Meteonorm, and the `workspace`
+  override says what it replaces instead of asking for a trusted client.
+- `mcpb/manifest.json` and the alias tables of both READMEs are generated from
+  the registry by `tools/generar_contrato.py` (`--check` fails on a stale copy),
+  and a test fails when the manifest drifts from the registry.
+- Two runtime messages of the server layer (`include_text` outside `que:csv`, and
+  `dry_run` with `filas`/`parametros`) answer in English through
+  `crate::idioma::Texto`.
 
 ## [0.3.0] - 2026-10-20
 

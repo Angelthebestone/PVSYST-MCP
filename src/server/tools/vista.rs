@@ -1,11 +1,12 @@
-//! Adds the `vista` block to every tool answer, success or failure. Next steps
-//! are kept only when the target tool accepts them exactly as written.
+//! Adds the `vista` block to every tool answer, success or failure, unless the
+//! caller asks for none on a call that closed. Next steps are kept only when the
+//! target tool accepts them exactly as written.
 
 use super::recorte::SIN_RECORTE;
 use super::{aproximadas, Herramienta, Solicitud, REGISTRO};
 use crate::config::Paths;
 use crate::error::{Error, KIND_MISSING_ARG};
-use crate::vista_agente::contrato::{construir, desde_error, Contexto, Vista};
+use crate::vista_agente::contrato::{construir, desde_error, es_final, Contexto, Vista};
 use serde_json::Value;
 
 fn herramienta(nombre: &str) -> Option<&'static Herramienta> {
@@ -17,10 +18,10 @@ fn acepta_paso(paths: &Paths, tool: &str, argumentos: &Value) -> bool {
     let Some(h) = herramienta(tool) else {
         return false;
     };
-    h.preparar_args(argumentos)
+    h.preparar_args(argumentos, paths.idioma)
         .and_then(|efectivos| {
             aproximadas::exigir(paths, tool, h.accion(&efectivos))?;
-            h.validar(&efectivos, paths.aproximaciones)
+            h.validar(&efectivos, paths)
         })
         .is_ok()
 }
@@ -37,12 +38,22 @@ fn solo_ejecutables(paths: &Paths, vista: &mut Vista) {
     });
 }
 
-/// Adds `vista` to an answer that arrived. Answers that are not objects are left as they are.
+/// Whether the caller wants the block; only an explicit `false` drops it.
+fn pide_vista(args: &Value) -> bool {
+    args.get("vista").and_then(Value::as_bool).unwrap_or(true)
+}
+
+/// Adds `vista` to an answer that arrived, unless the call asked for none and
+/// closed: a failure, a partial answer, a confirmation and a rehearsal keep it.
+/// Answers that are not objects are left as they are.
 pub(super) fn anadir_vista(paths: &Paths, contexto: &Contexto<'_>, respuesta: &mut Value) {
     if !respuesta.is_object() {
         return;
     }
     let mut vista = construir(contexto, respuesta);
+    if !pide_vista(contexto.args) && es_final(&vista, respuesta) {
+        return;
+    }
     solo_ejecutables(paths, &mut vista);
     if let Err(motivo) = vista.validar(SIN_RECORTE) {
         tracing::warn!(tool = contexto.tool, %motivo, "vista incoherente");
@@ -90,13 +101,14 @@ fn claves_validas(h: &Herramienta, accion: &str, error: &Error) -> Vec<String> {
 pub(crate) fn vista_de_error(solicitud: &Solicitud<'_>, error: &Error) -> Option<Value> {
     let h = herramienta(solicitud.name)?;
     let efectivos = h
-        .preparar_args(solicitud.args)
+        .preparar_args(solicitud.args, solicitud.paths.idioma)
         .unwrap_or_else(|_| solicitud.args.clone());
     let accion = h.accion(&efectivos);
     let contexto = Contexto {
         tool: solicitud.name,
         accion,
         args: &efectivos,
+        idioma: solicitud.paths.idioma,
     };
     let mut vista = desde_error(&contexto, error, claves_validas(h, accion, error));
     solo_ejecutables(solicitud.paths, &mut vista);
@@ -110,10 +122,6 @@ mod tests;
 #[cfg(test)]
 #[path = "../../../tests/unit/server/tools/ensayo_tests.rs"]
 mod tests_ensayo;
-
-#[cfg(test)]
-#[path = "../../../tests/unit/server/tools/claves_tests.rs"]
-mod tests_claves;
 
 #[cfg(test)]
 #[path = "../../../tests/unit/server/tools/pendiente_tests.rs"]

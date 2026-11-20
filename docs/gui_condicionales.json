@@ -1,0 +1,158 @@
+{
+ "TSystemeAddForm": {
+  "ventana": "TSystemeAddForm",
+  "abierta_con": "variante.gestion_energia",
+  "pestana": "Estimación P50 - P90",
+  "condiciones": [
+   {
+    "campo": "Activo",
+    "valor": true,
+    "aparecen": [
+     "%",
+     "Eficiencia inversor",
+     "Estimación de la degradación",
+     "Modelado/parám, del módulo FV",
+     "Mostrar la página P50-Pxx en el informe",
+     "Mostrar valores P50-Pxx en resultados principales",
+     "Probabilidad",
+     "Repartición",
+     "Suciedad, desajuste",
+     "TIPO de datos",
+     "Variabilidad anual",
+     "Variación de energía media"
+    ],
+    "desaparecen": [],
+    "habilitan": [],
+    "deshabilitan": []
+   }
+  ]
+ },
+ "TDetailedLossesForm#auxiliares": {
+  "ventana": "TDetailedLossesForm",
+  "abierta_con": "variante.perdidas_detalladas",
+  "pestana": "Auxiliares",
+  "condiciones": [
+   {
+    "campo": "Consumo auxiliares definidos",
+    "valor": true,
+    "aparecen": [
+     ", desde eI umbral de potencia de salida del inversor",
+     "Pérdidas auxiliares contnuas (ventiladores, etc.)"
+    ],
+    "desaparecen": [
+     ", desde el umbral de potencia de salida del inversor",
+     "Pérdidas auxiliares continuas (ventiladores, etc.)",
+     "desde el umbral de potencia de salida del inversor"
+    ],
+    "habilitan": [
+     "Consumo de auxiliares nocturnos",
+     "Proporcional a la potencia de salida del inversor"
+    ],
+    "deshabilitan": []
+   }
+  ]
+ },
+ "TDetailedLossesForm#perdidas_ohmicas": {
+  "ventana": "TDetailedLossesForm",
+  "abierta_con": "variante.perdidas_detalladas",
+  "pestana": "Pérdidas óhmicas",
+  "condiciones": [
+   {
+    "campo": "Utiliza pérdida óhmica del circuito CA",
+    "valor": true,
+    "aparecen": [],
+    "desaparecen": [],
+    "habilitan": [
+     "Utiliza uno o varios transformadores MT"
+    ],
+    "deshabilitan": []
+   },
+   {
+    "campo": "Utiliza uno o varios transformadores MT",
+    "valor": true,
+    "aparecen": [
+     "%",
+     "Desconexión nocturna",
+     "Eficiencia global en PNom",
+     "Longitud MV Transfo a inyección",
+     "Longitud del inversor a transformador",
+     "Número de transfos MV",
+     "Potencia nominal",
+     "Pérdida de cobre (resistiva)",
+     "Pérdida de cobre (resistiva) en PNom",
+     "Pérdida de hierro (valor",
+     "Pérdida global en PNom",
+     "Pérdidas de hierro (sin pérdida de carga)",
+     "Utiliza datos de las hojas de datos",
+     "Voltaje de línea MV",
+     "predefinido"
+    ],
+    "desaparecen": [
+     "Longitud del inversor a inyección"
+    ],
+    "habilitan": [
+     "Utiliza un transformador de AT"
+    ],
+    "deshabilitan": []
+   },
+   {
+    "campo": "Utiliza un transformador de AT",
+    "valor": true,
+    "aparecen": [
+     "Longitud AV Transfo a inyección",
+     "Pérdida de cobre (resisbva)",
+     "Pérdida de hierro (valor constante)",
+     "Transformadores de medio y alto volta",
+     "Voltaje de red",
+     "de carga)",
+     "voltaje de red"
+    ],
+    "desaparecen": [
+     "Longitud MV Transfo a inyección",
+     "Número de transfos MV",
+     "Pérdida de cobre (resistiva)",
+     "Pérdida de hierro (valor",
+     "Pérdidas de hierro (sin pérdida de carga)",
+     "Utiliza datos de las hojas de datos",
+     "Voltaje de línea MV",
+     "predefinido"
+    ],
+    "habilitan": [
+     "Eficiencia global en PNom",
+     "Potencia nominal",
+     "Pérdida de cobre (resistiva) en PNom",
+     "Pérdida global en PNom"
+    ],
+    "deshabilitan": [
+     "%"
+    ]
+   }
+  ]
+ },
+ "TGridStorageForm": {
+  "ventana": "TGridStorageForm",
+  "abierta_con": "variante.almacenamiento",
+  "pestana": null,
+  "condiciones": [
+   {
+    "campo": "Tipo de sistema",
+    "valor": "Autoconsumo",
+    "aparecen": [
+     "Abrir",
+     "Autoconsumo",
+     "Año",
+     "Especifique el conjunto de batería",
+     "Modo temperatura",
+     "Ordenar baterías por",
+     "Temperatura fija",
+     "capacidad",
+     "fabricante",
+     "voltaje"
+    ],
+    "desaparecen": [],
+    "habilitan": [],
+    "deshabilitan": []
+   }
+  ]
+ }
+}

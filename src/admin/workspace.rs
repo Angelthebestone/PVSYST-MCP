@@ -4,6 +4,7 @@ use crate::admin::archive::zip_into;
 use crate::args::{flag, missing, opt_str, workspace_of};
 use crate::config::Paths;
 use crate::error::{Error, Result};
+use crate::idioma::Texto;
 use crate::workspace::{resolver_ruta, Alcance};
 use serde_json::{json, Value};
 use std::fs;
@@ -93,10 +94,14 @@ pub(crate) fn crear_workspace(paths: &Paths, args: &Value) -> Result<Value> {
     let base = ruta_de_workspace(paths, args)?;
 
     if base.exists() && !flag(args, &["sobrescribir"]) {
-        return Err(Error::Invalid(format!(
-            "Workspace already exists: {} (pass sobrescribir=true to reuse)",
-            base.display()
-        )));
+        const YA_EXISTE: Texto = Texto {
+            es: "El workspace ya existe: {ruta} (pasa sobrescribir=true para reutilizarlo)",
+            en: "Workspace already exists: {ruta} (pass sobrescribir=true to reuse)",
+        };
+        let ruta = base.display().to_string();
+        return Err(Error::Invalid(
+            YA_EXISTE.texto_con(paths.idioma, &[("ruta", &ruta)]),
+        ));
     }
     fs::create_dir_all(&base)
         .map_err(|e| Error::io(format!("Cannot create {}", base.display()), e))?;
@@ -104,7 +109,7 @@ pub(crate) fn crear_workspace(paths: &Paths, args: &Value) -> Result<Value> {
     Ok(json!({
         "workspace": base.to_string_lossy(),
         "folders": created,
-        "note": "Data-only workspace: PVsystCLI run-simulation only accepts the workspace configured in PVsyst itself (see PVSYST_CLI_REFERENCE.md section 9)."
+        "note": "Data-only workspace: PVsystCLI run-simulation, create-site and convert-meteo only accept the workspace configured in PVsyst itself (see PVSYST_CLI_REFERENCE.md section 9)."
     }))
 }
 
@@ -128,10 +133,9 @@ pub(crate) fn exportar_workspace(paths: &Paths, args: &Value) -> Result<Value> {
         fs::create_dir_all(parent)
             .map_err(|e| Error::io(format!("Cannot create {}", parent.display()), e))?;
     }
-    let names: Vec<std::ffi::OsString> = fs::read_dir(&workspace)
-        .map_err(|e| Error::io(format!("Cannot list {}", workspace.display()), e))?
-        .flatten()
-        .map(|e| e.file_name())
+    let names: Vec<std::ffi::OsString> = crate::workspace::entradas_de(&workspace)?
+        .iter()
+        .filter_map(|p| p.file_name().map(std::ffi::OsStr::to_os_string))
         .collect();
     zip_into(&destino, &workspace, &names)?;
     let size = fs::metadata(&destino)

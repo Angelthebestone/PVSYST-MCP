@@ -4,4 +4,6 @@
 mod aplicacion;
 mod dominio;
 
+pub(crate) use dominio::validar_parametros;
+
 pub(crate) use aplicacion::definir_limite;

@@ -1,0 +1,152 @@
+"""Reading every tab of an open window into one entry of the tab inventory.
+
+`leer_pagina` reads the tab on screen, `inventariar` walks the tabs of the window and
+records the error of every tab PVsyst vetoes, and `fusionar` with `volcar` put the
+entry into `docs/gui_inventario_pestanas.json`; `tools/mapa_desde_inventario.py`
+regenerates the map from it.
+"""
+
+from __future__ import annotations
+
+import json
+
+from medir_cliente import Cliente, Json
+from medir_ventanas import _dormir, _error_de, _responder, ventanas
+
+CLASES_ROTULO = ("TTabSheet", "TGroupBox", "TRadioGroup")
+CLAVES_CAMPO = ("clase", "etiqueta", "etiqueta_fuente", "marcado", "habilitado")
+
+
+class ErrorMedicion(Exception):
+    """A read or a step failed: the measurement of this target cannot be trusted."""
+
+
+def leer_pagina(c: Cliente, clase: str) -> Json:
+    """Read the tab on screen: its fields, buttons, captions and the tab names.
+
+    Each button carries `origen`, the `etiqueta_fuente` of the server's answer: where
+    the text of that button was read (`window_text` when the control draws it, `ocr`
+    when it was recognised inside it, null when the button has no text; see
+    `procesar_boton` in `ocr/controles.rs`).
+    """
+    f = c.tool("gui_observar", {"que": "formulario", "ventana": clase})
+    fallo = _error_de(f)
+    if fallo is not None:
+        raise ErrorMedicion(f"reading {clase} failed: {fallo[:200]}")
+    return {
+        "campos": [{k: x.get(k) for k in CLAVES_CAMPO} for x in f.get("campos") or []],
+        "botones": [
+            {
+                "texto": b.get("texto"),
+                "habilitado": b.get("habilitado"),
+                "origen": b.get("etiqueta_fuente"),
+            }
+            for b in f.get("botones") or []
+        ],
+        "rotulos": [
+            [o["clase"], o.get("texto")]
+            for o in f.get("otros") or []
+            if o.get("clase") in CLASES_ROTULO and o.get("texto")
+        ],
+        "titulo": f.get("titulo"),
+        "pestanas": [p["nombre"] for p in f.get("pestanas") or []],
+    }
+
+
+def _cerrar_dialogos(c: Cliente, indice: int, errores: list[Json]) -> None:
+    """A tab change can raise a message box (the window vetoes it): note it, answer it.
+
+    The answer is `_responder`'s, the one every dialog of this tool gets, so a box
+    that asks whether to lose the tab's data is rejected here as it is there; a box
+    that offers no such button, or whose caption cannot be pressed, stays open and
+    stops the measurement naming it.
+    """
+    for _ in range(3):
+        if not any(w["class"] == "TMessageForm" for w in ventanas(c)):
+            return
+        respuesta = _responder(c)
+        if respuesta.fallo is not None:
+            raise ErrorMedicion(f"the dialog of tab {indice}: {respuesta.fallo}")
+        errores.append({"indice": indice, "dialogo": list(respuesta.textos)})
+        _dormir(0.5)
+
+
+def _no_es_pagina(respuesta: Json) -> bool:
+    """`formulario.pestanas` also lists nested sheets and panels (the pumping
+    sizing suggestions); the page control answers that index is out of range."""
+    texto = str(respuesta.get("error", ""))
+    return "out of range" in texto and "tab pages" in texto
+
+
+def inventariar(c: Cliente, clase: str) -> Json:
+    """Every tab of the open window: fields, buttons and captions of the tab."""
+    if c.tool("gui_observar", {"que": "formulario", "ventana": clase}).get("pestanas"):
+        c.tool("gui_actuar", {"accion": "pagina", "ventana": clase, "indice": 0})
+        _dormir(0.5)
+    base = leer_pagina(c, clase)
+    nombres: list[str] = base["pestanas"]
+    errores: list[Json] = []
+    pestanas: list[Json] = []
+    for i in range(len(nombres) or 1):
+        if nombres and i > 0:
+            r = c.tool(
+                "gui_actuar", {"accion": "pagina", "ventana": clase, "indice": i}
+            )
+            if _no_es_pagina(r):
+                continue
+            if r.get("error") or r.get("jsonrpc_error"):
+                errores.append(
+                    {"indice": i, "pestana": nombres[i], "texto": str(r)[:300]}
+                )
+                # The tab did not change: the screen shows another tab's page.
+                _dormir(0.5)
+                _cerrar_dialogos(c, i, errores)
+                continue
+            _dormir(0.5)
+            _cerrar_dialogos(c, i, errores)
+        p = leer_pagina(c, clase) if i > 0 else base
+        pestanas.append(
+            {
+                "indice": i if nombres else None,
+                "pestana": nombres[i] if nombres else None,
+                **{k: p[k] for k in ("campos", "botones", "rotulos")},
+            }
+        )
+    if nombres:
+        c.tool("gui_actuar", {"accion": "pagina", "ventana": clase, "indice": 0})
+    return {
+        "ventana": clase,
+        "titulo": base["titulo"],
+        "pestanas": pestanas,
+        "errores": errores,
+    }
+
+
+def volcar(datos: Json) -> str:
+    return json.dumps(datos, indent=1, ensure_ascii=False)
+
+
+def _pestanas(e: Json) -> list[object]:
+    """The names of the tabs an inventory entry recorded, in order."""
+    return [p.get("pestana") for p in e.get("pestanas") or []]
+
+
+def fusionar(inventario: Json, clave: str, medida: Json) -> None:
+    """Merge one measurement into the inventory, keeping the old presses when they hold.
+
+    A run without `--botones` did not look at the presses: keeping the old list is not
+    stale data, it is the last measurement of what they open. It does not hold when the
+    tabs were remeasured, because those presses were recorded against tabs this window
+    no longer has and the entry would credit them to the new ones. A target whose
+    cleanup could not close what it opened keeps that reason in `parado`: the entry is
+    the only record that its fields were measured while its window stayed open.
+    """
+    anterior = inventario.get(clave) or {}
+    entrada = {k: medida[k] for k in ("ventana", "titulo", "pestanas", "errores")}
+    if "parado" in medida:
+        entrada["parado"] = medida["parado"]
+    if "botones_abren" in medida:
+        entrada["botones_abren"] = medida["botones_abren"]
+    elif "botones_abren" in anterior and _pestanas(anterior) == _pestanas(medida):
+        entrada["botones_abren"] = anterior["botones_abren"]
+    inventario[clave] = entrada

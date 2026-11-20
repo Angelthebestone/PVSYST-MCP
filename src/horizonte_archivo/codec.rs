@@ -4,6 +4,52 @@ use super::dominio::{validar_puntos, Horizonte, PuntoHorizonte, PUNTOS_MAXIMOS, 
 use crate::error::{Error, Result};
 use crate::format::real48::{encode_real48, real48};
 use crate::format::redondear;
+use crate::idioma::{Idioma, Texto};
+
+const HOR_CORTO: Texto = Texto {
+    es: "Archivo .HOR demasiado corto",
+    en: ".HOR file too short",
+};
+const HOR_FIRMA: Texto = Texto {
+    es: "Archivo .HOR inválido: firma de encabezado incorrecta",
+    en: "Invalid .HOR file: wrong header signature",
+};
+const HOR_SIN_CRLF: Texto = Texto {
+    es: "Encabezado .HOR incompleto: falta fin de línea CRLF",
+    en: "Incomplete .HOR header: missing CRLF line ending",
+};
+const HOR_SIN_VERSION: Texto = Texto {
+    es: "Campo 'Version' no encontrado en .HOR",
+    en: "'Version' field not found in .HOR",
+};
+const HOR_PERFIL_TRUNCADO: Texto = Texto {
+    es: "Encabezado de perfil .HOR truncado",
+    en: "Truncated .HOR profile header",
+};
+const HOR_PERFIL_FIRMA: Texto = Texto {
+    es: "Firma de perfil TCubicProfile no coincide en .HOR",
+    en: "TCubicProfile signature does not match in .HOR",
+};
+const HOR_LONGITUD: Texto = Texto {
+    es: "Longitud inválida en .HOR: se esperaban {esperado} bytes de datos, hay {real}",
+    en: "Invalid length in .HOR: expected {esperado} data bytes, found {real}",
+};
+const HOR_REAL48: Texto = Texto {
+    es: "Registro Real48 truncado",
+    en: "Truncated Real48 record",
+};
+const HOR_POCOS_PUNTOS: Texto = Texto {
+    es: "Se requieren al menos 2 puntos",
+    en: "At least 2 points are required",
+};
+const HOR_AZIMUT_NO_CRECIENTE: Texto = Texto {
+    es: "Los puntos de azimut deben ser estrictamente crecientes",
+    en: "Azimuth points must be strictly increasing",
+};
+const HOR_DEMASIADOS_PUNTOS: Texto = Texto {
+    es: "Demasiados puntos para .HOR: {count} (máximo {max})",
+    en: "Too many points for .HOR: {count} (maximum {max})",
+};
 
 /// Header magic bytes starting a Delphi serialized horizon file (0x04D7).
 pub(crate) const HEADER_MAGIC: [u8; 2] = [0xd7, 0x04];
@@ -29,11 +75,13 @@ pub(crate) const FACTOR_GRADOS_A_RAD: f64 = 0.017_453_29;
 /// Parses a complete `.HOR` file from bytes.
 pub(crate) fn parse_horizonte(bytes: &[u8]) -> Result<Horizonte> {
     if bytes.len() < 7 {
-        return Err(Error::Format("Archivo .HOR demasiado corto".into()));
+        return Err(Error::Format(
+            HOR_CORTO.en_idioma(Idioma::de_entorno()).to_string(),
+        ));
     }
     if bytes[0..2] != HEADER_MAGIC {
         return Err(Error::Format(
-            "Archivo .HOR inválido: firma de encabezado incorrecta".into(),
+            HOR_FIRMA.en_idioma(Idioma::de_entorno()).to_string(),
         ));
     }
     let crlf1 = find_crlf(bytes, 2)?;
@@ -55,8 +103,12 @@ pub(crate) fn encode_horizonte(h: &Horizonte) -> Result<Vec<u8>> {
     validar_puntos(&h.puntos)?;
     let count = h.puntos.len();
     if count > PUNTOS_MAXIMOS {
-        return Err(Error::Invalid(format!(
-            "Demasiados puntos para .HOR: {count} (máximo {PUNTOS_MAXIMOS})"
+        return Err(Error::Invalid(HOR_DEMASIADOS_PUNTOS.texto_con(
+            Idioma::de_entorno(),
+            &[
+                ("count", &count.to_string()),
+                ("max", &PUNTOS_MAXIMOS.to_string()),
+            ],
         )));
     }
     let line1 = format!("{};\r\n", h.titulo);
@@ -96,7 +148,7 @@ fn find_crlf(bytes: &[u8], start: usize) -> Result<usize> {
         .skip(start)
         .find(|(_, w)| w[0] == b'\r' && w[1] == b'\n')
         .map(|(i, _)| i)
-        .ok_or_else(|| Error::Format("Encabezado .HOR incompleto: falta fin de línea CRLF".into()))
+        .ok_or_else(|| Error::Format(HOR_SIN_CRLF.en_idioma(Idioma::de_entorno()).to_string()))
 }
 
 fn parse_linea_titulo(bytes: &[u8]) -> String {
@@ -115,7 +167,7 @@ fn parse_linea_version(bytes: &[u8]) -> Result<(String, String)> {
         .first()
         .and_then(|p| p.strip_prefix("Version"))
         .map(str::trim)
-        .ok_or_else(|| Error::Format("Campo 'Version' no encontrado en .HOR".into()))?
+        .ok_or_else(|| Error::Format(HOR_SIN_VERSION.en_idioma(Idioma::de_entorno()).to_string()))?
         .to_string();
     let calcul = parts
         .get(1)
@@ -127,20 +179,27 @@ fn parse_linea_version(bytes: &[u8]) -> Result<(String, String)> {
 }
 
 fn parse_registros_puntos(bytes: &[u8]) -> Result<Vec<PuntoHorizonte>> {
-    let prefix = bytes
-        .get(..5)
-        .ok_or_else(|| Error::Format("Encabezado de perfil .HOR truncado".into()))?;
+    let prefix = bytes.get(..5).ok_or_else(|| {
+        Error::Format(
+            HOR_PERFIL_TRUNCADO
+                .en_idioma(Idioma::de_entorno())
+                .to_string(),
+        )
+    })?;
     if prefix[0..2] != PROFILE_MAGIC || prefix[2] != PROFILE_MODE {
         return Err(Error::Format(
-            "Firma de perfil TCubicProfile no coincide en .HOR".into(),
+            HOR_PERFIL_FIRMA.en_idioma(Idioma::de_entorno()).to_string(),
         ));
     }
     let count = prefix[4] as usize;
     let esperado = 5 + count * BYTES_POR_REGISTRO;
     if bytes.len() != esperado {
-        return Err(Error::Format(format!(
-            "Longitud inválida en .HOR: se esperaban {esperado} bytes de datos, hay {}",
-            bytes.len()
+        return Err(Error::Format(HOR_LONGITUD.texto_con(
+            Idioma::de_entorno(),
+            &[
+                ("esperado", &esperado.to_string()),
+                ("real", &bytes.len().to_string()),
+            ],
         )));
     }
     (0..count)
@@ -155,13 +214,13 @@ fn parse_registros_puntos(bytes: &[u8]) -> Result<Vec<PuntoHorizonte>> {
 fn decode_punto_registro(chunk: &[u8]) -> Result<PuntoHorizonte> {
     let b_az: [u8; 6] = chunk[0..6]
         .try_into()
-        .map_err(|_| Error::Format("Registro Real48 truncado".into()))?;
+        .map_err(|_| Error::Format(HOR_REAL48.en_idioma(Idioma::de_entorno()).to_string()))?;
     let b_ht: [u8; 6] = chunk[6..12]
         .try_into()
-        .map_err(|_| Error::Format("Registro Real48 truncado".into()))?;
+        .map_err(|_| Error::Format(HOR_REAL48.en_idioma(Idioma::de_entorno()).to_string()))?;
     let b_sl: [u8; 6] = chunk[24..30]
         .try_into()
-        .map_err(|_| Error::Format("Registro Real48 truncado".into()))?;
+        .map_err(|_| Error::Format(HOR_REAL48.en_idioma(Idioma::de_entorno()).to_string()))?;
     let az_rad = real48(&b_az);
     let ht_rad = real48(&b_ht);
     let pendiente = real48(&b_sl);
@@ -179,7 +238,9 @@ fn decode_punto_registro(chunk: &[u8]) -> Result<PuntoHorizonte> {
 fn calcular_pendientes_perfil(puntos: &[PuntoHorizonte]) -> Result<Vec<f64>> {
     let n = puntos.len();
     if n < PUNTOS_MINIMOS {
-        return Err(Error::Invalid("Se requieren al menos 2 puntos".into()));
+        return Err(Error::Invalid(
+            HOR_POCOS_PUNTOS.en_idioma(Idioma::de_entorno()).to_string(),
+        ));
     }
     let mut slopes = Vec::with_capacity(n); // Preallocated accumulator for interval slopes.
     for i in 0..n - 1 {
@@ -204,7 +265,9 @@ fn calcular_pendientes_perfil(puntos: &[PuntoHorizonte]) -> Result<Vec<f64>> {
         let dx = x2 - x1;
         if dx <= 0.0 {
             return Err(Error::Invalid(
-                "Los puntos de azimut deben ser estrictamente crecientes".into(),
+                HOR_AZIMUT_NO_CRECIENTE
+                    .en_idioma(Idioma::de_entorno())
+                    .to_string(),
             ));
         }
         slopes.push((y2 - y1) / dx);

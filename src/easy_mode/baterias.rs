@@ -14,7 +14,7 @@ const MOTIVO: &str = "disenar_sistema: baterías";
 fn aplicar_baterias(
     paths: &Paths,
     params: &DisenoParametros,
-) -> Result<Option<(Vec<ChangeOutcome>, Option<String>)>> {
+) -> Result<Option<(Vec<ChangeOutcome>, String)>> {
     if params.tipo_sistema != TipoDiseno::Aislado {
         return Ok(None);
     }

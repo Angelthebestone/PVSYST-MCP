@@ -98,7 +98,3 @@ pub(crate) fn revisar_componentes(ws: &Path, var_txt: &str, inf: &mut Informe) {
         }
     }
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/projects/doctor/referencias.rs"]
-mod tests;

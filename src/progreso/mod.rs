@@ -33,6 +33,11 @@ impl<'a> SeguimientoTarea<'a> {
         }
     }
 
+    /// Whether anyone is listening for progress, so a scan can be skipped.
+    pub(crate) fn informa_progreso(&self) -> bool {
+        self.informar.is_some()
+    }
+
     /// Whether the client asked to cancel this task.
     pub(crate) fn esta_cancelado(&self) -> bool {
         self.cancelado.load(Ordering::Relaxed)
