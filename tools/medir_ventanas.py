@@ -1,9 +1,10 @@
 """Reading, closing and waiting on PVsyst windows through the MCP server.
 
-`limpiar` closes every window but the main ones, answering each prompt with a
-rejection (`_boton_de`); `asegurar_pvsyst` starts PVsyst when no process answers.
-The project a chain loads, and which project windows this run may close, live in
-`medir_proyectos.py`. Only one agent may drive the PVsyst GUI at a time, and nothing
+`limpiar` closes the windows `cerrable` allows, answering each prompt with a rejection
+(`_responder`, which decides with `_boton_de`); `asegurar_pvsyst` starts PVsyst when no
+process answers and refuses a session this run did not start that holds windows it did
+not open. The project a chain loads, and which project windows this run may close, live
+in `medir_proyectos.py`. Only one agent may drive the PVsyst GUI at a time, and nothing
 is filled in or saved.
 
 Every wait of the whole tool goes through `_dormir`, which reads `PAUSA` from this

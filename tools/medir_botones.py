@@ -83,7 +83,8 @@ def _motivo(boton: Json) -> str | None:
     """Why this run does not press the button, or None when it does.
 
     The text must come from the button's own caption and the entry must say so: one
-    recorded before the origin was is not pressed until the window is measured again.
+    measured before the form read reported it carries no origin, and is not pressed
+    until the window is measured again.
     """
     texto = str(boton.get("texto") or "").strip()
     if not texto:

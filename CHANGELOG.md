@@ -70,13 +70,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`tools/medir_gui.py --botones` presses a label only when the measurement says it is the button's
   own caption.** The white list compared the text alone, and the text of an icon-only button is OCR
   of the pixels drawn inside it: `gui_actuar accion:clic_texto` then falls back to OCR substring
-  matching and to UI Automation, so `Tabla` reached `Guardar tabla...`. `medir_inventario` now
-  records where each button's text was read (`origen`, the field a click answer uses, or
-  `etiqueta_fuente` of a form read) and `_motivo` refuses `texto de OCR`; an entry with no origin at
-  all, which is what a measurement recorded before this change carries, is not pressed
-  (`sin origen`) until the window is measured again. The server's form read does not report the
-  origin of a button's text yet, so a `--botones` run presses nothing until it does: that is the
-  fail-closed side of the rule, not a silent skip.
+  matching and to UI Automation, so `Tabla` reached `Guardar tabla...`. `medir_inventario` records the
+  `etiqueta_fuente` of each button — the field `gui_observar que:formulario` reports, `window_text` for
+  the control's own caption, `ocr` for text recognised inside it, null for a button without text — as
+  the `origen` of the inventory entry, and `_motivo` presses only `window_text`, recording `texto de
+  OCR` for anything else. An entry measured before the server reported the key carries no origin and
+  is not pressed (`sin origen`) until the window is measured again: that is the fail-closed side of
+  the rule, not a silent skip.
 - **`tools/medir_gui.py` no longer fails every target after the trial notice appears under a loaded
   project.** The notice (`TDEMOForm`) came up while a demo project was open, the server refuses to
   close it there (the project window is modal above it) and the cleanup reported it as a window it
@@ -219,6 +219,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   since GUI-07. The candidates are split by their window state now: a caption only disabled buttons carry
   is an error naming each class, hwnd and position and saying what to enable, while a caption shared by a
   disabled and an enabled button presses the enabled one as before instead of refusing both.
+- **A `--botones` press that the server resolved by OCR or by UI Automation stops the run.**
+  `_pulsar` checked where the form read found a button's text and then trusted the click: `gui_actuar
+  accion:clic_texto` presses a visible button whose own caption is that text and, when there is none,
+  falls back to OCR substring matching and to the name UI Automation gives a control, so a button that
+  was hidden or covered answered «done» after pressing a different control. The answer says in `origen`
+  which way the text was resolved (`control`, `ocr`, `uia`), and a press whose answer is not `control`
+  — or whose successful answer carries no origin at all — ends the press phase with a `parado` entry
+  naming the button, the origin and the windows it opened, which are closed as any other press's are.
+- **A screen the presses cannot read ends the presses, not the measured target.** An `ErrorDeLectura`
+  raised while a press was in flight left `medir` as an exception `main` stops on, so the tabs already
+  read were not merged; `finally: limpiar(c)` could raise it again and hide the reason the target had
+  failed; and a window entry without a `class` ended the tool with a `KeyError` traceback instead of a
+  read error. The presses now end with a `parado` entry naming the read error while the fields already
+  measured merge as with any other stop, the cleanup reports what it could not close instead of raising
+  (`parado` in the measurement, printed and counted as a failure, or appended to the reason the target
+  failed), and `ventanas` rejects a window without a `class` as a read error that names the entry.
+- **A run refuses a PVsyst it did not start that shows windows it did not open (`--limpiar-ajenas`).**
+  `limpiar` closes every window but the main ones answering No/Cancelar, so a run started next to an
+  open PVsyst answered No to the save prompt of whatever the user had on screen: only the project
+  window was guarded. A session this run found already running now stops the run with an error that
+  lists every window outside `MANTENER` and outside the trial notice (`TDEMOForm`, which PVsyst raises
+  by itself) and asks for them to be closed by hand; the new flag `--limpiar-ajenas` declares them
+  disposable, which is how the leftover of a killed run is cleaned. A PVsyst this run launches is not
+  checked: nothing of the user's is on its screen.
+- **A demo is a whole name of the shipped list, not any `_DEMO_` in a title.** The guard matched
+  `(?<!\w)_DEMO_\w` anywhere in a project window's title, so a user's `_DEMO_mio`, an `X_DEMO_Foo`
+  and a `Copia (_DEMO_Commercial)` counted as read-only demos and the run closed them answering No to
+  PVsyst's save prompt; a project the run had loaded was matched with the same whole-word rule, so
+  `Planta` found the window of `Proyecto Planta 2`. The demos the installation ships in
+  `DataRO\PVsyst8.1_Data\Projects` are an explicit list now, compared with the whole project name the
+  title shows («Proyecto <nombre>», the active variant after ` - `) for the demos and for the loaded
+  names alike, and a title of another shape matches nothing, so its window stays open.
+- **One rule says which windows the harness may close, the trial notice included.** `_sobran` kept the
+  notice while a project window was open, but a chain step closed it without looking at the answer and
+  a press that opened it, under a project window, spent twelve rounds trying to close it and then
+  stopped naming a window it was never allowed to close. The rule lives in `cerrable` — the main
+  windows never, the notice only while no project window is above it — the press run and the chain step
+  both ask it, and the chain step reads the refusal of the close instead of assuming it worked.
 
 ### Added
 - **A page of `docs/gui_mapa.json` can carry `requiere`: the switches of its tab and what each one changes.**
