@@ -139,14 +139,15 @@ model latency plus the size of tool output**. Two mitigations are built in:
 
 - **`elapsed_ms`** — every tool response carries the server-side duration, so
   latency can be measured instead of guessed.
-- **`detalle`** on every tool: `resumen` (default) trims arrays to 10 items and long
+- **`detalle`** on every tool: `resumen` (default) trims arrays to 13 items and long
   strings; `normal` and `completo` return more. Use `completo` only when needed.
 - **`vista`** on every answer, success or failure, is the same block for every tool and action; only a
   call that finished may drop it with `vista:false`:
   `estado` (`ok`, `parcial`, `error`), `resumen` (one sentence), `campos` (`{clave, valor, unidad, origen, editable}`;
   `origen` is `pvsyst`, `mcp` or `aproximacion_mcp`), `avisos`, `siguiente` (`[{tool, argumentos, motivo}]`, each
   executable as written) and `recortado` (`{clave, mostrados, total, pedir_resto}`). A failure adds `error`
-  (`codigo`, `motivo`, `causa_probable`, `que_hacer`, `claves_validas` for input errors). Existing keys do not change.
+  (`codigo`, `motivo`, `causa_probable`, `que_hacer`, `claves_validas` for input errors). The one key removed is
+  the top-level `siguiente` string, which `vista.siguiente` replaces; everything else stays.
   `vista` is the answer's block; `gui_observar que:vista` is the form view by keys — a GUI answer can carry both.
   Pass `vista:false` to leave the block out of a call that finished (`estado:ok`); a failure, a partial
   answer, a confirmation request or a dry run keeps it.

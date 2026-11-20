@@ -140,15 +140,16 @@ modelo por turno más el tamaño de la salida de la tool**. Hay dos mitigaciones
 
 - **`elapsed_ms`** — cada respuesta lleva la duración del lado del servidor, para medir la
   latencia en vez de suponerla.
-- **`detalle`** en todas las tools: `resumen` (por defecto) recorta los arrays a 10 elementos y
+- **`detalle`** en todas las tools: `resumen` (por defecto) recorta los arrays a 13 elementos y
   las cadenas largas; `normal` y `completo` devuelven más. Usa `completo` solo cuando haga falta.
 - **`vista`** en toda respuesta, correcta o con fallo, es el mismo bloque para cada tool y acción; solo
   una llamada que terminó puede omitirlo con `vista:false`:
   `estado` (`ok`, `parcial`, `error`), `resumen` (una frase), `campos` (`{clave, valor, unidad, origen, editable}`;
   `origen` es `pvsyst`, `mcp` o `aproximacion_mcp`), `avisos`, `siguiente` (`[{tool, argumentos, motivo}]`, cada
   paso ejecutable tal cual) y `recortado` (`{clave, mostrados, total, pedir_resto}`). Un fallo añade `error`
-  (`codigo`, `motivo`, `causa_probable`, `que_hacer`, `claves_validas` si el fallo es de entrada). Las claves
-  existentes no cambian. `vista` es el bloque de la respuesta; `gui_observar que:vista` es la vista de formularios
+  (`codigo`, `motivo`, `causa_probable`, `que_hacer`, `claves_validas` si el fallo es de entrada). La única clave
+  eliminada es el `siguiente` de nivel superior, que reemplaza `vista.siguiente`; el resto no cambia.
+  `vista` es el bloque de la respuesta; `gui_observar que:vista` es la vista de formularios
   por claves: una respuesta de GUI puede llevar ambos. Pasa `vista:false` para dejar el bloque fuera en una llamada
   que terminó (`estado:ok`); un fallo, una respuesta parcial, una petición de confirmación o un ensayo lo conservan.
 

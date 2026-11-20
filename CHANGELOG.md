@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Both READMEs say the top-level `siguiente` string was removed and that `detalle:resumen` trims to 13
+  items.** The `vista` section still said existing keys do not change, although the string was removed in
+  favour of `vista.siguiente` (B.5.2 of the visual GUI test report), and the `detalle` bullet said 10
+  items while `LIMITE_ARRAY_RESUMEN` is 13 (the 12 months plus the year).
 - **The texts say when `vista:false` drops the block: only a call that finished (B.5.1 of the visual GUI
   test report).** Server instruction 12, both READMEs and the bundle manifest said every answer carries
   `vista`, and the `vista` argument description said a successful answer loses it. A rehearsal is `ok`
