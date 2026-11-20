@@ -3,12 +3,69 @@
 use super::*;
 use crate::adapters::gui::catalogo::mapa_de_ventanas;
 
-/// A configuration that finds no PVsyst install, so no assertion depends on the
-/// machine the tests run on.
+/// A configuration that names no PVsyst install and reads no environment
+/// variable, so no assertion depends on the machine the tests run on.
 fn paths_de_prueba() -> Paths {
-    let mut paths = Paths::resolve();
-    paths.gui_exe = std::path::PathBuf::from("C:/noexiste/PVsyst.exe");
-    paths
+    Paths::para_test("C:/noexiste/ws")
+}
+
+/// What the `metadatos` block must carry, read from `metadatos()` in
+/// `src/adapters/gui/catalogo/recurso.rs`. `aviso` is always there (null when
+/// there is nothing to warn about), so its presence alone proves nothing.
+fn comprobar_metadatos(ventana: &Value) {
+    let mapa = mapa_de_ventanas();
+    let metadatos = &ventana["metadatos"];
+    assert_eq!(
+        metadatos["measured_on"].as_str(),
+        mapa["medido_el"].as_str(),
+        "the block says when the map was measured"
+    );
+    assert_eq!(
+        metadatos["pvsyst_version"].as_str(),
+        mapa["version_pvsyst"]
+            .as_str()
+            .and_then(|v| v.split_whitespace().next()),
+        "the block names the version the map was measured on"
+    );
+    assert_eq!(metadatos["idioma_medido"].as_str(), mapa["idioma"].as_str());
+    assert_eq!(
+        metadatos["windows_total"].as_u64(),
+        mapa["ventanas"]
+            .as_object()
+            .map(|ventanas| ventanas.len() as u64),
+        "the block counts every window of the map"
+    );
+    assert!(
+        metadatos["pvsyst_version_en_ejecucion"].is_null(),
+        "the test paths name no install, so there is no version to compare: {metadatos}"
+    );
+    let cobertura = &metadatos["cobertura"];
+    assert!(
+        cobertura["ventanas_con_campos"]
+            .as_u64()
+            .is_some_and(|n| n > 0),
+        "the block says how much of the map carries fields: {cobertura}"
+    );
+    assert_eq!(
+        cobertura["controles_sin_hwnd"].as_u64(),
+        mapa["controles_sin_hwnd"]
+            .as_array()
+            .map(|controles| controles.len() as u64),
+        "the block counts the controls the map records as unreachable"
+    );
+    // Only the language half of the warning can fire here, and only when this
+    // machine runs a PVsyst in a language other than the map's: the version half
+    // needs an install, and these paths name none. The texts are VERSION_DISTINTA
+    // and IDIOMA_DISTINTO in `src/adapters/gui/catalogo/recurso.rs`.
+    let aviso = metadatos["aviso"].as_str().unwrap_or_default();
+    assert!(
+        !aviso.contains("may have changed"),
+        "version warning without a version: {aviso}"
+    );
+    assert!(
+        aviso.is_empty() || aviso.contains("will not match"),
+        "the only warning left here is the language one: {aviso}"
+    );
 }
 
 /// The body a client receives for `uri`.
@@ -42,10 +99,7 @@ fn should_serve_one_window_with_the_functions_that_open_it() {
         .filter_map(Value::as_str)
         .collect();
     assert!(abren.contains(&"variante.perdidas_detalladas"), "{abren:?}");
-    assert!(
-        ventana["metadatos"].get("aviso").is_some(),
-        "the metadatos block lost aviso"
-    );
+    comprobar_metadatos(&ventana);
     assert!(ventana.get("mapa").is_none(), "the whole map came along");
 
     let minusculas = cuerpo("pvsyst://gui/tdetailedlossesform", &paths);
