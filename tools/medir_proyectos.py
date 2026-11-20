@@ -34,18 +34,6 @@ def _hasta(condicion: Callable[[], bool], plazo: float) -> bool:
     return condicion()
 
 
-def _patron(nombre: str) -> str:
-    """A regular expression for `nombre` as a whole word of a window title."""
-    return rf"(?<!\w){re.escape(nombre)}(?!\w)"
-
-
-def _es_proyecto(w: Json, nombre: str) -> bool:
-    """The project window of exactly `nombre` (not `nombre2`, not `x_nombre`)."""
-    return w["class"] == "TProjectForm" and bool(
-        re.search(_patron(nombre), w.get("title", ""))
-    )
-
-
 # The demo projects PVsyst ships in `DataRO\PVsyst8.1_Data\Projects`, the read-only
 # data folder of the installation (`docs/gui_hibrida.md` lists these names,
 # `docs/pvsyst_format.md` records the folder as read-only). A project loaded from there
@@ -75,6 +63,17 @@ def _nombre_del_titulo(titulo: str) -> str:
     """The project name the window title of `titulo` shows."""
     encontrado = TITULO.match(titulo)
     return titulo if encontrado is None else encontrado.group("nombre").strip()
+
+
+def _es_proyecto(w: Json, nombre: str) -> bool:
+    """The project window of exactly `nombre`, not one of a name that contains it.
+
+    `_patron` read «Proyecto Planta 2» as the loaded Planta and measured over it; this
+    check and `es_propio` share the one name rule now.
+    """
+    if w["class"] != "TProjectForm":
+        return False
+    return _nombre_del_titulo(str(w.get("title") or "")) == nombre
 
 
 class Propiedad:
@@ -116,12 +115,35 @@ def _proyectos(c: Cliente) -> list[Json]:
     return [w for w in ventanas(c) if w["class"] == "TProjectForm"]
 
 
+def _pasos(nombre: str) -> tuple[tuple[Json, str], ...]:
+    """The three GUI steps of the loader, each with the text an error is reported as."""
+    funcion: Json = {"accion": "funcion", "funcion": "proyecto.cargar"}
+    escribir: Json = {
+        "accion": "escribir",
+        "ventana": "TProjectLoadForm",
+        "campo": BUSCADOR,
+        "texto": nombre,
+    }
+    fila: Json = {
+        "accion": "fila",
+        "ventana": "TProjectLoadForm",
+        "indice": 0,
+        "abrir": True,
+    }
+    return (
+        (funcion, "opening the project loader failed"),
+        (escribir, "writing the project name in the search box failed"),
+        (fila, "opening the first row of the loader failed"),
+    )
+
+
 def cargar_proyecto(c: Cliente, nombre: str, propiedad: Propiedad) -> str | None:
     """Load a project through the loader's search box; an error text, or None.
 
     The project already open is closed first, and `_cerrar_proyecto` decides whether
     this run may; `propiedad` then records what a later chain without `@proyecto` may
-    close.
+    close. Every answer is read: a step the server refused used to be dropped here,
+    and the only symptom was a 15 s «did not load» that named no cause.
     """
     if any(_es_proyecto(w, nombre) for w in ventanas(c)):
         return None
@@ -131,22 +153,11 @@ def cargar_proyecto(c: Cliente, nombre: str, propiedad: Propiedad) -> str | None
     fallo = _cerrar_proyecto(c, propiedad)
     if fallo:
         return fallo
-    c.tool("gui_actuar", {"accion": "funcion", "funcion": "proyecto.cargar"})
-    _dormir(1.0)
-    c.tool(
-        "gui_actuar",
-        {
-            "accion": "escribir",
-            "ventana": "TProjectLoadForm",
-            "campo": BUSCADOR,
-            "texto": nombre,
-        },
-    )
-    _dormir(1.0)
-    c.tool(
-        "gui_actuar",
-        {"accion": "fila", "ventana": "TProjectLoadForm", "indice": 0, "abrir": True},
-    )
+    for argumentos, motivo in _pasos(nombre):
+        error = _error_de(c.tool("gui_actuar", argumentos))
+        if error is not None:
+            return f"{motivo}: {error[:200]}"
+        _dormir(1.0)
     if not _hasta(lambda: any(_es_proyecto(w, nombre) for w in ventanas(c)), 15):
         titulos = [w.get("title") for w in ventanas(c)]
         return f"project {nombre} did not load: {titulos}"

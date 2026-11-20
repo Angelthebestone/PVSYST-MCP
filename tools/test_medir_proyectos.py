@@ -1,6 +1,6 @@
 """Tests for which project windows a run may close: the demos and what it loaded."""
 
-from medir_proyectos import abrir
+from medir_proyectos import abrir, cargar_proyecto
 from pvsyst_falso import PVsystFalso, objetivo_de, propiedad_de
 
 # pytest finds the autouse fixture through this import; the tests never call it.
@@ -27,3 +27,17 @@ def test_only_a_demo_or_a_project_the_run_loaded_may_be_closed() -> None:
         assert (fallo is None) == propio, titulo
         cerrado = "TProjectForm" not in [w["class"] for w in c.abiertas]
         assert cerrado == propio, titulo
+
+
+def test_a_project_whose_name_contains_the_requested_one_is_not_loaded() -> None:
+    """«Proyecto Planta 2» open is not Planta: the chain loads Planta over it."""
+    c = PVsystFalso({}, {})
+    c.abiertas.append({"class": "TProjectForm", "title": "Proyecto Planta 2"})
+
+    fallo = cargar_proyecto(c, "Planta", propiedad_de("Planta 2"))
+
+    assert fallo is None
+    assert c.escrito == "Planta"
+    assert [w["title"] for w in c.abiertas if w["class"] == "TProjectForm"] == [
+        "Proyecto Planta"
+    ]

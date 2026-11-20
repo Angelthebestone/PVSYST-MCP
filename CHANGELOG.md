@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **`medir_proyectos` compares a project window's whole name and reads the loader's answers.**
+  `_patron` matched «Proyecto Planta 2» for `Planta` and «Proyecto Copia (_DEMO_Commercial)» for
+  `_DEMO_Commercial`, so `cargar_proyecto` answered «already loaded» and the chain measured over the user's
+  own project; `_es_proyecto` and `es_propio` now share the one name rule of `_nombre_del_titulo`, and
+  `_patron` is gone. The three GUI steps of the loader (`proyecto.cargar`, `escribir`, `fila`) answered
+  with errors nobody read, so a refused step surfaced 15 s later as «project X did not load», naming no
+  cause: each answer is read now, and the step that failed is named.
 - **`medir_ventanas.limpiar` keeps why it could not close a window.** It dropped the answer of `_cerrar`,
   so a message box the harness cannot answer — whose texts and buttons `_responder` names — was reported as
   «still open: ['TMessageForm']», with no way to tell which dialog, or which refused click, stopped the

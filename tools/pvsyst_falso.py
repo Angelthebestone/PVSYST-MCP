@@ -175,9 +175,14 @@ class PVsystFalso:
             self.falla_ventanas = None
         elif accion == "funcion":
             self.funciones.append(a["funcion"])
-            if a["funcion"] not in self.abre:
+            clase = self.abre.get(a["funcion"])
+            # The harness names the loader itself (`cargar_proyecto`) and relies on the
+            # catalogue entry `proyecto.cargar` opening `TProjectLoadForm`.
+            if a["funcion"] == "proyecto.cargar":
+                clase = "TProjectLoadForm"
+            if clase is None:
                 return {"error": f"unknown function {a['funcion']}"}
-            self.abiertas.append({"class": self.abre[a["funcion"]], "title": "t"})
+            self.abiertas.append({"class": clase, "title": "t"})
         elif accion == "pagina":
             if a["indice"] in self.fuera_de_rango:
                 n = a["indice"]

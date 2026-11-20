@@ -2,7 +2,6 @@
 
 import pytest
 
-import medir_proyectos
 from medir_cliente import Json
 from medir_proyectos import abrir, cargar_proyecto
 from medir_ventanas import ErrorDeLectura, asegurar_pvsyst, limpiar, ventanas
@@ -215,15 +214,25 @@ def test_cargar_proyecto_reports_when_the_project_did_not_open() -> None:
     assert "did not load" in str(cargar_proyecto(c, "_DEMO_Foo", propiedad_de()))
 
 
-def test_a_project_whose_name_contains_the_requested_one_is_not_it() -> None:
+@pytest.mark.parametrize(
+    ("accion", "motivo", "escrito"),
+    [
+        ("funcion", "project loader", ""),
+        ("escribir", "search box", ""),
+        ("fila", "first row", "_DEMO_Foo"),
+    ],
+)
+def test_cargar_proyecto_names_the_step_whose_answer_failed(
+    accion: str, motivo: str, escrito: str
+) -> None:
     c = PVsystFalso({}, {})
-    c.abiertas.append({"class": "TProjectForm", "title": "Proyecto _DEMO_Commercial2"})
-    c.abiertas.append({"class": "TProjectForm", "title": "Proyecto X_DEMO_Commercial"})
+    c.jsonrpc = {accion}
 
-    assert medir_proyectos._es_proyecto(c.abiertas[-1], "_DEMO_Commercial") is False
-    assert medir_proyectos._es_proyecto(c.abiertas[-2], "_DEMO_Commercial") is False
-    ok = {"class": "TProjectForm", "title": "Proyecto _DEMO_Commercial - VC0"}
-    assert medir_proyectos._es_proyecto(ok, "_DEMO_Commercial") is True
+    fallo = cargar_proyecto(c, "_DEMO_Foo", propiedad_de())
+
+    assert fallo is not None and motivo in fallo
+    assert c.escrito == escrito
+    assert [w for w in c.abiertas if w["class"] == "TProjectForm"] == []
 
 
 def test_the_discard_question_is_answered_si_and_the_save_one_no() -> None:
