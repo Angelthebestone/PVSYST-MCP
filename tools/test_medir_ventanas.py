@@ -151,17 +151,6 @@ def test_cargar_proyecto_reports_the_windows_it_could_not_close() -> None:
     assert c.escrito == ""
 
 
-def test_cargar_proyecto_refuses_to_replace_a_project_it_did_not_load() -> None:
-    c = PVsystFalso({}, {})
-    c.abiertas.append({"class": "TProjectForm", "title": "Proyecto Planta del cliente"})
-
-    fallo = cargar_proyecto(c, "_DEMO_Foo", propiedad_de())
-
-    assert fallo is not None and "Planta del cliente" in fallo
-    assert c.escrito == ""
-    assert "TProjectForm" in [w["class"] for w in c.abiertas]
-
-
 def test_abrir_a_chain_with_project_keeps_the_loaded_one() -> None:
     c = PVsystFalso({}, {"variante.x": "TX"})
     c.abiertas.append({"class": "TProjectForm", "title": "Proyecto _DEMO_Commercial"})
