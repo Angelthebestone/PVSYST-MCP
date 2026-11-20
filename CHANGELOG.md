@@ -156,6 +156,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   lists the classes the map holds. `resources/templates/list` advertises the form as
   `pvsyst://gui/{ventana}`, and the `uso` of `pvsyst://gui` names it. The full resource keeps every
   window and its map is unchanged.
+- **`leer` names the objects of the file, so editing one field no longer costs a `listar` first (B.4.6 of
+  the visual GUI test report).** A project or a variant answered its object tree only with
+  `detalle:completo`, so an agent that wanted to change `FieldTilt` called `listar que:objetos` just to
+  learn the name `pvSubArray`, and paid for the role, the depth and the line numbers of every object it did
+  not need. The answer now carries `objetos`: the names of the objects of the file, in file order, one per
+  type, and each one a name `editar` takes as its whole `objeto` selector (a type repeated in the file adds
+  no name an edit could use; `listar que:objetos` still reports every instance). The key travels at every
+  `detalle` level and is left out when the file has no object, so a file read as raw bytes or by a reader of
+  its own pays nothing; nothing else in the answer changed. At `detalle:resumen` the list follows the rule of
+  every other list (13 names plus `objetos_total`), and `detalle:completo` returns all of them.
 - **`tools/mapa_desde_inventario.py` copies the nested sheets of a tab into the map as `subpestana`.**
   A page whose inventory entry names a sub-sheet (`TPVModuleForm`, «Parámetros del modelo» →
   «Degradación», «IAM personalizado») carries it right after `pestana`, repeats the `indice_pestana` of

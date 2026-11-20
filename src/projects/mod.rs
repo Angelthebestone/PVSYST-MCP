@@ -222,6 +222,10 @@ pub(crate) fn leer_proyecto(paths: &Paths, args: &Value) -> Result<Value> {
     } else {
         out["hint"] = json!(HINT_ARBOL.en_idioma(paths.idioma));
     }
+    let nombres = crate::objects::nombres_de_objetos(text.as_bytes());
+    if !nombres.is_empty() {
+        out["objetos"] = json!(nombres);
+    }
     Ok(out)
 }
 

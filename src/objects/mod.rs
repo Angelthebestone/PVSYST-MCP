@@ -10,5 +10,5 @@ mod tests;
 
 pub(crate) use edicion::{editar_objeto, exigir_campos_existentes};
 pub(crate) use lectura::leer_objeto;
-pub(crate) use listado::listar_objetos;
+pub(crate) use listado::{listar_objetos, nombres_de_objetos};
 pub(crate) use resolucion::resolve_file;

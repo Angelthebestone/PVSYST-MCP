@@ -47,7 +47,7 @@ Cambios respecto a la propuesta del handoff, con motivo:
 | `entorno` | `entorno{…, cli_exists, gui_exists, workspace}`, `preflight{checks}`; licencia: `license`, `exit_code`, `success`; preferencias: `n_secciones` (o `n_claves` con `seccion`). |
 | `disenar_sistema` | `ok`, `proyecto`, `variante`, `kwp_objetivo`, `kwp_realizado`, `proyecto_reutilizado`, `proyecto_comparable`, `pasos[]`, `errores[]`, `avisos[]`, `kpis`; sin confirmar: `requiere_confirmacion`, `ejecuciones_estimadas`, `restantes`, `reserva`, `mensaje`. |
 | `listar` | `count`, `projects[]` / `archivos[]` / `objetos[]`, `advertencias[]`. |
-| `leer` | `file`, `size_bytes`, `summary{…}`, `hint`. |
+| `leer` | `file`, `size_bytes`, `summary{…}`, `hint`, `objetos[]` (nombres de objeto del archivo; falta si no tiene). |
 | `proyecto` | `project`, `variant`, `avisos[]`, `detail{applied[]|edits[]}`. |
 | `simular` | `dry_run`, `cli_args`, `job_id`, `stdout_tail`, `csv`, `pdf`. |
 | `resultados` | `kpis{…}`, `pr_pct`, `produccion_especifica_kwh_kwp`, series mensuales, pérdidas. |

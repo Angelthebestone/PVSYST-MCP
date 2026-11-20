@@ -114,5 +114,9 @@ pub(crate) fn leer_objeto(paths: &Paths, args: &Value) -> Result<Value> {
     } else {
         out["objects"] = Value::Array(roots.iter().map(object::PvNode::to_json).collect());
     }
+    let nombres = crate::objects::nombres_de_objetos(&bytes);
+    if !nombres.is_empty() {
+        out["objetos"] = json!(nombres);
+    }
     Ok(out)
 }
