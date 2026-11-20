@@ -1,7 +1,8 @@
 # Vista de agente en la salida de las tools (Tarea A)
 
 Cada respuesta de las 15 tools, correcta o con fallo, lleva un bloque `vista` con la misma forma. Las claves
-que ya existían no cambian. Este documento recoge el contrato, lo que se midió y la matriz tool × acción.
+que ya existían no cambian, salvo `siguiente` de primer nivel (texto), que se eliminó: lo
+reemplaza `vista.siguiente`. Este documento recoge el contrato, lo que se midió y la matriz tool × acción.
 
 ## Contrato
 
