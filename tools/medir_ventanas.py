@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import time
 import unicodedata
+from dataclasses import dataclass
 
 from medir_cliente import Cliente, Json
 
@@ -29,6 +30,19 @@ class ErrorDeLectura(RuntimeError):
     A `RuntimeError`, so a caller that already stops on one keeps stopping instead of
     reading a refusal as a screen with no windows.
     """
+
+
+@dataclass(frozen=True)
+class Dialogo:
+    """A message box read and, when it offered a rejection, answered.
+
+    `boton` is the caption `_responder` pressed and is set exactly when `fallo` is
+    not; `textos` is what the box said, which the inventory records.
+    """
+
+    textos: tuple[str, ...]
+    boton: str | None
+    fallo: str | None
 
 
 def _dormir(segundos: float) -> None:
@@ -147,6 +161,39 @@ def _boton_de(f: Json) -> str | None:
     return None
 
 
+def _responder(c: Cliente) -> Dialogo:
+    """Read the open message box and press the rejection `_boton_de` picks.
+
+    The one place of this tool that answers a `TMessageForm`, so the three callers
+    decide with the same rule. What it could not do is not dropped: a box that cannot
+    be read, one that offers no rejection and a caption the server refuses each come
+    back in `fallo`, naming which of the three happened.
+    """
+    f = c.tool("gui_observar", {"que": "formulario", "ventana": "TMessageForm"})
+    textos = tuple(str(t) for t in f.get("textos") or [])
+    fallo = _error_de(f)
+    if fallo is not None:
+        return Dialogo(textos, None, f"reading TMessageForm failed: {fallo[:200]}")
+    boton = _boton_de(f)
+    if boton is None:
+        botones = [b.get("texto") for b in f.get("botones") or []]
+        return Dialogo(
+            textos,
+            None,
+            f"unrecognised dialog, left open: {list(textos)} (buttons: {botones})",
+        )
+    r = c.tool(
+        "gui_actuar",
+        {"accion": "clic_texto", "ventana": "TMessageForm", "texto": boton},
+    )
+    fallo = _error_de(r)
+    if fallo is not None:
+        return Dialogo(
+            textos, None, f"answering TMessageForm with {boton!r} failed: {fallo[:200]}"
+        )
+    return Dialogo(textos, boton, None)
+
+
 def _cerrar(c: Cliente, clase: str) -> Json:
     """Close one window, answering its prompts as `_boton_de` says; the tool answer.
 
@@ -154,17 +201,15 @@ def _cerrar(c: Cliente, clase: str) -> Json:
     reference by substring over every window of the process, so a title a window the
     harness keeps open also holds would close that one instead. The answer is returned
     and not dropped: a caller that must stop when a window does not close has to name
-    the refusal it carries.
+    the refusal it carries, so a dialog that could not be answered answers here with
+    the reason.
     """
     if clase != "TMessageForm":
         return c.tool("gui_actuar", {"accion": "cerrar", "ventana": clase})
-    f = c.tool("gui_observar", {"que": "formulario", "ventana": clase})
-    boton = _boton_de(f)
-    if boton is None:
-        return {}
-    return c.tool(
-        "gui_actuar", {"accion": "clic_texto", "ventana": clase, "texto": boton}
-    )
+    respuesta = _responder(c)
+    if respuesta.fallo is not None:
+        return {"error": respuesta.fallo}
+    return {"texto": respuesta.boton}
 
 
 def _sobran(c: Cliente) -> list[Json]:

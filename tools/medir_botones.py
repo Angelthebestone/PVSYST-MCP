@@ -20,10 +20,10 @@ from medir_inventario import origen_de_boton
 from medir_proyectos import Objetivo, abrir
 from medir_ventanas import (
     MANTENER,
-    _boton_de,
     _cerrar,
     _dormir,
     _error_de,
+    _responder,
     clases,
     normalizar_etiqueta,
     ventanas,
@@ -67,21 +67,6 @@ ORIGENES_DE_CAPTION = ("window_text", "control")
 def huellas(c: Cliente) -> set[tuple[str, str]]:
     """Class and title of the open windows: what a press is compared against."""
     return {(w["class"], str(w.get("title") or "")) for w in ventanas(c)}
-
-
-def _rechazo_de(c: Cliente, clase: str) -> tuple[str | None, str | None]:
-    """Read a dialog and answer it with a rejection; the button, or why it stays open."""
-    f = c.tool("gui_observar", {"que": "formulario", "ventana": clase})
-    fallo = _error_de(f)
-    if fallo is not None:
-        return None, f"reading {clase} failed: {fallo[:200]}"
-    boton = _boton_de(f)
-    if boton is None:
-        textos = f.get("textos") or []
-        botones = [b.get("texto") for b in f.get("botones") or []]
-        return None, f"unrecognised dialog, left open: {textos} (buttons: {botones})"
-    c.tool("gui_actuar", {"accion": "clic_texto", "ventana": clase, "texto": boton})
-    return boton, None
 
 
 def _nuevas(
@@ -131,7 +116,7 @@ def cerrar_nuevas(
     the main windows, host included, so it cannot run between two presses; this one
     leaves `previas` alone. A class with two new windows keeps its two entries even
     when one close removes both from the screen. A dialog opened by the press is
-    answered with a rejection (`_boton_de`); when it offers none it stays open and its
+    answered with a rejection (`_responder`); when it offers none it stays open and its
     text is the stop reason. Twelve rounds that leave a window open are a stop too:
     its reason names what is still open and the refusal `accion:cerrar` answered,
     because a press that left a modal open is not a press that opened a window
@@ -158,10 +143,10 @@ def cerrar_nuevas(
         w = nuevas[0]
         clave = (w["class"], str(w.get("title") or ""))
         if w["class"] == "TMessageForm":
-            texto, fallo = _rechazo_de(c, "TMessageForm")
-            if fallo is not None:
-                return list(cerradas.values()), fallo
-            cerradas[clave]["cierra"] = texto
+            respuesta = _responder(c)
+            if respuesta.fallo is not None:
+                return list(cerradas.values()), respuesta.fallo
+            cerradas[clave]["cierra"] = respuesta.boton
         else:
             fallo = _error_de(_cerrar(c, w["class"]))
         _dormir(0.6)
