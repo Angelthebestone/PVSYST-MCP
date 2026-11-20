@@ -50,6 +50,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+# `python -I tools/mapa_desde_inventario.py` leaves the script's directory out of
+# `sys.path`; `mapa_condicionales` is its sibling.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from mapa_condicionales import aplicar  # noqa: E402
+
 Json = dict[str, Any]
 
 NO_REGISTRADO = "no registrado"
@@ -57,6 +63,7 @@ NO_REGISTRADO = "no registrado"
 RAIZ = Path(__file__).resolve().parent.parent
 MAPA = RAIZ / "docs" / "gui_mapa.json"
 INVENTARIO = RAIZ / "docs" / "gui_inventario_pestanas.json"
+CONDICIONALES = RAIZ / "docs" / "gui_condicionales.json"
 
 
 @dataclass(frozen=True)
@@ -401,7 +408,11 @@ NOTA = (
     "o un combo muestran u ocultan campos, así que la lista vale para ese estado y no "
     "para toda la ventana. Una página sin `rotulos` ni `sin_rotulo` es de una pestaña "
     "nueva o de una cuyo estado cambió. Las instancias sin `estado_medido` siguen como "
-    "las dejó el recorrido de `medido_el`."
+    "las dejó el recorrido de `medido_el`. Una página con `requiere` dice qué casilla "
+    "o combo de esa pestaña muestra, oculta, habilita o deshabilita qué campos, en "
+    "el orden en que se midió (`aparecen`, `desaparecen`, `habilitan`, "
+    "`deshabilitan`; las etiquetas pueden ser OCR y repetirse con dos grafías); solo "
+    "las pestañas listadas en docs/gui_condicionales.json la traen."
 )
 ALCANCE = "ALCANCE: "
 # What `gui_actuar accion:pagina` does not reach. Edit it here, in one piece, when the
@@ -432,14 +443,17 @@ def _alcance(mapa: Json) -> list[str]:
         for p in i["paginas"]
     ]
     truncadas = sum(1 for p in paginas if len(p["campos"]) == 13)
+    todas = [i for v in mapa["ventanas"].values() for i in v["instancias"]]
+    instancias = len(todas)
+    sin_remedir = sum(1 for i in todas if "estado_medido" not in i)
     return [
         f"{ALCANCE}solo se remidieron sin truncar las instancias con `estado_medido` "
         f"({', '.join(remedidas)}). En el resto el recolector original guardó como "
         f"máximo 13 campos por página: {truncadas} de {len(paginas)} páginas tienen "
         "exactamente 13 y se leen como «al menos 13», no como el total (medido en vivo: "
-        "TGridInverterForm «Parámetros adicionales» muestra 37). También siguen sin "
-        "remedir las demás aperturas de esas ventanas (independiente, bombeo, red_cc "
-        "y similares).",
+        "TGridInverterForm «Parámetros adicionales» muestra 37). "
+        f"Siguen sin remedir {sin_remedir} de {instancias} instancias: las que no "
+        "tienen `estado_medido`.",
         f"{ALCANCE}{ALCANCE_PAGINA}",
         f"{ALCANCE}`etiqueta` de un campo sin texto propio sale de OCR y puede estar mal "
         "leída (`o mulsc`, `Tol,`): las páginas medidas con `etiqueta_fuente` la guardan "
@@ -456,14 +470,16 @@ def _anotar_alcance(mapa: Json) -> None:
     mapa["limites"] = [*propios, *_alcance(mapa)]
 
 
-def remedir(mapa: Json, inventario: Json) -> Json:
-    """A copy of `mapa` with the windows of `inventario` regenerated."""
+def remedir(mapa: Json, inventario: Json, condicionales: Json | None = None) -> Json:
+    """A copy of `mapa` with the windows of `inventario` regenerated and the switches
+    of `condicionales` written on their pages."""
     nuevo = copy.deepcopy(mapa)
     for clave, medida in inventario.items():
         clase = medida["ventana"]
         if clase not in nuevo["ventanas"] or clave not in REMEDIOS:
             raise KeyError(f"{clave}: not in the map or in REMEDIOS")
         _remedir_ventana(clase, nuevo["ventanas"][clase], medida, REMEDIOS[clave])
+    aplicar(nuevo, condicionales or {})
     _anotar_alcance(nuevo)
     return nuevo
 
@@ -475,9 +491,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--mapa", type=Path, default=MAPA)
     parser.add_argument("--inventario", type=Path, default=INVENTARIO)
+    parser.add_argument("--condicionales", type=Path, default=CONDICIONALES)
     args = parser.parse_args(argv)
 
-    esperado = serializar(remedir(cargar(args.mapa), cargar(args.inventario)))
+    condicionales = cargar(args.condicionales) if args.condicionales.exists() else None
+    esperado = serializar(
+        remedir(cargar(args.mapa), cargar(args.inventario), condicionales)
+    )
     if args.mapa.read_bytes() == esperado:
         return 0
     if args.check:

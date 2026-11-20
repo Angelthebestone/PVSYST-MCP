@@ -193,7 +193,15 @@ def test_running_it_twice_leaves_the_bytes_of_a_nested_sheet_as_once(
     viejas = [pagina_vieja(PRINCIPAL, 2), pagina_vieja(COMERCIAL, 13)]
     mapa.write_bytes(serializar(mapa_de_prueba(viejas)))
     inventario.write_text(json.dumps(inventario_de_prueba()), encoding="utf-8")
-    argumentos = ["--mapa", str(mapa), "--inventario", str(inventario)]
+    ninguno = tmp_path / "sin_condicionales.json"
+    argumentos = [
+        "--mapa",
+        str(mapa),
+        "--inventario",
+        str(inventario),
+        "--condicionales",
+        str(ninguno),
+    ]
 
     assert main(["--check", *argumentos]) == 1
     assert main(argumentos) == 0

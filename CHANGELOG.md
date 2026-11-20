@@ -221,6 +221,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   disabled and an enabled button presses the enabled one as before instead of refusing both.
 
 ### Added
+- **A page of `docs/gui_mapa.json` can carry `requiere`: the switches of its tab and what each one changes.**
+  `tools/mapa_condicionales.py` writes the steps of `docs/gui_condicionales.json` (`campo`, `valor`, `aparecen`,
+  `desaparecen`, `habilitan`, `deshabilitan`) on the page of that tab of that instance, so an agent reads that
+  «Utiliza un transformador de AT» stays disabled until the two checkboxes before it are set, instead of taking
+  the fields of a page for all of the window. Four pages carry it; the others are unchanged, and the Rust
+  readers ignore the new key. `tools/mapa_desde_inventario.py` takes `--condicionales` (default
+  `docs/gui_condicionales.json`), documents `requiere` in `nota` and now counts, in its `ALCANCE` limit, the
+  instances still without `estado_medido` (32 of 147) instead of naming project kinds.
 - **`tools/medir_condicionales.py` measures what a switch of a tab shows, hides or enables.** The map is a
   photo of one state (a tab showed 1 field or 23 depending on a checkbox), and nothing said which control
   changes what. For each entry of `tools/gui_condicionales.json` the tool opens the window on a shipped demo,

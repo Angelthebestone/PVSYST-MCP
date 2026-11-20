@@ -327,7 +327,15 @@ def test_running_it_twice_leaves_the_same_bytes_as_once(tmp_path: Path) -> None:
     inventario = tmp_path / "inventario.json"
     mapa.write_bytes(serializar(mapa_de_prueba()))
     inventario.write_text(json.dumps(inventario_de_prueba()), encoding="utf-8")
-    argumentos = ["--mapa", str(mapa), "--inventario", str(inventario)]
+    ninguno = tmp_path / "sin_condicionales.json"
+    argumentos = [
+        "--mapa",
+        str(mapa),
+        "--inventario",
+        str(inventario),
+        "--condicionales",
+        str(ninguno),
+    ]
 
     assert main(["--check", *argumentos]) == 1
     assert main(argumentos) == 0
