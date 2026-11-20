@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import time
 import unicodedata
-from collections.abc import Collection
+from collections.abc import Collection, Iterable
 from dataclasses import dataclass
 
 from medir_cliente import Cliente, Json
@@ -268,18 +268,31 @@ def cerrable(w: Json, abiertas: Collection[Json]) -> bool:
     return not any(o["class"] == "TProjectForm" for o in abiertas)
 
 
+class Sobrantes(list[str]):
+    """Windows a cleanup could not close; `motivo` is why the last close failed."""
+
+    def __init__(self, clases: Iterable[str] = (), motivo: str | None = None) -> None:
+        super().__init__(clases)
+        self.motivo = motivo
+
+    def __str__(self) -> str:
+        razon = "" if self.motivo is None else f" ({self.motivo})"
+        return f"{list(self)}{razon}"
+
+
 def _sobran(c: Cliente) -> list[Json]:
     """The windows `limpiar` may close now: everything that `cerrable` allows."""
     abiertas = ventanas(c)
     return [w for w in abiertas if cerrable(w, abiertas)]
 
 
-def limpiar(c: Cliente) -> list[str]:
-    """Close every window `cerrable` allows; the classes still open if it gives up."""
+def limpiar(c: Cliente) -> Sobrantes:
+    """Close what `cerrable` allows: the classes still open and why, if it gives up."""
+    motivo: str | None = None
     for _ in range(12):
         sobra = _sobran(c)
         if not sobra:
-            return []
-        _cerrar(c, sobra[0]["class"])
+            return Sobrantes()
+        motivo = _error_de(_cerrar(c, sobra[0]["class"])) or motivo
         _dormir(0.6)
-    return [w["class"] for w in _sobran(c)]
+    return Sobrantes([w["class"] for w in _sobran(c)], motivo)

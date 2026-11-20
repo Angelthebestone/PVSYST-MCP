@@ -11,7 +11,8 @@ import pytest
 
 from medir_cliente import Json
 from medir_gui import main
-from pvsyst_falso import PVsystFalso, botones_de, formulario
+from medir_objetivo import medir
+from pvsyst_falso import PVsystFalso, botones_de, formulario, objetivo_de
 from test_medir_gui import argumentos, fabrica_de
 
 # pytest finds the autouse fixture through this import; the tests never call it.
@@ -90,6 +91,21 @@ def test_a_target_whose_cleanup_could_not_close_it_keeps_the_reason(
     assert "closing it stopped: still open: ['TA']" in salida
     assert inventario["TA"]["parado"] == "still open: ['TA']"
     assert inventario["TA"]["pestanas"][0]["campos"][0]["etiqueta"] == "a"
+
+
+def test_a_dialog_the_cleanup_cannot_answer_is_named_where_it_stopped() -> None:
+    aviso = formulario([])
+    aviso["textos"] = ["¿Desea continuar?"]
+    c = PVsystFalso(
+        {"TA": formulario(["a"]), "TMessageForm": aviso},
+        {"a": "TA", "b": "TMessageForm"},
+    )
+
+    medido = medir(c, objetivo_de("TA", "a,b"))
+
+    assert isinstance(medido, dict)
+    assert "¿Desea continuar?" in medido["parado"]
+    assert "OK" in medido["parado"]
 
 
 def test_a_read_error_while_opening_the_target_closes_what_it_opened(

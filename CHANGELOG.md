@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **`medir_ventanas.limpiar` keeps why it could not close a window.** It dropped the answer of `_cerrar`,
+  so a message box the harness cannot answer — whose texts and buttons `_responder` names — was reported as
+  «still open: ['TMessageForm']», with no way to tell which dialog, or which refused click, stopped the
+  cleanup. The returned `Sobrantes` is still the list of classes, so a caller that prints it keeps
+  working, and it carries `motivo`, the reason of the last close that failed: `medir`'s `parado` now says
+  which dialog it could not answer.
 - **`medir_gui` prints why a cleanup could not close the target it measured and keeps the reason in the
   inventory.** `_resumen` printed «, closing it stopped» without the reason, and `fusionar` copied four
   keys and `botones_abren` and dropped `parado`, so the reason the harness documented was lost twice: the
