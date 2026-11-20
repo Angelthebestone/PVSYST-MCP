@@ -1,7 +1,9 @@
 //! `pvsyst://gui/<clase>`: one window of the GUI map instead of all of them.
 
 use super::*;
-use crate::adapters::gui::catalogo::mapa_de_ventanas;
+use crate::adapters::gui::catalogo::{como_recurso_de_ventana, mapa_de_ventanas, EnEjecucion};
+use crate::idioma::Idioma;
+use std::path::Path;
 
 /// A configuration that names no PVsyst install and reads no environment
 /// variable, so no assertion depends on the machine the tests run on.
@@ -10,8 +12,8 @@ fn paths_de_prueba() -> Paths {
 }
 
 /// What the `metadatos` block must carry, read from `metadatos()` in
-/// `src/adapters/gui/catalogo/recurso.rs`. `aviso` is always there (null when
-/// there is nothing to warn about), so its presence alone proves nothing.
+/// `src/adapters/gui/catalogo/recurso.rs`, except its `aviso`: the language half of that
+/// warning reads the PVsyst of the machine, so the test below gives the language instead.
 fn comprobar_metadatos(ventana: &Value) {
     let mapa = mapa_de_ventanas();
     let metadatos = &ventana["metadatos"];
@@ -52,19 +54,6 @@ fn comprobar_metadatos(ventana: &Value) {
             .as_array()
             .map(|controles| controles.len() as u64),
         "the block counts the controls the map records as unreachable"
-    );
-    // Only the language half of the warning can fire here, and only when this
-    // machine runs a PVsyst in a language other than the map's: the version half
-    // needs an install, and these paths name none. The texts are VERSION_DISTINTA
-    // and IDIOMA_DISTINTO in `src/adapters/gui/catalogo/recurso.rs`.
-    let aviso = metadatos["aviso"].as_str().unwrap_or_default();
-    assert!(
-        !aviso.contains("may have changed"),
-        "version warning without a version: {aviso}"
-    );
-    assert!(
-        aviso.is_empty() || aviso.contains("will not match"),
-        "the only warning left here is the language one: {aviso}"
     );
 }
 
@@ -150,5 +139,39 @@ fn should_advertise_the_per_window_form_as_a_resource_template() {
     assert_eq!(
         sobre["result"]["resourceTemplates"][0]["uriTemplate"],
         "pvsyst://gui/{ventana}"
+    );
+}
+
+/// The warning of the block depends on the language of the running PVsyst, which the
+/// test hands over instead of probing: silent when it is the map's, naming both when not.
+#[test]
+fn should_warn_about_the_language_only_when_it_differs_from_the_one_the_map_was_measured_in() {
+    let medido = mapa_de_ventanas()["idioma"]
+        .as_str()
+        .expect("el mapa dice en qué idioma se midió")
+        .to_string();
+    let aviso = |idioma_gui: Option<&str>| {
+        let vivo = EnEjecucion {
+            gui_exe: Path::new("C:/noexiste/PVsyst.exe"),
+            idioma_gui,
+        };
+        let ventana = como_recurso_de_ventana("TDetailedLossesForm", &vivo, Idioma::En)
+            .expect("una ventana del mapa");
+        ventana
+            .get("metadatos")
+            .and_then(|metadatos| metadatos.get("aviso"))
+            .cloned()
+            .expect("el bloque lleva siempre el aviso")
+    };
+    assert!(
+        aviso(None).is_null(),
+        "sin idioma que comparar no hay aviso"
+    );
+    assert!(aviso(Some(&medido)).is_null(), "el mismo idioma no avisa");
+    let distinto = aviso(Some("zz"));
+    let texto = distinto.as_str().unwrap_or_default();
+    assert!(
+        texto.contains("'zz'") && texto.contains(&medido),
+        "otro idioma avisa y nombra los dos: {distinto}"
     );
 }
