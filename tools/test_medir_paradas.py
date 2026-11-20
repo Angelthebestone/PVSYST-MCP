@@ -76,6 +76,22 @@ def test_a_failed_cleanup_does_not_replace_the_error_that_stopped_the_target(
     assert "access denied" in salida
 
 
+def test_a_target_whose_cleanup_could_not_close_it_keeps_the_reason(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    c = PVsystFalso({"TA": formulario(["a"])}, {"a": "TA"})
+    c.incerrables = {"TA"}
+
+    codigo = main(argumentos(tmp_path, "--solo", "TA"), fabrica_de(c))
+
+    salida = capsys.readouterr().out
+    inventario = json.loads((tmp_path / "inventario.json").read_text())
+    assert codigo == 1
+    assert "closing it stopped: still open: ['TA']" in salida
+    assert inventario["TA"]["parado"] == "still open: ['TA']"
+    assert inventario["TA"]["pestanas"][0]["campos"][0]["etiqueta"] == "a"
+
+
 def test_a_read_error_while_opening_the_target_closes_what_it_opened(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

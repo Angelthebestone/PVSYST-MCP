@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **`medir_gui` prints why a cleanup could not close the target it measured and keeps the reason in the
+  inventory.** `_resumen` printed «, closing it stopped» without the reason, and `fusionar` copied four
+  keys and `botones_abren` and dropped `parado`, so the reason the harness documented was lost twice: the
+  entry claimed a complete measurement and the console line named no cause. The line now reads «closing
+  it stopped: <reason>» and the entry carries `parado`.
 - **`tools/medir_objetivo.py` closes the target it opened when the measurement raises anything, not only
   `ErrorMedicion`.** An `ErrorDeLectura` from `abrir` or `inventariar` (a `RuntimeError`) or a
   `TimeoutError` left `medir` as an exception `main` stops on, with the target's window still open, and the

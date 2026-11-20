@@ -138,7 +138,7 @@ def _resumen(clave: str, medida: Json) -> str:
     buttons it refused, the truncation markers and the stops. A press error is not an
     inventory error (it does not block the merge), so it is counted apart; a stopped
     entry is named too, because it is what turns the exit code non-zero, and so is a
-    cleanup that could not close what the target opened.
+    cleanup that could not close what the target opened, with the reason it gave.
     """
     n = sum(len(p["campos"]) for p in medida["pestanas"])
     pulsados = ""
@@ -150,7 +150,7 @@ def _resumen(clave: str, medida: Json) -> str:
         if paradas:
             pulsados += f", {len(paradas)} stopped"
     if "parado" in medida:
-        pulsados += ", closing it stopped"
+        pulsados += f", closing it stopped: {medida['parado']}"
     return (
         f"{clave}: {len(medida['pestanas'])} tabs, {n} fields, "
         f"{len(medida['errores'])} errors{pulsados}"

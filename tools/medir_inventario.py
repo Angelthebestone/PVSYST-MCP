@@ -137,10 +137,14 @@ def fusionar(inventario: Json, clave: str, medida: Json) -> None:
     A run without `--botones` did not look at the presses: keeping the old list is not
     stale data, it is the last measurement of what they open. It does not hold when the
     tabs were remeasured, because those presses were recorded against tabs this window
-    no longer has and the entry would credit them to the new ones.
+    no longer has and the entry would credit them to the new ones. A target whose
+    cleanup could not close what it opened keeps that reason in `parado`: the entry is
+    the only record that its fields were measured while its window stayed open.
     """
     anterior = inventario.get(clave) or {}
     entrada = {k: medida[k] for k in ("ventana", "titulo", "pestanas", "errores")}
+    if "parado" in medida:
+        entrada["parado"] = medida["parado"]
     if "botones_abren" in medida:
         entrada["botones_abren"] = medida["botones_abren"]
     elif "botones_abren" in anterior and _pestanas(anterior) == _pestanas(medida):
