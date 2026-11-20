@@ -32,12 +32,13 @@ def _nuevas(
     drops the ones a run keeps open, the main windows and the trial notice a project
     window sits above.
     """
-    return [
-        w
-        for w in abiertas
-        if (w["class"], str(w.get("title") or "")) not in previas
-        and cerrable(w, abiertas)
-    ]
+    nuevas: list[Json] = []
+    for w in abiertas:
+        if (w["class"], str(w.get("title") or "")) in previas:
+            continue
+        if cerrable(w, abiertas):
+            nuevas.append(w)
+    return nuevas
 
 
 def _protegidas(

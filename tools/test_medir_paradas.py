@@ -111,8 +111,7 @@ def test_a_jsonrpc_failure_of_a_chain_step_or_of_a_form_read_is_an_error(
         codigo = main(argumentos(tmp_path, "--solo", "TA"), fabrica_de(c))
 
         salida = capsys.readouterr().out
+        inventario = json.loads((tmp_path / "inventario.json").read_text())
         assert codigo == 1, que
         assert que in salida, que
-        assert json.loads((tmp_path / "inventario.json").read_text())["TA"] == {
-            "viejo": True
-        }, que
+        assert inventario["TA"] == {"viejo": True}, que

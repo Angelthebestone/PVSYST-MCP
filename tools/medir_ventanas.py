@@ -263,10 +263,9 @@ def cerrable(w: Json, abiertas: Collection[Json]) -> bool:
     """
     if w["class"] in MANTENER:
         return False
-    return not (
-        w["class"] == "TDEMOForm"
-        and any(o["class"] == "TProjectForm" for o in abiertas)
-    )
+    if w["class"] != "TDEMOForm":
+        return True
+    return not any(o["class"] == "TProjectForm" for o in abiertas)
 
 
 def _sobran(c: Cliente) -> list[Json]:
@@ -276,7 +275,7 @@ def _sobran(c: Cliente) -> list[Json]:
 
 
 def limpiar(c: Cliente) -> list[str]:
-    """Close every window but the main ones; the classes still open if it gives up."""
+    """Close every window `cerrable` allows; the classes still open if it gives up."""
     for _ in range(12):
         sobra = _sobran(c)
         if not sobra:

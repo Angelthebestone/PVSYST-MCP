@@ -130,7 +130,7 @@ def test_a_chain_without_project_closes_a_project_this_run_loaded() -> None:
     assert [w["class"] for w in c.abiertas] == ["THomeForm", "TY"]
 
 
-def test_a_chain_step_closes_the_trial_notice_only_when_no_project_is_above_it() -> None:
+def test_a_chain_step_closes_the_trial_notice_only_without_a_project_above() -> None:
     """The project window is modal above the notice: the server refuses that close."""
     for con_proyecto in (True, False):
         c = PVsystFalso({}, {"variante.x": "TX"})
