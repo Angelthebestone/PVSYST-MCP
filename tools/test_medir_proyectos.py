@@ -29,6 +29,18 @@ def test_only_a_demo_or_a_project_the_run_loaded_may_be_closed() -> None:
         assert cerrado == propio, titulo
 
 
+def test_a_chain_with_project_stops_on_a_project_this_run_did_not_load() -> None:
+    """The chain closes the open project first, and this one may be the user's work."""
+    c = PVsystFalso({}, {"variante.x": "TX"})
+    c.abiertas.append({"class": "TProjectForm", "title": "Proyecto Planta del cliente"})
+
+    fallo = abrir(c, objetivo_de("TX", "@proyecto:_DEMO_Foo,variante.x"))
+
+    assert fallo is not None and "Planta del cliente" in fallo
+    assert c.escrito == "" and c.clics == []
+    assert "TProjectForm" in [w["class"] for w in c.abiertas]
+
+
 def test_a_project_whose_name_contains_the_requested_one_is_not_loaded() -> None:
     """«Proyecto Planta 2» open is not Planta: the chain loads Planta over it."""
     c = PVsystFalso({}, {})
