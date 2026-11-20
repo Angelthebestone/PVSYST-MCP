@@ -146,6 +146,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   disabled and an enabled button presses the enabled one as before instead of refusing both.
 
 ### Added
+- **`pvsyst://gui/<clase>` serves one window of the GUI map (D.1 of the visual GUI test report).**
+  `pvsyst://gui` weighed 395 587 B (89 windows and 209 catalogue functions), so reading the nine tabs
+  of `TDetailedLossesForm` loaded the whole file. The new form returns that window alone: `clase`,
+  `ventana` (its entry of the map, the same one the full resource carries), `abierta_con` (the catalogue
+  functions that open it, the list `gui_observar que:esquema` publishes) and the `metadatos` block, so a
+  version or language warning still shows. Its body is about 58 KB for `TDetailedLossesForm`, the biggest
+  entry, instead of the whole map. The class is matched ignoring case, and an unknown one is an error that
+  lists the classes the map holds. `resources/templates/list` advertises the form as
+  `pvsyst://gui/{ventana}`, and the `uso` of `pvsyst://gui` names it. The full resource keeps every
+  window and its map is unchanged.
 - **`tools/mapa_desde_inventario.py` copies the nested sheets of a tab into the map as `subpestana`.**
   A page whose inventory entry names a sub-sheet (`TPVModuleForm`, «Parámetros del modelo» →
   «Degradación», «IAM personalizado») carries it right after `pestana`, repeats the `indice_pestana` of

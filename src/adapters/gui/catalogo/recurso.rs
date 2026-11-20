@@ -1,7 +1,9 @@
-//! `pvsyst://gui`: the catalogue plus the window map observed on a live PVsyst.
+//! `pvsyst://gui`: the catalogue plus the window map observed on a live PVsyst,
+//! whole or one window of it.
 
 use super::dominio::Funcion;
 use super::entradas::funciones;
+use crate::error::{Error, Result};
 use crate::idioma::{Idioma, Texto};
 use serde_json::{json, Value};
 use std::path::Path;
@@ -133,8 +135,8 @@ fn metadatos(mapa: &Value, vivo: &EnEjecucion<'_>, idioma: Idioma) -> Value {
 pub(crate) fn como_recurso(vivo: &EnEjecucion<'_>, idioma: Idioma) -> Value {
     let mapa = mapa_de_ventanas();
     let uso = Texto {
-        es: "gui_actuar accion:funcion funcion:<clave> abre una función; gui_actuar accion:menu ventana id abre un menú no catalogado.",
-        en: "gui_actuar accion:funcion funcion:<clave> opens a function; gui_actuar accion:menu ventana id opens a menu that is not catalogued.",
+        es: "gui_actuar accion:funcion funcion:<clave> abre una función; gui_actuar accion:menu ventana id abre un menú no catalogado. Para una sola ventana del mapa, lee pvsyst://gui/<clase>.",
+        en: "gui_actuar accion:funcion funcion:<clave> opens a function; gui_actuar accion:menu ventana id opens a menu that is not catalogued. For one window of the map only, read pvsyst://gui/<class>.",
     };
     json!({
         "uso": uso.en_idioma(idioma),
@@ -142,4 +144,60 @@ pub(crate) fn como_recurso(vivo: &EnEjecucion<'_>, idioma: Idioma) -> Value {
         "funciones": funciones().map(Funcion::a_json).collect::<Vec<_>>(),
         "mapa": mapa,
     })
+}
+
+const CLASE_DESCONOCIDA: Texto = Texto {
+    es: "Ventana '{clase}' desconocida en el mapa de la GUI: usa una de sus clases ({clases}).",
+    en: "Unknown GUI map window '{clase}': use one of its classes ({clases}).",
+};
+
+const USO_VENTANA: Texto = Texto {
+    es: "Una ventana del mapa de la GUI: 'ventana' es su entrada del mapa (títulos, pestañas, páginas y controles) y 'abierta_con' las funciones del catálogo que la abren; gui_actuar accion:funcion funcion:<clave> abre una de ellas. El mapa entero está en pvsyst://gui.",
+    en: "One window of the GUI map: 'ventana' is its map entry (titles, tabs, pages and controls) and 'abierta_con' the catalogue functions that open it; gui_actuar accion:funcion funcion:<clave> opens one of them. The whole map is at pvsyst://gui.",
+};
+
+/// `(the class as the map spells it, its entry)`, matched ignoring case:
+/// `pvsyst://gui/tdetailedlossesform` serves `TDetailedLossesForm`.
+fn ventana_del_mapa<'a>(mapa: &'a Value, clase: &str) -> Option<(&'a str, &'a Value)> {
+    let ventanas = mapa.get("ventanas")?.as_object()?;
+    ventanas.iter().find_map(|(nombre, entrada)| {
+        nombre
+            .as_str()
+            .eq_ignore_ascii_case(clase)
+            .then_some((nombre.as_str(), entrada))
+    })
+}
+
+/// Every class the map holds, so an unknown one can name the valid ones. O(n).
+fn clases_del_mapa(mapa: &Value) -> Vec<&str> {
+    mapa.get("ventanas")
+        .and_then(Value::as_object)
+        .into_iter()
+        .flat_map(|ventanas| ventanas.keys().map(String::as_str))
+        .collect()
+}
+
+/// One window of the map, the catalogued functions that open it and the same
+/// `metadatos` block, so an agent reads one window instead of the whole map.
+/// An unknown class is an error that lists the classes the map holds.
+pub(crate) fn como_recurso_de_ventana(
+    clase: &str,
+    vivo: &EnEjecucion<'_>,
+    idioma: Idioma,
+) -> Result<Value> {
+    let mapa = mapa_de_ventanas();
+    let Some((nombre, entrada)) = ventana_del_mapa(mapa, clase) else {
+        let clases = clases_del_mapa(mapa).join(", ");
+        return Err(Error::NotFound(CLASE_DESCONOCIDA.texto_con(
+            idioma,
+            &[("clase", clase), ("clases", clases.as_str())],
+        )));
+    };
+    Ok(json!({
+        "uso": USO_VENTANA.en_idioma(idioma),
+        "metadatos": metadatos(mapa, vivo, idioma),
+        "clase": nombre,
+        "abierta_con": super::funciones_que_abren(nombre),
+        "ventana": entrada,
+    }))
 }

@@ -1,6 +1,7 @@
-//! Read-only MCP resources: playbooks, coverage map, reference format and the CLI.
+//! Read-only MCP resources: playbooks, coverage map, reference format, the CLI
+//! and the GUI map, whole or one window of it.
 
-use crate::adapters::gui::catalogo::EnEjecucion;
+use crate::adapters::gui::catalogo::{como_recurso, como_recurso_de_ventana, EnEjecucion};
 use crate::config::Paths;
 use crate::error::{Error, Result};
 use crate::idioma::{Idioma, Texto};
@@ -29,10 +30,17 @@ const NOMBRE_GUI: Texto = Texto {
     es: "Mapa de la GUI de PVsyst",
     en: "PVsyst GUI map",
 };
+const NOMBRE_VENTANA: Texto = Texto {
+    es: "Una ventana del mapa de la GUI de PVsyst",
+    en: "One window of the PVsyst GUI map",
+};
 const RECURSO_DESCONOCIDO: Texto = Texto {
     es: "Recurso desconocido: {uri}",
     en: "Unknown resource: {uri}",
 };
+
+/// Prefix of the per-window form of the GUI map: the class follows it.
+const PREFIJO_VENTANA: &str = "pvsyst://gui/";
 
 /// Catalogue returned by `resources/list`.
 pub(crate) fn list(idioma: Idioma) -> Value {
@@ -47,8 +55,21 @@ pub(crate) fn list(idioma: Idioma) -> Value {
     })
 }
 
-/// Contents of one resource. Unknown URIs are an `Err` (the server maps it to -32602).
-/// With `aproximaciones` off, the coverage map omits the MCP-approximation actions.
+/// Resource templates returned by `resources/templates/list`: the URI form that
+/// serves one window of the GUI map, so a client discovers it without reading
+/// the whole map.
+pub(crate) fn templates(idioma: Idioma) -> Value {
+    json!({
+        "resourceTemplates": [
+            { "uriTemplate": "pvsyst://gui/{ventana}", "name": NOMBRE_VENTANA.en_idioma(idioma), "mimeType": "application/json" }
+        ]
+    })
+}
+
+/// Contents of one resource: the published URIs, or one window of the GUI
+/// map (`pvsyst://gui/<class>`). Unknown URIs are an `Err` (the server maps it
+/// to -32602). With `aproximaciones` off, the coverage map omits the
+/// MCP-approximation actions.
 pub(crate) fn read(uri: &str, paths: &Paths) -> Result<Value> {
     let (aproximaciones, idioma) = (paths.aproximaciones, paths.idioma);
     let (mime, text) = match uri {
@@ -59,26 +80,33 @@ pub(crate) fn read(uri: &str, paths: &Paths) -> Result<Value> {
         "pvsyst://cobertura" => ("application/json", cobertura(aproximaciones).to_string()),
         "pvsyst://formato" => ("text/markdown", FORMATO.to_string()),
         "pvsyst://cli" => ("text/markdown", CLI.to_string()),
-        "pvsyst://gui" => ("application/json", gui(paths).to_string()),
+        "pvsyst://gui" => ("application/json", gui(None, paths)?.to_string()),
         _ => {
-            return Err(Error::NotFound(
-                RECURSO_DESCONOCIDO.texto_con(idioma, &[("uri", uri)]),
-            ))
+            let Some(clase) = uri.strip_prefix(PREFIJO_VENTANA) else {
+                return Err(Error::NotFound(
+                    RECURSO_DESCONOCIDO.texto_con(idioma, &[("uri", uri)]),
+                ));
+            };
+            ("application/json", gui(Some(clase), paths)?.to_string())
         }
     };
     Ok(json!({ "contents": [{ "uri": uri, "mimeType": mime, "text": text }] }))
 }
 
 /// The GUI map, compared with the PVsyst that runs: its version and the language
-/// of its windows (read from the open windows, else from `PVsyst.ini`).
-fn gui(paths: &Paths) -> Value {
+/// of its windows (read from the open windows, else from `PVsyst.ini`). `clase`
+/// picks one window of the map instead of the whole of it.
+fn gui(clase: Option<&str>, paths: &Paths) -> Result<Value> {
     let lectura = crate::prefs::idioma_gui::Lectura::actual();
     let codigo = lectura.codigo_o_nombre();
     let vivo = EnEjecucion {
         gui_exe: &paths.gui_exe,
         idioma_gui: codigo.as_deref(),
     };
-    crate::adapters::gui::catalogo::como_recurso(&vivo, paths.idioma)
+    match clase {
+        Some(clase) => como_recurso_de_ventana(clase, &vivo, paths.idioma),
+        None => Ok(como_recurso(&vivo, paths.idioma)),
+    }
 }
 
 /// Machine-readable coverage map: PVsyst area -> how the MCP covers it.
@@ -175,3 +203,7 @@ fn mapa_de_cobertura() -> Value {
         ]
     })
 }
+
+#[cfg(test)]
+#[path = "../../tests/unit/server/resources_tests.rs"]
+mod tests;

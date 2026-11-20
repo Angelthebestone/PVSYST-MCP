@@ -130,7 +130,7 @@ impl Server {
             "tools/call" => reply(self.ejecutar_herramienta(params, &SeguimientoTarea::inerte())),
             "resources/list" => reply(resources::list(self.paths.idioma)),
             "resources/read" => Some(self.read_resource(params, id)),
-            "resources/templates/list" => reply(json!({ "resourceTemplates": [] })),
+            "resources/templates/list" => reply(resources::templates(self.paths.idioma)),
             "prompts/list" => reply(recetas::listar_prompts(
                 self.paths.aproximaciones,
                 self.paths.idioma,
